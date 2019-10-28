@@ -2,7 +2,7 @@
 sidebar: sidebar
 permalink: task_nas_enable_windows_smb.html
 keywords:
-summary: <<Add a short description here>>
+summary: Modify storage VMs to enable SMB servers for serving data to Windows clients.
 ---
 
 = Enable NAS storage for Windows servers using SMB/CIFS
@@ -15,6 +15,49 @@ summary: <<Add a short description here>>
 :imagesdir: ./media/
 
 [.lead]
-// Insert lead paragraph here
+Modify storage VMs to enable SMB servers for serving data to Windows clients.
 
-// Begin adding content here
+This procedure enables an existing storage VM. It assumes that configuration details are available for any authentication or security services required in your environment.
+
+// add workflow diagram
+
+.Steps
+
+. Enable SMB on an existing VM: click *Storage > Storage VMs*, select a storage VM, click *Settings*, and then click image:icon_gear.gif[settings icon] in the SMB/CIFS tile.
+
+. Open the export policy of the storage VM root volume:
+
+** Click *Storage > Volumes*, select the root volume of the storage VM (which by default is _volume-name_root_), and then click on the policy that is displayed under *Export Policy*.
+
+//QuestIon: Is it necessary to create a new export policy for the root volume, or should we modify the default policy?
+
+** Click *Add* to add a rule.
+
+*** Client specification = `0.0.0.0/0`
+
+*** Access protocols = SMB/CIFS
+
+*** Access details = NTFS Read-Only
+
+. Configure DNS for host-name resolution:
+
+** Click *Storage > Storage VMs*, select the storage VM, click *Settings*, and then click image:icon_gear.gif[settings icon] in the DNS tile.
+
+** Switch to the DNS server and map the SMB server.
+You should have administrative access to your site's DNS server. If you do not have administrative access, ask the DNS administrator to perform this task.
+
+*** Create forward (A - Address record) and reverse (PTR - Pointer record) lookup entries to map the SMB server name to the IP address of the data LIF.
+
+*** If you use NetBIOS aliases, create an Alias canonical name (CNAME resource record) lookup entry to map each alias to the IP address of the SMB server's data LIF.
+
+. Configure name services as required
+
+** Click *Storage > Storage VMs*, select the storage VM, click *Settings*, and then click image:icon_gear.gif[settings icon] in the LDAP or NIS tile.
+
+** Include any changes in the name services switch file: click image:icon_pencil.gif[edit icon]in the Name Services Switch tile.
+
+. Configure Kerberos if required:
+
+** Click *Storage > Storage VMs*, select the storage VM, and then click *Settings*.
+
+** Click image:icon_arrow.gif[arrow icon] in the Kerberos tile and then click *Add*.
