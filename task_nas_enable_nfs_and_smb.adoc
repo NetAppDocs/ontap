@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar
 permalink: task_nas_enable_nfs_and_smb.html
-keywords:
-summary: <<Add a short description here>>
+keywords: ontap, netapp, provision nas storage, linux, windows, NFS, SMB/CIFS, SMB, CIFS, enable NFS, enable SMB, configure DNS, modify storage VM, configure DNS, configure name server, configure Kerberos, map user names
+summary: Modify storage VMs to enable NFS and SMB servers to serve data to Linux and Windows clients.
 ---
 
 = Enable NAS storage for both Windows and Linux using both NFS and SMB/CIFS
@@ -15,6 +15,50 @@ summary: <<Add a short description here>>
 :imagesdir: ./media/
 
 [.lead]
-// Insert lead paragraph here
+Modify storage VMs to enable NFS and SMB servers to serve data to Linux and Windows clients.
 
-// Begin adding content here
+This procedure enables an existing storage VM. It is assumed that configuration details are available for any authentication or security services required in your environment.
+
+image:workflow_nas_enable_nfs_and_smb.gif[workflow diagram for enabling NAS for both Linux and Windows servers using NFS and SMB]
+
+//Question: Is it necessary to create a new export policy for the root volume, or should we modify the default policy?
+
+.Steps
+
+. Enable NFS on an existing VM: click *Storage > Storage VMs*, select a storage VM, click *Settings*, and then click image:icon_gear.gif[settings icon] under *NFS*.
+
+. Enable SMB/CIFS on an existing VM: click image:icon_gear.gif[settings icon] under *SMB/CIFS".
+
+. Open the export policy of the storage VM root volume:
+
+.. Click *Storage > Volumes*, select the root volume of the storage VM (which by default is _volume-name_root_), and then click on the policy that is displayed under *Export Policy*.
+
+.. Click *Add* to add a rule.
+
+*** Client specification = `0.0.0.0/0`
+
+*** Access protocols = NFS
+
+*** Access details = NFS Read-Only
+
+. Configure DNS for host-name resolution:
+
+.. Click *Storage > Storage VMs*, select the storage VM, click *Settings*, and then click image:icon_gear.gif[settings icon] under *DNS*.
+
+.. When DNS configuration is complete, switch to the DNS server and map the SMB server.
+
+*** Create forward (A - Address record) and reverse (PTR - Pointer record) lookup entries to map the SMB server name to the IP address of the data network interface.
+
+*** If you use NetBIOS aliases, create an alias canonical name (CNAME resource record) lookup entry to map each alias to the IP address of the SMB server's data network interface.
+
+. Configure name services as required:
+
+.. Click *Storage > Storage VMs*, select the storage VM, click *Settings*, and then click image:icon_gear.gif[settings icon] for LDAP or NIS.
+
+.. Include any changes in the name services switch file: click image:icon_pencil.gif[edit icon] under *Name Services Switch*.
+
+. Configure Kerberos if required: click image:icon_arrow.gif[arrow icon] in the Kerberos tile and then click *Add*.
+
+. Map UNIX and Windows user names if required: click image:icon_arrow.gif[arrow icon] under *Name Mapping* and then click *Add*.
++
+You should use this procedure only if your site has Windows and UNIX user accounts that do not map implicitly, which is when the lowercase version of each Windows user name matches the UNIX user name. This procedure can be done using LDAP, NIS, or local users. If you have two sets of users that do not match, you should configure name mapping.

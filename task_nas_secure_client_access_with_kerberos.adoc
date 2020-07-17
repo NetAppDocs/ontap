@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar
 permalink: task_nas_secure_client_access_with_kerberos.html
-keywords: netapp, ontap, kerberos
-summary: <<Add a short description here>>
+keywords: netapp, ontap, kerberos, security, client access, group permissions, user permissions, UNIX permissions, name mapping, NAS client, storage access
+summary: Enable Kerberos to secure storage access for NAS clients.
 ---
 
 = Secure client access with Kerberos
@@ -15,6 +15,73 @@ summary: <<Add a short description here>>
 :imagesdir: ./media/
 
 [.lead]
-// Insert lead paragraph here
+Enable Kerberos to secure storage access for NAS clients.
 
-// Begin adding content here
+This procedure configures Kerberos on an existing storage VM enabled for link:task_nas_enable_linux_nfs.html[NFS] or link:task_nas_enable_windows_smb.html[SMB]. It is assumed that you have already configured DNS, NTP, and link:task_nas_provide_client_access_with_name_services.html[LDAP] on the storage system.
+
+image:workflow_nas_secure_client_access_with_kerberos.gif[Workflow for securing client access with Kerberos]
+
+//Can steps 1-3 be accomplished in SM.Next? I’m not seeing any way to do so.
+//I’m not sure how common this is in Kerberos deployments, but the Kerberos configuration and name mapping tasks are in different Settings sub-windows.
+
+.Steps
+
+. At the ONTAP command line, set UNIX permissions for the storage VM root volume.
+
+.. Display the relevant permissions on the storage VM root volume: `volume show -volume _root_vol_name_-fields user,group,unix-permissions`
++
+The root volume of the storage VM must have the following configuration:
++
+[cols=2,options="header"]
+|===
+| Name... | Setting...
+| UID | root or ID 0
+| GID | root or ID 0
+| UNIX permissions | 755
+|===
+
+.. If these values are not shown, use the `volume modify` command to update them.
+
+. Set user permissions for the storage VM root volume.
+
+.. Display the local UNIX users: `vserver services name-service unix-user show -vserver _vserver_name_`
++
+The storage VM should have the following UNIX users configured:
++
+[cols=3,options="header"]
+|===
+| User name | User ID | Primary group ID
+| nfs | 500 | 0
+| root | 0 | 0
+|===
++
+*Note:* The NFS user is not required if a Kerberos-UNIX name mapping exists for the SPN of the NFS client user; see step 5.
+
+.. If these values are not shown, use the `vserver services name-service unix-user modify` command to update them.
+
+. Set group permissions for the storage VM root volume.
+
+.. Display the local UNIX groups: `vserver services name-service unix-group show -vserver _vserver_name_`
++
+The storage VM should have the following UNIX groups configured:
++
+[cols=2,options="header"]
+|===
+| Group name | Group ID
+| daemon | 1
+| root | 0
+|===
+
+.. If these values are not shown, use the `vserver services name-service unix-group modify` command to update them.
+
+. Switch to System Manager and configure Kerberos: click *Storage > Storage VMs*, select the storage VM, click *Settings*, click image:icon_arrow.gif[arrow] under Kerberos, click *Add* under Kerberos Realm, and complete the following sections:
+
+.. Add Kerberos Realm: enter configuration details depending on KDC vendor.
+
+.. Add Network Interface to Realm: click *Add* and select a network interface.
+
+. If desired, add mappings from Kerberos principal names to local user names.
+
+.. Click *Storage > Storage VMs*, select the storage VM, click *Settings*, and then click image:icon_arrow.gif[arrow] under *Name Mapping*.
+
+.. Under *Kerberos to UNIX*, add patterns and replacements using regular expressions.
