@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar
 permalink: task_metrocluster_switchover_switchback.html
-keywords: switchover, switchback, switch over, switch back, metrocluster, maintenance, NVram mirroring, synchronize
-summary: You can switchover from one MetroCluster site to the other to perform maintenance or recover from an issue
+keywords: switchover, switchback, switch over, switch back, metrocluster, maintenance, NVram mirroring, synchronize, mediator, healing
+summary: You can switchover from one MetroCluster site to the other to perform maintenance or recover from an issue.
 ---
 
 = MetroCluster switchover and switchback
@@ -15,10 +15,32 @@ summary: You can switchover from one MetroCluster site to the other to perform m
 :imagesdir: ./media/
 
 [.lead]
+You can switch over control from one MetroCluster site to the other to perform maintenance or recover from an issue.
+// BURT 1323827, 5 OCT 2020, thomi, different approach for 9.8
 
-You can switchover from one MetroCluster site to the other to perform maintenance or recover from an issue.
+== Overview of switchover and switchback
+// BURT 1323827, 5 OCT 2020, thomi, added overview
+A switchover can occur in two instances:
+
+* *A planned switchover*
++
+This switchover is initiated by the system administrator using System Manager.  The planned switchover allows the system administrator to switch control so the data services of the remote cluster are handled by the local cluster.  This allows a system administrator at the remote cluster location to perform maintenance on the remote cluster.
+
+* *An unplanned switchover*
++
+This switchover is initiated automatically when a cluster detects that its partner cluster is down. The cluster must be repaired and brought online again.
+
+For both types of switchover procedures, the data servicing capability is returned to the cluster by using a _switchback_ process.
+
+//With ONTAP 9.7, you perform part of the process with classic System Manager (see <<Use System Manager 9.7 for switchover and switchback>>).
+
+//Starting with ONTAP 9.8, you can perform all the tasks using ONTAP System Manager (see <<Use System Manager 9.8 for switchover and switchback>>).
+
+== Use System Manager 9.7 for switchover and switchback
 
 .Steps
+
+. Log on to System Manager 9.7
 
 .	Click *(Return to classic version)*.
 
@@ -39,3 +61,43 @@ System Manager verifies whether a negotiated switchover is possible.
 .	Click *Switchover from Site B to Site A* to initiate the switchover process.
 
 .	Click *Switch to the new experience*.
+
+== Use System Manager 9.8 for switchover and switchback
+// BURT 1323827, 5 OCT 2020, thomi, different approach for 9.8
+
+
+=== Perform a planned switchover (ONTAP 9.8)
+
+.Steps
+
+. Log on to System Manager 9.8
+
+. Select *Dashboard*.  In the *MetroCluster* section, the two clusters are shown with a link.
+
+. In the local cluster (shown on the left), click image:icon_kabob.gif[kebab icon], and select *Take control of remote site*.
++
+After the switchover request is validated, control is transferred from the remote site to the local site, which performs data service requests for both clusters.
++
+The remote cluster reboots, but the storage components are not active, and the cluster does not service data requests.  It is now available for planned maintenance.
+
+NOTE: The remote cluster should not be used for data servicing until you preform a switchback performed.
+
+=== Perform a switchback (ONTAP 9.8)
+
+.Before you start
+
+Whether the remote cluster was down due to planned maintenance or due to a disaster, it should now be up and running and waiting for the switchback.
+
+.Steps
+
+. On the local cluster, log on to System Manager 9.8.
+
+. Select *Dashboard*. In the *MetroCluster* section, the two clusters are shown.
+
+. In the local cluster (shown on the left), click image:icon_kabob.gif[kebab icon], and select *Take back control*.
++
+The data is _healed_ first, to ensure data is synchronized and mirrored between both clusters.
+
+. When the data healing is complete, click image:icon_kabob.gif[kebab icon], and select *Initiate switchback*.
++
+When the switchback is complete, both clusters are active and servicing data requests.  Also, the data is being mirrored and synchronized between the clusters.
