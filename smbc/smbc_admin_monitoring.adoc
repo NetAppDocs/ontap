@@ -1,0 +1,120 @@
+---
+sidebar: smbc_sidebar
+permalink: smbc/smbc_admin_monitoring.html
+keywords:
+summary:
+---
+
+= Basic monitoring
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+There are several SM-BC components and operations you can monitor.
+
+=== ONTAP mediator
+
+During normal operation, the Mediator state should be connected. If it is in any other state, this might indicate an error condition. You can review the EMS messages to determine the error and appropriate corrective actions.
+
+|===
+|EMS Name |Description
+
+|sm.mediator.added
+|Mediator is added successfully
+|sm.mediator.removed
+|Mediator is removed successfully
+|sm.mediator.unusable
+|Mediator is unusable due to a corrupted mediator server
+|sm.mediator.misconfigured
+|Mediator is repurposed or the Mediator package is no longer installed on the Mediator server
+|sm.mediator.unreachable
+|Mediator is unreachable
+|sm.mediator.removed.force
+|Mediator is removed from the cluster using the "force" option
+|sm.mediator.cacert.expiring
+|Mediator certificate authority (CA) certificate is due to expire in 30 days or less
+|sm.mediator.serverc.expiring
+|Mediator server certificate is due to expire in 30 days or less
+|sm.mediator.clientc.expiring
+|Mediator client certificate is due to expire in 30 days or less
+|sm.mediator.cacert.expired
+|Mediator certificate authority (CA) certificate has expired
+|sm.mediator.serverc.expired
+|Mediator server certificate has expired
+|sm.mediator.clientc.expired
+|Mediator client certificate has expired
+|sm.mediator.in.quorum
+|All the SM-BC records are resynchronized with Mediator
+|===
+
+=== Planned failover operations
+
+You can monitor status and progress of a planned failover operation using the `snapmirror failover show` command. For example:
+
+....
+ClusterB::> snapmirror failover start -destination-path vs1:/cg/dcg1
+....
+
+Once the failover operation is complete, you can monitor the Synchronous SnapMirror protection status from the new destination cluster. For example:
+
+....
+ClusterA::> snapmirror show
+....
+
+=== Automatic unplanned failover operations
+
+During an unplanned automatic failover, you can monitor the status of the operation using the `snapmirror failover show` command. For example:
+
+....
+ClusterB::> snapmirror failover show -instance
+Start Time: 9/23/2020 22:03:29
+         Source Path: vs1:/cg/scg3
+    Destination Path: vs3:/cg/dcg3
+     Failover Status: completed
+        Error Reason:
+            End Time: 9/23/2020 22:03:30
+Primary Data Cluster: cluster-2
+Last Progress Update: -
+       Failover Type: unplanned
+  Error Reason codes: -
+....
+
+=== SM-BC availability
+
+You can check the availability of the SM-BC relationship using a series of commands, either on the primary cluster, the secondary cluster, or both.
+
+Commands you use include the `snapmirror mediator show` command on both the primary and secondary cluster to check the connection and quorum status, the `snapmirror show` command, and the `volume show` command. For example:
+
+....
+SMBC_A::*> snapmirror mediator show
+Mediator Address Peer Cluster     Connection Status Quorum Status
+---------------- ---------------- ----------------- -------------
+10.236.172.86    SMBC_B           connected         true
+
+SMBC_B::*> snapmirror mediator show
+Mediator Address Peer Cluster     Connection Status Quorum Status
+---------------- ---------------- ----------------- -------------
+10.236.172.86    SMBC_A           connected         true
+
+SMBC_B::*> snapmirror show -expand
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vs0:/cg/cg1 XDP  vs1:/cg/cg1_dp Snapmirrored InSync  -         true    -
+vs0:vol1    XDP  vs1:vol1_dp  Snapmirrored InSync    -         true    -
+2 entries were displayed.
+
+SMBC_A::*> volume show -fields is-smbc-master,smbc-consensus,is-smbc-failover-capable -volume vol1
+vserver volume is-smbc-master is-smbc-failover-capable smbc-consensus
+------- ------ -------------- ------------------------ --------------
+vs0     vol1   true           false                    Consensus
+
+SMBC_B::*> volume show -fields is-smbc-master,smbc-consensus,is-smbc-failover-capable -volume vol1_dp
+vserver volume  is-smbc-master is-smbc-failover-capable smbc-consensus
+------- ------- -------------- ------------------------ --------------
+vs1     vol1_dp false          true                     No-consensus
+....
