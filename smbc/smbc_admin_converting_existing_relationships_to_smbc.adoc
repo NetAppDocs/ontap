@@ -1,0 +1,57 @@
+---
+sidebar: smbc_sidebar
+permalink: smbc/smbc_admin_converting_existing_relationships_to_smbc.html
+keywords:
+summary:
+---
+
+= Converting existing relationships to SM-BC relationships 
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+You can convert an existing zero recovery point protection (zero RPO) Synchronous SnapMirror relationship to an SM-BC zero RTO Synchronous SnapMirror consistency group relationship.
+
+.Before you begin
+
+* A zero RPO Synchronous SnapMirror relationship exists between the primary and secondary
+* All LUNs on the destination volume are unmapped before the zero RTO SnapMirror relationship is created
+
+.About this task
+
+* You must be a cluster and SVM administrator on the source and destination.
+* You cannot convert zero RPO to zero RTO sync by changing the SnapMirror policy.
+* If existing LUNs on the secondary volume are mapped, `snapmirror create` with AutomatedFailover policy triggers an error.
++
+You must ensure the LUNs are unmapped before issuing the `snapmirror create` command.
+
+.Steps
+
+. Quiesce each of the zero RPO synchronous relationships:
++
+`destination::>snapmirror quiesce -destination-path vs1_dst:vol1`
++
+`destination::>snapmirror quiesce -destination-path vs1_dst:vol2`
+
+. Delete each of the zero RPO synchronous relationships:
++
+`destination::>snapmirror delete -destination-path vs1_dst:vol1`
++
+`destination::>snapmirror delete -destination-path vs1_dst:vol2`
+
+. Release the source SnapMirror relationship but retain the common Snapshot copies:
++
+`source::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol1`
++
+`source::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol2`
+
+. Create a group zero RTO Synchronous Snapmirror relationship:
++
+`destination::> snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol1:@vol1,vol2:@vol2 -policy AutomatedFailover`
+
+. Resynchronize the zero RTO consistency group:
++
+`destination::> snapmirror resync -destination-path vs1_dst:/cg/cg_dst`
