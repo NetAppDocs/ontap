@@ -1,0 +1,42 @@
+---
+sidebar: smbc_sidebar
+permalink: smbc/smbc_admin_add_and_remove_volumes_in_consistency_groups.html
+keywords:
+summary:
+---
+
+= Adding and removing volumes in a consistency group
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+If you want to change the composition of the consistency group by adding or removing a volume, you must first delete the original relationship and then create the consistency group again with the new composition.
+
+.About this task
+
+* The composition change is not allowed when the consistency group is in the “InSync” state.
+* The destination volume should be of type DP.
+
+[Note]
+The new volume you add to expand the consistency group must have a pair of common Snapshot copies between the source and destination volumes.
+
+.Steps
+
+. Delete the zero RTO consistency group relationship:
++
+`destination::>snapmirror delete -destination-path vs1_dst:/cg/cg_dst`
+
+. Release the source side SnapMirror relationship and retain common Snapshot copies:
++
+`source::>snapmirror release -relationship-info-only true -destination-path vs1_dst:/cg/cg_dst`
+
+. Create the new consistency group with the new composition:
++
+`destination::> snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol_src2:@vol_dst2`
+
+. Resynchronize the zero RTO consistency group relationship to ensure it is in sync:
++
+`destination::> snapmirror resync -destination-path vs1_dst:/cg/cg_dst`
