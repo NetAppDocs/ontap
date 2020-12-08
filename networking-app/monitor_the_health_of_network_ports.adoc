@@ -1,0 +1,78 @@
+---
+sidebar: networking-app_sidebar
+permalink: networking-app/monitor_the_health_of_network_ports.html
+keywords: monitor, monitoring, manage, managing, automatic, health, port
+summary: Automatic health monitoring and a set of health monitors help you identify network ports that might not be suitable for hosting LIFs
+---
+
+= Monitor the health of network ports
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:43.862744
+//
+
+[.lead]
+ONTAP management of network ports includes automatic health monitoring and a set of health monitors to help you identify network ports that might not be suitable for hosting LIFs.
+
+*About this task*
+
+If a health monitor determines that a network port is unhealthy, it warns administrators through an EMS message or marks the port as degraded. ONTAP avoids hosting LIFs on degraded network ports if there are healthy alternative failover targets for that LIF. A port can become degraded because of a soft failure event, such as link flapping (links bouncing quickly between up and down) or network partitioning:
+
+* Network ports in the cluster IPspace are marked as degraded when they experience link flapping or loss of layer 2 (L2) reachability to other network ports in the broadcast domain.
+* Network ports in non-cluster IPspaces are marked as degraded when they experience link flapping.
+
+You must be aware of the following behaviors of a degraded port:
+
+* A degraded port cannot be included in a VLAN or an interface group.
++
+If a member port of an interface group is marked as degraded, but the interface group is still marked as healthy, LIFs can be hosted on that interface group.
+
+* LIFs are automatically migrated from degraded ports to healthy ports.
+* During a failover event, a degraded port is not considered as the failover target. If no healthy ports are available, degraded ports host LIFs according to the normal failover policy.
+* You cannot create, migrate, or revert a LIF to a degraded port.
++
+You can modify the ignore-health-status setting of the network port to true. You can then host a LIF on the healthy ports.
+
+*Steps*
+
+. Log in to the advanced privilege mode:
++
+....
+set -privilege advanced
+....
+
+. Check which health monitors are enabled for monitoring network port health:
++
+....
+network options port-health-monitor show
+....
++
+The health status of a port is determined by the value of health monitors.
++
+The following health monitors are available and enabled by default in ONTAP:
++
+* Link-flapping health monitor: Monitors link flapping
++
+If a port has link flapping more than once in five minutes, this port is marked as degraded.
+* L2 reachability health monitor: Monitors whether all ports configured in the same broadcast domain have L2 reachability to each other
++
+This health monitor reports L2 reachability issues in all IPspaces; however, it marks only the ports in the cluster IPspace as degraded.
+* CRC monitor: Monitors the CRC statistics on the ports
++
+This health monitor does not mark a port as degraded but generates an EMS message when a very high CRC failure rate is observed.
+
+. Enable or disable any of the health monitors for an IPspace as desired by using the network options port-health-monitor modify command.
+. View the detailed health of a port:
++
+....
+network port show -health
+....
+
+The command output displays the health status of the port, ignore health status setting, and list of reasons the port is marked as degraded. A port health status can be healthy or degraded. If the ignore health status setting is true, it indicates that the port health status has been modified from degraded to healthy by the administrator. If the ignore health status setting is false, the port health status is determined automatically by the system.
