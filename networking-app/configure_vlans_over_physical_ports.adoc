@@ -1,0 +1,91 @@
+---
+sidebar: networking-app_sidebar
+permalink: networking-app/configure_vlans_over_physical_ports.html
+keywords: configure, configuration, configuring, setup, setting, set, up, vlan, virtual, local, area, network, physical, port, logical, segmentation
+summary: VLANs provide logical segmentation of networks
+---
+
+= Configure VLANs over physical ports
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:43.766635
+//
+
+[.lead]
+VLANs provide logical segmentation of networks by creating separate broadcast domains that are defined on a switch port basis as opposed to the traditional broadcast domains, defined on physical boundaries. A VLAN can span multiple physical network segments. The end-stations belonging to a VLAN are related by function or application.
+
+For example, end-stations in a VLAN might be grouped by departments, such as engineering and accounting, or by projects, such as release1 and release2. Because physical proximity of the end- stations is not essential in a VLAN, you can disperse the end-stations geographically and still contain the broadcast domain in a switched network.
+
+You can manage VLANs by creating, deleting, or displaying information about them.
+
+[NOTE]
+You should not create a VLAN on a network interface with the same identifier as the native VLAN of the switch. For example, if the network interface e0b is on native VLAN 10, you should not create a VLAN e0b-10 on that interface.
+
+=== Create a VLAN
+
+You can create a VLAN for maintaining separate broadcast domains within the same network domain by using the `network port vlan create` command.
+
+*Before you begin*
+
+Your network administrator must have confirmed that the following requirements have been met:
+
+* The switches deployed in the network must either comply with IEEE 802.1Q standards or have a vendor-specific implementation of VLANs.
+* For supporting multiple VLANs, an end-station must be statically configured to belong to one or more VLANs.
+* The VLAN is not attached to a port hosting a cluster LIF.
+* The VLAN is not attached to ports assigned to the Cluster IPspace.
+* The VLAN is not created on an interface group port that contains no member ports.
+
+*About this task*
+
+In certain circumstances, if you want to create the VLAN port on a degraded port without correcting the hardware issue or any software misconfiguration, then you can set the `-ignore- health-status` parameter of the `network port modify` command as true.
+
+Creating a VLAN attaches the VLAN to the network port on a specified node in a cluster.
+
+When you configure a VLAN over a port for the first time, the port might go down, resulting in a temporary disconnection of the network. Subsequent VLAN additions to the same port do not affect the port state.
+
+Note: You should not create a VLAN on a network interface with the same identifier as the native VLAN of the switch. For example, if the network interface e0b is on native VLAN 10, you should not create a VLAN e0b-10 on that interface.
+
+*Step*
+
+. Use the network port vlan create command to create a VLAN.
+
+. You must specify either the vlan-name or the port and vlan-id options when creating a VLAN. The VLAN name is a combination of the name of the port (or interface group) and the network switch VLAN identifier, with a hyphen in between. For example, e0c-24 and e1c-80 are valid VLAN names.
++
+The following example shows how to create a VLAN e1c-80 attached to network port e1c on the node cluster-1-01:
++
+....
+network port vlan create -node cluster-1-01 -vlan-name e1c-80
+....
+
+. VLANs are automatically placed into appropriate broadcast domains about one minute after their creation.
+
+For more information about this command, see the man page.
+
+=== Delete a VLAN
+
+You might have to delete a VLAN before removing a NIC from its slot. When you delete a VLAN, it is automatically removed from all of the failover rules and groups that use it.
+
+*Before you begin*
+
+There must be no LIFs associated with the VLAN.
+
+*About this task*
+
+Deletion of the last VLAN from a port might cause a temporary disconnection of the network from the port.
+
+*Step*
+
+Use the network port vlan delete command to delete a VLAN.
+
+The following example shows how to delete VLAN e1c-80 from network port e1c on the node cluster-1-01:
+
+....
+network port vlan delete -node cluster-1-01 -vlan-name e1c-80
+....
