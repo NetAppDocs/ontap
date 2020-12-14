@@ -1,0 +1,154 @@
+---
+sidebar: networking-app_sidebar
+permalink: networking-app/configure_snmpv3_users_in_a_cluster.html
+keywords: configure, configuration, configuring, setup, setting, set, up, snmp, snmpv3, users, user, cluster, security, secure
+summary: Configure an SNMPv3 user to run the SNMP utilities from the SNMP manager
+---
+
+= Configure SNMPv3 users in a cluster
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-30 12:43:36.956108
+//
+
+[.lead]
+SNMPv3 is a secure protocol when compared to SNMPv1 and SNMPv2c. To use SNMPv3, you must configure an SNMPv3 user to run the SNMP utilities from the SNMP manager.
+
+*Step*
+
+Use the "security login create command" to create an SNMPv3 user.
+
+You are prompted to provide the following information:
+
+* Engine ID: Default and recommended value is local EngineID
+* Authentication protocol
+* Authentication password
+* Privacy protocol
+* Privacy protocol password
+
+*Result*
+
+The SNMPv3 user can log in from the SNMP manager by using the user name and password and run the SNMP utility commands.
+
+=== SNMPv3 security parameters
+
+SNMPv3 includes an authentication feature that, when selected, requires users to enter their names, an authentication protocol, an authentication key, and their desired security level when invoking a command.
+
+The following table lists the SNMPv3 security parameters :
+
+[cols="20,40,40"]
+|===
+|Parameter |Command-line option |Description
+
+|engineID
+|-e EngineID
+|Engine ID of the SNMP agent. Default value is local EngineID (recommended).
+|securityName
+|-u Name
+|User name must not exceed 32 characters.
+|authProtocol
+|-a {none | MD5 | SHA | SHA-256}
+|Authentication type can be none, MD5, SHA, or SHA-256.
+|authKey
+|-A PASSPHRASE
+|Passphrase with a minimum of eight characters.
+|securityLevel
+|-l {authNoPriv | AuthPriv | noAuthNoPriv}
+|Security level can be Authentication, No Privacy; Authentication, Privacy; or no Authentication, no Privacy.
+|privProtocol
+|-x { none | des | aes128}
+|Privacy protocol can be none, des, or aes128
+|privPassword
+|-X password
+|Password with a minimum of eight characters.
+|===
+
+=== Examples for different security levels
+
+This example shows how an SNMPv3 user created with different security levels can use the SNMP client-side commands, such as snmpwalk, to query the cluster objects.
+
+For better performance, you should retrieve all objects in a table rather than a single object or a few objects from the table.
+
+[NOTE]
+You must use snmpwalk 5.3.1 or later when the authentication protocol is SHA.
+
+*Security level: authPriv*
+
+The following output shows the creation of an SNMPv3 user with the authPriv security level.
+
+....
+security login create -username snmpv3user -application snmp -authmethod usm
+Please enter the authoritative entity's EngineID [local EngineID]:
+Please choose an authentication protocol (none, md5, sha) [none]:sha
+Please enter authentication protocol password (minimum 8 characters long):
+Please enter authentication protocol password again:
+Please choose a privacy protocol (none, des) [none]: des
+Please enter privacy protocol password (minimum 8 characters long):
+Please enter privacy protocol password again:
+....
+
+The following output shows the SNMPv3 user running the `snmpwalk` command:
+
+....
+$ snmpwalk -v 3 -u snmpv3user -a SHA -A password1! -x DES -X password1! -l authPriv
+192.0.2.62 .1.3.6.1.4.1.789.1.5.8.1.2
+enterprises.789.1.5.8.1.2.1028 = "vol0"
+enterprises.789.1.5.8.1.2.1032 = "vol0"
+enterprises.789.1.5.8.1.2.1038 = "root_vs0"
+enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
+enterprises.789.1.5.8.1.2.1064 = "vol1"
+....
+
+*Security level: authNoPriv*
+
+The following output shows the creation of an SNMPv3 user with the authNoPriv security level.
+
+....
+security login create -username snmpv3user1 -application snmp -authmethod usm -role admin
+Please enter the authoritative entity's EngineID [local EngineID]:
+Please choose an authentication protocol (none, md5, sha) [none]: md5
+Please enter authentication protocol password (minimum 8 characters long):
+Please enter authentication protocol password again:
+Please choose a privacy protocol (none, des) [none]: none
+....
+
+The following output shows the SNMPv3 user running the snmpwalk command:
+
+....
+$ snmpwalk -v 3 -u snmpv3user1 -a MD5 -A password1!-l authNoPriv
+192.0.2.62 . 1.3.6.1.4.1.789.1.5.8.1.2
+enterprises.789.1.5.8.1.2.1028 = "vol0"
+enterprises.789.1.5.8.1.2.1032 = "vol0"
+enterprises.789.1.5.8.1.2.1038 = "root_vs0"
+enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
+enterprises.789.1.5.8.1.2.1064 = "vol1"
+....
+
+*Security level: noAuthNoPriv*
+
+The following output shows the creation of an SNMPv3 user with the noAuthNoPriv security level.
+
+....
+security login create -username snmpv3user2 -application snmp -authmethod usm -role admin
+Please enter the authoritative entity's EngineID [local EngineID]:
+Please choose an authentication protocol (none, md5, sha) [none]: none
+....
+
+The following output shows the SNMPv3 user running the `snmpwalk` command:
+
+....
+$ snmpwalk -v 3 -u snmpv3user2 -l noAuthNoPriv
+192.0.2.62 .1.3.6.1.4.1.789.1.5.8.1.2
+enterprises.789.1.5.8.1.2.1028 = "vol0"
+enterprises.789.1.5.8.1.2.1032 = "vol0"
+enterprises.789.1.5.8.1.2.1038 = "root_vs0"
+enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
+enterprises.789.1.5.8.1.2.1064 = "vol1"
+....
