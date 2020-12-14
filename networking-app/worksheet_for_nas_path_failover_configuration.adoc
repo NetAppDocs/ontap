@@ -1,0 +1,320 @@
+---
+sidebar: networking-app_sidebar
+permalink: networking-app/worksheet_for_nas_path_failover_configuration.html
+keywords: IPspace configuration, broadcast domain configuration, subnet configuration, SVM configuration, LIF configuration, DNS configuration, dynamic DNS configuration
+summary: Complete all sections of the worksheet before configuring NAS path failover
+---
+
+= Worksheet for NAS path failover configuration
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:43.336619
+//
+
+[.lead]
+You should complete all sections of the worksheet before configuring NAS path failover.
+
+=== IPspace configuration
+
+You can use an IPspace to create a distinct IP address space for each SVM in a cluster. Doing so enables clients in administratively separate network domains to access cluster data while using overlapping IP addresses from the same IP address subnet range.
+
+[cols="40,20,40"]
+|===
+|Information |Required? |Your values
+
+|IPspace name
+The unique identifier of the IPspace.
+|Yes
+|
+|===
+
+=== Broadcast domain configuration
+
+A broadcast domain groups ports that belong in the same Layer 2 network and sets the MTU for the broadcast domain ports.
+
+Broadcast domains are assigned to an IPspace. An IPspace can contain one or more broadcast domains.
+
+[NOTE]
+The port to which a LIF fails over must be a member of the failover group for the LIF. For each broadcast domain created by ONTAP, a failover group with the same name is also created that contains all the ports in the broadcast domain.
+
+[cols="40,20,40"]
+|===
+|Information |Required? |Your values
+
+|IPspace name
+The IPspace to which the broadcast domain is assigned.
+
+This IPspace must exist.
+|Yes
+|
+|Broadcast domain name
+The name of the broadcast domain.
+
+This name must be unique in the IPspace.
+|Yes
+|
+|MTU
+The maximum transmission unit value for the broadcast domain, either *1500* or *9000*.
+
+The MTU value is applied to all ports in the broadcast domain and to any ports that are later added to the broadcast domain.
+
+The MTU value must match all the devices connected to that network except for e0M port handling management traffic.
+|Yes
+|
+|Ports
+Ports are assigned to broadcast domains based on reachability. After port assignment is complete, check reachability by running the `network port reachability show` command.
+
+These ports can be physical ports, VLANs, or interface groups.
+|Yes
+|
+|===
+
+=== Subnet configuration
+
+A subnet contains pools of IP addresses and a default gateway that can be assigned to LIFs used by SVMs residing in the IPspace.
+
+* When creating a LIF on an SVM, you can specify the name of the subnet instead of supplying an IP address and a subnet.
+* Since a subnet can be configured with a default gateway, you do not have to create the default gateway in a separate step when creating an SVM.
+* A broadcast domain can contain one or more subnets.
+* You can configure SVM LIFs that are on different subnets by associating more than one subnet with the IPspace's broadcast domain.
+* Each subnet must contain IP addresses that do not overlap with IP addresses assigned to other subnets in the same IPspace.
+* You can assign specific IP addresses to SVM data LIFs and create a default gateway for the SVM instead of using a subnet.
+
+[cols="40,20,40"]
+|===
+|Information |Required? |Your values
+
+|IPspace name
+The IPspace to which the subnet will be assigned.
+
+This IPspace must exist.
+|Yes
+|
+|Subnet name
+The name of the subnet.
+
+This name must be unique in the IPspace.
+|Yes
+|
+|Broadcast domain name
+The broadcast domain to which the subnet will be assigned.
+
+This broadcast domain must reside in the specified IPspace.
+|Yes
+|
+|Subnet name and mask
+The subnet and mask in which the IP addresses reside.
+|Yes
+|
+|Gateway
+You can specify a default gateway for the subnet.
+
+If you do not assign a gateway when you create the subnet, you can assign one later.
+|No
+|
+|IP address ranges
+You can specify a range of IP addresses or specific IP addresses.
+
+For example, you can specify a range such as:
+
+`192.168.1.1-192.168.1.100, 192.168.1.112, 192.168.1.145`
+
+If you do not specify an IP address range, the entire range of IP addresses in the specified subnet are available to assign to LIFs.
+|No
+|
+|Force update of LIF associations
+Specifies whether to force the update of existing LIF associations.
+
+By default, subnet creation fails if any service processor interfaces or network interfaces are using the IP addresses in the ranges provided.
+
+Using this parameter associates any manually addressed interfaces with the subnet and allows the command to succeed.
+|No
+|
+|===
+
+=== SVM configuration
+
+You use SVMs to serve data to clients and hosts.
+
+The values you record are for creating a default data SVM. If you are creating a MetroCluster source SVM, see the link:https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-mcc-inst-cnfg-fabric/home.html[Fabric-attached MetroCluster Installation and Configuration Guide^] or the link:https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-mcc-inst-cnfg-stretch/home.html[Stretch MetroCluster Installation and Configuration Guide^].
+
+[cols="40,20,40"]
+|===
+|Information |Required? |Your values
+
+|SVM name
+The fully qualified domain name (FQDN) of the SVM.
+
+This name must be unique across cluster leagues.
+|Yes
+|
+|Root volume name
+The name of the SVM root volume.
+|Yes
+|
+|Aggregate name
+The name of the aggregate that holds the SVM root volume.
+
+This aggregate must exist.
+|Yes
+|
+|Security style
+The security style for the SVM root volume.
+
+Possible values are *ntfs*, *unix*, and *mixed*.
+|Yes
+|
+|IPspace name
+The IPspace to which the SVM is assigned.
+
+This IPspace must exist.
+|No
+|
+|SVM language setting
+The default language to use for the SVM and its volumes.
+
+If you do not specify a default language, the default SVM language is set to *C.UTF-8*.
+
+The SVM language setting determines the character set used to display file names and data for all NAS volumes in the SVM.
+
+You can modify The language after the SVM is created.
+|No
+|
+|===
+
+=== LIF configuration
+
+An SVM serves data to clients and hosts through one or more network logical interfaces (LIFs).
+
+[cols="40,20,40"]
+|===
+|Information |Required? |Your values
+
+|SVM name
+The name of the SVM for the LIF.
+|Yes
+|
+|LIF name
+The name of the LIF.
+
+You can assign multiple data LIFs per node, and you can assign LIFs to any node in the cluster, provided that the node has available data ports.
+
+To provide redundancy, you should create at least two data LIFs for each data subnet, and the LIFs assigned to a particular subnet should be assigned home ports on different nodes.
+
+*Important:* If you are configuring a SMB server to host Hyper-V or SQL Server over SMB for nondisruptive operation solutions, the SVM must have at least one data LIF on every node in the cluster.
+|Yes
+|
+|Service policy
+Service policy for the LIF.
+
+The service policy defines which network services can use the LIF. Built-in services and service policies are available for managing data and management traffic on both data and system SVMs.
+|Yes
+
+|
+|Allowed protocols
+IP-based LIFs do not require allowed protocols, use the service policy row instead.
+
+Specify allowed protocols for SAN LIFs on FibreChannel ports. These are the protocols that can use that LIF. The protocols that use the LIF cannot be modified after the LIF is created. You should specify all protocols when you configure the LIF.
+|No
+|
+|Home node
+The node to which the LIF returns when the LIF is reverted to its home port.
+
+You should record a home node for each data LIF.
+|Yes
+|
+|Home port or broadcast domain
+Chose one of the following:
+
+*Port*: Specify the port to which the logical interface returns when the LIF is reverted to its home port. This is only done for the first LIF in the subnet of an IPspace, otherwise it is not required.
+
+*Broadcast Domain*: Specify the broadcast domain, and the system will select the appropriate port to which the logical interface returns when the LIF is reverted to its home port.
+|Yes
+|
+|Subnet name
+The subnet to assign to the SVM.
+
+All data LIFs used to create continuously available SMB connections to application servers must be on the same subnet.
+|Yes (if using a subnet)
+|
+|===
+
+=== DNS configuration
+
+You must configure DNS on the SVM before creating an NFS or SMB server.
+
+[cols="40,20,40"]
+|===
+|Information |Required? |Your values
+
+|SVM name
+The name of the SVM on which you want to create an NFS or SMB server.
+|Yes
+|
+|DNS domain name
+A list of domain names to append to a host name when performing host- to-IP name resolution.
+
+List the local domain first, followed by the domain names for which DNS queries are most often made.
+|Yes
+|
+|IP addresses of the DNS servers
+List of IP addresses for the DNS servers that will provide name resolution for the NFS or SMB server.
+
+The listed DNS servers must contain the service location records (SRV) needed to locate the Active Directory LDAP servers and domain controllers for the domain that the SMB server will join.
+
+The SRV record is used to map the name of a service to the DNS computer name of a server that offers that service. SMB server creation fails if ONTAP cannot obtain the service location records through local DNS queries.
+
+The simplest way to ensure that ONTAP can locate the Active Directory SRV records is to configure Active Directory-integrated DNS servers as the SVM DNS servers.
+
+You can use non-Active Directory-integrated DNS servers provided that the DNS administrator has manually added the SRV records to the DNS zone that contains information about the Active Directory domain controllers.
+
+For information about the Active Directory-integrated SRV records, see the topic link:http://technet.microsoft.com/library/cc759550(WS.10).aspx[How DNS Support for Active Directory Works on Microsoft TechNet^].
+
+|Yes
+|
+|===
+
+=== Dynamic DNS configuration
+
+Before you can use dynamic DNS to automatically add DNS entries to your Active Directory- integrated DNS servers, you must configure dynamic DNS (DDNS) on the SVM.
+
+DNS records are created for every data LIF on the SVM. By creating multiple data LIFS on the SVM, you can load-balance client connections to the assigned data IP addresses. DNS load balances connections that are made using the host name to the assigned IP addresses in a round- robin fashion.
+
+[cols="40,20,40"]
+|===
+|Information |Required? |Your values
+
+|SVM name
+The SVM on which you want to create an NFS or SMB server.
+|Yes
+|
+|Whether to use DDNS
+Specifies whether to use DDNS.
+
+The DNS servers configured on the SVM must support DDNS. By default, DDNS is disabled.
+|Yes
+|
+|Whether to use secure DDNS
+Secure DDNS is supported only with Active Directory-integrated DNS.
+
+If your Active Directory-integrated DNS allows only secure DDNS updates, the value for this parameter must be true.
+
+By default, secure DDNS is disabled.
+
+Secure DDNS can be enabled only after a SMB server or an Active Directory account has been created for the SVM.
+|No
+|
+|FQDN of the DNS domain
+The FQDN of the DNS domain.
+
+You must use the same domain name configured for DNS name services on the SVM.
+|No
+|
+|===
