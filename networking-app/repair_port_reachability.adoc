@@ -1,0 +1,138 @@
+---
+sidebar: networking-app_sidebar
+permalink: networking-app/repair_port_reachability.html
+keywords: port, reachability, repair, fix, error, switch, configuration, cable, cabling, wiring, wire, wired, re-cabled, layer 2
+summary: If a port is re-cabled, or the switch configuration changes, a port might need to be repaired into a different, new or existing, broadcast domain
+---
+
+= Repair port reachability
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:43.430554
+//
+
+[.lead]
+Broadcast domains are automatically created. However, if a port is recabled, or the switch configuration changes, a port might need to be repaired into a different broadcast domain (new or existing).
+
+*Before you begin*
+
+You must be a cluster administrator to perform this task.
+
+*About this task*
+
+A command is available to automatically repair the broadcast domain configuration for a port based on the layer 2 reachability detected by ONTAP.
+
+*Steps*
+
+. Check your switch configuration and cabling.
+. Check the reachability of the port:
++
+`network port reachability show -detail -node -port`
++
+The command output contains reachability results.
+
+. Use the following decision tree and table to understand the reachability results and determine what, if anything, to do next.
++
+image:ontap_nm_image1.png[Repair reachability decision tree]
+
+[cols="30,70"]
+|===
+|Reachability-status |Description
+
+|ok
+|The port has layer 2 reachability to its assigned broadcast domain.
+If the reachability-status is "ok", but there are "unexpected ports", consider merging one or more broadcast domains. For more information, see the following _Unexpected ports_ row.
+
+If the reachability-status is "ok", but there are "unreachable ports", consider splitting one or more broadcast domains. For more information, see the following _Unreachable ports_ row.
+
+If the reachability-status is "ok", and there are no unexpected or unreachable ports, your configuration is correct.
+|Unexpected ports
+|The port has layer 2 reachability to its assigned broadcast domain; however, it also has layer 2 reachability to at least one other broadcast domain.
+
+Examine the physical connectivity and switch configuration to determine if it is incorrect or if the port’s assigned broadcast domain needs to be merged with one or more broadcast domains.
+
+For more information, see link:merge_broadcast_domains.html[Merge broadcast domains].
+|Unreachable ports
+|If a single broadcast domain has become partitioned into two different reachability sets, you can split a broadcast domain to synchronize the ONTAP configuration with the physical network topology.
+
+Typically, the list of unreachable ports defines the set of ports that should be split into another broadcast domain after you have verified that the physical and switch configuration is accurate.
+
+For more information, see link:split_broadcast_domains.html[Split broadcast domains].
+|misconfigured-reachability
+|The port does not have layer 2 reachability to its assigned broadcast domain; however, the port does have layer 2 reachability to a different broadcast domain.
+
+You can repair the port reachability. When you run the following command, the system will assign the port to the broadcast domain to which it has reachability:
+
+`network port reachability repair -node -port`
+|no-reachability
+|The port does not have layer 2 reachability to any existing broadcast domain.
+
+You can repair the port reachability. When you run the following command, the system will assign the port to a new automatically created broadcast domain in the Default IPspace:
+
+`network port reachability repair -node -port`
+|multi-domain-reachability
+|The port has layer 2 reachability to its assigned broadcast domain; however, it also has layer 2 reachability to at least one other broadcast domain.
+
+Examine the physical connectivity and switch configuration to determine if it is incorrect or if the port’s assigned broadcast domain needs to be merged with one or more broadcast domains.
+
+For more information, see link:merge_broadcast_domains.html[Merge broadcast domains].
+|unknown
+|If the reachability-status is "unknown", then wait a few minutes and try the command again.
+|===
+
+After you repair a port, check for displaced LIFs and VLANs. If the port was part of an interface group, you also need to understand what happened to that interface group.
+
+*LIFs*
+
+When a port is repaired and moved into a different broadcast domain, any LIFs that were configured on the repaired port will be automatically assigned a new home port. That home port is selected from the same broadcast domain on the same node, if possible. Alternatively, a home port from another node is selected, or, if no suitable home ports exist, the home port will be cleared.
+
+If a LIF’s home port is moved to another node, or is cleared, then the LIF is considered to have been "displaced". You can view these displaced LIFs with the following command:
+
+`displaced-interface show`
+
+If there are any displaced LIFs, you must either:
+
+* Restore the home of the displaced LIF:
++
+`displaced-interface restore`
+
+* Set the home of the LIF manually:
++
+`network interface modify -home-port -home-node`
+
+* Remove the entry from the "displaced-interface" table if you are satisfied with the LIF’s currently configured home:
++
+`displaced-interface delete`
+
+*VLANs*
+
+If the repaired port had VLANs, those VLANs are automatically deleted but are also recorded as having been "displaced". You can view these displaced VLANs:
+
+`displaced-vlans show`
+
+If there are any displaced VLANs, you must either:
+
+* Restore the VLANs to another port:
++
+`displaced-vlans restore`
+
+* Remove the entry from the "displaced-vlans" table:
++
+`displaced-vlans delete`
+
+*Interface groups*
+
+If the repaired port was part of an interface group, it is removed from that interface group. If it was the only member port assigned to the interface group, the interface group itself is removed.
+
+*Related topics:*
+
+link:verify_your_network_configuration_after_upgrading.html[Verify your network configuration after upgrading]
+
+link:monitor_the_reachability_of_network_ports.html[Monitor the reachability of network ports]
