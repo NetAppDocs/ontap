@@ -25,6 +25,8 @@ The new volume you add to expand the consistency group must have a pair of commo
 
 .Steps
 
+This procedure assumes that there are two volume mappings: vol_src1 <--> vol_dst1 and vol_src2 <--> vol_dst2, in a consistency group relationship between the end points vs1_src:/cg/cg_src and vs1_dst:/cg/cg_dst.
+
 . Verify that a common Snapshot copy exists between the source and destination volumes on both the source and destination cluster:
 +
 `source::>snapshot show -vserver vs1_src -volume vol_src3 -snapshot snapmirror*`
@@ -33,7 +35,7 @@ The new volume you add to expand the consistency group must have a pair of commo
 
 . If no common Snapshot copy exists, create and initialize a FlexVol SnapMirror relationship:
 +
-`Destination::> snapmirror initialize -source-path vs1_src:vol_src3 -destination-path vs1_dst:vol_dst3`
+`destination::>snapmirror initialize -source-path vs1_src:vol_src3 -destination-path vs1_dst:vol_dst2`
 
 . Delete the zero RTO consistency group relationship:
 +
@@ -43,12 +45,25 @@ The new volume you add to expand the consistency group must have a pair of commo
 +
 `source::>snapmirror release -relationship-info-only true -destination-path vs1_dst:vol_dst3`
 
+. Unmap the LUNs and delete the existing consistency group relationship:
++
+`destination::>lun mapping delete -vserver vs1_dst -path <lun_path> -igroup <igroup_name>`
+NOTE: The destination LUNs are unmapped, while the LUNs on the primary copy continue to serve the host I/O.
++
+`destination::>snapmirror delete -destination-path vs1_dst:/cg/cg_dst`
++
+`source::>snapmirror release -destination-path vs1_dst:/cg/cg_dst -relationship-info-only true`
+
 . Create the new consistency group with the new composition:
 +
 `destination::>snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol_src1:@vol_dst1, vol_src2:@vol_dst2, vol_src3:@vol_dst3`
 
 . Resynchronize the zero RTO consistency group relationship to ensure it is in sync:
 +
-`destination::> snapmirror resync -destination-path vs1_dst:/cg/cg_dst`
+`destination::>snapmirror resync -destination-path vs1_dst:/cg/cg_dst`
+
+. Remap the LUNs that you unmapped in Step 5:
++
+`destination::> lun map -vserver vs1_dst -path <lun_path> -igroup <igroup_name>`
 
 . Rescan host LUN I/O paths to restore all paths to the LUNs.
