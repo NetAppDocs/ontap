@@ -8,10 +8,21 @@ before_install:
 - echo -e "machine github.com\n login $GH_TOKEN" >> ~/.netrc && chmod 600 ~/.netrc
 - git submodule add https://github.com/NetAppDocs/jekyll dependencies/jekyll
 - gem update --system && gem install bundler && gem update bundler
-- cp -rl dependencies/jekyll/search.html ./smbc/search.html
-- sed -i 's/permalink\:\s*\/search\.html/permalink\:\ smbc\/search\.html/g' ./smbc/search.html
+- if [[ -z "$DEPLOY_BRANCH" ]]; then export DEPLOY_BRANCH=gh-pages; fi
 - mv dependencies/jekyll/prod-build.sh ./ && ./prod-build.sh
 - sudo apt-get -y install graphicsmagick graphicsmagick-libmagick-dev-compat libmagickwand-dev
+install: bundle install --quiet --jobs=3 --retry=3
 script:
 - if [[ ! -z "$FEATURE_FLAG" ]]; then bundle exec rake buildAll; fi
-- bundle exec rake deploy
+- mkdir -p /tmp/output && bundle exec jekyll build --quiet --trace --destination /tmp/output
+- touch /tmp/output/.nojekyll
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GH_TOKEN
+  keep_history: false
+  local_dir: /tmp/output
+  target_branch: $DEPLOY_BRANCH
+  verbose: true
+  on:
+    all_branches: true
