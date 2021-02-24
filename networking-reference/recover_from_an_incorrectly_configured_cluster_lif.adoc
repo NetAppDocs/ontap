@@ -1,0 +1,59 @@
+---
+sidebar: networking-reference_sidebar
+permalink: networking-reference/recover_from_an_incorrectly_configured_cluster_lif.html
+keywords: misconfigured, misconfigurations, incorrect, incorrectly, switch, switches, switched, cable, physical, wiring, wired, reachability, port, cluster
+summary: How to identify and correct a cluster that has been misconfigured
+---
+
+= ONTAP 9.8 and later: Recover from an incorrectly configured cluster LIF
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:44.814340
+//
+
+[.lead]
+A cluster cannot be created when the cluster network is cabled to a switch but not all of the ports configured in the Cluster IPspace can reach the other ports configured in the Cluster IPspace.
+
+*About this task*
+
+In a switched cluster, if a cluster network interface (LIF) is configured on the wrong port, or if a cluster port is wired into the wrong network, the `cluster create` command can fail with the following error:
+
+....
+Not all local cluster ports have reachability to one another.
+Use the "network port reachability show -detail" command for more details.
+....
+
+The results of the `network port show` command might show that several ports are added to the Cluster IPspace because they are connected to a port that is configured with a cluster LIF. However, the results of the `network port` `reachability show -detail` command reveal which ports do not have connectivity to one another.
+
+To recover from a cluster LIF configured on a port that is not reachable to the other ports configured with cluster LIFs, perform the following steps:
+
+*Steps*
+
+. Reset the home port of the cluster LIF to the correct port:
++
+....
+net port modify -home-port
+....
+
+. Remove the ports that do not have cluster LIFs configured on them from the cluster broadcast domain:
++
+....
+net port broadcast-domain remove-ports
+....
+
+. Create the cluster:
++
+....
+cluster create
+....
+
+*Result*
+
+When you complete the cluster creation, the system detects the correct configuration and places the ports into the correct broadcast domains.
