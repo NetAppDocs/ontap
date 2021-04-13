@@ -1,0 +1,147 @@
+---
+permalink: software_setup/task_creating_an_svm_using_ontap_template.html
+sidebar: software_setup_sidebar
+keywords:
+summary: 'Starting with ONTAP 9.3, you can create and provision an SVM by using a preconfigured template. You must provide values for the parameters that are defined in the template.'
+---
+= Provisioning an SVM by using a preconfigured ONTAP template
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Starting with ONTAP 9.3, you can create and provision an SVM by using a preconfigured template. You must provide values for the parameters that are defined in the template.
+
+All of the required feature licenses must be installed on the cluster.
+
+The VserverEnvironmentSetup template is the preconfigured template that you can use for configuring SVMs. The VserverEnvironmentSetup template enables you to set up the following configurations:
+
+* Security style, language setting, and IPspace of the SVM
+* Protocols
+* Data LIFs
+* Network routes
+* DNS configuration
+* Active Directory configuration
+* NIS configuration
+* LDAP client and server configuration
+* CIFS server
+
+The VserverEnvironmentSetup template is a read-only template. You cannot modify the default parameter values of this template. If you want to modify the default values of any of the parameters in the template, you must copy the template, and then modify the default values of the parameters.
+
+. View and note down the values for the parameters that are defined in the template for creating and configuring the SVM: `template parameter show`
++
+----
+cluster1::> template parameter show
+
+  Template: VserverEnvironmentSetup
+Permission: readonly
+                                 Default      Read
+Parameter           Type         Value        Only Description
+------------------- ------------ ------------ ---- ----------------------------
+vserver             string       -            no   Vserver Name
+security_style      string       unix         no   Vserver Security Style
+language            string       C.UTF-8      no   Vserver Language
+ipspace             string       Default      no   Vserver IPSpace
+protocols           enum         -            no   Protocols to configure
+   Allowed Values: nfs, cifs, iscsi, fcp
+data_lif            array of lifInfoStruct
+                                 -            yes  Data LIF Info Struct
+data_lif[#].ipaddr  IPAddress    -            no   IP Addr
+data_lif[#].netmask IPAddress    -            no   NetMask
+data_lif[#].protocol
+                    string       -            no   LIF Protocol
+data_lif[#].homenode
+                    string       -            no   Node Name
+data_lif[#].homeport
+                    string       -            no   Port
+gateway             array of IPAddress
+                                 -            yes  Gateway
+gateway[#]          IPAddress                 no   Gateway
+search_domain       string       -            no   Search Domain
+dns_server          string       -            no   DNS IP Addresses List
+ad_admin_name       string       -            no   AD Admin Name
+ad_admin_passwd     string       ***          no   AD Admin Passwd
+ad_domain           string       -            no   AD Domain
+ad_ou               string       CN=Computers no   Organizational Name
+wg_name             string       -            no   WG Name
+nis_domain          string       -            no   NIS Domains
+nis_ipaddr          string       -            no   NIS IP Address
+ldap_server         string       -            no   LDAP Server IP
+ldap_base_dn        string       -            no   LDAP Base DN
+client_config       string       -            no   LDAP Client Config
+cifs_server         string       -            no   CIFS Server Name
+26 entries were displayed.
+----
+
+. If you want to modify the default value of any parameter in the template, customize the existing template:
+ .. Copy the template: `template copy -name template_name -destination_name new_template_name`
++
+----
+cluster1::> template copy -name VserverEnvironmentSetup -destination-name template1
+----
++
+The new template is a read/write template.
+
+ .. Modify the default value of the parameter that you want to change: `template parameter modify -template template_name -name parameter_name -default-value new_default_value`
++
+----
+cluster1::> template parameter modify -template template1 -name security_style -default-value ntfs
+----
+. Provision the SVM by specifying values for the parameters in the template: `template provision -name template_name`
++
+----
+cluster-1::> template provision -name template1
+	    Press Ctrl+C to abort.
+	    ********************
+	    * Setup of vserver *
+	    ********************
+	    Vserver Name: vs0
+	    Vserver Language [C.UTF-8]:
+	    Vserver Security Style [ntfs]:
+	    Vserver IPSpace [Default]:
+
+	    ******************************
+	    * Setup of network.interface *
+	    ******************************
+	    Enter number of instances for object network.interface: 2
+	    (1/2)LIF Protocol: nfs
+	    (1/2)IP Addr: 1.1.1.1
+	    (1/2)NetMask: 255.255.255.0
+	    (1/2)Node Name: node1-vsim1
+	    (1/2)Port: e0c
+	    (2/2)LIF Protocol: nfs
+	    (2/2)IP Addr: 1.1.1.1
+	    (2/2)NetMask: 255.255.255.0
+	    (2/2)Node Name: node1-vsim1
+	    (2/2)Port: e0c
+
+	    ***************************
+	    * Setup of network.routes *
+	    ***************************
+	    Enter number of instances for object network.routes: 1
+	    (1/1)Gateway: 1.1.1.1
+
+	    ***********************
+	    * Setup of access.dns *
+	    ***********************
+	    Search Domain: netapp.com
+	    DNS IP Addresses List: 1.1.1.1
+
+	    *************************
+	    * Setup of security.nis *
+	    *************************
+	    NIS Domains: netapp.com
+	    NIS IP Address: 1.1.1.1
+
+	    *********************
+	    * Setup of security *
+	    *********************
+	    LDAP Client Config: ldapconfig
+	    LDAP Server IP: 1.1.1.1
+	    LDAP Base DN: dc=examplebasedn
+
+	    **********************
+	    * Setup of protocols *
+	    **********************
+	    Protocols to configure: nfs
+	    [Job 15] Configuring vserver for vs0 (100%)
+----
