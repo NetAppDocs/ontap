@@ -1,0 +1,37 @@
+---
+sidebar: sidebar
+permalink: ha_how_automatic_takeover_and_giveback_works.html
+keywords:
+summary:
+---
+
+= How automatic takeover and giveback works
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2021-04-14 10:46:21.281144
+//
+
+[.lead]
+The automatic takeover and giveback operations can work together to reduce and avoid client outages.
+
+By default, if one node in the HA pair panics or reboots, the partner node automatically takes over and then returns storage when the affected node reboots. The HA pair then resumes a normal operating state.
+
+Automatic giveback occurs by default. If you would rather control giveback impact on clients, you can disable automatic giveback and use the `storage failover modify-auto-giveback false-node < node` command. Before performing the automatic giveback (regardless of what triggered it), the partner node waits for a fixed amount of time as controlled by the `-delay- seconds` parameter of the `storage failover modify` command. The default delay is 600 seconds. By delaying the giveback, the process results in two brief outages: one during takeover and one during giveback.
+
+This process avoids a single, prolonged outage that includes time required for:
+
+* The takeover operation
+* The taken-over node to boot up to the point at which it is ready for the giveback
+* The giveback operationIf the automatic giveback fails for any of the non-root aggregates, the system automatically makes two additional attempts to complete the giveback.
+
+[NOTE]
+During the takeover process, the automatic giveback process starts before the partner node is ready for the giveback. When the time limit of the automatic giveback process expires and the partner node is still not ready, the timer restarts. As a result, the time between the partner node being ready and the actual giveback being performed might be shorter than the automatic giveback time.
+
+

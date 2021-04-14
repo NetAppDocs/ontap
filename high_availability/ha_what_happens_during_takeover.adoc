@@ -1,0 +1,51 @@
+---
+sidebar: sidebar
+permalink: ha_what_happens_during_takeover.html
+keywords:
+summary:
+---
+
+= What happens during takeover
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2021-04-14 10:46:21.300674
+//
+
+[.lead]
+When a node takes over its partner, it continues to serve and update data in the partner's aggregates and volumes.
+
+The following steps occur during the takeover process:
+
+. If the negotiated takeover is user-initiated, aggregated data is moved from the partner node to the node that is performing the takeover. A brief outage occurs as the current owner of each aggregate (except for the root aggregate) changes over to the takeover node. This outage is briefer than an outage that occurs during a takeover without aggregate relocation.
+
+** You can monitor the progress using the `storage failover show‑takeover` command.
+** You can avoid the aggregate relocation during this takeover instance by using the `‑bypass‑optimization` parameter with the `storage failover takeover` command. To bypass aggregate relocation during all future planned takeovers, set the `‑bypass‑takeover‑optimization` parameter of the `storage failover modify` command to true.
+
+[NOTE]
+Aggregates are relocated serially during planned takeover operations to reduce client outage. If aggregate relocation is bypassed, longer client outage occurs during planned takeover events. Setting the `‑bypass‑takeover‑optimization `parameter of the storage failover modify command to `true` is not recommended in environments that have stringent outage requirements.
+
+. If the user-initiated takeover is a negotiated takeover, the target node gracefully shuts down, followed by takeover of the target node's root aggregate and any aggregates that were not relocated in Step 1.
+. Before the storage takeover begins, data LIFs (logical interfaces) migrate from the target node to the takeover node, or to any other node in the cluster based on LIF failover rules. You can avoid the LIF migration by using the `‑skip‑lif-migration` parameter with the `storage failover takeover` command.
+. Existing SMB (CIFS) sessions are disconnected when takeover occurs.
++
+*Attention:  *Due to the nature of the SMB protocol, all SMB sessions are disrupted (except for SMB 3.0 sessions connected to shares with the Continuous Availability property set). SMB 1.0 and SMB 2.x sessions cannot reconnect after a takeover event; therefore, takeover is disruptive and some data loss could occur.
+
+. SMB 3.0 sessions established to shares with the Continuous Availability property set can reconnect to the disconnected shares after a takeover event. If your site uses SMB 3.0 connections to Microsoft Hyper-V and the Continuous Availability property is set on the associated shares, takeover are non-disruptive for those sessions.
+
+=== If the node doing the takeover panics
+
+If the node that is performing the takeover panics within 60 seconds of initiating takeover, the following events occur:
+
+* The node that panicked reboots.
+* After it reboots, the node performs self-recovery operations and is no longer in takeover mode.
+* Failover is disabled.
+* If the node still owns some of the partner's aggregates, after enabling storage failover, return these aggregates to the partner using the `storage failover giveback` command.
+
+
