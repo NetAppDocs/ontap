@@ -1,0 +1,162 @@
+---
+permalink: upgrade_new/task_verify_status.html
+sidebar: sidebar
+keywords: ontap, upgrade, upgrade, verify, status, ha, ldap, dns, networking, storage, metrocluster
+summary: 'Various configuration settings can impact cluster upgrade readiness.'
+---
+= Verify status
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you upgrade, you should verify the following:
+
+* HA pair status
+* LDAP status (for ONTAP 9.2 or later)
+* DNS server status (for ONTAP 9.2 or later),
+* Networking and storage status (for MetroCluster configurations)
+
+== Verifying HA status
+
+Before performing a nondisruptive upgrade, you should verify that storage failover is enabled for each HA pair. If the cluster consists of only two nodes, you should also verify that cluster HA is enabled.
+
+You do not need to verify the HA status if you plan to perform a disruptive upgrade, because this upgrade method does not require storage failover.
+
+. Verify that storage failover is enabled and possible for each HA pair: `storage failover show`
++
+This example shows that storage failover is enabled and possible on node0 and node1:
++
+----
+cluster1::> storage failover show
+                              Takeover
+Node           Partner        Possible State
+-------------- -------------- -------- -------------------------------------
+node0          node1          true     Connected to node1
+node1          node0          true     Connected to node0
+2 entries were displayed.
+----
++
+If necessary, you can enable storage failover by using the storage failover modify command.
+
+. If the cluster consists of only two nodes (a single HA pair), verify that cluster HA is configured: `cluster ha show`
++
+This example shows that cluster HA is configured:
++
+----
+cluster1::> cluster ha show
+High Availability Configured: true
+----
++
+If necessary, you can enable cluster HA by using the cluster ha modify command.
+
+== Verifying LDAP status (ONTAP 9.2 and later)
+
+Beginning in ONTAP 9.2, if LDAP is used by your storage virtual machines (SVMs), you must have an established LDAP connection to perform a nondisruptive upgrade. You should verify the LDAP connection before you begin the upgrade.
+
+The task does not apply if you are upgrading from ONTAP 9.1 or earlier.
+
+. Check the LDAP status: `ldap check -vserver vserver_name`
+. If the LDAP status is down, modify it: `ldap client modify -client-config LDAP_client -ldap-servers ip_address`
+. Verify that the LDAP status is up: `ldap check -vserver vserver_name`
+
+== Verifying DNS server status (ONTAP 9.2 and later)
+
+Beginning in ONTAP 9.2 and later, you should verify the status of your Domain Name Service (DNS) server before and after performing a nondisruptive upgrade.
+
+The task does not apply if you are upgrading from ONTAP 9.1 or earlier.
+
+. Check the status of your DNS servers: `dns check -vserver vserver_name`
++
+An up status indicates the service is running. A down status indicates that the service is not running.
+
+. If the DNS server is down, modify it: `dns modify -vserver vserver_name -domains domain_name -name-servers name_server_ipaddress`
+. Verify the status of the DNS server is up.
+
+
+== Verifying networking and storage status for MetroCluster configurations
+
+Before and after performing an update in a MetroCluster configuration, you should verify the status of the LIFs, aggregates, and volumes for each cluster.
+
+. Verify the LIF status: `network interface show`
++
+In normal operation, LIFs for source SVMs must have an admin status of up and be located on their home nodes. LIFs for destination SVMs are not required to be up or located on their home nodes. In switchover, all LIFs have an admin status of up, but they do not need to be located on their home nodes.
++
+----
+cluster1::> network interface show
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+Cluster
+            cluster1-a1_clus1
+                         up/up    192.0.2.1/24       cluster1-01
+                                                                   e2a     true
+            cluster1-a1_clus2
+                         up/up    192.0.2.2/24       cluster1-01
+                                                                   e2b     true
+
+
+cluster1-01
+            clus_mgmt    up/up    198.51.100.1/24    cluster1-01
+                                                                   e3a     true
+            cluster1-a1_inet4_intercluster1
+                         up/up    198.51.100.2/24    cluster1-01
+                                                                   e3c     true
+            ...
+
+27 entries were displayed.
+----
+
+. Verify the state of the aggregates: `storage aggregate show -state !online`
++
+This command displays any aggregates that are _not_ online. In normal operation, all aggregates located at the local site must be online. However, if the MetroCluster configuration is in switchover, root aggregates at the disaster recovery site are permitted to be offline.
++
+This example shows a cluster in normal operation:
++
+----
+cluster1::> storage aggregate show -state !online
+There are no entries matching your query.
+----
++
+This example shows a cluster in switchover, in which the root aggregates at the disaster recovery site are offline:
++
+----
+cluster1::> storage aggregate show -state !online
+Aggregate     Size Available Used% State   #Vols  Nodes            RAID Status
+--------- -------- --------- ----- ------- ------ ---------------- ------------
+aggr0_b1
+                0B        0B    0% offline      0 cluster2-01      raid_dp,
+                                                                   mirror
+                                                                   degraded
+aggr0_b2
+                0B        0B    0% offline      0 cluster2-02      raid_dp,
+                                                                   mirror
+                                                                   degraded
+2 entries were displayed.
+----
+
+. Verify the state of the volumes: `volume show -state !online`
++
+This command displays any volumes that are _not_ online.
++
+If the MetroCluster configuration is in normal operation (it is not in switchover state), the output should show all volumes owned by the cluster's secondary SVMs (those with the SVM name appended with "-mc").
++
+Those volumes come online only in the event of a switchover.
++
+This example shows a cluster in normal operation, in which the volumes at the disaster recovery site are not online.
++
+----
+cluster1::> volume show -state !online
+  (volume show)
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+--------- ------------ ------------ ---------- ---- ---------- ---------- -----
+vs2-mc    vol1         aggr1_b1     -          RW            -          -     -
+vs2-mc    root_vs2     aggr0_b1     -          RW            -          -     -
+vs2-mc    vol2         aggr1_b1     -          RW            -          -     -
+vs2-mc    vol3         aggr1_b1     -          RW            -          -     -
+vs2-mc    vol4         aggr1_b1     -          RW            -          -     -
+5 entries were displayed.
+----
+
+. Verify that there are no inconsistent volumes: `volume show -is-inconsistent true`
++
+If any inconsistent volumes are returned, you must contact NetApp Support before you precede with the upgrade.

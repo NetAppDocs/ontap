@@ -1,0 +1,61 @@
+---
+permalink: upgrade/concept_downgrade_requirements_for_metrocluster_configurations.html
+sidebar: sidebar
+keywords: 
+summary: 'You should be aware of some important requirements when downgrading MetroCluster configurations.'
+---
+= Downgrade requirements for MetroCluster configurations
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You should be aware of some important requirements when downgrading MetroCluster configurations.
+
+== General requirements
+
+* Both clusters must be running the same version of ONTAP.
++
+You can verify the ONTAP version by using the version command.
+
+* Eight-node MetroCluster configurations can be downgraded non-disruptively from ONTAP 9.1 to 9.0.
++
+An eight-node MetroCluster configuration cannot be reverted to the Data ONTAP 8.3.x.
+
+* A two-node MetroCluster configuration can only be disruptively downgraded from ONTAP 9.1 to 9.0.
++
+xref:task_downgrading_a_two_node_metrocluster_configuration_disruptively.adoc[Downgrading a two-node MetroCluster configuration disruptively]
+
+* Eight-node or four-node MetroCluster configurations must be downgraded using the lockstep procedure in which DR pairs are downgraded simultaneously.
++
+link:task_updating_a_four_or_eight_node_metrocluster_configuration_in_ontap_9_2_and_earlier.md#[Updating a four- or eight-node MetroCluster configuration manually]
+
+* The MetroCluster configuration must be in either normal mode or switchover mode.
+* The aggregates in both clusters must not be in resyncing RAID status.
++
+During MetroCluster healing, the mirrored aggregates are resynchronized. You can verify whether the MetroCluster configuration is in this state by using the storage aggregate plex show -in-progress true command. If any aggregates are in progress, the resynchronization process is still underway and you should not perform a downgrade until the aggregate resynchronization is complete.
+
+* Negotiated switchover operations fail while the downgrade is in progress.
++
+After the downgrade has started, you should not attempt a negotiated switchover until both clusters have been downgraded, and all nodes are running the same version of ONTAP. If a site failure occurs during the downgrade, you should perform a forced switchover.
+
+* The MetroCluster operation history might not be available after the downgrade.
++
+If you previously used the metrocluster check run command while running the higher version of ONTAP, then after the downgrade, the metrocluster operation show and metrocluster operation history show commands incorrectly display "`12`" instead of the previous check operation.
+
+== Configuration requirements for MetroCluster configurations in normal operation
+
+* The source storage virtual machine (SVM) LIFs must be up and located on their home nodes.
++
+Data LIFs for the destination SVMs are not required to be up or to be on their home nodes.
+
+* All aggregates at the local site must be online.
+* All root and data volumes that are owned by the SVMs of the local cluster must be online.
+
+== Configuration requirements for MetroCluster configurations in switchover
+
+* All LIFs must be up and located on their home nodes.
+* All aggregates must be online, except for the root aggregates at the disaster recovery (DR) site.
++
+Root aggregates at the DR site are offline during certain phases of a switchover.
+
+* All volumes must be online.

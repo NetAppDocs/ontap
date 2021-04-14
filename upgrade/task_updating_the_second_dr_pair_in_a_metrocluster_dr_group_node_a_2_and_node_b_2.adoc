@@ -1,0 +1,184 @@
+---
+permalink: upgrade/task_updating_the_second_dr_pair_in_a_metrocluster_dr_group_node_a_2_and_node_b_2.html
+sidebar: sidebar
+keywords: 
+summary: 'You must perform a takeover and giveback of the node in the correct order to make the new version of ONTAP the current version of the node.'
+---
+= Updating the second DR pair in a MetroCluster DR group
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You must perform a takeover and giveback of the node in the correct order to make the new version of ONTAP the current version of the node.
+
+You should have upgraded or downgraded the first DR pair (node_A_1 and node_B_1).
+
+In this task, node_A_2 and node_B_2 are updated.
+
+If you have updated the ONTAP software on the first DR group, and are now updating the second DR group in an eight-node MetroCluster configuration, in this task you are updating node_A_4 and node_B_4.
+
+. Initiate a takeover of the target node on cluster_A:
++
+Do not specify the -option immediate parameter, because a normal takeover is required for the nodes that are being taken over to boot onto the new software image.
+
+ .. Take over the DR partner on cluster_A:
++
+|===
+| If you are upgrading from ...| Enter this command...
+a|
+        ONTAP 9.1
+a|
+`storage failover takeover -ofnode node_A_2`
+a|
+ONTAP 9.0 or        Data ONTAP 8.3.x
+a|
+`storage failover takeover -ofnode node_A_2 -option allow-version-mismatch`         The allow-version-mismatch option is not required for upgrades from ONTAP 9.0 to ONTAP 9.1 or for any patch upgrades.
++
+|===
+The node boots up to the Waiting for giveback state.
++
+NOTE: If AutoSupport is enabled, then an AutoSupport message is sent indicating that the nodes are out of cluster quorum. You can ignore this notification and proceed with the upgrade.
+
+ .. Verify that the takeover is successful: `storage failover show`
++
+The following example shows that the takeover is successful. Node_A_2 is in the Waiting for giveback state and node_A_1 is in the In takeover state.
++
+----
+cluster1::> storage failover show
+                              Takeover
+Node           Partner        Possible State Description
+-------------- -------------- -------- -------------------------------------
+node_A_1       node_A_2       false    In takeover
+node_A_2       node_A_1       -        Waiting for giveback (HA mailboxes)
+2 entries were displayed.
+----
+
+. Initiate a takeover of the target node on cluster_B:
++
+Do not specify the -option immediate parameter, because a normal takeover is required for the nodes that are being taken over to boot onto the new software image.
+
+ .. Take over the DR partner on cluster_B (node_B_2):
++
+|===
+| If you are upgrading from...| Enter this command...
+a|
+ONTAP 9.2 or        ONTAP 9.1
+a|
+`storage failover takeover -ofnode node_B_2`
+a|
+ONTAP 9.0 or        Data ONTAP 8.3.x
+a|
+`storage failover takeover -ofnode node_B_2 -option allow-version-mismatch`         The allow-version-mismatch option is not required for upgrades from ONTAP 9.0 to ONTAP 9.1 or for any patch upgrades.
++
+|===
+The node boots up to the Waiting for giveback state.
++
+NOTE: If AutoSupport is enabled, an AutoSupport message is sent indicating that the nodes are out of cluster quorum. You can safely ignore this notification and proceed with the upgrade.
+
+ .. Verify that the takeover is successful: `storage failover show`
++
+The following example shows that the takeover is successful. Node_B_2 is in the Waiting for giveback state and node_B_1 is in the In takeover state.
++
+----
+cluster1::> storage failover show
+                              Takeover
+Node           Partner        Possible State Description
+-------------- -------------- -------- -------------------------------------
+node_B_1       node_B_2       false    In takeover
+node_B_2       node_B_1       -        Waiting for giveback (HA mailboxes)
+2 entries were displayed.
+----
+
+. Wait at least eight minutes to ensure the following conditions:
+ ** Client multipathing (if deployed) is stabilized.
+ ** Clients are recovered from the pause in I/O that occurs during takeover.
++
+The recovery time is client-specific and might take longer than eight minutes depending on the characteristics of the client applications.
+. Return the aggregates to the target nodes:
++
+After upgrading MetroCluster IP configurations to ONTAP 9.5, the aggregates will be in a degraded state for a short period before resynchronizing and returning to a mirrored state.
+
+ .. Give back the aggregates to the DR partner on cluster_A: `storage failover giveback –ofnode node_A_2`
+ .. Give back the aggregates to the DR partner on cluster_B: `storage failover giveback –ofnode node_B_2`
+
++
+The giveback operation first returns the root aggregate to the node and then, after the node has finished booting, returns the non-root aggregates.
+
+. Verify that all aggregates have been returned by issuing the following command on both clusters: `storage failover show-giveback`
++
+If the Giveback Status field indicates that there are no aggregates to give back, then all aggregates have been returned. If the giveback is vetoed, the command displays the giveback progress and which subsystem vetoed the giveback.
+
+. If any aggregates have not been returned, do the following:
+ .. Review the veto workaround to determine whether you want to address the "`veto`" condition or override the veto.
++
+https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-hacg/home.html[High-availability configuration]
+
+ .. If necessary, address the "`veto`" condition described in the error message, ensuring that any identified operations are terminated gracefully.
+ .. Reenter the storage failover giveback command.
++
+If you decided to override the "`veto`" condition, set the -override-vetoes parameter to true.
+. Wait at least eight minutes to ensure the following conditions:
+ ** Client multipathing (if deployed) is stabilized.
+ ** Clients are recovered from the pause in I/O that occurs during giveback.
++
+The recovery time is client-specific and might take longer than eight minutes depending on the characteristics of the client applications.
+. Set the privilege level from admin to advanced, entering *y* when prompted to continue: `set -privilege advanced`
++
+The advanced prompt (`*>`) appears.
+
+. Confirm the version on cluster_A: `system image show`
++
+The following example shows that System image2 (target ONTAP image) is the default and current version on node_A_2:
++
+----
+cluster_B::*> system image show
+                 Is      Is                 Install
+Node     Image   Default Current Version    Date
+-------- ------- ------- ------- ---------- -------------------
+node_A_1
+         image1  false   false    X.X.X     MM/DD/YYYY TIME
+         image2  true    true     Y.Y.Y     MM/DD/YYYY TIME
+node_A_2
+         image1  false   false    X.X.X     MM/DD/YYYY TIME
+         image2  true    true     Y.Y.Y     MM/DD/YYYY TIME
+4 entries were displayed.
+
+cluster_A::>
+----
+
+. Confirm the version on cluster_B: `system image show`
++
+The following example shows that System image2 (target ONTAP image) is the default and current version on node_B_2:
++
+----
+cluster_B::*> system image show
+                 Is      Is                 Install
+Node     Image   Default Current Version    Date
+-------- ------- ------- ------- ---------- -------------------
+node_B_1
+         image1  false   false    X.X.X     MM/DD/YYYY TIME
+         image2  true    true     Y.Y.Y     MM/DD/YYYY TIME
+node_B_2
+         image1  false   false    X.X.X     MM/DD/YYYY TIME
+         image2  true    true     Y.Y.Y     MM/DD/YYYY TIME
+4 entries were displayed.
+
+cluster_A::>
+----
+
+. For each node in the HA pair, enable automatic giveback: `storage failover modify -node target-node -auto-giveback true`
++
+This command must be repeated for each node in the HA pair.
+
+. Verify that automatic giveback is enabled: `storage failover show -fields auto-giveback`
++
+This example shows that automatic giveback has been enabled on both nodes:
++
+----
+cluster_x::> storage failover show -fields auto-giveback
+node     auto-giveback
+-------- -------------
+node_x_1 true
+node_x_2 true
+2 entries were displayed.
+----

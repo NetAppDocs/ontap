@@ -1,0 +1,57 @@
+---
+permalink: upgrade_new/task_verifying_the_lif_failover_configuration.html
+sidebar: sidebar
+keywords: ontap, upgrade, verifying, verify, lif, failover, configuration
+summary: 'Before you perform an upgrade, you must verify that the failover policies and failover groups are configured correctly.'
+---
+= Verifying the LIF failover configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you perform an upgrade, you must verify that the failover policies and failover groups are configured correctly.
+
+NOTE: During the upgrade process, LIFs are migrated based on the upgrade method. Depending upon the upgrade method, the LIF failover policy might or might not be used.
+
+If you have 8 or more nodes in your cluster, the automated upgrade is performed using the batch method. The batch upgrade method involves dividing the cluster into multiple upgrade batches, upgrading the set of nodes in the first batch, upgrading their high-availability (HA) partners, and then repeating the process for the remaining batches. In ONTAP 9.7 and earlier, if the batch method is used, LIFs are migrated to the HA partner of the node being upgraded. In ONTAP 9.8 and later, if the batch method is used, LIFs are migrated to other batch group.
+
+If you have less than 8 nodes in your cluster, the automated upgrade is performed using the rolling method. The rolling upgrade method involves initiating a failover operation on each node in an HA pair, updating the "failed" node, initiating giveback, and then repeating the process for each HA pair in the cluster. If the rolling method is used, LIFs are migrated to the failover target node as defined by the LIF failover policy.
+
+. Display the failover policy for each data LIF: `network interface show -role data -failover`
++
+This example shows the default failover configuration for a two-node cluster with two data LIFs:
++
+----
+cluster1::> network interface show -role data -failover
+         Logical         Home                  Failover        Failover
+Vserver  Interface       Node:Port             Policy          Group
+-------- --------------- --------------------- --------------- ---------------
+vs0
+         lif0            node0:e0b             nextavail       system-defined
+                         Failover Targets: node0:e0b, node0:e0c,
+                                           node0:e0d, node0:e0e,
+                                           node0:e0f, node1:e0b,
+                                           node1:e0c, node1:e0d,
+                                           node1:e0e, node1:e0f
+vs1
+         lif1            node1:e0b             nextavail       system-defined
+                         Failover Targets: node1:e0b, node1:e0c,
+                                           node1:e0d, node1:e0e,
+                                           node1:e0f, node0:e0b,
+                                           node0:e0c, node0:e0d,
+                                           node0:e0e, node0:e0f
+----
++
+The Failover Targets field shows a prioritized list of failover targets for each LIF. For example, if lif0 fails over from its home port (e0b on node0), it's first attempts to fail over to port e0c on node0. If lif0 cannot fail over to e0c, it next attempts to fail over to port e0d on node0, and so on.
+
+. If the failover policy is set to disabled for any LIFs, other than SAN LIFs, use the network interface modify command to enable failover.
++
+Do not modify SAN LIFs.
+
+. For each LIF, verify that the Failover Targets field includes data ports from a different node that will remain up while the LIF's home node is being upgraded.
++
+You can use the network interface failover-groups create command to add a failover target to the failover group.
+
+*Related information*
+
+https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-nmg/home.html[Network and LIF management]
