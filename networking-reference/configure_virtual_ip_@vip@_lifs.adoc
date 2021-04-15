@@ -34,9 +34,13 @@ VIP data LIFs provide the following advantages:
 
 == Set up border gateway protocol (BGP)
 
-Starting with ONTAP 9.5, virtual IP (VIP) LIFs are supported. Before creating VIP LIFs, you must set up BGP, which is the routing protocol used for announcing the existence of a VIP LIF to peer routers.
+Before creating VIP LIFs, you must set up BGP, which is the routing protocol used for announcing the existence of a VIP LIF to peer routers.
 
-Starting with ONTAP 9.9, VIP BGP provides default route automation using BGP peer grouping to simplify configuration. ONTAP has a simple way to learn default routes using the BGP peers next-hop routers.
+Starting with ONTAP 9.9, VIP BGP provides default route automation using BGP peer grouping to simplify configuration.
+
+ONTAP has a simple way to learn default routes using the BGP peers as next-hop routers when the BGP peer is on the same subnet. To use the feature, set the `-use-peer-as-next-hop` attribute to `true`. By default, this attribute is `false`.
+
+If you have static routes configured, those are still preferred over these automated default routes.
 
 .Before you begin
 
@@ -49,7 +53,7 @@ ONTAP does not process any incoming route announcements from the router; therefo
 
 Setting up BGP involves optionally creating a BGP configuration, creating a BGP LIF, and creating a BGP peer group. ONTAP automatically creates a default BGP configuration with default values when the first BGP peer group is created on a given node. A BGP LIF is used to establish BGP TCP sessions with peer routers. For a peer router, a BGP LIF is the next hop to reach a VIP LIF. Failover is disabled for the BGP LIF. A BGP peer group advertises the VIP routes for all the SVMs in the peer group's IPspace.
 
-Starting with ONTAP 9.8, these fields have been added to the `network bgp peer-group` command.
+Starting with ONTAP 9.8, these fields have been added to the `network bgp peer-group` command:
 
 * -asn-prepend-type
 * -asn-prepend-count
@@ -57,9 +61,14 @@ Starting with ONTAP 9.8, these fields have been added to the `network bgp peer-g
 
 These BGP attributes allows you to configure the AS Path and community attributes for the BGP peer group.
 
-Starting with ONTAP 9.9, you can make advanced route selections with Multiple Exit Discriminator (MED) support for path prioritization. MED is an optional attribute in the BGP update message that tells routers to select the best route for the traffic. The MED is an unsigned 32-bit integer (0 - 4294967295); lower values are preferred.
+Starting with ONTAP 9.9, these fields have been added:
 
-For more information, see https://docs.netapp.com/ontap-9/index.jsp?topic=%2Fcom.netapp.doc.dot-cm-nmg%2FGUID-4003F490-F387-4F27-A311-1FB39EDF2BCB.html[Network features by release^].
+* -asn or -peer-asn (4-byte value)
+The attribute itself is not new, but it now uses a 4-byte integer.
+* -med
+* -use-peer-as-next-hop
+
+You can make advanced route selections with Multi-Exit Discriminator (MED) support for path prioritization. MED is an optional attribute in the BGP update message that tells routers to select the best route for the traffic. The MED is an unsigned 32-bit integer (0 - 4294967295); lower values are preferred.
 
 .Steps
 
@@ -73,8 +82,18 @@ For more information, see https://docs.netapp.com/ontap-9/index.jsp?topic=%2Fcom
 ....
 network bgp config create -node {node_name | local} -asn asn_integer -holdtime
 hold_time -routerid local_router_IP_address
-
+....
++
+Sample with a 2-byte ASN:
++
+....
 network bgp config create -node node1 -asn 65502 -holdtime 180 -routerid 1.1.1.1
+....
++
+Sample with a 4-byte ASN:
++
+....
+network bgp config create -node node1 -asn 85502 -holdtime 180 -routerid 1.1.1.1
 ....
 
 .. Modify the default BGP configuration:
@@ -90,30 +109,29 @@ network bgp defaults modify -asn 65502
 . Create a BGP LIF for the system SVM:
 +
 ....
-network interface create -vserver system_svm -lif lif_name -service-policy net-route- announce -home-node home_node -home-port home_port -address ip_address -netmask netmask
+network interface create -vserver system_svm -lif lif_name -service-policy default-route-announce -home-node home_node -home-port home_port -address ip_address -netmask netmask
 ....
 +
-You can use the `net-route-announce` service policy for the BGP LIF.
+You can use the `default-route-announce` service policy for the BGP LIF.
 +
 ....
-network interface create -vserver cluster1 -lif bgp1 -service-policy net-route-announce -home-node cluster1-01 -home-port e0c -address 10.10.10.100 -netmask 255.255.255.0
+network interface create -vserver cluster1 -lif bgp1 -service-policy default-route-announce -home-node cluster1-01 -home-port e0c -address 10.10.10.100 -netmask 255.255.255.0
 ....
 
 . Create a BGP peer group that is used to establish BGP sessions with the remote peer routers and configure the VIP route information that is advertised to the peer routers:
 +
 ....
-network bgp peer-group create -peer-group group_name -ipspace ipspace_name -local-lif
-bgp_lif -peer-address peer-router_ip_address -peer-asn 65502 -route-preference integer
--asn-prepend-type ASN_prepend_type> -asn-prepend-count integer -community BGP community list <0-65535>:<0-65535>
+network bgp peer-group create -peer-group group_name -ipspace ipspace_name -bgp-lif bgp_lif -peer-address peer-router_ip_address -peer-asn 65502 -route-preference integer
+-asn-prepend-type ASN_prepend_type> -asn-prepend-count integer -med integer -community BGP community list <0-65535>:<0-65535>
 ....
 +
 ....
-network bgp peer-group create -peer-group group1 -ipspace Default -local-lif bgp1 -peer-address 10.10.10.1 -peer-asn 65502 -route-preference 100 -asn-prepend-type local-asn -asn-prepend-count 2 -community 9000:900,8000:800
+network bgp peer-group create -peer-group group1 -ipspace Default -bgp-lif bgp1 -peer-address 10.10.10.1 -peer-asn 65502 -route-preference 100 -asn-prepend-type local-asn -asn-prepend-count 2 -med 100 -community 9000:900,8000:800
 ....
 
 == Create a virtual IP (VIP) data LIF
 
-Starting with ONTAP 9.5, you can create a VIP data LIF. The existence of a VIP data LIF is advertised to peer routers through the routing protocol, Border Gateway Protocol (BGP).
+The existence of a VIP data LIF is advertised to peer routers through the routing protocol, Border Gateway Protocol (BGP).
 
 .Before you begin
 
