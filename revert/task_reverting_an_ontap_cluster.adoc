@@ -1,0 +1,120 @@
+---
+permalink: revert/task_reverting_an_ontap_cluster.html
+sidebar: revert_sidebar
+keywords: ontap, revert, reverting, reversion, cluster
+summary: 'To take the cluster offline to revert to an earlier ONTAP release, you must disable storage failover and the data LIFs, address reversion preconditions, revert the cluster and file system configurations on a node, and then repeat the process for each additional node in the cluster.'
+---
+= Reverting an ONTAP cluster
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+To take the cluster offline to revert to an earlier ONTAP release, you must disable storage failover and the data LIFs, address reversion preconditions, revert the cluster and file system configurations on a node, and then repeat the process for each additional node in the cluster.
+
+You must have satisfied reversion preparation requirements.
+
+Reverting a cluster requires you to take the cluster offline for the duration of the reversion.
+
+. Set the privilege level from admin to advanced, entering *y* when prompted to continue: `set -privilege advanced`
++
+The advanced prompt (`*>`) appears.
+
+. Verify that the target ONTAP software is installed: `system image show`
++
+The following example shows that version 9.1 is installed as the alternate image on both nodes:
++
+----
+cluster1::*> system image show
+                 Is      Is                 Install
+Node     Image   Default Current Version    Date
+-------- ------- ------- ------- --------   -------------------
+node0
+         image1  true    true    9.2        MM/DD/YYYY TIME
+         image2  false   false   9.1        MM/DD/YYYY TIME
+node1
+         image1  true    true    9.2        MM/DD/YYYY TIME
+         image2  false   false   9.1        MM/DD/YYYY TIME
+4 entries were displayed.
+----
+
+. Disable all of the data LIFs in the cluster: `network interface modify {-role data} -status-admin down`
+. If the cluster consists of only two nodes, disable cluster HA: `cluster ha modify -configured false`
+. Disable storage failover for the nodes in the HA pair from either node: `storage failover modify -node nodename -enabled false`
++
+You only need to disable storage failover once for the HA pair. When you disable storage failover for a node, storage failover is also disabled on the node's partner.
+
+. Log in to the node that you want to revert.
++
+To revert a node, you must be logged in to the cluster through the node's node management LIF.
+
+. Set the node's target ONTAP software image to be the default image: `system image modify -node nodename -image target_image -isdefault true`
+. Verify that the target ONTAP software image is set as the default image for the node that you are reverting: `system image show`
++
+The following example shows that version 9.1 is set as the default image on node0:
++
+----
+cluster1::*> system image show
+                 Is      Is                 Install
+Node     Image   Default Current Version    Date
+-------- ------- ------- ------- --------   -------------------
+node0
+         image1  false   true    9.2        MM/DD/YYYY TIME
+         image2  true    false   9.1        MM/DD/YYYY TIME
+node1
+         image1  true    true    9.2        MM/DD/YYYY TIME
+         image2  false   false   9.1        MM/DD/YYYY TIME
+4 entries were displayed.
+----
+
+. If the cluster consists of only two nodes, verify that the node does not hold epsilon:
+ .. Check whether the node currently holds epsilon: `cluster show -node nodename`
++
+The following example shows that the node holds epsilon:
++
+----
+cluster1::*> cluster show -node node1
+
+          Node: node1
+          UUID: 026efc12-ac1a-11e0-80ed-0f7eba8fc313
+       Epsilon: true
+   Eligibility: true
+        Health: true
+----
+
+ .. If the node holds epsilon, mark epsilon as false on the node so that epsilon can be transferred to the node's partner: `cluster modify -node nodenameA -epsilon false`
+ .. Transfer epsilon to the node's partner by marking epsilon true on the partner node: `cluster modify -node nodenameB -epsilon true`
+. Verify that the node is ready for reversion: `system node revert-to -node nodename -check-only true -version 9.x`
++
+The check-only parameter identifies any preconditions that must be addressed before reverting, such as the following examples:
+
+ ** Disabling storage failover
+ ** Disabling the Snapshot policy
+ ** Deleting Snapshot copies that were created after upgrading to the later version of ONTAP
+
+. Verify that all of the preconditions have been addressed: `system node revert-to -node nodename -check-only true -version 9.x`
+. Revert the cluster configuration of the node: `system node revert-to -node nodename -version 9.x`
++
+The -version option refers to the target release. For example, if the software you installed and verified is ONTAP 9.1, the correct value of the -version option is 9.1.
++
+The cluster configuration is reverted, and then you are logged out of the clustershell.
+
+. Log back in to the clustershell, and then switch to the nodeshell: `run -node nodename`
++
+After logging on the clustershell again, it might take a few minutes before it is ready to accept the nodeshell command. So, if the command fails, wait a few minutes and try it again.
+
+. Revert the file system configuration of the node: `revert_to 9.x`
++
+This command verifies that the node's file system configuration is ready to be reverted, and then reverts it. If any preconditions are identified, you must address them and then rerun the revert_to command.
++
+NOTE: Using a system console to monitor the revert process displays greater details than seen in nodeshell.
++
+When the command finishes, the LOADER prompt is displayed.
+
+. Enter `yes` at prompt to revert.
++
+If AUTOBOOT is true, the node will reboot to ONTAP. If AUTOBOOT is false, the node will halt.
+
+. Repeat Steps <<STEP_8580B4EF9F63426C9A16D1A7D65158F0,5>> through <<STEP_96A09FCD952E4D3590B20EAC356CD82C,15>> on the other node in the HA pair.
+. If the cluster consists of only two nodes, reenable cluster HA: `cluster ha modify -configured true`
+. Reenable storage failover on both nodes if it was previously disabled: `storage failover modify -node nodename -enabled true`
+. Repeat Steps <<STEP_5469F5DF877C432B80BE7EB5692D6D4A,4>> through <<STEP_39CB9CD3ED0B4483858ADEA9977E0354,18>> for each additional HA pair and both the clusters in MetroCluster Configuration.

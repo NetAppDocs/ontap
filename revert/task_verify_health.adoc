@@ -1,0 +1,135 @@
+---
+permalink: revert/task_verify_health.html
+sidebar: revert_sidebar
+keywords: ontap, revert, reverting, reversion, downgrade, downgrading, verifying, verify, cluster, health
+summary: 'After you revert, or downgrade a cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum.'
+---
+
+= Verify cluster and storage health after downgrade or revert
+
+[.lead]
+After you downgrade or revert a cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum. You should also verify the status of your disks, aggregates, and volumes.
+
+
+== Verify cluster health
+
+. Verify that the nodes in the cluster are online and are eligible to participate in the cluster: `cluster show`
++
+----
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+node0                 true    true
+node1                 true    true
+----
++
+If any node is unhealthy or ineligible, check EMS logs for errors and take corrective action.
+
+. Set the privilege level to advanced: `set -privilege advanced`
+. Enter `y` to continue.
+. Verify the configuration details for each RDB process.
+ ** The relational database epoch and database epochs should match for each node.
+ ** The per-ring quorum master should be the same for all nodes.
++
+Note that each ring might have a different quorum master.
+
++
+|===
+| To display this RDB process...| Enter this command...
+a|
+Management application
+a|
+`cluster ring show -unitname mgmt`
+a|
+Volume location database
+a|
+`cluster ring show -unitname vldb`
+a|
+Virtual-Interface manager
+a|
+`cluster ring show -unitname vifmgr`
+a|
+SAN management daemon
+a|
+`cluster ring show -unitname bcomd`
+|===
+This example shows the volume location database process:
++
+----
+cluster1::*> cluster ring show -unitname vldb
+Node      UnitName Epoch    DB Epoch DB Trnxs Master    Online
+--------- -------- -------- -------- -------- --------- ---------
+node0     vldb     154      154      14847    node0     master
+node1     vldb     154      154      14847    node0     secondary
+node2     vldb     154      154      14847    node0     secondary
+node3     vldb     154      154      14847    node0     secondary
+4 entries were displayed.
+----
+. If you are operating in a SAN environment, verify that each node is in a SAN quorum: `event log show -messagename scsiblade.*`
++
+The most recent scsiblade event message for each node should indicate that the scsi-blade is in quorum.
++
+----
+cluster1::*> event log show -messagename scsiblade.*
+Time                Node             Severity      Event
+------------------- ---------------- ------------- ---------------------------
+MM/DD/YYYY TIME  node0            INFORMATIONAL scsiblade.in.quorum: The scsi-blade ...
+MM/DD/YYYY TIME  node1            INFORMATIONAL scsiblade.in.quorum: The scsi-blade ...
+----
+
+. Return to the admin privilege level: `set -privilege admin`
+
+*Related information*
+
+https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-sag/home.html[System administration]
+
+== Verify storage health
+
+After you revert or downgrade a cluster, you should verify the status of your disks, aggregates, and volumes.
+
+. Verify disk status:
++
+|===
+| To check for...| Do this...
+a|
+Broken disks
+a|
+
+ .. Display any broken disks: `storage disk show -state broken`
+ .. Remove or replace any broken disks.
+
+a|
+Disks undergoing maintenance or reconstruction
+a|
+
+ .. Display any disks in maintenance, pending, or reconstructing states: `storage disk show -state maintenance|pending|reconstructing`
+ .. Wait for the maintenance or reconstruction operation to finish before proceeding.
+
++
+|===
+
+. Verify that all aggregates are online by displaying the state of physical and logical storage, including storage aggregates: `storage aggregate show -state !online`
++
+This command displays the aggregates that are _not_ online. All aggregates must be online before and after performing a major upgrade or reversion.
++
+----
+cluster1::> storage aggregate show -state !online
+There are no entries matching your query.
+----
+
+. Verify that all volumes are online by displaying any volumes that are _not_ online: `volume show -state !online`
++
+All volumes must be online before and after performing a major upgrade or reversion.
++
+----
+cluster1::> volume show -state !online
+There are no entries matching your query.
+----
+
+. Verify that there are no inconsistent volumes: `volume show -is-inconsistent true`
++
+If any inconsistent volumes are returned, you must contact NetApp Support before you precede with the upgrade.
+
+*Related information*
+
+https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-psmg/home.html[Disk and aggregate management]
