@@ -15,9 +15,9 @@ summary: The automatic takeover and giveback operations can work together to red
 [.lead]
 The automatic takeover and giveback operations can work together to reduce and avoid client outages.
 
-By default, if one node in the HA pair panics or reboots, the partner node automatically takes over and then returns storage when the affected node reboots. The HA pair then resumes a normal operating state.
+By default, if one node in the HA pair panics, reboots, or halts, the partner node automatically takes over and then returns storage when the affected node reboots. The HA pair then resumes a normal operating state.
 
-Automatic giveback occurs by default. If you would rather control giveback impact on clients, you can disable automatic giveback and use the `storage failover modify-auto-giveback false-node < node` command. Before performing the automatic giveback (regardless of what triggered it), the partner node waits for a fixed amount of time as controlled by the `-delay- seconds` parameter of the `storage failover modify` command. The default delay is 600 seconds. By delaying the giveback, the process results in two brief outages: one during takeover and one during giveback.
+Automatic giveback occurs by default. If you would rather control giveback impact on clients, you can disable automatic giveback and use the `storage failover modify auto-giveback false-node < node` command. Before performing the automatic giveback (regardless of what triggered it), the partner node waits for a fixed amount of time as controlled by the `-delay- seconds` parameter of the `storage failover modify` command. The default delay is 600 seconds. By delaying the giveback, the process results in two brief outages: one during takeover and one during giveback.
 
 This process avoids a single, prolonged outage that includes time required for:
 
@@ -39,9 +39,9 @@ The following steps occur during the takeover process:
 . If the negotiated takeover is user-initiated, aggregated data is moved from the partner node to the node that is performing the takeover. A brief outage occurs as the current owner of each aggregate (except for the root aggregate) changes over to the takeover node. This outage is briefer than an outage that occurs during a takeover without aggregate relocation.
 +
 * You can monitor the progress using the `storage failover show‑takeover` command.
-* You can avoid the aggregate relocation during this takeover instance by using the `‑bypass‑optimization` parameter with the `storage failover takeover` command. To bypass aggregate relocation during all future planned takeovers, set the `‑bypass‑takeover‑optimization` parameter of the `storage failover modify` command to true.
+* You can avoid the aggregate relocation during this takeover instance by using the `‑bypass‑optimization` parameter with the `storage failover takeover` command. To bypass aggregate relocation during all future planned takeovers, set the `‑bypass‑optimization` parameter of the `storage failover modify` command to true.
 +
-NOTE: Aggregates are relocated serially during planned takeover operations to reduce client outage. If aggregate relocation is bypassed, longer client outage occurs during planned takeover events. Setting the `‑bypass‑takeover‑optimization `parameter of the storage failover modify command to `true` is not recommended in environments that have stringent outage requirements.
+NOTE: Aggregates are relocated serially during planned takeover operations to reduce client outage. If aggregate relocation is bypassed, longer client outage occurs during planned takeover events. Setting the `‑bypass‑optimization `parameter of the storage failover modify command to `true` is not recommended in environments that have stringent outage requirements.
 
 . If the user-initiated takeover is a negotiated takeover, the target node gracefully shuts down, followed by takeover of the target node's root aggregate and any aggregates that were not relocated in Step 1.
 
@@ -84,7 +84,7 @@ I/O resumes for each aggregate once giveback is complete for that aggregate, whi
 
 = HA policy and its effect on takeover and giveback
 
-ONTAP automatically assigns an HA policy of CFO (controller failover) and SFO (storage failover) to an aggregate. This policy determines how storage failover operations occur for the aggregate and its volumes. *QUESTION:* Are both policies applied to every aggregate?
+ONTAP automatically assigns an HA policy of CFO (controller failover) and SFO (storage failover) to an aggregate. This policy determines how storage failover operations occur for the aggregate and its volumes.
 
 The two options, CFO and SFO, determine the aggregate control sequence ONTAP uses during storage failover and giveback operations.
 
