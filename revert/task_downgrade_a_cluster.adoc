@@ -17,7 +17,7 @@ All downgrades from ONTAP 9.1 to ONTAP 9.0 are nondisruptive except downgrades o
 
 IMPORTANT: Do not attempt to revert ONTAP by simply downloading and booting (or netbooting) in an earlier release. If you do, you cannot boot the earlier target release. You must use the clustershell system node revert-to and nodeshell revert_to commands for the reversion process.
 
-Before you begin your downgrade, you should perform the same link:task_reviewing_pre_reversion_resources.html[reviews] and link:"task_things_to_verify_before_downgrade_revert.html[verifications] applicable to the reversion process.  You should also link:task_download_and_install_ontap_software_image.html[download and install the ONTAP software image].
+Before you begin your downgrade, you should perform the same link:task_reviewing_pre_reversion_resources.html[reviews] and link:task_things_to_verify_before_downgrade_revert.html[verifications] applicable to the reversion process.  You should also link:task_download_and_install_ontap_software_image.html[download and install the ONTAP software image].
 
 == Downgrade process considerations
 
@@ -37,7 +37,7 @@ For all other CIFS configurations, client sessions are terminated. You should di
 
 * ONTAP clusters can operate for a limited time in a mixed version state, in which nodes in a cluster are running different versions of ONTAP; however, the update is not complete until all nodes are running the new target release.
 +
-When the cluster is in a mixed version state, you should not enter any commands that alter the cluster operation or configuration except as necessary to satisfy upgrade requirements. You should complete the update as quickly as possible; do not allow the cluster to remain in a mixed version state longer than necessary. An HA pair must not run an ONTAP version from a release that is different from other HA pairs in the cluster for more than seven days.
+When the cluster is in a mixed version state, you should not enter any commands that alter the cluster operation or configuration except as necessary to satisfy downgrade requirements. You should complete the update as quickly as possible; do not allow the cluster to remain in a mixed version state longer than necessary. An HA pair must not run an ONTAP version from a release that is different from other HA pairs in the cluster for more than seven days.
 
 *Related information*
 
@@ -83,15 +83,13 @@ a|
 This command stops the SnapMirror transfer and restores the destination volume to the last Snapshot copy that was successfully transferred. The relationship is set to Quiesced status.
 |===
 
-== Downgrading the nodes
+== Downgrade the nodes
 
 A nondisruptive downgrade from ONTAP 9.1 to ONTAP 9.0 is performed using the rolling update method.  This method has several steps: initiating a failover operation on each node in an HA pair, updating the "`failed`" node, initiating giveback, and then repeating the process for each HA pair in the cluster.
 
-You must have completed the downgrade link:task_things_to_verify_before_downgrade_revert.html[verifications] and link:task_quiesce_snapmirror_relationships_before_downgrade.html[pre-checks].
-
 . Downgrade the first node in an HA pair
 +
-You downgrade the first node in an HA pair by initiating a takeover by the node's partner. The partner serves the node's data while the first node is upgraded.
+You downgrade the first node in an HA pair by initiating a takeover by the node's partner. The partner serves the node's data while the first node is downgraded.
 
 . Downgrade the second node in an HA pair
 +
@@ -99,15 +97,17 @@ After upgrading or downgrading the first node in an HA pair, you downgrade its p
 
 . Repeat these steps for each additional HA pair.
 
-. Complete link:task_verify_health.html[post-downgrade verifications].
+. Complete link:task_things_to_verify_after_downgrade_revert.html[post-downgrade verifications].
++
+These are the same verifications performed for reverting.
 
-=== Downgrading the first node in an HA pair
+=== Downgrade the first node in an HA pair
 
-You can update the first node in an HA pair by initiating a takeover by the node's partner. The partner serves the node's data while the first node is upgraded.
+You can update the first node in an HA pair by initiating a takeover by the node's partner. The partner serves the node's data while the first node is downgraded.
 
-If you are performing a major upgrade, the first node to be upgraded must be the same node on which you configured the data LIFs for external connectivity and installed the first ONTAP image.
+The first node to be downgraded must be the same node on which you configured the data LIFs for external connectivity and installed the first ONTAP image.
 
-After upgrading the first node, you should upgrade the partner node as quickly as possible. Do not allow the two nodes to remain in a state of version mismatch longer than necessary.
+After downgrading the first node, you should downgrade the partner node as quickly as possible. Do not allow the two nodes to remain in a state of version mismatch longer than necessary.
 
 . Update the first node in the cluster by invoking an AutoSupport message: `autosupport invoke -node * -type all -message "Starting_NDU"`
 +
@@ -200,7 +200,7 @@ The first node boots up to the Waiting for giveback state.
 
 . Verify that the takeover is successful: `storage failover show`
 +
-You might see error messages indicating version mismatch and mailbox format problems. This is expected behavior and it represents a temporary state in a major nondisruptive upgrade and is not harmful.
+You might see error messages indicating version mismatch and mailbox format problems. This is expected behavior and it represents a temporary state in a major downgrade and is not harmful.
 +
 The following example shows that the takeover was successful. Node node0 is in the Waiting for giveback state, and its partner is in the In takeover state.
 +
@@ -229,8 +229,6 @@ If the Giveback Status field indicates that there are no aggregates to give back
 
 . If any aggregates have not been returned, perform the following steps:
  .. Review the veto workaround to determine whether you want to address the "`veto`" condition or override the veto.
-+
-https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-hacg/home.html[High-availability configuration]
 
  .. If necessary, address the "`veto`" condition described in the error message, ensuring that any identified operations are terminated gracefully.
  .. Rerun the storage failover giveback command.
@@ -247,12 +245,12 @@ The recovery time is client specific and might take longer than eight minutes, d
 +
 The status should be listed as complete.
 +
-If the status is not complete, from the node, run the system node upgrade-revert upgrade command. If the command does not complete the update, contact technical support.
+If the status is not complete, from the node, run the `system node upgrade-revert upgrade` command. If the command does not complete the update, contact technical support.
 
  .. Return to the admin privilege level: `set -privilege admin`
 . Verify that the node's ports are up: `network port show -node nodenameA`
 +
-You must run this command on a node that is upgraded to the higher version of ONTAP 9.
+You must run this command on a node that is downgraded to the lower version of ONTAP 9.
 +
 The following example shows that all of the node's ports are up:
 +
@@ -311,9 +309,9 @@ cluster1::> system node run -node node0 -command uptime
 
 You should proceed to update the node's HA partner as quickly as possible. If you must suspend the update process for any reason, both nodes in the HA pair should be running the same ONTAP version.
 
-=== Downgrading the partner node in an HA pair
+=== Downgrade the partner node in an HA pair
 
-After updating the first node in an HA pair, you update its partner by initiating a takeover on it. The first node serves the partner's data while the partner node is upgraded.
+After updating the first node in an HA pair, you update its partner by initiating a takeover on it. The first node serves the partner's data while the partner node is downgraded.
 
 . Set the privilege level to advanced, entering *y* when prompted to continue: `set -privilege advanced`
 +
@@ -445,12 +443,12 @@ The recovery time is client specific and might take longer than eight minutes, d
 +
 The status should be listed as complete.
 +
-If the status is not complete, from the node, run the system node upgrade-revert upgrade command. If the command does not complete the update, contact technical support.
+If the status is not complete, from the node, run the `system node upgrade-revert upgrade` command. If the command does not complete the update, contact technical support.
 
  .. Return to the admin privilege level: `set -privilege admin`
 . Verify that the node's ports are up: `network port show -node nodenameB`
 +
-You must run this command on a node that has been upgraded to ONTAP 9.4.
+You must run this command on a node that has been downgraded.
 +
 The following example shows that all of the node's data ports are up:
 +
