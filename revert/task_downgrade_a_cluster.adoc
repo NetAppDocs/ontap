@@ -11,32 +11,97 @@ summary: You can perform a nondisruptive downgrade from ONTAP 9.1 to ONTAP 9.0.
 
 [.lead]
 
-You should perform a downgrade for the following reasons:
+This procedure only applies to changing your ONTAP version from ONTAP 9.1 to 9.0.  To move from any version of ONTAP other than 9.1 to any version other than 9.0, you must  link:task_reverting_an_ontap_cluster.html[perform a revert].
 
-* You want to move from ONTAP 9.1 to ONTAP 9.0.
-* You want to move to an earlier version of ONTAP within the same major release, for example, ONTAP 9.2.3 to ONTAP 9.2.2.
+All downgrades from ONTAP 9.1 to ONTAP 9.0 are nondisruptive except downgrades of 2-node MetroCluster configurations, which are disruptive.
 
-If you are not moving from ONTAP 9.1 to 9.0 or to an earlier version of ONTAP within the same major release, you must follow the link:task_reverting_an_ontap_cluster.html[revert process].
+IMPORTANT: Do not attempt to revert ONTAP by simply downloading and booting (or netbooting) in an earlier release. If you do, you cannot boot the earlier target release. You must use the clustershell system node revert-to and nodeshell revert_to commands for the reversion process.
 
-NOTE: This procedure only applies to downgrades from ONTAP 9.1 to 9.0 versions. To move from any version of ONTAP other than 9.1 to any version other than 9.0, you must perform a link:task_reverting_an_ontap_cluster.html[revert].  All downgrades from ONTAP 9.1 to ONTAP 9.0 are nondisruptive except downgrades of 2-node MetroCluster configurations, which are disruptive.
+Before you begin your downgrade, you should perform the same link:task_reviewing_pre_reversion_resources.html[reviews] and link:"task_things_to_verify_before_downgrade_revert.html[verifications] applicable to the reversion process.  You should also link:task_download_and_install_ontap_software_image.html[download and install the ONTAP software image].
+
+== Downgrade process considerations
+
+You should be aware of the following:
+
+* If the version of ONTAP you are downgrading to has a different BIOS version than your current ONTAP version, contact support for assistance downgrading the BIOS before you downgrade ONTAP.
+* Downgrading affects all nodes in the cluster.
+* You can downgrade ONTAP nondisruptively, except for single-node clusters, which lack hardware redundancy.
++
+During the downgrade process, the cluster remains online and continues to serve data.
+
+* If your cluster serves CIFS clients, nondisruptive downgrades are supported for Hyper-V and SQL Server over SMB solutions.
++
+These solutions enable the application servers and the contained virtual machines or databases to stay online and to provide continuous availability during the ONTAP downgrade.
++
+For all other CIFS configurations, client sessions are terminated. You should direct users to end their sessions before you downgrade to prevent data loss.
+
+* ONTAP clusters can operate for a limited time in a mixed version state, in which nodes in a cluster are running different versions of ONTAP; however, the update is not complete until all nodes are running the new target release.
++
+When the cluster is in a mixed version state, you should not enter any commands that alter the cluster operation or configuration except as necessary to satisfy upgrade requirements. You should complete the update as quickly as possible; do not allow the cluster to remain in a mixed version state longer than necessary. An HA pair must not run an ONTAP version from a release that is different from other HA pairs in the cluster for more than seven days.
+
+*Related information*
+
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.cdot-famg-cifs/home.html[SMB/CIFS management]
+
+== Quiesce SnapMirror relationships before downgrading
+
+Before downgrading from ONATP 9.1 to ONATP 9.0, you should quiesce your SnapMirror.
+
+. Use the snapmirror show command to determine the destination path for each SnapMirror relationship.
+. For each destination volume, suspend future SnapMirror transfers: `snapmirror quiesce -destination-path destination`
++
+If there are no active transfers for the SnapMirror relationship, this command sets its status to Quiesced. If the relationship has active transfers, the status is set to Quiescing until the transfer is completed, and then the status becomes Quiesced.
++
+This example quiesces transfers involving the destination volume vol1 from SVMvs0.example.com:
++
+----
+cluster1::> snapmirror quiesce -destination-path vs0.example.com:vol1
+----
+
+. Verify that all SnapMirror relationships are quiesced: `snapmirror show -status !Quiesced`
++
+This command displays any SnapMirror relationships that are _not_ quiesced.
++
+This example shows that all SnapMirror relationships are quiesced:
++
+----
+cluster1::> snapmirror show -status !Quiesced
+There are no entries matching your query.
+----
+
+. If any SnapMirror relationships are currently being transferred, do one of the following options:
++
+|===
+| Option| Description
+a|
+Wait for the transfers to finish before performing the ONTAP downgrade.
+a|
+After each transfer finishes, the relationship changes to Quiesced status.
+a|
+Stop the transfers: `snapmirror abort -destination-path destination -h`    *Note:* You must use the -foreground true parameter if you are aborting load-sharing mirror transfers.
+a|
+This command stops the SnapMirror transfer and restores the destination volume to the last Snapshot copy that was successfully transferred. The relationship is set to Quiesced status.
+|===
+
+== Downgrading the nodes
 
 A nondisruptive downgrade from ONTAP 9.1 to ONTAP 9.0 is performed using the rolling update method.  This method has several steps: initiating a failover operation on each node in an HA pair, updating the "`failed`" node, initiating giveback, and then repeating the process for each HA pair in the cluster.
 
-You must have completed the downgrade link:task_things_to_verify_before_downgrade_revert[verifications] and link:concept_pre_downgrade_revert_checks.html[pre-checks].
+You must have completed the downgrade link:task_things_to_verify_before_downgrade_revert.html[verifications] and link:task_quiesce_snapmirror_relationships_before_downgrade.html[pre-checks].
 
-. Update the first node in an HA pair
+. Downgrade the first node in an HA pair
 +
-You upgrade the first node in an HA pair by initiating a takeover by the node's partner. The partner serves the node's data while the first node is upgraded.
+You downgrade the first node in an HA pair by initiating a takeover by the node's partner. The partner serves the node's data while the first node is upgraded.
 
-. Update the second node in an HA pair
+. Downgrade the second node in an HA pair
 +
-After upgrading or downgrading the first node in an HA pair, you upgrade its partner by initiating a takeover on it. The first node serves the partner's data while the partner node is upgraded.
+After upgrading or downgrading the first node in an HA pair, you downgrade its partner by initiating a takeover on it. The first node serves the partner's data while the partner node is downgraded.
 
 . Repeat these steps for each additional HA pair.
 
-You should complete post-upgrade tasks.
+. Complete link:task_verify_health.html[post-downgrade verifications].
 
-== Updating the first node in an HA pair
+=== Downgrading the first node in an HA pair
 
 You can update the first node in an HA pair by initiating a takeover by the node's partner. The partner serves the node's data while the first node is upgraded.
 
@@ -246,7 +311,7 @@ cluster1::> system node run -node node0 -command uptime
 
 You should proceed to update the node's HA partner as quickly as possible. If you must suspend the update process for any reason, both nodes in the HA pair should be running the same ONTAP version.
 
-== Updating the partner node in an HA pair
+=== Downgrading the partner node in an HA pair
 
 After updating the first node in an HA pair, you update its partner by initiating a takeover on it. The first node serves the partner's data while the partner node is upgraded.
 
@@ -471,4 +536,4 @@ You must perform this step before upgrading any additional HA pairs.
 
 . Return to the admin privilege level: `set -privilege admin`
 
-Upgrade any additional HA pairs.
+. Downgrade any additional HA pairs.
