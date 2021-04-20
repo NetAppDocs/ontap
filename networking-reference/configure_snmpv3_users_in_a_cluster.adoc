@@ -74,36 +74,48 @@ The following table lists the SNMPv3 security parameters :
 
 == Examples for different security levels
 
-This example shows how an SNMPv3 user created with different security levels can use the SNMP client-side commands, such as snmpwalk, to query the cluster objects.
+This example shows how an SNMPv3 user created with different security levels can use the SNMP client-side commands, such as `snmpwalk`, to query the cluster objects.
 
 For better performance, you should retrieve all objects in a table rather than a single object or a few objects from the table.
 
 [NOTE]
-You must use snmpwalk 5.3.1 or later when the authentication protocol is SHA.
+You must use `snmpwalk` 5.3.1 or later when the authentication protocol is SHA.
 
 === Security level: authPriv
 
 The following output shows the creation of an SNMPv3 user with the authPriv security level.
 
 ....
+security login create -username snmpv3user -application snmp -authmethod usm
 Enter the authoritative entity's EngineID [local EngineID]:
-Which authentication protocol do you want to choose (none, md5, sha, sha2-256):
-Enter the authentication protocol password (minimum 8 characters long):
-Enter the authentication protocol password again:
-Which privacy protocol do you want to choose (none, des, aes128):
+Which authentication protocol do you want to choose  (none, md5, sha) [none]:sha
+....
+
+==== FIPS mode
+
+....
+Which authentication protocol do you want to choose (sha, sha2-256) [sha]
+
+Enter authentication protocol password (minimum 8 characters long):
+Enter authentication protocol password again:
+Which privacy protocol do you want to choose  (none, des) [none]: des
 Enter privacy protocol password (minimum 8 characters long):
+Enter privacy protocol password again:
 ....
 
-The following output shows the SNMPv3 user running the `snmpwalk` command:
+==== snmpwalk Test
+
+The following output shows the SNMPv3 user running the snmpwalk command:
+
+For better performance, you should retrieve all objects in a table rather than a single object or a few objects from the table.
 
 ....
-$ snmpwalk -v 3 -u snmpv3user -a SHA -A password1! -x DES -X password1! -l authPriv
-192.0.2.62 .1.3.6.1.4.1.789.1.5.8.1.2
-enterprises.789.1.5.8.1.2.1028 = "vol0"
-enterprises.789.1.5.8.1.2.1032 = "vol0"
-enterprises.789.1.5.8.1.2.1038 = "root_vs0"
-enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
-enterprises.789.1.5.8.1.2.1064 = "vol1"
+$ snmpwalk -v 3 -u snmpv3user -a SHA -A password1! -x DES -X password1! -l authPriv 192.0.2.62 .1.3.6.1.4.1.789.1.5.8.1.2
+Enterprises.789.1.5.8.1.2.1028 = "vol0"
+Enterprises.789.1.5.8.1.2.1032 = "vol0"
+Enterprises.789.1.5.8.1.2.1038 = "root_vs0"
+Enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
+Enterprises.789.1.5.8.1.2.1064 = "vol1"
 ....
 
 === Security level: authNoPriv
@@ -111,23 +123,34 @@ enterprises.789.1.5.8.1.2.1064 = "vol1"
 The following output shows the creation of an SNMPv3 user with the authNoPriv security level.
 
 ....
-Please enter the authoritative entity's EngineID [local EngineID]:
-Please choose an authentication protocol (none, md5, sha) [none]: md5
-Please enter authentication protocol password (minimum 8 characters long):
-Please enter authentication protocol password again:
-Please choose a privacy protocol (none, des) [none]: none
+security login create -username snmpv3user1 -application snmp -authmethod usm -role admin
+Enter the authoritative entity's EngineID [local EngineID]:
+Which authentication protocol do you want to choose (none, md5, sha) [none]: md5
 ....
+
+==== FIPS Mode
+
+....
+Which privacy protocol do you want to choose (aes128) [aes128]
+
+Enter authentication protocol password (minimum 8 characters long):
+Enter authentication protocol password again:
+Which privacy protocol do you want to choose (none, des) [none]: none
+....
+
+==== snmpwalk Test
 
 The following output shows the SNMPv3 user running the snmpwalk command:
 
+For better performance, you should retrieve all objects in a table rather than a single object or a few objects from the table.
+
 ....
-$ snmpwalk -v 3 -u snmpv3user1 -a MD5 -A password1!-l authNoPriv
-192.0.2.62 . 1.3.6.1.4.1.789.1.5.8.1.2
-enterprises.789.1.5.8.1.2.1028 = "vol0"
-enterprises.789.1.5.8.1.2.1032 = "vol0"
-enterprises.789.1.5.8.1.2.1038 = "root_vs0"
-enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
-enterprises.789.1.5.8.1.2.1064 = "vol1"
+$ snmpwalk -v 3 -u snmpv3user1 -a MD5 -A password1!  -l authNoPriv 192.0.2.62 .1.3.6.1.4.1.789.1.5.8.1.2
+Enterprises.789.1.5.8.1.2.1028 = "vol0"
+Enterprises.789.1.5.8.1.2.1032 = "vol0"
+Enterprises.789.1.5.8.1.2.1038 = "root_vs0"
+Enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
+Enterprises.789.1.5.8.1.2.1064 = "vol1"
 ....
 
 === Security level: noAuthNoPriv
@@ -135,18 +158,26 @@ enterprises.789.1.5.8.1.2.1064 = "vol1"
 The following output shows the creation of an SNMPv3 user with the noAuthNoPriv security level.
 
 ....
-Please enter the authoritative entity's EngineID [local EngineID]:
-Please choose an authentication protocol (none, md5, sha) [none]: none
+security login create -username snmpv3user2 -application snmp -authmethod usm -role admin
+Enter the authoritative entity's EngineID [local EngineID]:
+Which authentication protocol do you want to choose (none, md5, sha) [none]: none
 ....
 
-The following output shows the SNMPv3 user running the `snmpwalk` command:
+==== FIPS Mode
+
+FIPS will not allow you to choose none
+
+==== snmpwalk Test
+
+The following output shows the SNMPv3 user running the snmpwalk command:
+
+For better performance, you should retrieve all objects in a table rather than a single object or a few objects from the table.
 
 ....
-$ snmpwalk -v 3 -u snmpv3user2 -l noAuthNoPriv
-192.0.2.62 .1.3.6.1.4.1.789.1.5.8.1.2
-enterprises.789.1.5.8.1.2.1028 = "vol0"
-enterprises.789.1.5.8.1.2.1032 = "vol0"
-enterprises.789.1.5.8.1.2.1038 = "root_vs0"
-enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
-enterprises.789.1.5.8.1.2.1064 = "vol1"
+$ snmpwalk -v 3 -u snmpv3user2 -l noAuthNoPriv 192.0.2.62 .1.3.6.1.4.1.789.1.5.8.1.2
+Enterprises.789.1.5.8.1.2.1028 = "vol0"
+Enterprises.789.1.5.8.1.2.1032 = "vol0"
+Enterprises.789.1.5.8.1.2.1038 = "root_vs0"
+Enterprises.789.1.5.8.1.2.1042 = "root_vstrap"
+Enterprises.789.1.5.8.1.2.1064 = "vol1"
 ....
