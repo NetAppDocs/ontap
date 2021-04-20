@@ -11,7 +11,7 @@ summary: 'To take the cluster offline to revert to an earlier ONTAP release, you
 [.lead]
 To take the cluster offline to revert to an earlier ONTAP release, you must disable storage failover and the data LIFs, address reversion preconditions, revert the cluster and file system configurations on a node, and then repeat the process for each additional node in the cluster.
 
-You must have satisfied reversion preparation requirements.
+You must have completed the revert link:task_things_to_verify_before_downgrade_revert[verifications] and link:concept_pre_downgrade_revert_checks.html[pre-checks].
 
 Reverting a cluster requires you to take the cluster offline for the duration of the reversion.
 
@@ -38,8 +38,8 @@ node1
 ----
 
 . Disable all of the data LIFs in the cluster: `network interface modify {-role data} -status-admin down`
-. If the cluster consists of only two nodes, disable cluster HA: `cluster ha modify -configured false`
-. Disable storage failover for the nodes in the HA pair from either node: `storage failover modify -node nodename -enabled false`
+. [[step-disablecluster]]If the cluster consists of only two nodes, disable cluster HA: `cluster ha modify -configured false`
+. [[step-disablesfo]]Disable storage failover for the nodes in the HA pair from either node: `storage failover modify -node nodename -enabled false`
 +
 You only need to disable storage failover once for the HA pair. When you disable storage failover for a node, storage failover is also disabled on the node's partner.
 
@@ -110,11 +110,11 @@ NOTE: Using a system console to monitor the revert process displays greater deta
 +
 When the command finishes, the LOADER prompt is displayed.
 
-. Enter `yes` at prompt to revert.
+. [[step-yestorevert]]Enter `yes` at prompt to revert.
 +
 If AUTOBOOT is true, the node will reboot to ONTAP. If AUTOBOOT is false, the node will halt.
 
-. Repeat Steps <<STEP_8580B4EF9F63426C9A16D1A7D65158F0,5>> through <<STEP_96A09FCD952E4D3590B20EAC356CD82C,15>> on the other node in the HA pair.
+. Repeat <<step-disablesfo>> through <<step-yestorevert>> on the other node in the HA pair.
 . If the cluster consists of only two nodes, reenable cluster HA: `cluster ha modify -configured true`
-. Reenable storage failover on both nodes if it was previously disabled: `storage failover modify -node nodename -enabled true`
-. Repeat Steps <<STEP_5469F5DF877C432B80BE7EB5692D6D4A,4>> through <<STEP_39CB9CD3ED0B4483858ADEA9977E0354,18>> for each additional HA pair and both the clusters in MetroCluster Configuration.
+. [[step-reenablesfo]]Reenable storage failover on both nodes if it was previously disabled: `storage failover modify -node nodename -enabled true`
+. Repeat Steps <<step-disablecluster>> through <<step-reenablesfo>> for each additional HA pair and both the clusters in MetroCluster Configuration.
