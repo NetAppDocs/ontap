@@ -1,0 +1,120 @@
+---
+sidebar: networking-reference_sidebar
+permalink: networking-reference/create_an_snmp_community_and_assigning_it_to_a_lif.html
+keywords: create, creation, creating, add, adding, snmp, community, assign, assigning, lif, logical, interface
+summary: Create an SNMP community that acts as an authentication mechanism between the management station and the SVM
+---
+
+= Create an SNMP community and assigning it to a LIF
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-30 12:43:36.929426
+//
+// restructured: March 2021
+//
+
+[.lead]
+You can create an SNMP community that acts as an authentication mechanism between the management station and the storage virtual machine (SVM) when using SNMPv1 and SNMPv2c.
+
+By creating SNMP communities in a data SVM, you can execute commands such as `snmpwalk` and `snmpget` on the data LIFs.
+
+.About this task
+
+* In new installations of ONTAP, SNMPv1 and SNMPv2c are disabled by default.
++
+SNMPv1 and SNMPv2c are enabled after you create an SNMP community.
+* ONTAP supports read-only communities.
+* By default, the "data" firewall policy that is assigned to data LIFs has SNMP service set to `deny`.
++
+You must create a new firewall policy with SNMP service set to `allow` when creating an SNMP user for a data SVM.
+* You can create SNMP communities for SNMPv1 and SNMPv2c users for both the admin SVM and the data SVM.
+* Because an SVM is not part of the SNMP standard, queries on data LIFs must include the NetApp root OID (1.3.6.1.4.1.789)—for example, `snmpwalk -v 2c -c snmpNFS 10.238.19.14 1.3.6.1.4.1.789`.
+
+.Steps
+
+. Create an SNMP community by using the `system snmp community add` command. The following command shows how to create an SNMP community in the admin SVM cluster-1:
++
+....
+system snmp community add -type ro -community-name comty1 -vserver cluster-1
+....
++
+The following command shows how to create an SNMP community in the data SVM vs1:
++
+....
+system snmp community add -type ro -community-name comty2 -vserver vs1
+....
+
+. Verify that the communities have been created by using the system snmp community show command.
++
+The following command shows the two communities created for SNMPv1 and SNMPv2c:
++
+....
+system snmp community show
+cluster-1
+rocomty1
+vs1
+rocomty2
+....
+
+. Check whether SNMP is allowed as a service in the "data" firewall policy by using the `system services firewall policy` `show` command.
++
+The following command shows that the snmp service is not allowed in the default "data" firewall policy (the snmp service is allowed in the "mgmt" firewall policy only):
++
+....
+system services firewall policy show
+Vserver Policy       Service    Allowed
+------- ------------ ---------- -------------------
+cluster-1
+        data
+                     dns        0.0.0.0/0
+                     ndmp       0.0.0.0/0
+                     ndmps      0.0.0.0/0
+cluster-1
+        intercluster
+                     https      0.0.0.0/0
+                     ndmp       0.0.0.0/0
+                     ndmps      0.0.0.0/0
+cluster-1
+        mgmt
+                     dns        0.0.0.0/0
+                     http       0.0.0.0/0
+                     https      0.0.0.0/0
+                     ndmp       0.0.0.0/0
+                     ndmps      0.0.0.0/0
+                     ntp        0.0.0.0/0
+                     snmp       0.0.0.0/0
+                     ssh        0.0.0.0/0
+....
+
+. Create a new firewall policy that allows access using the `snmp` service by using the `system services firewall policy create` command.
++
+The following commands create a new data firewall policy named "data1" that allows the `snmp`
++
+....
+system services firewall policy create -policy data1 -service snmp -vserver  vs1 -allow-list 0.0.0.0/0
+
+cluster-1::> system services firewall policy show -service snmp
+Vserver  Policy       Service    Allowed
+-------  ------------ ---------- -------------------
+cluster-1
+         mgmt
+                      snmp       0.0.0.0/0
+vs1
+         data1
+                      snmp       0.0.0.0/0
+....
+
+. Apply the firewall policy to a data LIF by using the `network interface modify `command with the -firewall-policy parameter.
++
+The following command assigns the new "data1" firewall policy to LIF "datalif1":
++
+....
+network interface modify -vserver vs1 -lif datalif1 -firewall-policy data1
+....

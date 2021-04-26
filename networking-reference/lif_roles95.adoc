@@ -1,0 +1,171 @@
+---
+sidebar: networking-reference_sidebar
+permalink: networking-reference/lif_roles95.html
+keywords: lif, role, ontap 9.5
+summary: LIFs with different roles have different characteristics
+---
+
+= LIF roles in ONTAP 9.5 and earlier
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:44.520077
+//
+// restructured: March 2021
+//
+
+[.lead]
+LIFs with different roles have different characteristics. A LIF role determines the kind of traffic that is supported over the interface, along with the failover rules that apply, the firewall restrictions that are in place, the security, the load balancing, and the routing behavior for each LIF. A LIF can have any one of the five roles: node management, cluster management, cluster, intercluster, and data.
+
+Starting with ONTAP 9.6, LIF roles are deprecated. You should specify service policies for LIFs instead of a role. It is not necessary to specify a LIF role when creating a LIF with a service policy.
+
+== LIF compatibility with port types
+
+[NOTE]
+When intercluster and management LIFs are configured in the same subnet to associate with a static route and if the route associates with an intercluster LIF, the management traffic is blocked by an external firewall and the AutoSupport and NTP connections fail. You can recover the system by running the `network interface modify -vserver _vserver name_ -lif _intercluster LIF_ -status-admin up|down` command to toggle the intercluster LIF. However, you should set the intercluster LIF and management LIF in different subnets to avoid this issue.
+
+[cols=2*,options="header",cols="30,70"]
+|===
+| LIF role | Description
+
+| Data LIF
+| A LIF that is associated with a storage virtual machine (SVM) and is used for communicating with clients.
+You can have multiple data LIFs on a port. These interfaces can migrate or fail over throughout the cluster. You can modify a data LIF to serve as an SVM management LIF by modifying its firewall policy to mgmt.
+
+Sessions established to NIS, LDAP, Active Directory, WINS, and DNS servers use data LIFs.
+
+| Cluster LIF
+| A LIF that is used to carry intracluster traffic between nodes in a cluster. Cluster LIFs must always be created on 10-GbE network ports.
+
+Cluster LIFs can fail over between cluster ports on the same node, but they cannot be migrated or failed over to a remote node. When a new node joins a cluster, IP addresses are generated automatically. However, if you want to assign IP addresses manually to the cluster LIFs, you must ensure that the new IP addresses are in the same subnet range as the existing cluster LIFs.
+
+| Node management LIF
+| A LIF that provides a dedicated IP address for managing a particular node in a cluster. Node management LIFs are created at the time of creating or joining the cluster. These LIFs are used for system maintenance, for example, when a node becomes inaccessible from the cluster.
+
+| Cluster management LIF
+| LIF that provides a single management interface for the entire cluster.
+
+A cluster management LIF can fail over to any node management or data port in the cluster. It cannot fail over to cluster or intercluster ports
+
+Intercluster LIF	A LIF that is used for cross-cluster communication, backup, and replication. You must create an intercluster LIF on each node in the cluster before a cluster peering relationship can be established.
+
+These LIFs can only fail over to ports in the same node. They cannot be migrated or failed over to another node in the cluster.
+|===
+
+[cols=6*,options="header"]
+|===
+|  	| Data LIF	| Cluster LIF | Node management LIF	| Cluster management LIF	| Intercluster LIF
+
+| Primary traffic types
+| NFS server, CIFS server, NIS client, Active Directory, LDAP, WINS, DNS client and server, iSCSI and FC server
+| Intracluster
+| SSH server, HTTPS server, NTP client, SNMP, AutoSupport client, DNS client, loading software updates
+| SSH server, HTTPS server
+| Cross-cluster replication
+| Notes
+| SAN LIFs cannot fail over. These LIFs also do not support load balancing.
+| Unauthenticated, unencrypted; essentially an internal Ethernet bus of the cluster.
+|===
+
+== LIF security
+
+[cols=6*,options="header"]
+|===
+|  	| Data LIF	| Cluster LIF | Node management LIF	| Cluster management LIF	| Intercluster LIF
+
+| Require private IP subnet?
+| No
+| Yes
+| No
+| No
+| No
+| Require secure network?
+| No
+| Yes
+| No
+| No
+| Yes
+| Default firewall policy
+| Very restrictive
+| Completely open
+| Medium
+| Medium
+| Very restrictive
+| Is firewall customizable?
+| Yes
+| No
+| Yes
+| Yes
+| Yes
+|===
+
+== LIF failover
+
+[cols=6*,options="header"]
+|===
+|  	| Data LIF	| Cluster LIF | Node management LIF	| Cluster management LIF	| Intercluster LIF
+
+| Default behavior
+| Only those ports in the same failover group that are on the LIF's home node and on a non-SFO partner node
+| Only those ports in the same failover group that are on the LIF's home node
+| Only those ports in the same failover group that are on the LIF's home node
+| Any port in the same failover group
+| Only those ports in the same failover group that are on the LIF's home node
+| Is customizable?
+| Yes
+| No
+| Yes
+| Yes
+| Yes
+|===
+
+== LIF routing
+
+[cols=6*,options="header"]
+|===
+|  	| Data LIF	| Cluster LIF | Node management LIF	| Cluster management LIF	| Intercluster LIF
+
+| When is a default route needed?
+| When clients or domain controller are on different IP subnet
+| Never
+| When any of the primary traffic types require access to a different IP subnet
+| When administrator is connecting from another IP subnet
+| When other intercluster LIFs are on a different IP subnet
+| When is a static route to a specific IP subnet needed?
+| Rare
+| Never
+| Rare
+| Rare
+| When nodes of another cluster have their intercluster LIFs in different IP subnets
+| When is a static host route to a specific server needed?
+| To have one of the traffic types listed under node management LIF, go through a data LIF rather than a node management LIF. This requires a corresponding firewall change.
+| Never
+| Rare
+| Rare
+| Rare
+|===
+
+== LIF rebalancing
+
+[cols=6*,options="header"]
+|===
+|  	| Data LIF	| Cluster LIF | Node management LIF	| Cluster management LIF	| Intercluster LIF
+
+| DNS: use as DNS server?
+| Yes
+| No
+| No
+| No
+| No
+| DNS: export as zone?
+| Yes
+| No
+| No
+| No
+| No
