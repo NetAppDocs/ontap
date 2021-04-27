@@ -1,0 +1,120 @@
+---
+sidebar: high-availability_sidebar
+permalink: high-availability/ha_how_automatic_takeover_and_giveback_works.html
+keywords: ontap, high availability, ha, pair, automatic, takeover, giveback, background, updates, policy, effect, node, panics, what, happens
+summary: The automatic takeover and giveback operations can work together to reduce and avoid client outages.
+---
+
+= How automatic takeover and giveback works
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+The automatic takeover and giveback operations can work together to reduce and avoid client outages.
+
+By default, if one node in the HA pair panics, reboots, or halts, the partner node automatically takes over and then returns storage when the affected node reboots. The HA pair then resumes a normal operating state.
+
+Automatic takeovers may also occur if one of the nodes become unresponsive.
+
+Automatic giveback occurs by default. If you would rather control giveback impact on clients, you can disable automatic giveback and use the `storage failover modify -auto-giveback false -node <node>` command. Before performing the automatic giveback (regardless of what triggered it), the partner node waits for a fixed amount of time as controlled by the `-delay- seconds` parameter of the `storage failover modify` command. The default delay is 600 seconds. By delaying the giveback, the process results in two brief outages: one during takeover and one during giveback.
+
+This process avoids a single, prolonged outage that includes time required for:
+
+* The takeover operation
+* The taken-over node to boot up to the point at which it is ready for the giveback
+* The giveback operation
+
+If the automatic giveback fails for any of the non-root aggregates, the system automatically makes two additional attempts to complete the giveback.
+
+[NOTE]
+During the takeover process, the automatic giveback process starts before the partner node is ready for the giveback. When the time limit of the automatic giveback process expires and the partner node is still not ready, the timer restarts. As a result, the time between the partner node being ready and the actual giveback being performed might be shorter than the automatic giveback time.
+
+== What happens during takeover
+
+When a node takes over its partner, it continues to serve and update data in the partner's aggregates and volumes.
+
+The following steps occur during the takeover process:
+
+. If the negotiated takeover is user-initiated, aggregated data is moved from the partner node to the node that is performing the takeover. A brief outage occurs as the current owner of each aggregate (except for the root aggregate) changes over to the takeover node. This outage is briefer than an outage that occurs during a takeover without aggregate relocation.
++
+* You can monitor the progress using the `storage failover show‑takeover` command.
+* You can avoid the aggregate relocation during this takeover instance by using the `‑bypass‑optimization` parameter with the `storage failover takeover` command.
++
+NOTE: Aggregates are relocated serially during planned takeover operations to reduce client outage. If aggregate relocation is bypassed, longer client outage occurs during planned takeover events.
+
+. If the user-initiated takeover is a negotiated takeover, the target node gracefully shuts down, followed by takeover of the target node's root aggregate and any aggregates that were not relocated in Step 1.
+
+. Before the storage takeover begins, data LIFs (logical interfaces) migrate from the target node to the takeover node, or to any other node in the cluster based on LIF failover rules. You can avoid the LIF migration by using the `‑skip‑lif-migration` parameter with the `storage failover takeover` command.
+
+. Existing SMB (CIFS) sessions are disconnected when takeover occurs.
++
+ATTENTION: *Due to the nature of the SMB protocol, all SMB sessions are disrupted (except for SMB 3.0 sessions connected to shares with the Continuous Availability property set). SMB 1.0 and SMB 2.x sessions cannot reconnect after a takeover event; therefore, takeover is disruptive and some data loss could occur.
+
+. SMB 3.0 sessions established to shares with the Continuous Availability property set can reconnect to the disconnected shares after a takeover event. If your site uses SMB 3.0 connections to Microsoft Hyper-V and the Continuous Availability property is set on the associated shares, takeover are non-disruptive for those sessions.
+
+=== If the node doing the takeover panics
+
+If the node that is performing the takeover panics within 60 seconds of initiating takeover, the following events occur:
+
+* The node that panicked reboots.
+* After it reboots, the node performs self-recovery operations and is no longer in takeover mode.
+* Failover is disabled.
+* If the node still owns some of the partner's aggregates, after enabling storage failover, return these aggregates to the partner using the `storage failover giveback` command.
+
+== What happens during giveback
+
+The local node returns ownership to the partner node when issues are resolved, when the partner node boots up, or when giveback is initiated.
+
+The following process takes place in a normal giveback operation. In this discussion, Node A has taken over Node B. Any issues on Node B have been resolved and it is ready to resume serving data.
+
+. Any issues on Node B are resolved and it displays the following message: `Waiting for giveback`
+
+. The giveback is initiated by the `storage failover giveback` command or by automatic giveback if the system is configured for it. This initiates the process of returning ownership of Node B's aggregates and volumes from Node A back to Node B.
+
+. Node A returns control of the root aggregate first.
+
+. Node B completes the process of booting up to its normal operating state.
+
+. As soon as Node B reaches the point in the boot process where it can accept the non-root aggregates, Node A returns ownership of the other aggregates, one at a time, until giveback is complete. You can monitor the progress of the giveback with the `storage failover show-giveback` command.
++
+NOTE: The `storage failover show-giveback` command does not (nor is it intended to) display information about all operations occurring during the storage failover giveback operation. You can use the `storage failover show` command to display additional details about the current failover status of the node, such as if the node is fully functional, takeover is possible, and giveback is complete.
++
+I/O resumes for each aggregate once giveback is complete for that aggregate, which reduces its overall outage window.
+
+= HA policy and its effect on takeover and giveback
+
+ONTAP automatically assigns an HA policy of CFO (controller failover) and SFO (storage failover) to an aggregate. This policy determines how storage failover operations occur for the aggregate and its volumes.
+
+The two options, CFO and SFO, determine the aggregate control sequence ONTAP uses during storage failover and giveback operations.
+
+Although the terms CFO and SFO are sometimes used informally to refer to storage failover (takeover and giveback) operations, they actually represent the HA policy assigned to the aggregates. For example, the terms SFO aggregate or CFO aggregate simply refer to the aggregate's HA policy assignment.
+
+HA policies affect takeover and giveback operations as follows:
+
+* Aggregates created on ONTAP systems (except for the root aggregate containing the root volume) have an HA policy of SFO. Manually initiated takeover is optimized for performance by relocating SFO (non-root) aggregates serially to the partner before takeover. During the giveback process, aggregates are given back serially after the taken-over system boots and the management applications come online, enabling the node to receive its aggregates.
+* Because aggregate relocation operations entail reassigning aggregate disk ownership and shifting control from a node to its partner, only aggregates with an HA policy of SFO are eligible for aggregate relocation.
+* The root aggregate always has an HA policy of CFO and is given back at the start of the giveback operation since this is necessary to allow the taken-over system to boot. All other aggregates are given back serially after the taken-over system completes the boot process and the management applications come online, enabling the node to receive its aggregates.
+
+NOTE: Changing the HA policy of an aggregate from SFO to CFO is a Maintenance mode operation. Do not modify this setting unless directed to do so by a customer support representative.
+
+== How background updates affect takeover and giveback
+
+Background updates of the disk firmware will affect HA pair takeover, giveback, and aggregate relocation operations differently, depending on how those operations are initiated.
+
+The following list describes how background disk firmware updates affect takeover, giveback, and aggregate relocation:
+
+* If a background disk firmware update occurs on a disk on either node, manually initiated takeover operations are delayed until the disk firmware update finishes on that disk. If the background disk firmware update takes longer than 120 seconds, takeover operations are aborted and must be restarted manually after the disk firmware update finishes. If the takeover was initiated with the `‑bypass‑optimization` parameter of the `storage failover takeover` command set to `true`, the background disk firmware update occurring on the destination node does not affect the takeover.
+* If a background disk firmware update is occurring on a disk on the source (or takeover) node and the takeover was initiated manually with the `‑options` parameter of the `storage failover takeover` command set to `immediate`, takeover operations start immediately.
+* If a background disk firmware update is occurring on a disk on a node and it panics, takeover of the panicked node begins immediately.
+* If a background disk firmware update is occurring on a disk on either node, giveback of data aggregates is delayed until the disk firmware update finishes on that disk.
+* If the background disk firmware update takes longer than 120 seconds, giveback operations are aborted and must be restarted manually after the disk firmware update completes.
+* If a background disk firmware update is occurring on a disk on either node, aggregate relocation operations are delayed until the disk firmware update finishes on that disk. If the background disk firmware update takes longer than 120 seconds, aggregate relocation operations are aborted and must be restarted manually after the disk firmware update finishes. If aggregate relocation was initiated with the `-override-destination-checks` of the `storage aggregate relocation` command set to `true`, the background disk firmware update occurring on the destination node does not affect aggregate relocation.
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2021-04-14 10:46:21.281144
+//
