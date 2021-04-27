@@ -1,6 +1,6 @@
 ---
 sidebar: sidebar
-permalink: networking-auto-config/configure_dns_services.html
+permalink: networking-manual-config/configure_dns_services_manual.html
 keywords: dns, service, services, configuration, configure, configuring, set, up, setup, nfs, smb, cifs, active, directory, statistics
 summary: Configure DNS services for the SVM before creating an NFS or SMB server
 ---
@@ -21,30 +21,30 @@ summary: Configure DNS services for the SVM before creating an NFS or SMB server
 //
 
 [.lead]
-You must configure DNS services for the SVM before creating an NFS or SMB server. Generally, the DNS name servers are the Active Directory-integrated DNS servers for the domain that the NFS or SMB server will join.
+You must configure DNS services for the SVM before creating an NFS or CIFS server. Generally, the DNS name servers are the Active Directory-integrated DNS servers for the domain that the NFS or CIFS server will join.
 
 .About this task
 
-Active Directory-integrated DNS servers contain the service location records (SRV) for the domain LDAP and domain controller servers. If the SVM cannot find the Active Directory LDAP servers and domain controllers, NFS or SMB server setup fails.
+Active Directory-integrated DNS servers contain the service location records (SRV) for the domain LDAP and domain controller servers. If the SVM cannot find the Active Directory LDAP servers and domain controllers, NFS or CIFS server setup fails.
 
-SVMs use the hosts name services ns-switch database to determine which name services to use and in which order when looking up information about hosts. The two supported name services for the hosts database are files and dns.
+SVMs use the hosts name services ns-switch database to determine which name services to use and in which order when looking up information about hosts. The two supported name services for the hosts database are `files` and `dns`.
 
-You must ensure that dns is one of the sources before you create the SMB server.
+You must ensure that `dns` is one of the sources before you create the CIFS server.
 
-[NOTE]
-To view the statistics for DNS name services for the mgwd process and SecD process, use the Statistics UI.
+NOTE: To view the statistics for DNS name services for the mgwd process and SecD process, use the Statistics UI.
 
 .Steps
 
-. Determine what the current configuration is for the hosts name services database. In this example, the hosts name service database uses the default settings.
+. Determine what the current configuration is for the `hosts` name services database.
++
+In this example, the hosts name service database uses the default settings.
 +
 `vserver services name-service _ns-switch_ show -vserver _vs1_ -database _hosts_`
 +
 ....
-Vserver: vs1
+                     Vserver: vs1
 Name Service Switch Database: hosts
-Vserver: vs1 Name Service Switch Database: hosts
-Name Service Source Order: files, dns
+   Name Service Source Order: files, dns
 ....
 
 . Perform the following actions, if required.
@@ -57,35 +57,31 @@ In this example, the hosts database is configured to use DNS and local files in 
 .. Verify that the name services configuration is correct.
 +
 `vserver services name-service _ns-switch_ show -vserver _vs1_ -database _hosts_`
-+
-....
-Vserver: vs1
-Name Service Switch Database: hosts
-Name Service Source Order: dns, files
-....
 
 . Configure DNS services.
 +
 `vserver services name-service dns create -vserver _vs1_ -domains _example.com,example2.com_ -name-servers _10.0.0.50,10.0.0.51_`
 +
 [NOTE]
-The vserver services name-service dns create command performs an automatic configuration validation and reports an error message if ONTAP is unable to contact the name server.
+The vserver services `name-service dns create` command performs an automatic configuration validation and reports an error message if ONTAP is unable to contact the name server.
 
 . Verify that the DNS configuration is correct and that the service is enabled.
 +
 ....
-Vserver: vs1
-Domains: example.com, example2.com Name Servers: 10.0.0.50, 10.0.0.51
+           Vserver: vs1
+           Domains: example.com, example2.com Name
+           Servers: 10.0.0.50, 10.0.0.51
 Enable/Disable DNS: enabled Timeout (secs): 2
-Maximum Attempts: 1
+  Maximum Attempts: 1
 ....
 
 . Validate the status of the name servers.
 +
 `vserver services name-service dns check -vserver _vs1_`
-
++
 ....
 Vserver  Name Server  Status  Status Details
+-------  -----------  ------  -----------------------
 vs1      10.0.0.50    up      Response time (msec): 2
 vs1      10.0.0.51    up      Response time (msec): 2
 ....
@@ -99,8 +95,6 @@ If you want the Active Directory-integrated DNS server to dynamically register t
 DNS name services must be configured on the SVM. If you are using secure DDNS, you must use Active Directory-integrated DNS name servers and you must have created either an NFS or SMB server or an Active Directory account for the SVM.
 
 .About this task
-
-The specified fully qualified domain name (FQDN) must be unique:
 
 The specified fully qualified domain name (FQDN) must be unique:
 
@@ -127,7 +121,7 @@ Default Site Used by LIFs Without Site Membership:
 [NOTE]
 To avoid a configuration failure of an SVM FQDN that is not compliant to RFC rules for DDNS updates, use an FQDN name that is RFC compliant. For more information, see link:https://tools.ietf.org/html/rfc1123[RFC 1123].
 
-.Steps
+*Steps*
 
 . Configure DDNS on the SVM:
 +
