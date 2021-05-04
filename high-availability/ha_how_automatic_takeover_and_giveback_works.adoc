@@ -51,11 +51,11 @@ NOTE: Aggregates are relocated serially during planned takeover operations to re
 
 . Existing SMB (CIFS) sessions are disconnected when takeover occurs.
 +
-ATTENTION: *Due to the nature of the SMB protocol, all SMB sessions are disrupted (except for SMB 3.0 sessions connected to shares with the Continuous Availability property set). SMB 1.0 and SMB 2.x sessions cannot reconnect after a takeover event; therefore, takeover is disruptive and some data loss could occur.
+NOTE: Due to the nature of the SMB protocol, all SMB sessions are disrupted (except for SMB 3.0 sessions connected to shares with the Continuous Availability property set). SMB 1.0 and SMB 2.x sessions cannot reconnect after a takeover event; therefore, takeover is disruptive and some data loss could occur.
 
-. SMB 3.0 sessions established to shares with the Continuous Availability property set can reconnect to the disconnected shares after a takeover event. If your site uses SMB 3.0 connections to Microsoft Hyper-V and the Continuous Availability property is set on the associated shares, takeover are non-disruptive for those sessions.
+. SMB 3.0 sessions that are established to shares with the Continuous Availability property enabled can reconnect to the disconnected shares after a takeover event. If your site uses SMB 3.0 connections to Microsoft Hyper-V and the Continuous Availability property is enabled on the associated shares, takeovers are non-disruptive for those sessions.
 
-=== If the node doing the takeover panics
+=== What happens if a node performing a takeover panics
 
 If the node that is performing the takeover panics within 60 seconds of initiating takeover, the following events occur:
 
@@ -78,11 +78,11 @@ The following process takes place in a normal giveback operation. In this discus
 
 . Node B completes the process of booting up to its normal operating state.
 
-. As soon as Node B reaches the point in the boot process where it can accept the non-root aggregates, Node A returns ownership of the other aggregates, one at a time, until giveback is complete. You can monitor the progress of the giveback with the `storage failover show-giveback` command.
+. As soon as Node B reaches the point in the boot process where it can accept the non-root aggregates, Node A returns ownership of the other aggregates, one at a time, until giveback is complete. You can monitor the progress of the giveback by using the `storage failover show-giveback` command.
 +
 NOTE: The `storage failover show-giveback` command does not (nor is it intended to) display information about all operations occurring during the storage failover giveback operation. You can use the `storage failover show` command to display additional details about the current failover status of the node, such as if the node is fully functional, takeover is possible, and giveback is complete.
 +
-I/O resumes for each aggregate once giveback is complete for that aggregate, which reduces its overall outage window.
+I/O resumes for each aggregate after giveback is complete for that aggregate, which reduces its overall outage window.
 
 == HA policy and its effect on takeover and giveback
 
@@ -96,7 +96,7 @@ HA policies affect takeover and giveback operations as follows:
 
 * Aggregates created on ONTAP systems (except for the root aggregate containing the root volume) have an HA policy of SFO. Manually initiated takeover is optimized for performance by relocating SFO (non-root) aggregates serially to the partner before takeover. During the giveback process, aggregates are given back serially after the taken-over system boots and the management applications come online, enabling the node to receive its aggregates.
 * Because aggregate relocation operations entail reassigning aggregate disk ownership and shifting control from a node to its partner, only aggregates with an HA policy of SFO are eligible for aggregate relocation.
-* The root aggregate always has an HA policy of CFO and is given back at the start of the giveback operation since this is necessary to allow the taken-over system to boot. All other aggregates are given back serially after the taken-over system completes the boot process and the management applications come online, enabling the node to receive its aggregates.
+* The root aggregate always has an HA policy of CFO and is given back at the start of the giveback operation. This is necessary to allow the taken-over system to boot. All other aggregates are given back serially after the taken-over system completes the boot process and the management applications come online, enabling the node to receive its aggregates.
 
 NOTE: Changing the HA policy of an aggregate from SFO to CFO is a Maintenance mode operation. Do not modify this setting unless directed to do so by a customer support representative.
 
