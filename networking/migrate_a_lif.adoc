@@ -1,0 +1,71 @@
+---
+sidebar: sidebar
+permalink: networking/migrate_a_lif.html
+keywords: move the LIF, change LIF port
+summary: Migrate a LIF to a different port on the same node or a different node within the cluster
+---
+
+= Migrate a LIF
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:44.748625
+//
+// restructured: March 2021
+//
+
+[.lead]
+You might have to migrate a LIF to a different port on the same node or a different node within the cluster, if the port is either faulty or requires maintenance. Migrating a LIF is similar to LIF failover, but LIF migration is a manual operation, while LIF failover is the automatic migration of a LIF in response to a link failure on the LIF's current network port.
+
+.Before you begin
+
+* A failover group must have been configured for the LIFs.
+* The destination node and ports must be operational and must be able to access the same network as the source port.
+
+.About this task
+
+* You must migrate LIFs hosted on the ports belonging to a NIC to other ports in the cluster, before removing the NIC from the node.
+* You must execute the command for migrating a cluster LIF from the node where the cluster LIF is hosted.
+* A node-scoped LIF, such as a node-scoped management LIF, cluster LIF, intercluster LIF, cannot be migrated to a remote node.
+* When an NFSv4 LIF is migrated between nodes, a delay of up to 45 seconds results before the LIF is available on a new port.
++
+To work around this problem, use NFSv4.1 where no delay is encountered.
+* You cannot migrate iSCSI LIFs from one node to another node.
++
+To work around this restriction, you must create an iSCSI LIF on the destination node. For information about guidelines for creating an iSCSI LIF, see https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-sanag/home.html[SAN administration^].
+
+* VMware VAAI copy offload operations fail when you migrate the source or the destination LIF. For more information about VMware VAAI, see http://docs.netapp.com/ontap-9/topic/com.netapp.doc.cdot-famg-nfs/GUID-39C8E616-EAE8-46A4-881A-87C4B8421281.html[NFS reference^] or http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-sanag/GUID-D97EE182-9068-4BD8-A3BF-F5C458303740.html[SAN administration^].
+
+.Step
+
+Depending on whether you want to migrate a specific LIF or all the LIFs, perform the appropriate action:
+
+[cols=2*,options="header"]
+|===
+|If you want to migrate… |Enter the following command…
+
+a|A specific LIF
+a|`network interface migrate`
+a|All the data and cluster- management LIFs on a node
+a|`network interface migrate-all`
+a|All of the LIFs off of a port
+a|`network interface migrate-all -node <node> -port <port>`
+|===
+
+The following example shows how to migrate a LIF named datalif1 on the SVM vs0 to the port e0d on node0b:
+
+....
+network interface migrate -vserver vs0 -lif datalif1 -dest-node node0b -dest-port e0d
+....
+
+The following example shows how to migrate all the data and cluster-management LIFs from the current (local) node:
+
+....
+network interface migrate-all -node local
+....
