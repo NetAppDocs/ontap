@@ -1,0 +1,74 @@
+---
+sidebar: sidebar
+permalink: networking/modify_a_lif.html
+keywords: LIF attributes, FC LIFs, IP LIFs, change LIFs, change, changing, logical, interface, lif
+summary: Modify a LIF by changing its attributes
+---
+
+= Modify a LIF
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:44.704560
+//
+// restructured: March 2021
+//
+
+[.lead]
+You can modify a LIF by changing the attributes, such as home node or current node, administrative status, IP address, netmask, failover policy, firewall policy, and service policy. You can also change the address family of a LIF from IPv4 to IPv6.
+
+.About this task
+
+* When modifying a LIF's administrative status to down, any outstanding NFSv4 locks are held until the LIF's administrative status is returned to up.
++
+To avoid lock conflicts that can occur when other LIFs attempt to access the locked files, you must move the NFSv4 clients to a different LIF before setting the administrative status to down.
+
+* You cannot modify the data protocols used by an FC LIF. However, you can modify the services assigned to a service policy or change the service policy assigned to an IP LIF.
++
+To modify the data protocols used by a FC LIF, you must delete and re-create the LIF. To make service policy changes to an IP LIF, there is a brief outage while the updates occur.
+
+* You cannot modify either the home node or the current node of a node-scoped management LIF.
+* When using a subnet to change the IP address and network mask value for a LIF, an IP address is allocated from the specified subnet; if the LIF's previous IP address is from a different subnet, the IP address is returned to that subnet.
+* To modify the address family of a LIF from IPv4 to IPv6, you must use the colon notation for the IPv6 address and add a new value for the `-netmask-length` parameter.
+* You cannot modify the auto-configured link-local IPv6 addresses.
+* Modification of a LIF that results in the LIF having no valid failover target results in a warning message.
++
+If a LIF that does not have a valid failover target attempts to fail over, an outage might occur.
+
+* Starting with ONTAP 9.5, you can modify the service policy associated with a LIF.
++
+In ONTAP 9.5, service policies are supported only for intercluster and BGP peer services. In ONTAP 9.6, you can create service policies for several data and management services.
+
+.Steps
+
+. Modify a LIF's attributes by using the "network interface modify" command.
++
+The following example shows how to modify the IP address and network mask of LIF datalif2 using an IP address and the network mask value from subnet client1_sub:
++
+....
+network interface modify -vserver vs1 -lif datalif2 -subnet-name client1_sub
+....
++
+The following example shows how to modify the service policy of a LIF.
++
+....
+network interface modify -vserver siteA -lif node1_inter1 -service-policy example
+....
+
+. Verify that the IP addresses are reachable.
++
+[cols=2*,options="header"]
+|===
+|If you are using… |Then use…
+
+a|IPv4 addresses
+a|`network ping`
+a|IPv6 addresses
+a|`network ping6`
+|===

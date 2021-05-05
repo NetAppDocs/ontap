@@ -1,0 +1,33 @@
+---
+permalink: upgrade/task_reconfiguring_kmip_servers_connections_after_upgrading_to_ontap_9_3_or_later.html
+sidebar: sidebar
+keywords: ontap, upgrade, reconfigure, reconfiguring, kmip, server, connections, 9.3, later
+summary: 'After performing an upgrade to ONTAP 9.3 or later, you must reconfigure your external key management (KMIP) server connections.'
+---
+= Reconfiguring KMIP server connections after upgrading to ONTAP 9.3 or later
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+After performing an upgrade to ONTAP 9.3 or later, you must reconfigure your external key management (KMIP) server connections.
+
+. Configure the key manager connectivity:``security key-manager setup``
+. Add your KMIP servers: `security key-manager add -address key_management_server_ip_address`
+. Verify that KMIP servers are connected: `security key-manager show -status`
+. Query the key servers: `security key-manager query`
+. Create a new authentication key and passphrase: `security key-manager create-key -prompt-for-key true`
++
+The passphrase must have a minimum of 32 characters.
+
+. Query the new authentication key: `security key-manager query`
+. Assign the new authentication key to your self-encrypting disks (SEDs): `storage encryption disk modify -disk disk_ID -data-key-id key_ID`
++
+NOTE: Make sure you are using the new authentication key from your query.
+
+. If needed, assign a FIPS key to the SEDs: `storage encryption disk modify -disk disk_id -fips-key-id fips_authentication_key_id`
++
+If your security setup requires you to use different keys for data authentication and FIPS 140-2 authentication, you should create a separate key for each. If that is not the case, you can use the same authentication key for FIPS compliance that you use for data access.
+
+*Related information*
+
+xref:task_preparing_to_upgrade_nodes_using_netapp_storage_encryption_with_external_key_management_servers.adoc[Preparing to upgrade nodes using NetApp Storage Encryption with external key management servers]

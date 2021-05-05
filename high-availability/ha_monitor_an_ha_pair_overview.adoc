@@ -1,0 +1,136 @@
+---
+sidebar: sidebar
+permalink: high-availability/ha_monitor_an_ha_pair_overview.html
+keywords: ontap, high, availability, ha, pair, monitor
+summary: You can use ONTAP commands to monitor the status of the HA pair.
+---
+
+= Commands for monitoring an HA pair
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+You can use ONTAP commands to monitor the status of the HA pair. If a takeover occurs, you  can also determine what caused the takeover.
+
+[cols=2*,options="header"]
+|===
+|If you want to check |Use this command
+
+|Whether failover is enabled or has occurred, or reasons why failover is not currently possible
+|`storage failover show`
+|View the nodes on which the storage failover HA-mode setting is enabled
+You must set the value to ha for the node to participate in a storage failover (HA pair) configuration.
+The `non-ha` value is used only in a stand-alone, or single node cluster configuration.
+|`storage failover show -fields mode`
+|Whether hardware-assisted takeover is enabled
+|`storage failover hwassist show`
+|The history of hardware-assisted takeover events that have occurred
+|`storage failover hwassist stats show`
+|The progress of a takeover operation as the partner's aggregates are moved to the node doing the takeover
+|`storage failover show‑takeover`
+|The progress of a giveback operation in returning aggregates to the partner node
+|`storage failover show‑giveback`
+|Whether an aggregate is home during takeover or giveback operations
+|`aggregate show ‑fields home‑id,owner‑id,home‑name,owner‑name,is‑home`
+|Whether cluster HA is enabled (applies only to two node clusters)
+|`cluster ha show`
+|The HA state of the components of an HA pair (on systems that use the HA state)
+|`ha‑config show`
+This is a Maintenance mode command.
+|===
+
+== Node states displayed by storage failover show-type commands
+
+The following list describes the node states that the `storage failover show` command displays.
+[cols=2*,options="header"]
+|===
+|Node State |Description
+a|Connected to partner_name, Automatic takeover disabled.
+a|The HA interconnect is active and can transmit data to the partner node. Automatic takeover of the partner is disabled.
+a|Waiting for partner_name, Giveback of partner spare disks pending.
+a|The local node cannot exchange information with the partner node over the HA interconnect. Giveback of SFO aggregates to the partner is done, but partner spare disks are still owned by the local node.
+
+* Run the `storage failover show-giveback` command for more information.
+a|Waiting for partner_name. Waiting for partner lock synchronization.
+a|The local node cannot exchange information with the partner node over the HA interconnect, and is waiting for partner lock synchronization to occur.
+a|Waiting for partner_name. Waiting for cluster applications to come online on the local node.
+a|The local node cannot exchange information with the partner node over the HA interconnect, and is waiting for cluster applications to come online.
+a|Takeover scheduled. target node relocating its SFO aggregates in preparation of takeover.
+a|Takeover processing has started. The target node is relocating ownership of its SFO aggregates in preparation for takeover.
+a|Takeover scheduled. target node has relocated its SFO aggregates in preparation of takeover.
+a|Takeover processing has started. The target node has relocated ownership of its SFO aggregates in preparation for takeover.
+a|Takeover scheduled. Waiting to disable background disk firmware updates on local node. A firmware update is in progress on the node.
+a|Takeover processing has started. The system is waiting for background disk firmware update operations on the local node to complete.
+a|Relocating SFO aggregates to taking over node in preparation of takeover.
+a|The local node is relocating ownership of its SFO aggregates to the taking-over node in preparation for takeover.
+a|Relocated SFO aggregates to taking over node. Waiting for taking over node to takeover.
+a|Relocation of ownership of SFO aggregates from the local node to the taking-over node has completed. The system is waiting for takeover by the taking-over node.
+a|Relocating SFO aggregates to partner_name. Waiting to disable background disk firmware updates on the local node. A firmware update is in progress on the node.
+a|Relocation of ownership of SFO aggregates from the local node to the taking-over node is in progress. The system is waiting for background disk firmware update operations on the local node to complete.
+a|Relocating SFO aggregates to partner_name. Waiting to disable background disk firmware updates on partner_name. A firmware update is in progress on the node.
+a|Relocation of ownership of SFO aggregates from the local node to the taking-over node is in progress. The system is waiting for background disk firmware update operations on the partner node to complete.
+a|Connected to partner_name. Previous takeover attempt was aborted because reason. Local node owns some of partner's SFO aggregates.
+Reissue a takeover of the partner with the "‑bypass-optimization" parameter set to true to takeover remaining aggregates, or issue a giveback of the partner to return the relocated aggregates.
+a|The HA interconnect is active and can transmit data to the partner node. The previous takeover attempt was aborted because of the reason displayed under reason. The local node owns some of its partner's SFO aggregates.
+
+* Either reissue a takeover of the partner node, setting the ‑bypass‑optimization parameter to true to takeover the remaining SFO aggregates, or perform a giveback of the partner to return relocated aggregates.
+a|Connected to partner_name. Previous takeover attempt was aborted. Local node owns some of partner's SFO aggregates.
+Reissue a takeover of the partner with the "‑bypass-optimization" parameter set to true to takeover remaining aggregates, or issue a giveback of the partner to return the relocated aggregates.
+a|The HA interconnect is active and can transmit data to the partner node. The previous takeover attempt was aborted. The local node owns some of its partner's SFO aggregates.
+
+* Either reissue a takeover of the partner node, setting the ‑bypass‑optimization parameter to true to takeover the remaining SFO aggregates, or perform a giveback of the partner to return relocated aggregates.
+a|Waiting for partner_name. Previous takeover attempt was aborted because reason. Local node owns some of partner's SFO aggregates.
+Reissue a takeover of the partner with the "‑bypass-optimization" parameter set to true to takeover remaining aggregates, or issue a giveback of the partner to return the relocated aggregates.
+a|The local node cannot exchange information with the partner node over the HA interconnect. The previous takeover attempt was aborted because of the reason displayed under reason. The local node owns some of its partner's SFO aggregates.
+
+* Either reissue a takeover of the partner node, setting the ‑bypass‑optimization parameter to true to takeover the remaining SFO aggregates, or perform a giveback of the partner to return relocated aggregates.
+a|Waiting for partner_name. Previous takeover attempt was aborted. Local node owns some of partner's SFO aggregates.
+Reissue a takeover of the partner with the "‑bypass-optimization" parameter set to true to takeover remaining aggregates, or issue a giveback of the partner to return the relocated aggregates.
+a|The local node cannot exchange information with the partner node over the HA interconnect. The previous takeover attempt was aborted. The local node owns some of its partner's SFO aggregates.
+
+* Either reissue a takeover of the partner node, setting the ‑bypass‑optimization parameter to true to takeover the remaining SFO aggregates, or perform a giveback of the partner to return relocated aggregates.
+a|Connected to partner_name. Previous takeover attempt was aborted because failed to disable background disk firmware update (BDFU) on local node.
+a|The HA interconnect is active and can transmit data to the partner node. The previous takeover attempt was aborted because the background disk firmware update on the local node was not disabled.
+a|Connected to partner_name. Previous takeover attempt was aborted because reason.
+a|The HA interconnect is active and can transmit data to the partner node. The previous takeover attempt was aborted because of the reason displayed under reason.
+a|Waiting for partner_name. Previous takeover attempt was aborted because reason.
+a|The local node cannot exchange information with the partner node over the HA interconnect. The previous takeover attempt was aborted because of the reason displayed under reason.
+a|Connected to partner_name. Previous takeover attempt by partner_name was aborted because reason.
+a|The HA interconnect is active and can transmit data to the partner node. The previous takeover attempt by the partner node was aborted because of the reason displayed under reason.
+a|Connected to partner_name. Previous takeover attempt by partner_name was aborted.
+a|The HA interconnect is active and can transmit data to the partner node. The previous takeover attempt by the partner node was aborted.
+a|Waiting for partner_name. Previous takeover attempt by partner_name was aborted because reason.
+a|The local node cannot exchange information with the partner node over the HA interconnect. The previous takeover attempt by the partner node was aborted because of the reason displayed under reason.
+a|Previous giveback failed in module: module name. Auto giveback will be initiated in number of seconds seconds.
+a|The previous giveback attempt failed in module module_name. Auto giveback will be initiated in  number of seconds seconds.
+
+* Run the `storage failover show-giveback` command for more information.
+a|Node owns partner's aggregates as part of the non-disruptive controller upgrade procedure.
+a|The node owns its partner's aggregates due to the non- disruptive controller upgrade procedure currently in progress.
+a|Connected to partner_name. Node owns aggregates belonging to another node in the cluster.
+a|The HA interconnect is active and can transmit data to the partner node. The node owns aggregates belonging to another node in the cluster.
+a|Connected to partner_name. Waiting for partner lock synchronization.
+a|The HA interconnect is active and can transmit data to the partner node. The system is waiting for partner lock synchronization to complete.
+a|Connected to partner_name. Waiting for cluster applications to come online on the local node.
+a|The HA interconnect is active and can transmit data to the partner node. The system is waiting for cluster applications to come online on the local node.
+a|Non-HA mode, reboot to use full NVRAM.
+a|Storage failover is not possible. The HA mode option is configured as non_ha.
+
+* You must reboot the node to use all of its NVRAM.
+a|Non-HA mode. Reboot node to activate HA.
+a|Storage failover is not possible.
+
+* The node must be rebooted to enable HA capability.
+a|Non-HA mode.
+a|Storage failover is not possible. The HA mode option is configured as non_ha.
+
+* You must run the `storage failover modify ‑mode ha ‑node nodename` command on both nodes in the HA pair and then reboot the nodes to enable HA capability.
+|===
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2021-04-14 10:46:21.420422
+//
