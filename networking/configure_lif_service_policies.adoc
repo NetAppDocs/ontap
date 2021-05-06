@@ -1,0 +1,196 @@
+---
+sidebar: sidebar
+permalink: networking/configure_lif_service_policies.html
+keywords: create service policy, assign service policy, service policy commands
+summary: Create and assign a service policy for LIFs
+---
+
+= Configure LIF service policies
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:44.553577
+//
+// restructured: March 2021
+//
+
+[.lead]
+You can configure LIF service policies to identify a single service or a list of services that will use a LIF.
+
+== Create a service policy for LIFs
+
+You can create a service policy for LIFs. You can assign a service policy to one or more LIFs; thereby allowing the LIF to carry traffic for a single service or a list of services.
+
+.About this task
+
+Built-in services and service policies are available for managing data and management traffic on both data and system SVMs. Most use cases are satisfied using a built-in service policy rather than creating a custom service policy.
+
+You can modify these built-in service policies, if required.
+
+.Steps
+
+. View the services that are available in the cluster:
++
+....
+network interface service show
+....
++
+Services represent the applications accessed by a LIF as well as the applications served by the cluster. Each service includes zero or more TCP and UDP ports on which the application is listening.
++
+The following additional data and management services are available:
++
+....
+network interface service show
+Service                     Protocol:Ports
+-------                     --------------
+cluster-core                -
+data-cifs                   -
+data-core                   -
+data-flexcache              -
+data-iscsi                  -
+data-nfs                    -
+intercluster-core           tcp:11104-11105
+management-autosupport      -
+management-bgp              tcp:179
+management-core             -
+management-https            tcp:443
+management-ssh              tcp:22
+12 entries were displayed.
+....
+
+. Create a service policy:
++
+....
+network interface service-policy create -vserver <svm_name> -policy <service_policy_name> -services <service_name> -allowed-addresses <IP_address/mask,...>
+....
++
+
+* "service_name" specifies a list of services that should be included in the policy.
+* "IP_address/mask" specifies the list of subnet masks for addresses that are allowed to access the services in the service policy. By default, all specified services are added with a default allowed address list of 0.0.0.0/0, which allows traffic from all subnets. When a non-default allowed address list is provided, LIFs using the policy are configured to block all requests with a source address that does not match any of the specified masks.
++
+The following example shows how to create a data service policy, svm1_data_policy, for an SVM that includes NFS and SMB services:
++
+....
+network interface service-policy create -vserver svm1 -policy svm1_data_policy - services data-nfs,data-cifs,data-core -allowed-addresses 10.1.0.0/16
+....
++
+The following example shows how to create an intercluster service policy:
++
+....
+network interface service-policy create -vserver cluster1 -policy intercluster1 - services intercluster-core -allowed-addresses 10.1.0.0/16
+....
+
+. Verify that the service policy is created.
++
+....
+network interface service-policy show
+....
++
+The following output shows the service policies that are available:
++
+....
+network interface service-policy show
+Vserver   Policy                     Service: Allowed Addresses
+--------- -------------------------- ----------------------------------------
+cluster1
+          default-intercluster       intercluster-core: 0.0.0.0/0
+                                     management-https: 0.0.0.0/0
+
+          default-management         management-core: 0.0.0.0/0
+                                     management-autosupport: 0.0.0.0/0
+                                     management-ssh: 0.0.0.0/0
+                                     management-https: 0.0.0.0/0
+
+          default-route-announce     management-bgp: 0.0.0.0/0
+
+Cluster
+          default-cluster            cluster-core: 0.0.0.0/0
+
+vs0
+          default-data-blocks        data-core: 0.0.0.0/0
+                                     data-iscsi: 0.0.0.0/0
+
+          default-data-files         data-core: 0.0.0.0/0
+                                     data-nfs: 0.0.0.0/0
+                                     data-cifs: 0.0.0.0/0
+                                     data-flexcache: 0.0.0.0/0
+
+          default-management         data-core: 0.0.0.0/0
+                                     management-ssh: 0.0.0.0/0
+                                     management-https: 0.0.0.0/0
+
+7 entries were displayed.
+....
+
+.After you finish
+
+Assign the service policy to a LIF either at the time of creation or by modifying an existing LIF.
+
+== Assign a service policy to a LIF
+
+You can assign a service policy to a LIF either at the time of creating the LIF or by modifying the LIF. A service policy defines the list of services that can be used with the LIF.
+
+.About this task
+
+You can assign service policies for LIFs in the admin and data SVMs.
+
+.Step
+
+Depending on when you want to assign the service policy to a LIF, perform one of the following actions:
+
+[cols="25,75"]
+|===
+|If you are... |Assign the service policy by entering the following command...
+
+|Creating a LIF
+|network interface create -vserver svm_name -lif <lif_name> -home-node <node_name> -home-port <port_name> {(-address <IP_address> -netmask <IP_address>) -subnet-name <subnet_name>} -service-policy <service_policy_name>
+|Modifying a LIF
+|network interface modify -vserver <svm_name> -lif <lif_name> -service-policy <service_policy_name>
+|===
+
+When you specify a service policy for a LIF, you need not specify the data protocol and role for the LIF. Creating LIFs by specifying the role and data protocols is also supported.
+
+[NOTE]
+A service policy can only be used by LIFs in the same SVM that you specified when creating the service policy.
+
+=== Examples
+
+The following example shows how to modify the service policy of a LIF to use the default- management service policy:
+
+....
+network interface modify -vserver cluster1 -lif lif1 -service-policy default-management
+....
+
+== Commands for managing LIF service policies
+
+Use the `network interface service-policy` commands to manage LIF service policies.
+
+[cols=2*,options="header"]
+|===
+|If you want to... |Use this command...
+
+a|Create a service policy
+a|`network interface service-policy create`
+a|Add an additional service entry to an existing service policy
+a|`network interface service-policy add- service`
+a|Clone an existing service policy
+a|`network interface service-policy clone`
+a|Modify a service entry in an existing service policy
+a|`network interface service-policy modify- service`
+a|Remove a service entry from an existing service policy
+a|`network interface service-policy remove- service`
+a|Rename an existing service policy
+a|`network interface service-policy rename`
+a|Delete an existing service policy
+a|`network interface service-policy delete`
+a|Restore a built-in service-policy to its original state
+a|`network interface service-policy restore- defaults`
+a|Display existing service policies
+a|`network interface service-policy show`
+|===

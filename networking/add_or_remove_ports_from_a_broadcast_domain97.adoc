@@ -1,0 +1,81 @@
+---
+sidebar: sidebar
+permalink: networking/add_or_remove_ports_from_a_broadcast_domain97.html
+keywords: adding, add, create, creating, remove, removing, delete, deleting, port, broadcast, domain, reachability, repair, physical, switch, configuration
+summary: Manually adding and removing ports from broadcast domains is not required or recommended
+---
+
+= Add or remove ports from a broadcast domain
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:44.108048
+//
+// restructured: March 2021
+//
+
+[.lead]
+You can add network ports when initially creating a broadcast domain, or you can add ports to, or remove ports from, a broadcast domain that already exists. This allows you to efficiently use all the ports in the cluster.
+
+.Before you begin
+
+* Ports you plan to add to a broadcast domain must not belong to another broadcast domain.
+* Ports that already belong to an interface group cannot be added individually to a broadcast domain.
+
+.About this task
+
+The following rules apply when adding and removing network ports:
+
+[cols=2*,options="header"]
+|===
+| When adding ports...
+| When removing ports...
+| The ports can be network ports, VLANs, or interface groups (ifgrps).
+| N/A
+| The ports are added to the system-defined failover group of the broadcast domain.
+| The ports are removed from all failover groups in the broadcast domain.
+| The MTU of the ports is updated to the MTU value set in the broadcast domain.
+| The MTU of the ports is unchanged.
+| The IPspace of the ports is updated to the IPspace value of the broadcast domain.
+| The ports are moved to the 'Default' IPspace with no broadcast domain attribute.
+|===
+
+[NOTE]
+If you remove the last member port of an interface group using the `network port ifgrp remove-port` command, it causes the interface group port to be removed from the broadcast domain because an empty interface group port is not allowed in a broadcast domain.
+
+.Steps
+
+. Display the ports that are currently assigned or unassigned to a broadcast domain by using the `network port show` command.
+. Add or remove network ports from the broadcast domain:
++
+[cols=2*,options="header"]
+|===
+| If you want to...
+| Use...
+a| Add ports to a broadcast domain
+a| `network port broadcast-domain add-ports`
+a| Remove ports from a broadcast domain
+a| `network port broadcast-domain remove-ports`
+|===
+
+For more information about these commands, see http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html[ONTAP 9 commands^].
+
+== Examples of adding and removing ports
+
+The following command adds port e0g on node cluster-1-01 and port e0g on node cluster-1-02 to broadcast domain bcast1 in the Default IPspace:
+
+`cluster-1::> network port broadcast-domain add-ports -broadcast-domain bcast1 -ports cluster-1-01:e0g,cluster1-02:e0g`
+
+The following command adds two cluster ports to broadcast domain Cluster in the Cluster IPspace:
+
+`cluster-1::> network port broadcast-domain add-ports -broadcast-domain Cluster -ports cluster-2-03:e0f,cluster2-04:e0f -ipspace Cluster`
+
+The following command removes port e0e on node cluster1-01 from broadcast domain bcast1 in the Default IPspace:
+
+`cluster-1::> network port broadcast-domain remove-ports -broadcast-domain bcast1 -ports cluster-1-01:e0e`

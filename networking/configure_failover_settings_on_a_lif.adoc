@@ -1,0 +1,75 @@
+---
+sidebar: sidebar
+permalink: networking/configure_failover_settings_on_a_lif.html
+keywords: configure, configuring, configuration, setup, set, up, failover, fail, over, group, policy, lif
+summary: Configure a LIF to fail over to a specific group of network ports
+---
+
+= Configure failover settings on a LIF
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:44.307157
+//
+// restructured: March 2021
+//
+
+[.lead]
+You can configure a LIF to fail over to a specific group of network ports by applying a failover policy and a failover group to the LIF. You can also disable a LIF from failing over to another port.
+
+.About this task
+
+* When a LIF is created, LIF failover is enabled by default, and the list of available target ports is determined by the default failover group and failover policy based on the LIF type and service policy.
++
+Starting with 9.5, you can specify a service policy for the LIF that defines which network services can use the LIF. Some network services impose failover restrictions on a LIF.
++
+[NOTE]
+If a LIF's service policy is changed in a way that further restricts failover, the LIF's failover policy is automatically updated by the system.
+
+* You can modify the failover behavior of LIFs by specifying values for the -failover-group and -failover-policy parameters in the network interface modify command.
+* Modification of a LIF that results in the LIF having no valid failover target results in a warning message.
++
+If a LIF that does not have a valid failover target attempts to fail over, an outage might occur.
+* The following list describes how the -failover-policy setting affects the target ports that are selected from the failover group:
+** `broadcast-domain-wide` applies to all ports on all nodes in the failover group.
+** `system-defined` applies to only those ports on the LIF's home node and one other node in the cluster, typically a non- SFO partner, if it exists.
+** `local-only` applies to only those ports on the LIF's home node.
+** `sfo-partner-only` applies to only those ports on the LIF's home node and its SFO partner.
+** `disabled` indicates the LIF is not configured for failover.
++
+[NOTE]
+Logical interfaces for SAN protocols do not support failover, therefore, these LIFs are always set to disabled.
+
+.Step
+
+Configure failover settings for an existing interface:
+
+....
+network interface modify -vserver <vserver_name> -lif <lif_name> -failover-policy <failover_policy> -failover-group <failover_group>
+....
+
+== Examples of configuring failover settings and disabling failover
+
+The following command sets the failover policy to broadcast-domain-wide and uses the ports in failover group fg3 as failover targets for LIF data1 on SVM vs3:
+
+....
+network interface modify -vserver vs3 -lif data1 failover-policy broadcast-domain-wide - failover-group fg3
+
+network interface show -vserver vs3 -lif * -fields failover-group,failover-policy
+
+vserver lif             failover-policy       failover-group
+------- -------------- ---------------        --------------
+vs3     data1          broadcast-domain-wide  fg3
+....
+
+The following command disables failover for LIF data1 on SVM vs3:
+
+....
+network interface modify -vserver vs3 -lif data1 failover-policy disabled
+....

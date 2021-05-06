@@ -1,0 +1,66 @@
+---
+permalink: software_setup/task_synchronize_the_system_time_across_the_cluster.html
+sidebar: sidebar
+keywords: ontap, software, setup, synchronize, system, time, across, cluster
+summary: 'Synchronizing the time ensures that every node in the cluster has the same time, and prevents CIFS and Kerberos failures.'
+---
+= Synchronize the system time across the cluster
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Synchronizing the time ensures that every node in the cluster has the same time, and prevents CIFS and Kerberos failures.
+
+A Network Time Protocol (NTP) server should be set up at your site. Beginning in ONTAP 9.5, you can set up your NTP server with symmetric authentication.
+For more information, see link:http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-sag/GUID-1E923D05-447D-4323-8D87-12B82F49B6F1.html?cp=3_8_6[Managing the cluster time (cluster administrators only)].
+
+You synchronize the time across the cluster by associating the cluster with one or more NTP servers.
+
+. Verify that the system time and time zone is set correctly for each node.
++
+All nodes in the cluster should be set to the same time zone.
+
+ .. Use the cluster date show command to display the current date, time, and time zone for each node.
++
+----
+cluster1::> cluster date show
+Node         Date                Time zone
+------------ ------------------- -----------------
+cluster1-01  01/06/2015 09:35:15 America/New_York
+cluster1-02  01/06/2015 09:35:15 America/New_York
+cluster1-03  01/06/2015 09:35:15 America/New_York
+cluster1-04  01/06/2015 09:35:15 America/New_York
+4 entries were displayed.
+----
+
+ .. Use the cluster date modify command to change the date or time zone for all of the nodes.
++
+This example changes the time zone for the cluster to be GMT:
++
+----
+cluster1::> cluster date modify -timezone GMT
+----
+
+. Use the cluster time-service ntp server create command to associate the cluster with your NTP server.
+ ** To set up your NTP server without symmetric authentication enter the following command: `cluster time-service ntp server create -server server_name`
+ ** To set up your NTP server with symmetric authentication, enter the following command: `cluster time-service ntp server create -server server_ip_address -key-id key_id`
++
+NOTE: Symmetric authentication is available beginning in ONTAP 9.5. It is not available in ONTAP 9.4 or earlier.
+
+This example assumes that DNS has been configured for the cluster. If you have not configured DNS, you must specify the IP address of the NTP server:
++
+----
+cluster1::> cluster time-service ntp server create -server ntp1.example.com
+----
+. Verify that the cluster is associated with an NTP server: `cluster time-service ntp server show`
++
+----
+cluster1::> cluster time-service ntp server show
+Server               Version
+-------------------- -----------
+ntp1.example.com     auto
+----
+
+*Related information*
+
+https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-sag/home.html[System administration]

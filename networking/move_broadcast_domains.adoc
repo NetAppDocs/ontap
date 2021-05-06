@@ -1,0 +1,54 @@
+---
+sidebar: sidebar
+permalink: networking/move_broadcast_domains.html
+keywords: move, moving, broadcast, domain, ipspace
+summary: Move the system created broadcast domains into the IPspaces you created
+---
+
+= Move broadcast domains into IPspaces
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-23 12:34:43.404507
+//
+// restructured: March 2021
+//
+[.lead]
+Move the broadcast domains that the system created based on layer 2 reachability into the IPspaces you created.
+
+Before you move the broadcast domain, you must verify the reachability of the ports in your broadcast domains.
+
+The automatic scanning of ports can determine which ports can reach each other and place them in the same broadcast domain, but this scanning is unable to determine the appropriate IPspace. If the broadcast domain belongs in a non-default IPspace, then you must move it manually using the steps in this section.
+
+.Before you begin
+
+Broadcast domains are automatically configured as part of cluster create and join operations. ONTAP defines the "Default" broadcast domain to be the set of ports that have layer 2 connectivity to the home port of the management interface on the first node created in the cluster. Other broadcast domains are created, if necessary, and are named *Default-1*, *Default-2*, and so forth.
+
+When a node joins an existing cluster, their network ports automatically join existing broadcast domains based on their layer 2 reachability. If they do not have reachability to an existing broadcast domain, the ports are placed into one or more new broadcast domains.
+
+.About this task
+
+* Ports with cluster LIFs are automatically placed into the "Cluster" IPspace.
+* Ports with reachability to the home port of the node-management LIF are placed into the "Default" broadcast domain.
+* Other broadcast domains are created by ONTAP automatically as part of the cluster create or join operation.
+* As you add VLANs and interface groups, they are automatically placed into the appropriate broadcast domain about a minute after they are created.
+
+.Steps
+
+. Verify the reachability of the ports in your broadcast domains. ONTAP automatically monitors layer 2 reachability. Use the following command to verify each port has been added to a broadcast domain and has "ok" reachability.
++
+`network port reachability show -detail`
++
+. If necessary, move broadcast domains into other IPspaces:
++
+`network port broadcast-domain move`
++
+For example, if you want to move a broadcast domain from "Default" to "ips1":
++
+`network port broadcast-domain move -ipspace Default -broadcast-domain Default -to-ipspace ips1`

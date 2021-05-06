@@ -1,0 +1,117 @@
+---
+sidebar: sidebar
+permalink: networking/configure_dns_for_host-name_resolution.html
+keywords: configure, configuring, configuration, setup, set, setting, dns, local, remote, host, name, host-name, resolution
+summary: Use DNS to access either local or remote sources for host information
+---
+
+= Configure DNS for host-name resolution
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// This file was created with NDAC Version 2.0 (August 17, 2020)
+//
+// 2020-11-30 12:43:36.631593
+//
+// restructured: March 2021
+//
+
+[.lead]
+You use DNS to access either local or remote sources for host information. You must configure DNS to access one or both of these sources.
+
+ONTAP must be able to look up host information to provide proper access to clients. You must configure name services to enable ONTAP to access local or external DNS services to obtain the host information.
+
+ONTAP stores name service configuration information in a table that is the equivalent of the `/etc/nsswitch.conf` file on UNIX systems.
+
+== Configure an SVM and data LIFs for host-name resolution using an external DNS server
+
+You can use the `vserver services name-service dns` command to enable DNS on an SVM, and configure it to use DNS for host-name resolution. Host names are resolved using external DNS servers.
+
+.Before you begin
+
+A site-wide DNS server must be available for host name lookups.
+
+You should configure more than one DNS server to avoid a single-point-of-failure. The `vserver services name-service dns create` command issues a warning if you enter only one DNS server name.
+
+.About this task
+
+The Network Management Guide contains information about configuring dynamic DNS on the SVM.
+
+.Steps
+
+. Enable DNS on the SVM:
++
+....
+vserver services name-service dns create -vserver vserver_name -domains domain_name - name-servers ip_addresses -state enabled
+....
++
+The following command enables external DNS server servers on the SVM vs1:
++
+....
+vserver services name-service dns create -vserver <vs1.example.com> -domains <example.com> -name-servers <192.0.2.201,192.0.2.202> -state <enabled>
+....
++
+[NOTE]
+The vserver services name-service dns create command performs an automatic configuration validation and reports an error message if ONTAP cannot contact the name server.
+
+. Enable DNS on LIFs owned by the SVM:
++
+[cols=2*,options="header"]
+|===
+|If you are |Use this command:
+
+|Modifying an existing LIF
+zone-name
+|network interface modify -lif lifname -dns-zone
+|Creating a new LIF
+zone-name
+|network interface create -lif lifname -dns-zone
+|===
++
+....
+vserver services name-service dns create -vserver <vs1> -domains <example.com> -name-servers <192.0.2.201, 192.0.2.202> -state <enabled> network interface modify -lif <datalif1> -dns-zone <zonename.whatever.com>
+....
+
+. Validate the status of the name servers by using the `vserver services name-service dns check` command.
++
+....
+vserver services name-service dns check -vserver vs1.example.com
+VserverName       Server     Status    Status Details
+----------------  ---------- -------   --------------------------
+vs1.example.com   10.0.0.50  up        Response time (msec): 2
+vs1.example.com   10.0.0.51  up        Response time (msec): 2
+....
+
+== Configure the Name Service Switch Table for Host-Name Resolution
+
+You must configure the name service switch table correctly to enable ONTAP to consult local or external name service to retrieve host information.
+
+.Before you begin
+
+You must have decided which name service to use for host mapping in your environment.
+
+.Steps
+
+. Add the necessary entries to the name service switch table:
++
+....
+vserver services name-service <ns-switch> create -vserver <vserver_name> -database <database_name> -source <source_names>
+....
+
+. Verify that the name service switch table contains the expected entries in the desired order:
++
+....
+vserver services name-service <ns-switch> show -vserver <vserver_name>
+....
+
+.Example
+
+The following example creates an entry in the name service switch table for SVM vs1 to first use the local hosts file and then an external DNS server to resolve host names:
+
+....
+vserver services name-service ns-switch create -vserver vs1 -database hosts -sources files dns
+....
