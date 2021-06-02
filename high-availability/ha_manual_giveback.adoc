@@ -15,8 +15,7 @@ summary: "You can perform a normal giveback, a giveback in which you terminate p
 [.lead]
 You can perform a normal giveback, a giveback in which you terminate processes on the partner node, or a forced giveback.
 
-NOTE: Prior to performing a giveback, you must remove the failed drives in the taken-over
-system as described in the Disks and Aggregates Power Guide
+NOTE: Prior to performing a giveback, you must remove the failed drives in the taken-over system as described in the Disks and Aggregates Power Guide.
 
 == If giveback is interrupted
 
@@ -27,14 +26,125 @@ However, this depends upon the stage of giveback in which the failure occurred. 
 
 == If giveback is vetoed
 
-If giveback is vetoed, you must check the EMS messages to determine the cause. Depending on the reason or reasons, you can decide whether you can safely override the vetoes
+If giveback is vetoed, you must check the EMS messages to determine the cause. Depending on the reason or reasons, you can decide whether you can safely override the vetoes.
 
-== Commands for performing a manual giveback
+The `storage failover show-giveback` command displays the giveback progress and shows which subsystem vetoed the giveback, if any. Soft vetoes can be overridden, while hard vetoes cannot be, even if forced. The following tables summarize the soft vetoes that should not be overridden, along with recommended workarounds.
 
-You can manually initiate a giveback on a node in an HA pair to return storage to the original owner after completing maintenance or resolving any issues that caused the takeover.
+You can review the EMS details for any giveback vetoes by using the following command:
 
-[cols=2*,options="header"]
+`event log show -node * -event gb*`
+
+== Giveback of the root aggregate
+
+These vetoes do not apply to aggregate relocation operations:
+
+
+[cols=",",options="header",]
 |===
-|If you want to... |Use this command...
+a| Vetoing subsystem module |Workaround
+a| vfiler_low_level
+a|
+Terminate the CIFS sessions causing the veto, or shutdown the CIFS application that established the open sessions.
+Overriding this veto might cause the application using CIFS to disconnect abruptly and lose data.
+a| Disk Check
+a| All failed or bypassed disks should be removed before attempting giveback. If disks are sanitizing, you should wait until the operation
+completes.
+Overriding this veto might cause an outage caused by aggregates or volumes going offline due to reservation conflicts or inaccessible
+disks.
+|===
 
+== Giveback of the SFO aggregates
+
+These vetoes do not apply to aggregate relocation operations:
+
+[cols=",",options="header",]
+|===
+| Vetoing subsystem module |Workaround
+a| Lock Manager
+a| Gracefully shutdown the CIFS applications that have open files, or move those volumes to a different aggregate.
+
+Overriding this veto results in loss of CIFS lock state, causing disruption and data loss.
+
+a| Lock Manager NDO
+
+a| Wait until the locks are mirrored.
+Overriding this veto causes disruption to Microsoft Hyper-V virtual machines.
+
+|RAID
+a| Check the EMS messages to determine the cause of the veto:
+
+* {blank}
++
+
+If the veto is due to nvfile, bring the offline volumes and aggregates
+online.
+
+* {blank}
++
+
+If disk add or disk ownership reassignment operations are in progress,
+wait until they complete.
+
+* {blank}
++
+
+If the veto is due to an aggregate name or UUID conflict, troubleshoot
+and resolve the issue.
+
+* {blank}
++
+
+If the veto is due to mirror resync, mirror verify, or offline disks,
+the veto can be overridden and the operation restarts after giveback.
+
+
+|Disk Inventory a|
+Troubleshoot to identify and resolve the cause of the problem.
+
+The destination node might be unable to see disks belonging to an
+aggregate being migrated.
+
+Inaccessible disks can result in inaccessible aggregates or volumes.
+
+|Volume Move Operation a|
+Troubleshoot to identify and resolve the cause of the problem.
+
+This veto prevents the volume move operation from aborting during the
+important cutover phase. If the job is aborted during cutover, the
+volume might become inaccessible.
+
+|===
+
+=== Commands for performing a manual giveback
+
+You can manually initiate a giveback on a node in an HA pair to return storage to the original owner after completing maintenance or resolving
+any issues that caused the takeover.
+
+
+[cols=",",options="header",]
+|===
+a| If you want to...|*Use this command...*
+a| Give back storage to a partner node
+|`storage failover giveback ‑ofnode _nodename_`
+
+a| Give back storage even if the partner is not in the waiting for giveback mode
+
+a| `storage failover giveback ‑ofnode _nodename_`
+`‑require‑partner‑waiting false`
+
+Do not use this option unless a longer client outage is acceptable.
+
+|Give back storage even if processes are vetoing the giveback operation (force the giveback)
+a| `storage failover giveback ‑ofnode _nodename_`
+`‑override‑vetoes true`
+
+Use of this option can potentially lead to longer client outage, or aggregates and volumes not coming online after the giveback.
+
+|Give back only the CFO aggregates (the root aggregate)
+a| `storage failover giveback ‑ofnode _nodename_`
+
+`‑only‑cfo‑aggregates true`
+
+|Monitor the progress of giveback after you issue the giveback command
+| `storage failover show‑giveback`
 |===
