@@ -1,0 +1,136 @@
+---
+sidebar: sidebar
+permalink: high-availability/hatesttakeovergiveback.html
+keywords: ontap, high, availability, ha, pair, test, testing, takeover, giveback
+summary: "After you configure all aspects of your HA pair, you need to verify that it is operating as expected in maintaining uninterrupted access to both nodes' storage during takeover and giveback operations"
+---
+
+= Testing takeover and giveback
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+After you configure all aspects of your HA pair, you need to verify that it is operating as expected in maintaining uninterrupted access to both nodes' storage during takeover and giveback operations. Throughout the takeover process, the local (or takeover) node should continue serving the data normally provided by the partner node. During giveback, control and delivery of the partner's storage should return to the partner node.
+
+*Steps*
+
+[arabic]
+. {blank}
++
+Check the cabling on the HA interconnect cables to make sure that they are secure.
+. {blank}
++
+Verify that you can create and retrieve files on both nodes for each licensed protocol.
+. {blank}
++
+Enter the following command: `storage failover takeover -ofnode partnernode`
++
+See the man page for command details.
+
+. {blank}
++
+Enter either of the following commands to confirm that takeover occurred:
+`storage failover show-takeover`
+`storage failover show`
++
+--
+If you have the `storage failover` command's `-auto-giveback` option enabled:
+
+[cols=4*,options="header"]
+|===
+| Node | Partner | Takeover Possible | State Description
+|node 1 |node 2 |- | Waiting for giveback
+|node 2 |node 1 |false |In takeover, Auto giveback will be initiated in number of seconds
+|===
+
+If you have the `storage failover` command's `-auto-giveback` option disabled:
+
+[cols=4*,options="header"]
+|===
+| Node | Partner | Takeover Possible | State Description
+|node 1 |node 2 |- | Waiting for giveback
+|node 2 |node 1 |false | In takeover
+|===
+--
+[arabic, start=5]
+. {blank}
++
+Enter the following command to display all the disks that belong to the partner node (Node2) that the takeover node (Node1) can detect:
+`storage disk show -home node2 -ownership`
++
+--
+The following command displays all disks belonging to Node2 that Node1 can detect:
+`cluster::> storage disk show -home node2 -ownership`
+[cols=10*,options="header"]
+|===
+a|
+Disk |Aggregate |Home |Owner |DR Home |Home ID |Owner ID |DR Home ID |Reserver
+|Pool
+
+|1.0.2 |- |node2 |node2 |- |4078312453 |4078312453 |- |4078312452 |Pool0
+|1.0.3 |- |node2 |node2 |- |4078312453 |4078312453 |- |4078312452 |Pool0
+|===
+--
+[arabic, start=6]
+. {blank}
++
+
+Enter the following command to confirm that the takeover node (Node1)
+controls the partner node's (Node2) aggregates:
+`aggr show ‑fields home‑id,home‑name,is‑home`
++
+--
+[cols=4*,options="header"]
+|===
+a|aggregate |home-id |home-name |is-home
+
+a| aggr0_1
+a| 2014942045
+a| node1
+a| true
+
+a| aggr0_2
+a| 4078312453
+a| node2
+a| false
+
+a|aggr1_1
+a| 2014942045
+a| node1
+a| true
+|aggr1_2 | 4078312453 |node2
+a| false
+|===
+During takeover, the is-home value of the partner node's aggregates is false.
+--
+[arabic, start=7]
+. {blank}
++
+Give back the partner node's data service after it displays the Waiting for giveback message by entering the following command:
+`storage failover giveback -ofnode partnernode`
+
+[arabic, start=8]
+. {blank}
++
+
+Enter either of the following commands to observe the progress of the giveback operation:
+`storage failover show-giveback storage failover show`
+
+
+[arabic, start=9]
+. {blank}
++
+Proceed depending on whether you saw the message that giveback was completed successfully:
++
+--
+|===
+If takeover and giveback... |Then...
+
+| Is completed successfully | Repeat Step 2 through Step 8 on the partner node.
+
+| Fails | Correct the takeover or giveback failure and then repeat this procedure.
+|===
+--
