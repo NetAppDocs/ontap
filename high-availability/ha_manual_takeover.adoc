@@ -1,0 +1,131 @@
+---
+sidebar: sidebar
+permalink: high-availability/ha_manual_takeover.html
+keywords: ontap, high, availability, ha, pair, manual, takeover, moving, move, epislon, manually, initiated
+summary: "You can perform a takeover manually when maintenance is required on the partner, and in other
+similar situations."
+---
+
+= Manual takeover commands
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+You can perform a takeover manually when maintenance is required on the partner, and in other similar situations. Depending on the state of the partner, the command you use to perform the takeover varies.
+
+[cols=2*,options="header"]
+|===
+|If you want to... |Use this command...
+
+|Take over the partner node
+|`storage failover takeover`
+|Monitor the progress of the takeover as the partner's aggregates are moved to the node doing the takeover
+|`storage failover show‑takeover`
+|Display the storage failover status for all nodes in the cluster
+|`storage failover show`
+|Take over the partner node without migrating LIFs
+|`storage failover takeover ‑skip‑lif‑migration‑before‑takeover true`
+|Take over the partner node even if there is a disk mismatch
+|`storage failover takeover ‑skip‑lif‑migration‑before‑takeover true`
+|Take over the partner node even if there is an ONTAP version mismatch
+*Note:* This option is only used during the nondisruptive ONTAP upgrade process.
+|`storage failover takeover ‑option allow‑version‑mismatch`
+|Take over the partner node without performing aggregate relocation
+|`storage failover takeover ‑bypass‑optimization true`
+|Take over the partner node before the partner has time to close its storage resources gracefully
+|`storage failover takeover ‑option immediate`
+|===
+*Note:* Before you issue the storage failover command with the immediate option, you must migrate the data LIFs to another node by using the following command: `network interface migrate-all -node _node_`
+
+* {blank}
++
+If you specify the `storage failover takeover ‑option immediate` command without first migrating the data LIFs, data LIF migration from the node is significantly delayed even if the `skip‑lif‑migration‑before‑takeover` option is not specified.
+* {blank}
++
+Similarly, if you specify the immediate option, negotiated takeover optimization is bypassed even if the bypass‑optimization option is set to _false_.
+
+== Moving epsilon for certain manually initiated takeovers
+You should move epsilon if you expect that any manually initiated takeovers could result in your storage system being one unexpected node failure away from a cluster-wide loss of quorum.
+
+*About this task*
+
+To perform planned maintenance, you must take over one of the nodes in an HA pair. Cluster-wide quorum must be maintained to prevent unplanned client data disruptions for the remaining nodes. In some instances,
+performing the takeover can result in a cluster that is one unexpected node failure away from cluster-wide loss of quorum.
+
+This can occur if the node being taken over holds epsilon or if the node with epsilon is not healthy. To maintain a more resilient cluster, you can transfer epsilon to a healthy node that is not being taken over.
+Typically, this would be the HA partner.
+
+Only healthy and eligible nodes participate in quorum voting. To maintain cluster-wide quorum, more than N/2 votes are required (where _N_ represents the sum of healthy, eligible, online nodes). In clusters
+with an even number of online nodes, epsilon adds additional voting weight toward maintaining quorum for the node to which it is assigned.
+
+NOTE: Although cluster formation voting can be modified by using the `cluster modify ‑eligibility false` command, you should avoid this except for situations such as restoring the node configuration or prolonged node maintenance. If you set a node as ineligible, it stops serving SAN data until the node is reset to eligible and rebooted. NAS data access to the node might also be affected when the node is ineligible.
+
+
+*Steps*
+
+[arabic]
+. {blank}
++
+Verify the cluster state and confirm that epsilon is held by a healthy node that is not being taken over:
+[loweralpha]
+.. {blank}
++
+Change to the advanced privilege level, confirming that you want to continue when the advanced mode prompt appears (*>):
+`set -privilege advanced`
+[loweralpha]
+.. {blank}
++
+Determine which node holds epsilon:
+`cluster show`
++
+--
+In the following example, Node1 holds epsilon:
+
+[cols=",,,",options="header",]
+!===
+|Node | Health
+a|
+Eligibility
+a|
+Epsilon
+|Node1
+Node2
+a|
+true
+true
+a|
+true
+true
+a|
+true
+false
+!===
+
+If the node you want to take over does not hold epsilon, proceed to Step 4.
+--
+[arabic, start=2]
+. {blank}
++
+Remove epsilon from the node that you want to take over:
+`cluster modify -node Node1 -epsilon false`
+
+[arabic, start=3]
+. {blank}
++
+Assign epsilon to the partner node (in this example, Node2) by using the following command:
+`cluster modify -node Node2 -epsilon true`
+
+[arabic, start=4]
+. {blank}
++
+Perform the takeover operation:
+`storage failover takeover -ofnode _node_name_`
+
+[arabic, start=5]
+. {blank}
++
+Return to the admin privilege level:
+`set -privilege admin`
