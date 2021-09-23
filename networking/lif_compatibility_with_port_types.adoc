@@ -1,0 +1,70 @@
+---
+sidebar: sidebar
+permalink: networking/lif_compatibility_with_port_types.html
+keywords: lif, compatibility, port, types, lif compatibility with port types
+summary: LIFs can have different characteristics to support different port types
+---
+
+= LIF compatibility with port types
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// Created August 25, 2021 as part of CSAR 1416437
+//
+
+[.lead]
+LIFs can have different characteristics to support different port types.
+
+[NOTE]
+When intercluster and management LIFs are configured in the same subnet, the management traffic might be blocked by an external firewall and the AutoSupport and NTP connections might fail. You can recover the system by running the `network interface modify -vserver _vserver name_ -lif _intercluster LIF_ -status-admin up|down` command to toggle the intercluster LIF. However, you should set the intercluster LIF and management LIF in different subnets to avoid this issue.
+
+[cols=2*,options="header"]
+|===
+| LIF | Description
+
+| Data LIF
+| A LIF that is associated with a storage virtual machine (SVM) and is used for communicating with clients.
+You can have multiple data LIFs on a port. These interfaces can migrate or fail over throughout the cluster. You can modify a data LIF to serve as an SVM management LIF by modifying its firewall policy to mgmt.
+
+Sessions established to NIS, LDAP, Active Directory, WINS, and DNS servers use data LIFs.
+
+| Cluster LIF
+| A LIF that is used to carry intracluster traffic between nodes in a cluster. Cluster LIFs must always be created on cluster ports.
+
+Cluster LIFs can fail over between cluster ports on the same node, but they cannot be migrated or failed over to a remote node. When a new node joins a cluster, IP addresses are generated automatically. However, if you want to assign IP addresses manually to the cluster LIFs, you must ensure that the new IP addresses are in the same subnet range as the existing cluster LIFs.
+
+| Cluster management LIF
+| LIF that provides a single management interface for the entire cluster.
+
+A cluster management LIF can fail over to any node in the cluster. It cannot fail over to cluster or intercluster ports
+
+| Intercluster LIF
+|	A LIF that is used for cross-cluster communication, backup, and replication. You must create an intercluster LIF on each node in the cluster before a cluster peering relationship can be established.
+
+These LIFs can only fail over to ports in the same node. They cannot be migrated or failed over to another node in the cluster.
+
+| Node management LIF
+| A LIF that provides a dedicated IP address for managing a particular node in a cluster. Node management LIFs are created at the time of creating or joining the cluster. These LIFs are used for system maintenance, for example, when a node becomes inaccessible from the cluster.
+
+| VIP LIF
+| A VIP LIF is any data LIF created on a VIP port. To learn more, see link:https://docs.netapp.com/us-en/ontap/networking/configure_virtual_ip_@vip@_lifs.html[Configure virtual IP (VIP) LIFs^].
+
+|===
+
+[cols=6*,options="header"]
+|===
+|  	| Data LIF	| Cluster LIF | Node management LIF	| Cluster management LIF	| Intercluster LIF
+
+| Primary traffic types
+| NFS server, CIFS server, NIS client, Active Directory, LDAP, WINS, DNS client and server, iSCSI and FC server
+| Intracluster
+| SSH server, HTTPS server, NTP client, SNMP, AutoSupport client, DNS client, loading software updates
+| SSH server, HTTPS server
+| Cross-cluster replication
+| Notes
+| SAN LIFs cannot fail over. These LIFs also do not support load balancing.
+| Unauthenticated, unencrypted; essentially an internal Ethernet bus of the cluster.
+|===
