@@ -31,7 +31,7 @@ storage failover modify ‑node _nodename_
 a|
 Disable automatic giveback. The default setting is true.
 
-*Note:* Setting this parameter to false does not disable automatic giveback after takeover on panic and takeover on reboot; automatic giveback after takeover on panic must be disabled by setting the `‑auto‑giveback‑after‑panic` parameter to false.
+*Note:* Setting this parameter to false does not disable automatic giveback after takeover on panic; automatic giveback after takeover on panic must be disabled by setting the `‑auto‑giveback‑after‑panic` parameter to false.
 a|
 storage failover modify ‑node _nodename_
 
@@ -88,47 +88,44 @@ The following table describes how combinations of the `-onreboot` and `-auto-giv
 a|
 *storage failover modify parameters used*
 |*Cause of takeover* |*Does automatic giveback occur?*
-a|
+.2+a|
 -onreboot _true_
 
 -auto-giveback _true_
+|reboot command | Yes
+| halt command, or power cycle operation issued from the Service Processor | Yes
 
-|reboot command |Yes
-
-| |halt command, or power cycle operation issued from the Service Processor |Yes
-
-a|
+.2+a|
 -onreboot _true_
 
 -auto-giveback _false_
 
-|reboot command |Yes
+|reboot command |No
+|halt command, or power cycle operation issued from the Service Processor |No
 
-| |halt command, or power cycle operation issued from the Service Processor |No
-
-a|
+.2+a|
 -onreboot _false_
 
 -auto-giveback _true_
 
-|reboot command |No
+|reboot command |N/A
+In this case, takeover does not occur
+|halt command, or power cycle operation issued from the Service Processor |Yes
 
-| |halt command, or power cycle operation issued from the Service Processor |Yes
-
-a|
+.2+a|
 -onreboot _false_
 
 -auto-giveback _false_
 
 |reboot command |No
 
-| |halt command, or power cycle operation issued from the Service Processor |No
+|halt command, or power cycle operation issued from the Service Processor |No
 |===
 
 [NOTE]
-If the `-onreboot` parameter is set to true and a takeover occurs due to a reboot, then automatic giveback is always performed, regardless of whether the `-auto-giveback` parameter is set to true.
+The `auto-giveback` parameter controls giveback after panic and all other automatic takovers. If the `-onreboot` parameter is set to true and a takeover occurs due to a reboot, then automatic giveback is always performed, regardless of whether the `-auto-giveback` parameter is set to true.
 
-When the `-onreboot` parameter is set to false, a takeover does not occur in the case of a node reboot. Therefore, automatic giveback cannot occur, regardless of whether the `-auto-giveback` parameter is set to true. A client disruption occurs.
+The `onreboot` parameter applies to reboots and halt commands issued from ONTAP. When the `-onreboot` parameter is set to false, a takeover does not occur in the case of a node reboot. Therefore, automatic giveback cannot occur, regardless of whether the `-auto-giveback` parameter is set to true. A client disruption occurs.
 
 == The effects of automatic giveback parameter combinations that apply to panic situations.
 
@@ -159,6 +156,7 @@ _true_
 
 The following table describes how parameter combinations of the `storage failover modify` command affect automatic giveback in panic situations.
 
+NOTE: Be aware that takeover can occur for other reasons in the event of a node panic. For example, if a node panics but the panic packet is not received by its partner, the partner might perform a heartbeat loss takeover. In this case, giveback would not be controlled by the auto-giveback-after-panic parameter but would instead be controlled by the -onfailure parameter.
 
 [cols=2*,options="header"]
 |===
@@ -185,6 +183,12 @@ If -onpanic is set to `false`, takeover/giveback does not occur, regardless of t
 |No
 |===
 
+[NOTE]
+====
+If you modify the default settings, the onpanic parameter can override automatic giveback, as shown in the table above.
+* If the -onpanic parameter is set to `true`, automatic giveback is always performed if a panic occurs unless you have changed the default settings for the -auto-giveback and -auto-giveback-after-panic parameters. If both of these parameters are changed from their default (true,) to false, then an automatic giveback will not occur after a panic, even if the -onpanic parameter is set to `true`.
+*  If the -onpanic parameter is set to `false`, a takeover does not occur and clients experience a disruption in ONTAP data services. Therefore, automatic giveback cannot occur, even if the auto-giveback-after-panic parameter is set to `true`.
+====
 
 // Start snippet: complex admonition - sample with bulleted list
 // 1 placeholder: LABEL (all caps)
