@@ -1,3 +1,4 @@
+os: linux
 dist: xenial
 language: ruby
 rvm:
@@ -5,6 +6,7 @@ rvm:
 env:
   global:
     - FRAMEWORK_BRANCH=main
+    - DEPLOY_VERSION=v2
 jobs:
   include:
     - stage: deploy
@@ -12,14 +14,13 @@ jobs:
       before_install:
       - echo -e "machine github.com\n login $GH_TOKEN" > ~/.netrc && chmod 600 ~/.netrc
       - git submodule add -b $FRAMEWORK_BRANCH https://github.com/NetAppDocs/jekyll dependencies/jekyll
-      - gem update --system && gem install bundler && gem update bundler
-      - if [[ -z "$DEPLOY_BRANCH" ]]; then export DEPLOY_BRANCH=gh-pages; fi
-      - mv dependencies/jekyll/prod-build.sh ./ && ./prod-build.sh
-      - sudo apt-get -y install graphicsmagick graphicsmagick-libmagick-dev-compat libmagickwand-dev
+      - source dependencies/jekyll/.ci/env/configure_travis.bash
+      - source dependencies/jekyll/.ci/deploy/before_install.bash
+      - sudo apt-get -y install graphicsmagick graphicsmagick-libmagick-dev-compat libmagickwand-dev ghostscript
+      install:
+      - source .ci/deploy/install.bash
       script:
-      - if [[ ! -z "$FEATURE_FLAG" ]]; then bundle exec rake buildAll; fi
-      - mkdir -p /tmp/output && bundle exec jekyll build --trace --destination /tmp/output --config _config.yml,project.yml
-      - touch /tmp/output/.nojekyll
+      - source .ci/deploy/post_install.bash
       deploy:
         provider: pages
         skip_cleanup: true
@@ -30,16 +31,17 @@ jobs:
         verbose: true
         on:
           all_branches: true
-    - state: i18n
-      if: branch = main OR repo =~ /-internal/
+    - stage: i18n
+      if: branch = main AND NOT repo =~ /-internal/
       before_install:
       - echo -e "machine github.com\n login $GH_TOKEN" >> ~/.netrc && chmod 600 ~/.netrc
+      - git submodule add -b $FRAMEWORK_BRANCH https://github.com/NetAppDocs/jekyll dependencies/jekyll
       - git submodule add https://github.com/NetAppDocs/jekyll-harmony dependencies/jekyll-harmony
-      - gem update --system && gem install bundler && gem update bundler
+      - source dependencies/jekyll/.ci/env/configure_travis.bash
+      - source dependencies/jekyll/.ci/i18n/before_install.bash
+      - cp -r dependencies/jekyll/.ci/ .ci/
+      - rm -Rf dependencies/jekyll/
       install:
-      - cd dependencies/jekyll-harmony
-      - bundle install --jobs=3 --retry=3
-      - bundle exec rake install
-      - cd -
+      - source .ci/i18n/install.bash
       script:
-      - if [[ ! -z "$HARMONY_FLAG" ]]; then i18n-translate; fi
+      - source .ci/i18n/post_install.bash
