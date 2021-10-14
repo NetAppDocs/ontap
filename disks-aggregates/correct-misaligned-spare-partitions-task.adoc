@@ -1,0 +1,98 @@
+---
+permalink: disks-aggregates/correct-misaligned-spare-partitions-task.html
+sidebar: sidebar
+keywords: correct, misaligned, partition
+summary: "When you add partitioned disks to an aggregate, you must leave a disk with both the root and data partition available as spare for every node. If you do not and your node experiences a disruption, ONTAP cannot dump the core to the spare data partition."
+---
+= Correct misaligned spare partitions
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When you add partitioned disks to an aggregate, you must leave a disk with both the root and data partition available as spare for every node. If you do not and your node experiences a disruption, ONTAP cannot dump the core to the spare data partition.
+
+.What you'll need
+
+You must have both a spare data partition and a spare root partition on the same type of disk owned by the same node.
+
+.Steps
+
+. Display the spare partitions for the node:
++
+`storage aggregate show-spare-disks -original-owner _node_name_`
++
+Note which disk has a spare data partition (spare_data) and which disk has a spare root partition (spare_root). The spare partition will show a non-zero value under the `Local Data Usable` or `Local Root Usable` column.
+
+. Replace the disk with a spare data partition with the disk with the spare root partition:
++
+`storage disk replace -disk _spare_data_ -replacement _spare_root_ -action start`
++
+You can copy the data in either direction; however, copying the root partition takes less time to complete.
+
+. Monitor the progress of the disk replacement:
++
+`storage aggregate show-status -aggregate _aggr_name_`
+. After the replacement operation is complete, display the spares again to confirm that you have a full spare disk:
++
+`storage aggregate show-spare-disks -original-owner _node_name_`
++
+You should see a spare disk with usable space under both `Local Data Usable` and `Local Root Usable`.
+
+.Example
+
+You display your spare partitions for node c1-01 and see that your spare partitions are not aligned:
+
+----
+c1::> storage aggregate show-spare-disks -original-owner c1-01
+
+Original Owner: c1-01
+ Pool0
+  Shared HDD Spares
+                                                            Local    Local
+                                                             Data     Root Physical
+ Disk                        Type     RPM Checksum         Usable   Usable     Size
+ --------------------------- ----- ------ -------------- -------- -------- --------
+ 1.0.1                       BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.10                      BSAS    7200 block                0B  73.89GB  828.0GB
+----
+
+You start the disk replacement job:
+
+----
+c1::> storage disk replace -disk 1.0.1 -replacement 1.0.10 -action start
+----
+
+While you are waiting for the replacement operation to finish, you display the progress of the operation:
+
+----
+c1::> storage aggregate show-status -aggregate aggr0_1
+
+Owner Node: c1-01
+ Aggregate: aggr0_1 (online, raid_dp) (block checksums)
+  Plex: /aggr0_1/plex0 (online, normal, active, pool0)
+   RAID Group /aggr0_1/plex0/rg0 (normal, block checksums)
+                                                              Usable Physical
+     Position Disk                        Pool Type     RPM     Size     Size Status
+     -------- --------------------------- ---- ----- ------ -------- -------- ----------
+     shared   1.0.1                        0   BSAS    7200  73.89GB  828.0GB (replacing, copy in progress)
+     shared   1.0.10                       0   BSAS    7200  73.89GB  828.0GB (copy 63% completed)
+     shared   1.0.0                        0   BSAS    7200  73.89GB  828.0GB (normal)
+     shared   1.0.11                       0   BSAS    7200  73.89GB  828.0GB (normal)
+     shared   1.0.6                        0   BSAS    7200  73.89GB  828.0GB (normal)
+     shared   1.0.5                        0   BSAS    7200  73.89GB  828.0GB (normal)
+----
+
+After the replacement operation is complete, you confirm that you have a full spare disk:
+
+----
+ie2220::> storage aggregate show-spare-disks -original-owner c1-01
+
+Original Owner: c1-01
+ Pool0
+  Shared HDD Spares
+                                                            Local    Local
+                                                             Data     Root Physical
+ Disk                        Type     RPM Checksum         Usable   Usable     Size
+ --------------------------- ----- ------ -------------- -------- -------- --------
+ 1.0.1                       BSAS    7200 block           753.8GB  73.89GB  828.0GB
+----

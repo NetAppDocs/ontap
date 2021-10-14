@@ -1,0 +1,136 @@
+---
+permalink: smb-admin/display-open-files-task.html
+sidebar: sidebar
+keywords: display, information, smb, file, connection, session, if, list, volume, share, name, contiuous, available, protection, level, helpful, nondisruptive, operation, display information about open smb files
+summary: "You can display information about open SMB files, including the SMB connection and session ID, the hosting volume, the share name, and the share path. You can display information about a file’s continuously available protection level, which is helpful in determining whether an open file is in a state that supports nondisruptive operations."
+---
+= Display information about open SMB files
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can display information about open SMB files, including the SMB connection and session ID, the hosting volume, the share name, and the share path. You can display information about a file's continuously available protection level, which is helpful in determining whether an open file is in a state that supports nondisruptive operations.
+
+.About this task
+
+You can display information about open files on an established SMB session. The displayed information is useful when you need to determine SMB session information for particular files within an SMB session.
+
+For example, if you have an SMB session where some of the open files are open with continuously available protection and some are not open with continuously available protection (the value for the `-continuously-available` field in `vserver cifs session show` command output is `Partial`), you can determine which files are not continuously available by using this command.
+
+You can display information for all open files on established SMB sessions on storage virtual machines (SVMs) in summary form by using the `vserver cifs session file show` command without any optional parameters.
+
+However, in many cases, the amount of output returned is large. You can customize what information is displayed in the output by specifying optional parameters. This can be helpful when you want to view information for only a small subset of open files.
+
+* You can use the optional `-fields` parameter to display output on the fields you choose.
++
+You can use this parameter either alone or in combination with other optional parameters.
+
+* You can use the `-instance` parameter to display detailed information about open SMB files.
++
+You can use this parameter either alone or in combination with other optional parameters.
+
+.Steps
+
+. Perform one of the following actions:
++
+[options="header"]
+|===
+| If you want to display open SMB files...| Enter the following command...
+a|
+On the SVM in summary form
+a|
+`vserver cifs session file show -vserver vserver_name`
+a|
+On a specified node
+a|
+`vserver cifs session file show -vserver vserver_name -node {node_name\|local}`
+a|
+On a specified file ID
+a|
+`vserver cifs session file show -vserver vserver_name -file-id integer`
+a|
+On a specified SMB connection ID
+a|
+`vserver cifs session file show -vserver vserver_name -connection-id integer`
+a|
+On a specified SMB session ID
+a|
+`vserver cifs session file show -vserver vserver_name -session-id integer`
+a|
+On the specified hosting aggregate
+a|
+`vserver cifs session file show -vserver vserver_name -hosting-aggregate aggregate_name`
+a|
+On the specified volume
+a|
+`vserver cifs session file show -vserver vserver_name -hosting-volume volume_name`
+a|
+On the specified SMB share
+a|
+`vserver cifs session file show -vserver vserver_name -share share_name`
+a|
+On the specified SMB path
+a|
+`vserver cifs session file show -vserver vserver_name -path path`
+a|
+With the specified level of continuously available protection
+a|
+`vserver cifs session file show -vserver vserver_name -continuously-available {No\|Yes}`
+
+[NOTE]
+====
+If the continuously available status is `No`, this means that these open files are not capable of nondisruptively recovering from takeover and giveback. They also cannot recover from general aggregate relocation between partners in a high-availability relationship.
+====
+a|
+With the specified reconnected state
+a|
+`vserver cifs session file show -vserver vserver_name -reconnected {No\|Yes}`
+[NOTE]
+====
+If the reconnected state is `No`, the open file is not reconnected after a disconnection event. This can mean that the file was never disconnected, or that the file was disconnected and is not successfully reconnected. If the reconnected state is `Yes`, this means that the open file is successfully reconnected after a disconnection event.
+====
+|===
+There are additional optional parameters that you can use to refine the output results. See the man page for more information.
+
+.Examples
+
+The following example displays information about open files on SVM vs1:
+
+----
+cluster1::> vserver cifs session file show -vserver vs1
+Node:       node1
+Vserver:    vs1
+Connection: 3151274158
+Session:    1
+File    File      Open Hosting               Continuously
+ID      Type      Mode Volume    Share       Available
+------- --------- ---- --------- ----------- ------------
+41      Regular   r    data      data        Yes
+Path: \mytest.rtf
+----
+
+The following example displays detailed information about open SMB files with file ID 82 on SVM vs1:
+
+----
+cluster1::> vserver cifs session file show -vserver vs1 -file-id 82 -instance
+
+                  Node: node1
+               Vserver: vs1
+               File ID: 82
+         Connection ID: 104617
+            Session ID: 1
+             File Type: Regular
+             Open Mode: rw
+Aggregate Hosting File: aggr1
+   Volume Hosting File: data1
+            CIFS Share: data1
+  Path from CIFS Share: windows\win8\test\test.txt
+            Share Mode: rw
+           Range Locks: 1
+Continuously Available: Yes
+           Reconnected: No
+----
+
+*Related information*
+
+xref:display-session-task.adoc[Displaying SMB session information]

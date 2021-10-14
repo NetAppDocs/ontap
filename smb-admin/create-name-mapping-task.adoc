@@ -1,0 +1,50 @@
+---
+permalink: smb-admin/create-name-mapping-task.html
+sidebar: sidebar
+keywords: vserver, name-mapping, create, command, name, map, windows, enable, user, access, unix, security, style, volume, reverse, create a name mapping
+summary: "You can use the vserver name-mapping create command to create a name mapping. You use name mappings to enable Windows users to access UNIX security style volumes and the reverse."
+---
+= Create a name mapping
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `vserver name-mapping create` command to create a name mapping. You use name mappings to enable Windows users to access UNIX security style volumes and the reverse.
+
+.About this task
+
+For each SVM, ONTAP supports up to 12,500 name mappings for each direction.
+
+.Steps
+
+. Create a name mapping: `vserver name-mapping create -vserver vserver_name -direction {krb-unix|win-unix|unix-win} -position integer -pattern text -replacement text`
++
+[NOTE]
+====
+The `-pattern` and `-replacement` statements can be formulated as regular expressions. You can also use the `-replacement` statement to explicitly deny a mapping to the user by using the null replacement string `" "` (the space character). See the `vserver name-mapping create` man page for details.
+====
++
+When Windows-to-UNIX mappings are created, any SMB clients that have open connections to the ONTAP system at the time the new mappings are created must log out and log back in to see the new mappings.
+
+.Examples
+
+The following command creates a name mapping on the SVM named vs1. The mapping is a mapping from UNIX to Windows at position 1 in the priority list. The mapping maps the UNIX user johnd to the Windows user ENG\JohnDoe.
+
+----
+vs1::> vserver name-mapping create -vserver vs1 -direction unix-win -position 1 -pattern johnd
+-replacement "ENG\\JohnDoe"
+----
+
+The following command creates another name mapping on the SVM named vs1. The mapping is a mapping from Windows to UNIX at position 1 in the priority list. Here the pattern and replacement include regular expressions. The mapping maps every CIFS user in the domain ENG to users in the LDAP domain associated with the SVM.
+
+----
+vs1::> vserver name-mapping create -vserver vs1 -direction win-unix -position 1 -pattern "ENG\\(.+)"
+-replacement "\1"
+----
+
+The following command creates another name mapping on the SVM named vs1. Here the pattern includes "`$`" as an element in the Windows user name that must be escaped. The mapping maps the windows user ENG\ john$ops to UNIX user john_ops.
+
+----
+vs1::> vserver name-mapping create -direction win-unix -position 1 -pattern ENG\\john\$ops
+-replacement john_ops
+----

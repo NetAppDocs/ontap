@@ -1,0 +1,57 @@
+---
+permalink: nfs-admin/verify-name-service-connections-task.html
+sidebar: sidebar
+keywords: verify, name, service, connection
+summary: "Starting in ONTAP 9.2, you can check DNS and LDAP name servers to verify that they are connected to ONTAP. These commands are available at the admin privilege level."
+---
+= Verify name service connections
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Starting in ONTAP 9.2, you can check DNS and LDAP name servers to verify that they are connected to ONTAP. These commands are available at the admin privilege level.
+
+.About this task
+
+You can check for a valid DNS or LDAP name service configuration on an as-needed basis using the name service configuration checker. This validation check can be initiated at the command line or in System Manager.
+
+For DNS configurations, all servers are tested and need to be working for the configuration to be considered valid. For LDAP configurations, as long as any server is up, the configuration is valid. The name service commands apply the configuration checker unless the `skip-config-validation` field is true (the default is false).
+
+.Step
+
+. Use the appropriate command to check a name service configuration. The UI displays the status of the configured servers.
++
+[cols="2*",options="header"]
+|===
+| To check...| Use this command...
+a|
+DNS configuration status
+a|
+`vserver services name-service dns check`
+a|
+LDAP configuration status
+a|
+`vserver services name-service ldap check`
+|===
++
+----
+cluster1::> vserver services name-service dns check -vserver vs0
+
+Vserver         Name Server     Status  Status Details
+--------------  --------------- ------- -------------------------
+ vs0            10.11.12.13     up      Response time (msec): 55
+ vs0            10.11.12.14     up      Response time (msec): 70
+ vs0            10.11.12.15     down    Connection refused.
++---------------------------------------------------------------+
+----
++
+----
+cluster1::> vserver services name-service ldap check -vserver vs0
+
+| Vserver: vs0                                                |
+| Client Configuration Name: c1                               |
+| LDAP Status: up                                             |
+| LDAP Status Details: Successfully connected to LDAP server "10.11.12.13".                                              |
+----
++
+Configuration validation is successful if at least one of the configured servers (name-servers/ldap-servers) is reachable and providing the service. A warning is shown if some of the servers are not reachable.

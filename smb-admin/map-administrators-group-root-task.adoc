@@ -1,0 +1,37 @@
+---
+permalink: smb-admin/map-administrators-group-root-task.html
+sidebar: sidebar
+keywords: cifs, client, environment, storage, virtual, machine, svm, multiprotocol, storage, system, windows, account, root, privilege, svm, sufficient, user, right, map the administrators group to root
+summary: "If you have only CIFS clients in your environment and your storage virtual machine (SVM) was set up as a multiprotocol storage system, you must have at least one Windows account that has root privilege for accessing files on the SVM; otherwise, you cannot manage the SVM because you do not have sufficient user rights."
+---
+= Map the administrators group to root
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you have only CIFS clients in your environment and your storage virtual machine (SVM) was set up as a multiprotocol storage system, you must have at least one Windows account that has root privilege for accessing files on the SVM; otherwise, you cannot manage the SVM because you do not have sufficient user rights.
+
+.About this task
+
+If your storage system was set up as NTFS-only, however, the `/etc` directory has a file-level ACL that enables the administrators group to access the ONTAP configuration files.
+
+.Steps
+
+. Set the privilege level to advanced: `set -privilege advanced`
+. Configure the CIFS server option that maps the administrators group to root as appropriate:
++
+[options="header"]
+|===
+| If you want to...| Then...
+a|
+Map the administrator group members to root
+a|
+`vserver cifs options modify -vserver vserver_name -is-admin-users-mapped-to-root-enabled true`     All accounts in the administrators group are considered root, even if you do not have an `/etc/usermap.cfg` entry mapping the accounts to root. If you create a file using an account that belongs to the administrators group, the file is owned by root when you view the file from a UNIX client.
+a|
+Disable mapping the administrators group members to root
+a|
+`vserver cifs options modify -vserver vserver_name -is-admin-users-mapped-to-root-enabled false`     Accounts in the administrators group no longer map to root. You can only explicitly map a single user to root.
+|===
+
+. Verify that the option is set to the desired value: `vserver cifs options show -vserver vserver_name`
+. Return to the admin privilege level: `set -privilege admin`

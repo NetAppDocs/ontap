@@ -1,0 +1,129 @@
+---
+permalink: nas-audit/display-ntfs-audit-policies-flexvol-task.html
+sidebar: sidebar
+keywords: display, information, ntfs audit policies, flexvol volumes, cli
+summary: "You can display information about NTFS audit policies on FlexVol volumes, including what the security styles and effective security styles are, what permissions are applied, and information about system access control lists. You can use the information to validate your security configuration or to troubleshoot auditing issues."
+---
+= Display information about NTFS audit policies on FlexVol volumes using the CLI
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can display information about NTFS audit policies on FlexVol volumes, including what the security styles and effective security styles are, what permissions are applied, and information about system access control lists. You can use the information to validate your security configuration or to troubleshoot auditing issues.
+
+.About this task
+
+Displaying information about audit policies applied to files and directories enables you to verify that you have the appropriate system access control lists (SACLs) set on specified files and folders.
+
+You must provide the name of the storage virtual machine (SVM) and the path to the files or folders whose audit information you want to display. You can display the output in summary form or as a detailed list.
+
+* NTFS security-style volumes and qtrees use only NTFS system access control lists (SACLs) for audit policies.
+* Files and folders in a mixed security-style volume with NTFS effective security can have NTFS audit policies applied to them.
++
+Mixed security-style volumes and qtrees can contain some files and directories that use UNIX file permissions, either mode bits or NFSv4 ACLs, and some files and directories that use NTFS file permissions.
+
+* The top level of a mixed security-style volume can have either UNIX or NTFS effective security and might or might not contain NTFS SACLs.
+* Because Storage-Level Access Guard security can be configured on a mixed security-style volume or qtree even if the effective security style of the volume root or qtree is UNIX, the output for a volume or qtree path where Storage-Level Access Guard is configured might display both regular file and folder NFSv4 SACLs and Storage-Level Access Guard NTFS SACLs.
+* If the path that is entered in the command is to data with NTFS effective security, the output also displays information about Dynamic Access Control ACEs if Dynamic Access Control is configured for the given file or directory path.
+* When displaying security information about files and folders with NTFS effective security, UNIX-related output fields contain display-only UNIX file permission information.
++
+NTFS security-style files and folders use only NTFS file permissions and Windows users and groups when determining file access rights.
+
+* ACL output is displayed only for files and folders with NTFS or NFSv4 security.
++
+This field is empty for files and folders using UNIX security that have only mode bit permissions applied (no NFSv4 ACLs).
+
+* The owner and group output fields in the ACL output apply only in the case of NTFS security descriptors.
+
+.Step
+
+. Display file and directory audit policy settings with the desired level of detail:
++
+[cols="2*",options="header"]
+|===
+| If you want to display information...| Enter the following command...
+a|
+In summary form
+a|
+`vserver security file-directory show -vserver vserver_name -path path`
+a|
+As a detailed list
+a|
+`vserver security file-directory show -vserver vserver_name -path path -expand-mask true`
+|===
+
+.Examples
+
+The following example displays the audit policy information for the path `/corp` in SVM vs1. The path has NTFS effective security. The NTFS security descriptor contains both a SUCCESS and a SUCCESS/FAIL SACL entry.
+
+----
+cluster::> vserver security file-directory show -vserver vs1 -path /corp
+                Vserver: vs1
+              File Path: /corp
+      File Inode Number: 357
+         Security Style: ntfs
+        Effective Style: ntfs
+         DOS Attributes: 10
+ DOS Attributes in Text: ----D---
+Expanded Dos Attributes: -
+           Unix User Id: 0
+          Unix Group Id: 0
+         Unix Mode Bits: 777
+ Unix Mode Bits in Text: rwxrwxrwx
+                   ACLs: NTFS Security Descriptor
+                         Control:0x8014
+                         Owner:DOMAIN\Administrator
+                         Group:BUILTIN\Administrators
+                         SACL - ACEs
+                           ALL-DOMAIN\Administrator-0x100081-OI|CI|SA|FA
+                           SUCCESSFUL-DOMAIN\user1-0x100116-OI|CI|SA
+                         DACL - ACEs
+                           ALLOW-BUILTIN\Administrators-0x1f01ff-OI|CI
+                           ALLOW-BUILTIN\Users-0x1f01ff-OI|CI
+                           ALLOW-CREATOR OWNER-0x1f01ff-OI|CI
+                           ALLOW-NT AUTHORITY\SYSTEM-0x1f01ff-OI|CI
+----
+
+The following example displays the audit policy information for the path `/datavol1` in SVM vs1. The path contains both regular file and folder SACLs and Storage-Level Access Guard SACLs.
+
+----
+cluster::> vserver security file-directory show -vserver vs1 -path /datavol1
+
+                Vserver: vs1
+              File Path: /datavol1
+        File Inode Number: 77
+         Security Style: ntfs
+        Effective Style: ntfs
+         DOS Attributes: 10
+ DOS Attributes in Text: ----D---
+Expanded Dos Attributes: -
+           Unix User Id: 0
+          Unix Group Id: 0
+         Unix Mode Bits: 777
+ Unix Mode Bits in Text: rwxrwxrwx
+                   ACLs: NTFS Security Descriptor
+                         Control:0xaa14
+                         Owner:BUILTIN\Administrators
+                         Group:BUILTIN\Administrators
+                         SACL - ACEs
+                           AUDIT-EXAMPLE\marketing-0xf01ff-OI|CI|FA
+                         DACL - ACEs
+                           ALLOW-EXAMPLE\Domain Admins-0x1f01ff-OI|CI
+                           ALLOW-EXAMPLE\marketing-0x1200a9-OI|CI
+
+                         Storage-Level Access Guard security
+                         SACL (Applies to Directories):
+                           AUDIT-EXAMPLE\Domain Users-0x120089-FA
+                           AUDIT-EXAMPLE\engineering-0x1f01ff-SA
+                         DACL (Applies to Directories):
+                           ALLOW-EXAMPLE\Domain Users-0x120089
+                           ALLOW-EXAMPLE\engineering-0x1f01ff
+                           ALLOW-NT AUTHORITY\SYSTEM-0x1f01ff
+                         SACL (Applies to Files):
+                           AUDIT-EXAMPLE\Domain Users-0x120089-FA
+                           AUDIT-EXAMPLE\engineering-0x1f01ff-SA
+                         DACL (Applies to Files):
+                           ALLOW-EXAMPLE\Domain Users-0x120089
+                           ALLOW-EXAMPLE\engineering-0x1f01ff
+                           ALLOW-NT AUTHORITY\SYSTEM-0x1f01ff
+----

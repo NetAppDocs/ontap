@@ -1,0 +1,100 @@
+---
+permalink: smb-admin/configure-nis-ldap-name-services-svm-task.html
+sidebar: sidebar
+keywords: smb, access, map, unix, user, perform, data, ntfs, security-style, volume, windows, correspond, unix, information, nis, ldap, directory, store, name, configure nis or ldap name services on the svm
+summary: "With SMB access, user mapping to a UNIX user is always performed, even when accessing data in an NTFS security-style volume. If you map Windows users to corresponding UNIX users whose information is stored in NIS or LDAP directory stores, or if you use LDAP for name mapping, you should configure these name services during SMB setup."
+---
+= Configure NIS or LDAP name services on the SVM
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+With SMB access, user mapping to a UNIX user is always performed, even when accessing data in an NTFS security-style volume. If you map Windows users to corresponding UNIX users whose information is stored in NIS or LDAP directory stores, or if you use LDAP for name mapping, you should configure these name services during SMB setup.
+
+.Before you begin
+
+You must have customized your name services database configuration to match your name service infrastructure.
+
+.About this task
+
+SVMs use the name services ns-switch databases to determine the order in which to look up the sources for a given name service database. The ns-switch source can be any combination of "`files`", "`nis`", or "`ldap`". For the groups database, ONTAP attempts to get the group memberships from all configured sources and then uses the consolidated group membership information for access checks. If one of these sources is unavailable at the time of obtaining UNIX group information, ONTAP cannot get the complete UNIX credentials and subsequent access checks might fail. Therefore, you must always check that all ns-switch sources are configured for the group database in the ns-switch settings.
+
+The default is to have the SMB server map all Windows users to the default UNIX user that is stored in the local `passwd` database. If you want to use the default configuration, configuring NIS or LDAP UNIX user and group name services or LDAP user mapping is optional for SMB access.
+
+.Steps
+
+. If UNIX user, group, and netgroup information is managed by NIS name services, configure NIS name services:
+ .. Determine the current ordering of name services by using the `vserver services name-service ns-switch show` command.
++
+In this example, the three databases (`group`, `passwd`, and `netgroup`) that can use `nis` as a name service source are using only `files` as a source.
++
+`vserver services name-service ns-switch show -vserver vs1`
++
+----
+
+                                               Source
+Vserver         Database       Enabled         Order
+--------------- ------------   ---------       ---------
+vs1             hosts          true            dns,
+                                               files
+vs1             group          true            files
+vs1             passwd         true            files
+vs1             netgroup       true            files
+vs1             namemap        true            files
+----
++
+You must add the `nis` source to the `group` and `passwd` databases, and optionally to the `netgroup` database.
+
+ .. Adjust the name service ns-switch database ordering as desired by using the `vserver services name-service ns-switch modify` command.
++
+For best performance, you should not add a name service to a name service database unless you plan on configuring that name service on the SVM.
++
+If you modify the configuration for more than one name service database, you must run the command separately for each name service database that you want to modify.
++
+In this example, `nis` and `files` are configured as sources for the `group` and `passwd` databases, in that order. The rest of the name service databases are unchanged.
++
+`vserver services name-service ns-switch modify -vserver vs1 -database group -sources nis,files` `vserver services name-service ns-switch modify -vserver vs1 -database passwd -sources nis,files`
+
+ .. Verify that the ordering of name services is correct by using the `vserver services name-service ns-switch show` command.
++
+`vserver services name-service ns-switch show -vserver vs1`
++
+----
+
+                                               Source
+Vserver         Database       Enabled         Order
+--------------- ------------   ---------       ---------
+vs1             hosts          true            dns,
+                                               files
+vs1             group          true            nis,
+                                               files
+vs1             passwd         true            nis,
+                                               files
+vs1             netgroup       true            files
+vs1             namemap        true            files
+----
+
+ .. Create the NIS name service configuration: `+vserver services name-service nis-domain create -vserver vserver_name -domain NIS_domain_name -servers NIS_server_IPaddress,... -active true+`
++
+`vserver services name-service nis-domain create -vserver vs1 -domain example.com -servers 10.0.0.60 -active true`
++
+[NOTE]
+====
+Starting in ONTAP 9.2, the field `-nis-servers` replaces the field `-servers`. This new field can take either a hostname or an IP address for the NIS server.
+====
+
+ .. Verify that the NIS name service is properly configured and active: `vserver services name-service nis-domain show vserver vserver_name`
++
+`vserver services name-service nis-domain show vserver vs1`
++
+----
+
+Vserver       Domain              Active Server
+------------- ------------------- ------ ---------------
+vs1           example.com         true   10.0.0.60
+----
+. If UNIX user, group, and netgroup information or name mapping is managed by LDAP name services, configure LDAP name services by using the information located in the _NFS Reference_.
+
+*Related information*
+
+https://docs.netapp.com/us-en/ontap/nfs-admin/index.html[NFS management]

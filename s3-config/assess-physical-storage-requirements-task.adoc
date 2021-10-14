@@ -1,0 +1,53 @@
+---
+permalink: s3-config/assess-physical-storage-requirements-task.html
+sidebar: sidebar
+keywords: assess, physical, storage, requirements
+summary: "Before provisioning S3 storage for clients, you must ensure that there is sufficient space in existing aggregates for the new object store. If there is not, you can add disks to existing aggregates or create new aggregates of the desired type."
+---
+= Assess physical storage requirements
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before provisioning S3 storage for clients, you must ensure that there is sufficient space in existing aggregates for the new object store. If there is not, you can add disks to existing aggregates or create new aggregates of the desired type.
+
+.About this task
+
+When you create an S3 bucket in an S3-enabled SVM, a FlexGroup volume is automatically created to support the bucket. You can let ONTAP select the underlying aggregates and FlexGroup components automatically (the default) or you can select the underlying aggregates and FlexGroup components yourself.
+
+If you decide to specify the aggregates and FlexGroup components -- for example, if you have specific performance requirements for the underlying disks -- you should make sure that your aggregate configuration conforms to best practice guidelines for provisioning a FlexGroup volume.
+
+https://docs.netapp.com/us-en/ontap/flexgroup/index.html[FlexGroup volumes management]
+
+https://www.netapp.com/pdf.html?item=/media/17251-tr4571apdf.pdf[NetApp Technical Report 4571-a: NetApp ONTAP FlexGroup Volume Top Best Practices]
+
+You can use the ONTAP S3 server to create a local FabricPool capacity tier; that is, in the same cluster as the performance tier. This can be useful, for example, if you have SSD disks attached to one HA pair and you want to tier _cold_ data to HDD disks in another HA pair. In this use case, the S3 server and the bucket containing the local capacity tier should therefore be in a different HA pair than the performance tier. Local tiering is not supported on one-node and two-node clusters.
+
+.Steps
+
+. Display available space in existing aggregates:
++
+`storage aggregate show`
++
+If there is an aggregate with sufficient space, record its name for your S3 configuration.
++
+----
+cluster-1::> storage aggregate show
+Aggregate     Size Available Used% State   #Vols  Nodes  RAID Status
+--------- -------- --------- ----- ------- ------ ------ -----------
+aggr_0     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_1     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_2     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_3     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_4     239.0GB   238.9GB   95% online       5 node3  raid_dp,
+                                                         normal
+aggr_5     239.0GB   239.0GB   95% online       4 node4  raid_dp,
+                                                         normal
+6 entries were displayed.
+----
+
+. If there are no aggregates with sufficient space, add disks to an existing aggregate by using the `storage aggregate add-disks` command, or create a new aggregate by using the `storage aggregate create` command.

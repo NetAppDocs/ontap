@@ -1,0 +1,65 @@
+---
+permalink: smb-admin/modify-branchcache-config-task.html
+sidebar: sidebar
+keywords: modify, configuration, branchcache, service, svm, store, directory, path, hash, maximum, size, operating, mode, version, modify branchcache configurations
+summary: "You can modify the configuration of the BranchCache service on SVMs, including changing the hash store directory path, the hash store maximum directory size, the operating mode, and which BranchCache versions are supported. You can also increase the size of the volume that contains the hash store."
+---
+= Modify BranchCache configurations
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can modify the configuration of the BranchCache service on SVMs, including changing the hash store directory path, the hash store maximum directory size, the operating mode, and which BranchCache versions are supported. You can also increase the size of the volume that contains the hash store.
+
+.Steps
+
+. Perform the appropriate action:
++
+[options="header"]
+|===
+| If you want to...| Enter the following...
+a|
+Modify the hash store directory size
+a|
+`vserver cifs branchcache modify -vserver vserver_name -hash-store-max-size {integer[KB\|MB\|GB\|TB\|PB]}`
+a|
+Increase the size of the volume that contains the hash store
+a|
+`volume size -vserver vserver_name -volume volume_name -new-size new_size[k\|m\|g\|t]`     If the volume containing the hash store fills up, you might be able to increase the size of the volume. You can specify the new volume size as a number followed by a unit designation.
+
+See the _Logical Storage Management Guide_ for more information about increasing volume size.
+a|
+Modify the hash store directory path
+a|
+`vserver cifs branchcache modify -vserver vserver_name -hash-store-path path -flush-hashes {true\|false}`     If the SVM is an SVM disaster recovery source, the hash path cannot be on the root volume. This is because the root volume is not replicated to the disaster recovery destination.
+
+The BranchCache hash path can contain blanks and any valid file name characters.
+
+If you modify the hash path, `-flush-hashes` is a required parameter that specifies whether you want ONTAP to flush the hashes from the original hash store location. You can set the following values for the `-flush-hashes` parameter:
+
+ ** If you specify `true`, ONTAP deletes the hashes in the original location and creates new hashes in the new location as new requests are made by BranchCache-enabled clients.
+ ** If you specify `false`, the hashes are not flushed.
++
+In this case, you can choose to reuse the existing hashes later by changing the hash store path back to the original location.
+
+a|
+Change the operating mode
+a|
+`vserver cifs branchcache modify -vserver vserver_name -operating-mode {per-share\|all-shares\|disable}`
+[NOTE]
+====
+You should be aware of the following when modifying the operating mode:
+    -   ONTAP advertises BranchCache support for a share when the SMB session is set up.
+    -   Clients that already have established sessions when BranchCache is enabled need to disconnect and reconnect to use cached content for this share.
+====
+a|
+Change the BranchCache version support
+a|
+`vserver cifs branchcache modify -vserver vserver_name -versions {v1-enable\|v2-enable\|enable-all}`
+|===
+
+. Verify the configuration changes by using the `vserver cifs branchcache show` command.
+
+*Related information*
+
+https://docs.netapp.com/us-en/ontap/volumes/index.html[Logical Storage Management Guide]

@@ -1,0 +1,125 @@
+---
+permalink: system-admin/restore-cluster-config-from-existing-task.html
+sidebar: sidebar
+keywords: restore, cluster, configuration, existing, configuration, failure, recovering, node, rejoin, cluster
+summary: "To restore a cluster configuration from an existing configuration after a cluster failure, you re-create the cluster using the cluster configuration that you chose and made available to the recovering node, and then rejoin each additional node to the new cluster."
+---
+= Restore a cluster configuration from an existing configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+To restore a cluster configuration from an existing configuration after a cluster failure, you re-create the cluster using the cluster configuration that you chose and made available to the recovering node, and then rejoin each additional node to the new cluster.
+
+.About this task
+
+You should only perform this task to recover from a disaster that resulted in the loss of the cluster's configuration.
+
+[NOTE]
+====
+If you are re-creating the cluster from a configuration backup file, you must contact technical support to resolve any discrepancies between the configuration backup file and the configuration present in the cluster.
+====
+
+.Steps
+
+. Disable storage failover for each HA pair:
++
+`*storage failover modify -node _node_name_ -enabled false*`
++
+You only need to disable storage failover once for each HA pair. When you disable storage failover for a node, storage failover is also disabled on the node's partner.
+
+. Halt each node except for the recovering node:
++
+`*system node halt -node _node_name_ -reason "text"*`
++
+----
+cluster1::*> system node halt -node node0 -reason "recovering cluster"
+
+Warning: Are you sure you want to halt the node? {y|n}: y
+----
+
+. Set the privilege level to advanced:
++
+`*set -privilege advanced*`
+. On the recovering node, use the `*system configuration recovery cluster recreate*` command to re-create the cluster.
++
+This example re-creates the cluster using the configuration information stored on the recovering node:
++
+----
+cluster1::*> configuration recovery cluster recreate -from node
+
+Warning: This command will destroy your existing cluster. It will
+         rebuild a new single-node cluster consisting of this node
+         and its current configuration. This feature should only be
+         used to recover from a disaster. Do not perform any other
+         recovery operations while this operation is in progress.
+Do you want to continue? {y|n}: y
+----
++
+A new cluster is created on the recovering node.
+
+. If you are re-creating the cluster from a configuration backup file, verify that the cluster recovery is still in progress:
++
+`*system configuration recovery cluster show*`
++
+You do not need to verify the cluster recovery state if you are re-creating the cluster from a healthy node.
++
+----
+cluster1::*> system configuration recovery cluster show
+ Recovery Status: in-progress
+ Is Recovery Status Persisted: false
+----
+
+. Boot each node that needs to be rejoined to the re-created cluster.
++
+You must reboot the nodes one at a time.
+
+. For each node that needs to be joined to the re-created cluster, do the following:
+ .. From a healthy node on the re-created cluster, rejoin the target node:
++
+`*system configuration recovery cluster rejoin -node _node_name_*`
++
+This example rejoins the "`node2`" target node to the re-created cluster:
++
+----
+cluster1::*> system configuration recovery cluster rejoin -node node2
+
+Warning: This command will rejoin node "node2" into the local
+         cluster, potentially overwriting critical cluster
+         configuration files. This command should only be used
+         to recover from a disaster. Do not perform any other
+         recovery operations while this operation is in progress.
+         This command will cause node "node2" to reboot.
+Do you want to continue? {y|n}: y
+----
++
+The target node reboots and then joins the cluster.
+
+ .. Verify that the target node is healthy and has formed quorum with the rest of the nodes in the cluster:
++
+`*cluster show -eligibility true*`
++
+The target node must rejoin the re-created cluster before you can rejoin another node.
++
+----
+cluster1::*> cluster show -eligibility true
+Node                 Health  Eligibility   Epsilon
+-------------------- ------- ------------  ------------
+node0                true    true          false
+node1                true    true          false
+2 entries were displayed.
+----
+. If you re-created the cluster from a configuration backup file, set the recovery status to be complete:
++
+`*system configuration recovery cluster modify -recovery-status complete*`
+. Return to the admin privilege level:
++
+`*set -privilege admin*`
+. If the cluster consists of only two nodes, use the `*cluster ha modify*` command to reenable cluster HA.
+. Use the `*storage failover modify*` command to reenable storage failover for each HA pair.
+
+.After you finish
+
+If the cluster has SnapMirror peer relationships, then you also need to re-create those relationships. For more information, see the _Data Protection Power Guide_.
+
+https://docs.netapp.com/us-en/ontap/data-protection/index.html[Data protection]

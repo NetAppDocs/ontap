@@ -1,0 +1,73 @@
+---
+permalink: smb-hyper-v-sql/verify-continuously-available-share-config-task.html
+sidebar: sidebar
+keywords: verify, continuously, available, smb, share, configuration, hyper, v, sql, server, nondisruptive, application
+summary: "To support nondisruptive operations, Hyper-V and SQL Server SMB shares must be configured as continuously available shares. Additionally, there are certain other share settings that you must check. You should verify that the shares are properly configured to provide seamless nondisruptive operations for the application servers if there are planned or unplanned disruptive events."
+---
+= Verify the continuously available SMB share configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+To support nondisruptive operations, Hyper-V and SQL Server SMB shares must be configured as continuously available shares. Additionally, there are certain other share settings that you must check. You should verify that the shares are properly configured to provide seamless nondisruptive operations for the application servers if there are planned or unplanned disruptive events.
+
+.About this task
+
+You must verify that the two following share parameters are set correctly:
+
+* The `-offline-files` parameter is set to either `manual` (the default) or `none`.
+* Symlinks must be disabled.
+
+For proper nondisruptive operations, the following share properties must be set:
+
+* `continuously-available`
+* `oplocks`
+
+The following share properties must not be set:
+
+* `homedirectory`
+* `attributecache`
+* `branchcache`
+* `access-based-enumeration`
+
+.Steps
+
+. Verify that the offline files are set to `manual` or `disabled` and that symlinks are disabled:
++
+`*vserver cifs shares show -vserver _vserver_name_*`
+. Verify that the SMB shares are configured for continuous availability:
++
+`*vserver cifs shares properties show -vserver _vserver_name_*`
+
+.Examples
+
+The following example displays the share setting for a share named "`share1`" on storage virtual machine (SVM, formerly known as Vserver) vs1. Offline files are set to `manual` and symlinks are disabled (designated by a hyphen in the `Symlink Properties` field output):
+
+----
+cluster1::> vserver cifs share show -vserver vs1 -share-name share1
+                      Vserver: vs1
+                        Share: share1
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data/share1
+             Share Properties: oplocks
+                               continuously-available
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----
+
+The following example displays the share properties for a share named "`share1`" on SVM vs1:
+
+----
+cluster1::> vserver cifs share properties show -vserver vs1 -share-name share1
+Vserver    Share   Properties
+---------  ------  ----------
+vs1        share1  oplocks
+                   continuously-available
+----

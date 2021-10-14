@@ -1,0 +1,88 @@
+---
+permalink: data-protection/snapmirror-disaster-recovery-concept.html
+sidebar: sidebar
+keywords: asynchronous, snapmirror, disaster, recovery basics
+summary: "SnapMirror is disaster recovery technology, designed for failover from primary storage to secondary storage at a geographically remote site. As its name implies, SnapMirror creates a replica, or mirror, of your working data in secondary storage from which you can continue to serve data in the event of a catastrophe at the primary site."
+---
+= Asynchronous SnapMirror disaster recovery basics
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+_SnapMirror_ is disaster recovery technology, designed for failover from primary storage to secondary storage at a geographically remote site. As its name implies, SnapMirror creates a replica, or _mirror,_ of your working data in secondary storage from which you can continue to serve data in the event of a catastrophe at the primary site.
+
+If the primary site is still available to serve data, you can simply transfer any needed data back to it, and not serve clients from the mirror at all. As the failover use case implies, the controllers on the secondary system should be equivalent or nearly equivalent to the controllers on the primary system to serve data efficiently from mirrored storage.
+
+== Data protection relationships
+
+Data is mirrored at the volume level. The relationship between the source volume in primary storage and the destination volume in secondary storage is called a _data protection relationship._ The clusters in which the volumes reside and the SVMs that serve data from the volumes must be _peered._ A peer relationship enables clusters and SVMs to exchange data securely.
+
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.exp-clus-peer/home.html[Cluster and SVM peering express configuration]
+
+The figure below illustrates SnapMirror data protection relationships.
+
+image::../media/snapmirror-for-dp-pg.gif[]
+
+== Scope of data protection relationships
+
+You can create a data protection relationship directly between volumes or between the SVMs that own the volumes. In an _SVM data protection relationship,_ all or part of the SVM configuration, from NFS exports and SMB shares to RBAC, is replicated, as well as the data in the volumes that the SVM owns.
+
+You can also use SnapMirror for two special data protection applications:
+
+* A _load-sharing mirror_ copy of the SVM root volume ensures that data remains accessible in the event of a node outage or failover.
+* A data protection relationship between _SnapLock volumes_ lets you replicate WORM files to secondary storage.
++
+https://docs.netapp.com/us-en/ontap/snaplock/index.html[Archive and compliance using SnapLock technology]
+
+== How SnapMirror data protection relationships are initialized
+
+The first time you invoke SnapMirror, it performs a _baseline transfer_ from the source volume to the destination volume. The _SnapMirror policy_ for the relationship defines the contents of the baseline and any updates.
+
+A baseline transfer under the default SnapMirror policy `MirrorAllSnapshots` involves the following steps:
+
+* Make a Snapshot copy of the source volume.
+* Transfer the Snapshot copy and all the data blocks it references to the destination volume.
+* Transfer the remaining, less recent Snapshot copies on the source volume to the destination volume for use in case the "`active`" mirror is corrupted.
+
+== How SnapMirror data protection relationships are updated
+
+Updates are asynchronous, following the schedule you configure. Retention mirrors the Snapshot policy on the source.
+
+At each update under the `MirrorAllSnapshots` policy, SnapMirror creates a Snapshot copy of the source volume and transfers that Snapshot copy and any Snapshot copies that have been made since the last update. In the following output from the `snapmirror policy show` command for the `MirrorAllSnapshots` policy, note the following:
+
+* `Create Snapshot` is "`true`", indicating that `MirrorAllSnapshots` creates a Snapshot copy when SnapMirror updates the relationship.
+* `MirrorAllSnapshots` has rules "`sm_created`" and "`all_source_snapshots`", indicating that both the Snapshot copy created by SnapMirror and any Snapshot copies that have been made since the last update are transferred when SnapMirror updates the relationship.
+
+----
+cluster_dst::> snapmirror policy show -policy MirrorAllSnapshots -instance
+
+                     Vserver: vs0
+      SnapMirror Policy Name: MirrorAllSnapshots
+      SnapMirror Policy Type: async-mirror
+                Policy Owner: cluster-admin
+                 Tries Limit: 8
+           Transfer Priority: normal
+   Ignore accesstime Enabled: false
+     Transfer Restartability: always
+ Network Compression Enabled: false
+             Create Snapshot: true
+                     Comment: Asynchronous SnapMirror policy for mirroring all snapshots
+                              and the latest active file system.
+       Total Number of Rules: 2
+                  Total Keep: 2
+                       Rules: SnapMirror Label     Keep  Preserve Warn Schedule Prefix
+                              ----------------     ----  -------- ---- -------- ------
+                              sm_created              1  false       0 -        -
+                              all_source_snapshots    1  false       0 -        -
+----
+
+== MirrorLatest policy
+
+The preconfigured `MirrorLatest` policy works exactly the same way as `MirrorAllSnapshots`, except that only the Snapshot copy created by SnapMirror is transferred at initialization and update.
+
+----
+
+                       Rules: SnapMirror Label     Keep  Preserve Warn Schedule Prefix
+                              ----------------     ----  -------- ---- -------- ------
+                              sm_created              1  false       0 -        -
+----

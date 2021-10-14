@@ -1,0 +1,32 @@
+---
+permalink: smb-admin/optimize-user-access-force-group-share-concept.html
+sidebar: sidebar
+keywords: create, share, ontap, command, line, data, unix, effective, security, smb, user, group, force-group, predefined, database, force-group, access, how to optimize smb user access with the force-group share setting
+summary: "When you create a share from the ONTAP command line to data with UNIX effective security, you can specify that all files created by SMB users in that share belong to the same group, known as the force-group, which must be a predefined group in the UNIX group database. Using a force-group makes it easier to ensure that files can be accessed by SMB users belonging to various groups."
+---
+= How to optimize SMB user access with the force-group share setting
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When you create a share from the ONTAP command line to data with UNIX effective security, you can specify that all files created by SMB users in that share belong to the same group, known as the _force-group_, which must be a predefined group in the UNIX group database. Using a force-group makes it easier to ensure that files can be accessed by SMB users belonging to various groups.
+
+Specifying a force-group is meaningful only if the share is in a UNIX or mixed qtree. There is no need to set a force-group for shares in an NTFS volume or qtree because access to files in these shares is determined by Windows permissions, not UNIX GIDs.
+
+If a force-group has been specified for a share, the following becomes true of the share:
+
+* SMB users in the force-group who access this share are temporarily changed to the GID of the force-group.
++
+This GID enables them to access files in this share that are not accessible normally with their primary GID or UID.
+
+* All files in this share created by SMB users belong to the same force-group, regardless of the primary GID of the file owner.
+
+When SMB users try to access a file created by NFS, the SMB users' primary GIDs determine access rights.
+
+The force-group does not affect how NFS users access files in this share. A file created by NFS acquires the GID from the file owner. Determination of access permissions is based on the UID and primary GID of the NFS user who is trying to access the file.
+
+Using a force-group makes it easier to ensure that files can be accessed by SMB users belonging to various groups. For example, if you want to create a share to store the company's web pages and give write access to users in the Engineering and Marketing departments, you can create a share and give write access to a force-group named "`webgroup1`". Because of the force-group, all files created by SMB users in this share are owned by the "`webgroup1`" group. In addition, users are automatically assigned the GID of the "`webgroup1`" group when accessing the share. As a result, all the users can write to this share without you needing to manage the access rights of the users in the Engineering and Marketing departments.
+
+*Related information*
+
+xref:create-share-force-group-setting-task.adoc[Creating an SMB share with the force-group share setting]

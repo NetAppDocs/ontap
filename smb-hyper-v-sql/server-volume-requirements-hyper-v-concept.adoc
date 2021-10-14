@@ -1,0 +1,50 @@
+---
+permalink: smb-hyper-v-sql/server-volume-requirements-hyper-v-concept.html
+sidebar: sidebar
+keywords: smb, cifs, server, volume, requirements, hyper, v, configuration, nondisruptive, operation
+summary: "You need to be aware of certain SMB server and volume requirements when creating Hyper-V over SMB configurations for nondisruptive operations."
+---
+= SMB/CIFS server and volume requirements for Hyper-V over SMB
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You need to be aware of certain SMB server and volume requirements when creating Hyper-V over SMB configurations for nondisruptive operations.
+
+== SMB server requirements
+
+* SMB 3.0 must be enabled.
++
+This is enabled by default.
+
+* The default UNIX user CIFS server option must be configured with a valid UNIX user account.
++
+The application servers use the machine account when creating an SMB connection. Because all SMB access requires that the Windows user successfully map to a UNIX user account or to the default UNIX user account, ONTAP must be able to map the application server's machine account to the default UNIX user account.
+
+* Automatic node referrals must be disabled (this functionality is disabled by default).
++
+If you want to use automatic node referrals for access to data other than Hyper-V machine files, you must create a separate SVM for that data.
+
+* Both Kerberos and NTLM authentication must be allowed in the domain to which the SMB server belongs.
++
+ONTAP does not advertise the Kerberos service for Remote VSS; therefore, the domain should be set to permit NTLM.
+
+* Shadow copy functionality must be enabled.
++
+This functionality is enabled by default.
+
+* The Windows domain account that the shadow copy service uses when creating shadow copies must be a member of the SMB server local BUILTIN\Administrators or BUILTIN\Backup Operators group.
+
+== Volume requirements
+
+* Volumes used to store virtual machine files must be created as NTFS security-style volumes.
++
+To provide NDOs for application servers using continuously available SMB connections, the volume containing the share must be an NTFS volume. Moreover, it must always have been an NTFS volume. You cannot change a mixed security-style volume or UNIX security-style volume to an NTFS security-style volume and directly use it for NDOs over SMB shares. If you change a mixed security-style volume to an NTFS security style volume and intend to use it for NDOs over SMB shares, you must manually place an ACL at the top of the volume and propagate that ACL to all contained files and folders. Otherwise, virtual machine migrations or database file exports and imports where files are moved to another volume can fail if either the source or the destination volumes were initially created as mixed or UNIX security-style volumes and later changed to NTFS security style.
+
+* For shadow copy operations to succeed, you must have enough available space on the volume.
++
+The available space must be at least as large as the combined space used by all files, directories, and subdirectories contained within the shares included in the shadow copy backup set. This requirement only applies to shadow copies with auto-recovery.
+
+*Related information*
+
+http://technet.microsoft.com/en-us/library/[Microsoft TechNet Library: technet.microsoft.com/en-us/library/]

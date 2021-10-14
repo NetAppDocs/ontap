@@ -1,0 +1,102 @@
+---
+permalink: nfs-admin/handle-clients-unlisted-security-type-concept.html
+sidebar: sidebar
+keywords: handle, client, unlist, security, type
+summary: "When a client presents itself with a security type that is not listed in an access parameter of an export rule, you have the choice of either denying access to the client or mapping it to the anonymous user ID instead by using the option none in the access parameter."
+---
+= How to handle clients with an unlisted security type
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When a client presents itself with a security type that is not listed in an access parameter of an export rule, you have the choice of either denying access to the client or mapping it to the anonymous user ID instead by using the option `none` in the access parameter.
+
+A client might present itself with a security type that is not listed in an access parameter because it was authenticated with a different security type or was not authenticated at all (security type AUTH_NONE). By default, the client is automatically denied access to that level. However, you can add the option `none` to the access parameter. As a result, clients with an unlisted security style are mapped to the anonymous user ID instead. The `-anon` parameter determines what user ID is assigned to those clients. The user ID specified for the `-anon` parameter must be a valid user that is configured with permissions you deem appropriate for the anonymous user.
+
+Valid values for the `-anon` parameter range from `0` to `65535`.
+[cols="2*",options="header"]
+|===
+| User ID assigned to `-anon`| Resulting handling of client access requests
+a|
+`0` - `65533`
+a|
+The client access request is mapped to the anonymous user ID and gets access depending on the permissions configured for this user.
+a|
+`65534`
+a|
+The client access request is mapped to the user nobody and gets access depending on the permissions configured for this user. This is the default.
+a|
+`65535`
+a|
+The access request from any client is denied when mapped to this ID and the client presents itself with security type AUTH_NONE. The access request from clients with user ID 0 is denied when mapped to this ID and the client presents itself with any other security type.
+
+|===
+When using the option `none`, it is important to remember that the read-only parameter is processed first. Consider the following guidelines when configuring export rules for clients with unlisted security types:
+[cols="3*",options="header"]
+|===
+| Read-only includes `none`| Read-write includes `none`| Resulting access for clients with unlisted security types
+a|
+No
+a|
+No
+a|
+Denied
+a|
+No
+a|
+Yes
+a|
+Denied because read-only is processed first
+a|
+Yes
+a|
+No
+a|
+Read-only as anonymous
+a|
+Yes
+a|
+Yes
+a|
+Read-write as anonymous
+|===
+
+.Example
+
+The export policy contains an export rule with the following parameters:
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `sys,none`
+* `-rwrule` `any`
+* `-anon` `70`
+
+Client #1 has the IP address 10.1.16.207, sends an access request using the NFSv3 protocol, and authenticated with Kerberos v5.
+
+Client #2 has the IP address 10.1.16.211, sends an access request using the NFSv3 protocol, and authenticated with AUTH_SYS.
+
+Client #3 has the IP address 10.1.16.234, sends an access request using the NFSv3 protocol, and did not authenticate (meaning security type AUTH_NONE).
+
+The client access protocol and IP address matches for all three clients. The read-only parameter allows read-only access to clients with their own user ID that authenticated with AUTH_SYS. The read-only parameter allows read-only access as the anonymous user with user ID 70 to clients that authenticated using any other security type. The read-write parameter allows read-write access to any security type, but in this case only applies to clients already filtered by the read-only rule.
+
+Therefore, clients #1 and #3 get read-write access only as the anonymous user with user ID 70. Client #2 gets read-write access with its own user ID.
+
+.Example
+
+The export policy contains an export rule with the following parameters:
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `sys,none`
+* `-rwrule` `none`
+* `-anon` `70`
+
+Client #1 has the IP address 10.1.16.207, sends an access request using the NFSv3 protocol, and authenticated with Kerberos v5.
+
+Client #2 has the IP address 10.1.16.211, sends an access request using the NFSv3 protocol, and authenticated with AUTH_SYS.
+
+Client #3 has the IP address 10.1.16.234, sends an access request using the NFSv3 protocol, and did not authenticate (meaning security type AUTH_NONE).
+
+The client access protocol and IP address matches for all three clients. The read-only parameter allows read-only access to clients with their own user ID that authenticated with AUTH_SYS. The read-only parameter allows read-only access as the anonymous user with user ID 70 to clients that authenticated using any other security type. The read-write parameter allows read-write access only as the anonymous user.
+
+Therefore, client #1 and client #3 get read-write access only as the anonymous user with user ID 70. Client #2 gets read-only access with its own user ID but is denied read-write access.

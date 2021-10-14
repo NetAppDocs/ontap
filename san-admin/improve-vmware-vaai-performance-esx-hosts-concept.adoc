@@ -1,0 +1,69 @@
+---
+permalink: san-admin/improve-vmware-vaai-performance-esx-hosts-concept.html
+sidebar: sidebar
+keywords: improve, vmware, vaai, performance, esx, hosts
+summary: "ONTAP supports certain VMware vStorage APIs for Array Integration (VAAI) features when the ESX host is running ESX 4.1 or later. These features help offload operations from the ESX host to the storage system and increase the network throughput. The ESX host enables the features automatically in the correct environment."
+---
+= Improve VMware VAAI performance for ESX hosts
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP supports certain VMware vStorage APIs for Array Integration (VAAI) features when the ESX host is running ESX 4.1 or later. These features help offload operations from the ESX host to the storage system and increase the network throughput. The ESX host enables the features automatically in the correct environment.
+
+The VAAI feature supports the following SCSI commands:
+
+* `EXTENDED_COPY`
++
+This feature enables the host to initiate the transfer of data between the LUNs or within a LUN without involving the host in the data transfer. This results in saving ESX CPU cycles and increasing the network throughput. The extended copy feature, also known as "copy offload," is used in scenarios such as cloning a virtual machine. When invoked by the ESX host, the copy offload feature copies the data within the storage system rather than going through the host network. Copy offload transfers data in the following ways:
+
+ ** Within a LUN
+ ** Between LUNs within a volume
+ ** Between LUNs on different volumes within a storage virtual machine (SVM)
+ ** Between LUNs on different SVMs within a cluster
+If this feature cannot be invoked, the ESX host automatically uses the standard READ and WRITE commands for the copy operation.
+
+* `WRITE_SAME`
++
+This feature offloads the work of writing a repeated pattern, such as all zeros, to a storage array. The ESX host uses this feature in operations such as zero-filling a file.
+
+* `COMPARE_AND_WRITE`
++
+This feature bypasses certain file access concurrency limits, which speeds up operations such as booting up virtual machines.
+
+== Requirements for using the VAAI environment
+
+The VAAI features are part of the ESX operating system and are automatically invoked by the ESX host when you have set up the correct environment.
+
+The environment requirements are as follows:
+
+* The ESX host must be running ESX 4.1 or later.
+* The NetApp storage system that is hosting the VMware datastore must be running ONTAP.
+* (Copy offload only) The source and the destination of the VMware copy operation must be hosted on the same storage system within the same cluster.
++
+[NOTE]
+====
+The copy offload feature currently does not support copying data between VMware datastores that are hosted on different storage systems.
+====
+
+== How to determine if VAAI features are supported by ESX
+
+To confirm whether the ESX operating system supports the VAAI features, you can check the vSphere Client or use any other means of accessing the host. ONTAP supports the SCSI commands by default.
+
+You can check your ESX host advanced settings to determine whether VAAI features are enabled. The table indicates which SCSI commands correspond to ESX control names.
+[cols="2*",options="header"]
+|===
+| SCSI command| ESX control name (VAAI feature)
+a|
+EXTENDED_COPY
+a|
+`HardwareAcceleratedMove`
+a|
+WRITE_SAME
+a|
+`HardwareAcceleratedInit`
+a|
+COMPARE_AND_WRITE
+a|
+`HardwareAcceleratedLocking`
+|===

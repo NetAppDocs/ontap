@@ -1,0 +1,78 @@
+---
+permalink: flexgroup/create-svm-disaster-recovery-relationship-task.html
+sidebar: sidebar
+keywords: create, svm, disaster, recovery, relationship, flexgroup, volumes
+summary: "Starting in ONTAP 9.9.1, you can create SVM disaster recovery (SVM DR) relationships using FlexGroup volumes. An SVM DR relationship provides redundancy and the ability to recover FlexGroups in the event of a disaster by synchronizing and replicating the SVM configuration and its data. A SnapMirror license is required for SVM DR."
+---
+= Create an SVM disaster recovery relationship for FlexGroup volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Starting in ONTAP 9.9.1, you can create SVM disaster recovery (SVM DR) relationships using FlexGroup volumes. An SVM DR relationship provides redundancy and the ability to recover FlexGroups in the event of a disaster by synchronizing and replicating the SVM configuration and its data. A SnapMirror license is required for SVM DR.
+
+.What you'll need
+
+You should be aware of the conditions when you cannot create a FlexGroup SVM DR relationship.
+
+* A FlexClone FlexGroup configuration exists
+* A FlexGroup volume contains a FabricPool configuration
+* The FlexGroup volume is part of a fanout or cascading relationship
+
+.About this task
+
+* All nodes in both clusters must be running the same ONTAP version as the node on which SVM DR support was added (ONTAP 9.9.1 or later).
+* The SVM DR relationship between the primary and secondary sites should be healthy and should have enough space on both the primary and secondary SVMs to support the FlexGroup volumes.
+
+For information about creating an SVM DR relationship, see https://docs.netapp.com/ontap-9/topic/com.netapp.doc.pow-dap/GUID-C6D7E4F1-76F0-44E7-909E-04BA68AE77A8.html?cp=7_3_5[Managing SnapMirror SVM replication].
+
+.Steps
+
+. Create a FlexGroup volume on the primary site with the required number of constituents.
++
+xref:create-task.adoc[Creating a FlexGroup volume].
+
+. Update the SVM at the secondary site: `snapmirror update -destination-path destination_svm_name: -source-path source_svm_name:`
+. From the secondary site, verify that the SnapMirror relationship is healthy: `snapmirror show`
++
+----
+cluster2::> snapmirror show
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vs1:        XDP  vs1_dst:     Snapmirrored
+                                      Idle           -         true    -
+----
+
+. From the secondary site, verify that the new FlexGroup volume and its constituents exist: `snapmirror show -expand`
++
+----
+cluster2::> snapmirror show -expand
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vs1:        XDP  vs1_dst:     Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src  XDP  vs1_dst:fg_src
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0001
+            XDP  vs1_dst:fg_src__0001
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0002
+            XDP  vs1_dst:fg_src__0002
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0003
+            XDP  vs1_dst:fg_src__0003
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0004
+            XDP  vs1_dst:fg_src__0004
+                              Snapmirrored
+                                      Idle           -         true    -
+6 entries were displayed.
+----

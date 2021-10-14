@@ -1,0 +1,62 @@
+---
+permalink: nas-audit/create-fpolicy-policy-task.html
+sidebar: sidebar
+keywords: create, fpolicy, policy
+summary: "When you create the FPolicy policy, you associate an external engine and one or more events to the policy. The policy also specifies whether mandatory screening is required, whether the FPolicy servers have privileged access to data on the storage virtual machine (SVM), and whether passthrough-read for offline files is enabled."
+---
+= Create the FPolicy policy
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When you create the FPolicy policy, you associate an external engine and one or more events to the policy. The policy also specifies whether mandatory screening is required, whether the FPolicy servers have privileged access to data on the storage virtual machine (SVM), and whether passthrough-read for offline files is enabled.
+
+.What you'll need
+
+* The FPolicy policy worksheet should be completed.
+* If you plan on configuring the policy to use FPolicy servers, the external engine must exist.
+* At least one FPolicy event that you plan on associating with the FPolicy policy must exist.
+* If you want to configure privileged data access, a CIFS server must exist on the SVM.
+
+.Steps
+
+. Create the FPolicy policy:
++
+`vserver fpolicy policy create -vserver-name vserver_name -policy-name policy_name -engine engine_name -events event_name,... [-is-mandatory {true|false}] [-allow-privileged-access {yes|no}] [-privileged-user-name domain\user_name] [-is-passthrough-read-enabled {true|false}]`
+
+ ** You can add one or more events to the FPolicy policy.
+ ** By default, mandatory screening is enabled.
+ ** If you want to allow privileged access by setting the `-allow-privileged-access` parameter to `yes`, you must also configure a privileged user name for privileged access.
+ ** If you want to configure passthrough-read by setting the `-is-passthrough-read-enabled` parameter to `true`, you must also configure privileged data access.
++
+The following command creates a policy named "`policy1`" that has the event named "`event1`" and the external engine named "`engine1`" associated with it. This policy uses default values in the policy configuration:
+`vserver fpolicy policy create -vserver vs1.example.com -policy-name policy1 -events event1 -engine engine1`
++
+The following command creates a policy named "`policy2`" that has the event named "`event2`" and the external engine named "`engine2`" associated with it. This policy is configured to use privileged access using the specified user name. Passthrough-read is enabled:
++
+`vserver fpolicy policy create -vserver vs1.example.com -policy-name policy2 -events event2 -engine engine2 -allow-privileged-access yes ‑privileged-user-name example\archive_acct -is-passthrough-read-enabled true`
++
+The following command creates a policy named "`native1`" that has the event named "`event3`" associated with it. This policy uses the native engine and uses default values in the policy configuration:
++
+`vserver fpolicy policy create -vserver vs1.example.com -policy-name native1 -events event3 -engine native`
+. Verify the FPolicy policy configuration by using the `vserver fpolicy policy show` command.
++
+The following command displays information about the three configured FPolicy policies, including the following information:
+
+ ** The SVM associated with the policy
+ ** The external engine associated with the policy
+ ** The events associated with the policy
+ ** Whether mandatory screening is required
+ ** Whether privileged access is required
+`vserver fpolicy policy show`
+
++
+----
+
+   Vserver       Policy     Events    Engine    Is Mandatory  Privileged
+                 Name                                         Access
+--------------   ---------  --------- --------- ------------  -----------
+vs1.example.com  policy1    event1    engine1   true          no
+vs1.example.com  policy2    event2    engine2   true          yes
+vs1.example.com  native1    event3    native    true          no
+----

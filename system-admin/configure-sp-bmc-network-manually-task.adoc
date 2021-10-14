@@ -1,0 +1,98 @@
+---
+permalink: system-admin/configure-sp-bmc-network-manually-task.html
+sidebar: sidebar
+keywords: configure, sp, bmc, network, manually, ip, address
+summary: "If you do not have automatic network configuration set up for the SP, you must manually configure a node’s SP network for the SP to be accessible by using an IP address."
+---
+= Configure the SP/BMC network manually
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you do not have automatic network configuration set up for the SP, you must manually configure a node's SP network for the SP to be accessible by using an IP address.
+
+.What you'll need
+
+If you want to use IPv6 connections for the SP, IPv6 must already be configured and enabled for ONTAP. The `network options ipv6` commands manage IPv6 settings for ONTAP.
+
+.About this task
+
+[NOTE]
+====
+This task applies to both the SP and the BMC.
+====
+
+You can configure the SP to use IPv4, IPv6, or both. The SP IPv4 configuration supports static and DHCP addressing, and the SP IPv6 configuration supports static addressing only.
+
+If the SP automatic network configuration has been set up, you do not need to manually configure the SP network for individual nodes, and the `system service-processor network modify` command allows you to only enable or disable the SP network interface.
+
+.Steps
+
+. Configure the SP network for a node by using the `system service-processor network modify` command.
+ ** The `-address-family` parameter specifies whether the IPv4 or IPv6 configuration of the SP is to be modified.
+ ** The `-enable` parameter enables the network interface of the specified IP address family.
+ ** The `-dhcp` parameter specifies whether to use the network configuration from the DHCP server or the network address that you provide.
++
+You can enable DHCP (by setting `-dhcp` to `v4`) only if you are using IPv4. You cannot enable DHCP for IPv6 configurations.
+
+ ** The `-ip-address` parameter specifies the public IP address for the SP.
++
+A warning message appears when you attempt to manually configure the SP network with addresses that are allocated to a subnet. Ignoring the warning and proceeding with the manual address assignment might result in a duplicate address assignment.
+
+ ** The `-netmask` parameter specifies the netmask for the SP (if using IPv4.)
+ ** The `-prefix-length` parameter specifies the network prefix-length of the subnet mask for the SP (if using IPv6.)
+ ** The `-gateway` parameter specifies the gateway IP address for the SP.
+. Configure the SP network for the remaining nodes in the cluster by repeating the step <<FIRST-STEP,#FIRST-STEP>>.
+. Display the SP network configuration and verify the SP setup status by using the `system service-processor network show` command with the `–instance` or `–fields``setup-status` parameters.
++
+The SP setup status for a node can be one of the following:
+
+ ** `not-setup` -- Not configured
+ ** `succeeded` -- Configuration succeeded
+ ** `in-progress` -- Configuration in progress
+ ** `failed` -- Configuration failed
+
+.Example of configuring the SP network
+
+The following example configures the SP of a node to use IPv4, enables the SP, and displays the SP network configuration to verify the settings:
+
+----
+
+cluster1::> system service-processor network modify -node local
+-address-family IPv4 -enable true -ip-address 192.168.123.98
+-netmask 255.255.255.0 -gateway 192.168.123.1
+
+cluster1::> system service-processor network show -instance -node local
+
+                               Node: node1
+                       Address Type: IPv4
+                  Interface Enabled: true
+                     Type of Device: SP
+                             Status: online
+                        Link Status: up
+                        DHCP Status: none
+                         IP Address: 192.168.123.98
+                        MAC Address: ab:cd:ef:fe:ed:02
+                            Netmask: 255.255.255.0
+       Prefix Length of Subnet Mask: -
+         Router Assigned IP Address: -
+              Link Local IP Address: -
+                 Gateway IP Address: 192.168.123.1
+                  Time Last Updated: Thu Apr 10 17:02:13 UTC 2014
+                        Subnet Name: -
+Enable IPv6 Router Assigned Address: -
+            SP Network Setup Status: succeeded
+    SP Network Setup Failure Reason: -
+
+1 entries were displayed.
+
+cluster1::>
+----
+
+*Related information*
+
+xref:sp-bmc-network-config-concept.adoc[Considerations for the SP/BMC network configuration]
+
+xref:enable-sp-bmc-automatic-network-config-task.adoc[Enabling the SP/BMC automatic network configuration]
+
+https://docs.netapp.com/us-en/ontap/networking/index.html[Network management]

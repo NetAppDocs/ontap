@@ -1,0 +1,66 @@
+---
+permalink: flexgroup/fabricpool-aggregates-existing-volumes-task.html
+sidebar: sidebar
+keywords: aggregate, fabricpool, flexgroup, volume
+summary: "Starting with ONTAP 9.5, FabricPool is supported for FlexGroup volumes. If you want to use aggregates in FabricPool for your existing FlexGroup volumes, you can either convert the aggregates on which the FlexGroup volume resides to aggregates in FabricPool or migrate the FlexGroup volume constituents to aggregates in FabricPool."
+---
+= Use aggregates in FabricPool for existing FlexGroup volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Starting with ONTAP 9.5, FabricPool is supported for FlexGroup volumes. If you want to use aggregates in FabricPool for your existing FlexGroup volumes, you can either convert the aggregates on which the FlexGroup volume resides to aggregates in FabricPool or migrate the FlexGroup volume constituents to aggregates in FabricPool.
+
+.What you'll need
+
+* The FlexGroup volume must have space-guarantee set to `none`.
+* If you want to convert the aggregates on which the FlexGroup volume resides to aggregates in FabricPool, the aggregates must be using all SSD disks.
+
+.About this task
+
+If an existing FlexGroup volume resides on non-SSD aggregates, you must migrate the FlexGroup volume constituents to aggregates in FabricPool.
+
+.Choices
+
+* To convert the aggregates on which the FlexGroup volume resides to aggregates in FabricPool, perform the following steps:
+ .. Set the tiering policy on the existing FlexGroup volume: `volume modify -volume flexgroup_name -tiering-policy [auto|snapshot|none|backup]`
++
+----
+cluster-2::> volume modify -volume fg1 -tiering-policy auto
+----
+
+ .. Identify the aggregates on which the FlexGroup volume resides: `volume show -volume flexgroup_name -fields aggr-list`
++
+----
+cluster-2::> volume show -volume fg1 -fields aggr-list
+vserver volume aggr-list
+------- ------ -----------
+vs1     fg1    aggr1,aggr3
+----
+
+ .. Attach an object store to each aggregate listed in the aggregate list: `storage aggregate object-store attach -aggregate aggregate name -name object-store-name -allow-flexgroup true`
++
+You must attach all of the aggregates to an object store.
+
++
+----
+cluster-2::> storage aggregate object-store attach -aggregate aggr1 -object-store-name Amazon01B1
+----
+* To migrate the FlexGroup volume constituents to aggregates in FabricPool, perform the following steps:
+ .. Set the tiering policy on the existing FlexGroup volume: `volume modify -volume flexgroup_name -tiering-policy [auto|snapshot|none|backup]`
++
+----
+cluster-2::> volume modify -volume fg1 -tiering-policy auto
+----
+
+ .. Move each constituent of the FlexGroup volume to an aggregate in FabricPool in the same cluster: `volume move start -volume constituent-volume -destination-aggregate FabricPool_aggregate -allow-mixed-aggr-types true`
++
+You must move all FlexGroup volume constituents to aggregates in FabricPool (in case the FlexGroup volume constituents are on mixed aggregate types) and ensure that all the constituents are balanced across the nodes in the cluster.
++
+----
+cluster-2::> volume move start -volume fg1_001 -destination-aggregate FP_aggr1 -allow-mixed-aggr-types true
+----
+
+*Related information*
+
+https://docs.netapp.com/us-en/ontap/disks-aggregates/index.html[Disk and aggregate management]

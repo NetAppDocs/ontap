@@ -1,0 +1,617 @@
+---
+permalink: data-protection/snapmirror-svm-replication-concept.html
+sidebar: sidebar
+keywords: understand, snapmirror, svm, replication
+summary: "You can use SnapMirror to create a data protection relationship between SVM. In this type of data protection relationship, all or part of the SVM’s configuration, from NFS exports and SMB shares to RBAC, is replicated, as well as the data in the volumes that the SVM owns."
+---
+= About SnapMirror SVM replication
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use SnapMirror to create a data protection relationship between SVM. In this type of data protection relationship, all or part of the SVM's configuration, from NFS exports and SMB shares to RBAC, is replicated, as well as the data in the volumes that the SVM owns.
+
+== Supported relationship types
+
+Only data-serving SVM can be replicated. The following data protection relationship types are supported:
+
+* _SnapMirror DR,_ in which the destination typically contains only the Snapshot copies currently on the source.
++
+Starting with ONTAP 9.9.1, this behavior changes when you are using the mirror-vault policy. Starting in ONTAP 9.9.1, you can create different Snapshot policies on the source and destination, and the Snapshot copies on the destination are not overwritten by Snapshot copies on the source:
+
+ ** They are not overwritten from the source to the destination during normal scheduled operations, updates and resync
+ ** They are not deleted during break operations.
+ ** They are not deleted during flip-resync operations.
+When you configure an SVM DR relationship using the mirror-vault policy using ONTAP 9.9.1 and later, the policy behaves as follows:
+ ** User-defined Snapshot copy policies at the source are not copied to the destination.
+ ** System-defined Snapshot copy policies are not copied to the destination.
+ ** Volume association with user and system defined Snapshot policies are not copied to the destination.
+ +
+SVM.
+
+* Starting with ONTAP 9.2, _SnapMirror unified replication,_ in which the destination is configured for both DR and long-term retention.
+
+Details about these relationship types can be found here: link:snapmirror-replication-concept.html[Understanding SnapMirror volume replication].
+
+The _policy type_ of the replication policy determines the type of relationship it supports. The following table shows the available policy types.
+
+[cols="2*",options="header"]
+|===
+| Policy type
+
+| Relationship type
+
+a|
+async-mirror
+a|
+SnapMirror DR
+a|
+mirror-vault
+a|
+Unified replication
+|===
+
+== XDP replaces DP as the SVM replication default in ONTAP 9.4
+
+Starting with ONTAP 9.4, SVM data protection relationships default to XDP mode. SVM data protection relationships continue to default to DP mode in ONTAP 9.3 and earlier.
+
+Existing relationships are not affected by the new default. If a relationship is already of type DP, it will continue to be of type DP. The following table shows the behavior you can expect.
+
+[cols="3*",options="header"]
+|===
+| If you specify...
+
+| The type is...| The default policy (if you do not specify a policy) is...
+
+a|
+DP
+a|
+XDP
+a|
+MirrorAllSnapshots (SnapMirror DR)
+a|
+Nothing
+a|
+XDP
+a|
+MirrorAllSnapshots (SnapMirror DR)
+a|
+XDP
+a|
+XDP
+a|
+MirrorAndVault (Unified replication)
+|===
+Details about the changes in the default can be found here: link:version-flexible-snapmirror-default-concept.html[XDP replaces DP as the SnapMirror default].
+
+[NOTE]
+====
+Version-independence is not supported for SVM replication.
+====
+
+link:compatible-ontap-versions-snapmirror-concept.html[Compatible ONTAP versions for SnapMirror relationships]
+
+== How SVM configurations are replicated
+
+The content of an SVM replication relationship is determined by the interaction of the following fields:
+
+* The `-identity-preserve true` option of the `snapmirror create` command replicates the entire SVM configuration.
++
+The `-identity-preserve false` option replicates only the volumes and authentication and authorization configurations of the SVM, and the protocol and name service settings listed in link:snapmirror-svm-replication-concept.html#configurations-replicated-in-svm-dr-relationships[Configurations replicated in SVM DR relationships].
+
+* The `-discard-configs network` option of the `snapmirror policy create` command excludes LIFs and related network settings from SVM replication, for use in cases where the source and destination SVMs are in different subnets.
+* The `-vserver-dr-protection unprotected` option of the `volume modify` command excludes the specified volume from SVM replication.
+
+Otherwise, SVM replication is almost identical to volume replication. You can use virtually the same workflow for SVM replication as you use for volume replication.
+
+== Support details
+
+The following table shows support details for SnapMirror SVM replication.
+
+[cols="2*",options="header"]
+|===
+| Resource or feature| Support details
+a|
+Relationship types
+a|
+
+* SnapMirror DR
+* Starting with ONTAP 9.2, SnapMirror unified replication
+
+a|
+Replication scope
+a|
+Intercluster only. You cannot replicate SVMs in the same cluster.
+a|
+Version-independence
+a|
+Not supported.
+a|
+Deployment types
+a|
+
+* Single source to single destination
+* Starting with ONTAP 9.4, fan-out. You can fan-out to two destinations only.
++
+By default, only one -identity-preserve true relationship is allowed per source SVM.
+
+a|
+Volume encryption
+a|
+
+* Encrypted volumes on the source are encrypted on the destination.
+* Onboard Key Manager or KMIP servers must be configured on the destination.
+* New encryption keys are generated at the destination.
+* If the destination does not contain a node that supports volume .encryption, replication succeeds, but the destination volumes are not encrypted.
+
+a|
+FabricPool
+a|
+Starting with ONTAP 9.6, SnapMirror SVM replication is supported with FabricPools.
+a|
+MetroCluster
+a|
+Starting with ONTAP 9.5, SnapMirror SVM replication is supported on MetroCluster configurations.
+
+* A MetroCluster configuration cannot be the destination of an SVM DR relationship.
+* Only an active SVM within a MetroCluster configuration can be the source of an SVM DR relationship.
++
+A source can be a sync-source SVM before switchover or a sync-destination SVM after switchover.
+
+* When a MetroCluster configuration is in a steady state, the MetroCluster sync-destination SVM cannot be the source of an SVM DR relationship, since the volumes are not online.
+* When the sync-source SVM is the source of an SVM DR relationship, the source SVM DR relationship information is replicated to the MetroCluster partner.
+* During the switchover and switchback processes, replication to the SVM DR destination might fail.
++
+However, after the switchover or switchback process completes, the next SVM DR scheduled updates will succeed.
+
+a|
+SnapMirror Synchronous
+a|
+Not supported with SVM DR.
+|===
+
+== Configurations replicated in SVM DR relationships
+
+The following table shows the interaction of the `snapmirror create `-identity-preserve` option and the `snapmirror policy create` -discard-configs network` option:
+[cols="5*",options="header"]
+|===
+2+a| Configuration replicated 2+a| `*‑identity‑preserve true*`| `*‑identity‑preserve false*`
+a|
+| | *Policy without `-discard-configs network` set* | *Policy with `-discard-configs network` set*|
+.8+a|
+Network
+a|
+NAS LIFs
+a|
+Yes
+a|
+No
+a|
+No
+a|
+LIF Kerberos configuration
+a|
+Yes
+a|
+No
+a|
+No
+a|
+SAN LIFs
+a|
+No
+a|
+No
+a|
+No
+a|
+Firewall policies
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+Routes
+a|
+Yes
+a|
+No
+a|
+No
+a|
+Broadcast domain
+a|
+No
+a|
+No
+a|
+No
+a|
+Subnet
+a|
+No
+a|
+No
+a|
+No
+a|
+IPspace
+a|
+No
+a|
+No
+a|
+No
+.12+a|
+CIFS
+a|
+CIFS server
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+Local groups and local user
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Privilege
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Shadow copy
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+BranchCache
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Server options
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Server security
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+Home directory, share
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Symlink
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Fpolicy policy, Fsecurity policy, and Fsecurity NTFS
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Name mapping and group mapping
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Audit information
+a|
+Yes
+a|
+Yes
+a|
+Yes
+.3+a|
+NFS
+a|
+Export policies
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+Export policy rules
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+NFS server
+a|
+Yes
+a|
+Yes
+a|
+No
+.3+a|
+RBAC
+a|
+Security certificates
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+Login user, public key, role, and role configuration
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+SSL
+a|
+Yes
+a|
+Yes
+a|
+No
+.7+a|
+Name services
+a|
+DNS and DNS hosts
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+UNIX user and UNIX group
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Kerberos realm and Kerberos keyblocks
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+LDAP and LDAP client
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+Netgroup
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+NIS
+a|
+Yes
+a|
+Yes
+a|
+No
+a|
+Web and web access
+a|
+Yes
+a|
+Yes
+a|
+No
+.5+a|
+Volume
+a|
+Object
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Snapshot copies, Snapshot policy, and autodelete policy
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Efficiency policy
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Quota policy and quota policy rule
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+Recovery queue
+a|
+Yes
+a|
+Yes
+a|
+Yes
+.6+a|
+Root volume
+a|
+Namespace
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+User data
+a|
+No
+a|
+No
+a|
+No
+a|
+Qtrees
+a|
+No
+a|
+No
+a|
+No
+a|
+Quotas
+a|
+No
+a|
+No
+a|
+No
+a|
+File-level QoS
+a|
+No
+a|
+No
+a|
+No
+a|
+Attributes: state of the root volume, space guarantee, size, autosize, and total number of files
+a|
+No
+a|
+No
+a|
+No
+a|
+Storage QoS
+a|
+QoS policy group
+a|
+Yes
+a|
+Yes
+a|
+Yes
+2+a|
+Fibre Channel (FC)
+a|
+No
+a|
+No
+a|
+No
+2+a|
+iSCSI
+a|
+No
+a|
+No
+a|
+No
+.4+a|
+LUNs
+a|
+Object
+a|
+Yes
+a|
+Yes
+a|
+Yes
+a|
+igroups
+a|
+No
+a|
+No
+a|
+No
+a|
+portsets
+a|
+No
+a|
+No
+a|
+No
+a|
+Serial numbers
+a|
+No
+a|
+No
+a|
+No
+a|
+SNMP
+a|
+v3 users
+a|
+Yes
+a|
+Yes
+a|
+No
+|===

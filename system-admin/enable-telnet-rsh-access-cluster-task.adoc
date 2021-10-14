@@ -1,0 +1,39 @@
+---
+permalink: system-admin/enable-telnet-rsh-access-cluster-task.html
+sidebar: sidebar
+keywords: enable, telnet, rsh, access, cluster, mgmt, management, firewall, policy
+summary: "As a security best practice, Telnet and RSH are disabled in the predefined management firewall policy (mgmt). To enable the cluster to accept Telnet or RSH requests, you must create a new management firewall policy that has Telnet or RSH enabled, and then associate the new policy with the cluster management LIF."
+---
+= Enable Telnet or RSH access to the cluster
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+As a security best practice, Telnet and RSH are disabled in the predefined management firewall policy (`mgmt`). To enable the cluster to accept Telnet or RSH requests, you must create a new management firewall policy that has Telnet or RSH enabled, and then associate the new policy with the cluster management LIF.
+
+.About this task
+
+ONTAP prevents you from changing predefined firewall policies, but you can create a new policy by cloning the predefined `mgmt` management firewall policy, and then enabling Telnet or RSH under the new policy. However, Telnet and RSH are not secure protocols, so you should consider using SSH to access the cluster. SSH provides a secure remote shell and interactive network session.
+
+Perform the following steps to enable Telnet or RSH access to the clusters:
+
+.Steps
+
+. Enter the advanced privilege mode:
++
+`*set advanced*`
+. Enable a security protocol (RSH or Telnet):
++
+`*security protocol modify -application security_protocol -enabled true*`
+. Create a new management firewall policy based on the `mgmt` management firewall policy:
++
+`*system services firewall policy clone -policy mgmt -new-policy-name _policy-name_*`
+. Enable Telnet or RSH in the new management firewall policy:
++
+`*system services firewall policy create -policy _policy-name_ -service security_protocol -action allow -ip-list ip_address/netmask*`
++
+To allow all IP addresses, you should specify `-ip-list 0.0.0.0/0`
+
+. Associate the new policy with the cluster management LIF:
++
+`*network interface modify -vserver cluster_management_LIF -lif cluster_mgmt -firewall-policy _policy-name_*`

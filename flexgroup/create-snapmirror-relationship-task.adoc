@@ -1,0 +1,121 @@
+---
+permalink: flexgroup/create-snapmirror-relationship-task.html
+sidebar: sidebar
+keywords: create, snapmirror, relationship, flexgroup, volume
+summary: "You can create a SnapMirror relationship between the source FlexGroup volume and the destination FlexGroup volume on a peered SVM for replicating data for disaster recovery. You can use the mirror copies of the FlexGroup volume to recover data when a disaster occurs."
+---
+= Create a SnapMirror relationship for FlexGroup volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create a SnapMirror relationship between the source FlexGroup volume and the destination FlexGroup volume on a peered SVM for replicating data for disaster recovery. You can use the mirror copies of the FlexGroup volume to recover data when a disaster occurs.
+
+.What you'll need
+
+You must have created the cluster peering relationship and SVM peering relationship.
+
+https://docs.netapp.com/us-en/ontap/peering/index.html[Cluster and SVM peering]
+
+.About this task
+
+* You can create both intercluster SnapMirror relationships and intracluster SnapMirror relationships for FlexGroup volumes.
+* Starting with ONTAP 9.3, you can expand FlexGroup volumes that are in a SnapMirror relationship.
++
+If you are using a version of ONTAP earlier than ONTAP 9.3, you must not expand FlexGroup volumes after a SnapMirror relationship is established; however, you can increase the capacity of FlexGroup volumes after establishing a SnapMirror relationship. If you expand the source FlexGroup volume after breaking the SnapMirror relationship in releases earlier than ONTAP 9.3, you must perform a baseline transfer to the destination FlexGroup volume.
+
+.Steps
+
+. Create a destination FlexGroup volume of type `DP` that has the same number of constituents as that of the source FlexGroup volume:
+ .. From the source cluster, determine the number of constituents in the source FlexGroup volume: `volume show -volume volume_name* -is-constituent true`
++
+----
+cluster1::> volume show  -volume srcFG* -is-constituent true
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+--------- ------------ ------------ ---------- ---- ---------- ---------- -----
+vss       srcFG          -            online     RW         400TB   172.86GB  56%
+vss       srcFG__0001    Aggr_cmode   online     RW         25GB    10.86TB   56%
+vss       srcFG__0002    aggr1        online     RW         25TB    10.86TB   56%
+vss       srcFG__0003    Aggr_cmode   online     RW         25TB    10.72TB   57%
+vss       srcFG__0004    aggr1        online     RW         25TB    10.73TB   57%
+vss       srcFG__0005    Aggr_cmode   online     RW         25TB    10.67TB   57%
+vss       srcFG__0006    aggr1        online     RW         25TB    10.64TB   57%
+vss       srcFG__0007    Aggr_cmode   online     RW         25TB    10.63TB   57%
+...
+----
+
+ .. From the destination cluster, create a destination FlexGroup volume of type `DP` with the same number of constituents as that of the source FlexGroup volume.
++
+----
+cluster2::> volume create -vserver vsd -aggr-list aggr1,aggr2 -aggr-list-multiplier 8 -size 400TB -type DP dstFG
+
+Warning: The FlexGroup volume "dstFG" will be created with the following number of constituents of size 25TB: 16.
+Do you want to continue? {y|n}: y
+[Job 766] Job succeeded: Successful
+----
+
+ .. From the destination cluster, verify the number of constituents in the destination FlexGroup volume: `volume show -volume volume_name* -is-constituent true`
++
+----
+cluster2::> volume show  -volume dstFG* -is-constituent true
+Vserver   Volume        Aggregate    State      Type       Size  Available  Used%
+--------- ------------  ------------ ---------- ---- ----------  ---------- -----
+vsd       dstFG          -            online     DP         400TB   172.86GB  56%
+vsd       dstFG__0001    Aggr_cmode   online     DP         25GB    10.86TB   56%
+vsd       dstFG__0002    aggr1        online     DP         25TB    10.86TB   56%
+vsd       dstFG__0003    Aggr_cmode   online     DP         25TB    10.72TB   57%
+vsd       dstFG__0004    aggr1        online     DP         25TB    10.73TB   57%
+vsd       dstFG__0005    Aggr_cmode   online     DP         25TB    10.67TB   57%
+vsd       dstFG__0006    aggr1        online     DP         25TB    10.64TB   57%
+vsd       dstFG__0007    Aggr_cmode   online     DP         25TB    10.63TB   57%
+...
+----
+. Create a job schedule: `job schedule cron create -name job_name -month month -dayofweek day_of_week -day day_of_month -hour hour -minute minute`
++
+For the `-month`, `-dayofweek`, and `-hour` options, you can specify `all` to run the job every month, every day of the week, and every hour, respectively.
++
+The following example creates a job schedule named `my_weekly` that runs on Saturdays at 3:00 a.m.:
++
+----
+cluster1::> job schedule cron create -name my_weekly -dayofweek "Saturday" -hour 3 -minute 0
+----
+
+. Create a custom policy of type `async-mirror` for the SnapMirror relationship: `snapmirror policy create -vserver SVM -policy snapmirror_policy -type async-mirror`
++
+If you do not create a custom policy, you should specify the `MirrorAllSnapshots` policy for SnapMirror relationships.
+
+. From the destination cluster, create a SnapMirror relationship between the source FlexGroup volume and the destination FlexGroup volume: `snapmirror create -source-path src_svm:src_flexgroup -destination-path dest_svm:dest_flexgroup -type XDP -policy snapmirror_policy -schedule sched_name`
++
+SnapMirror relationships for FlexGroup volumes must be of type `XDP`.
++
+If you specify a throttle value for the SnapMirror relationship for the FlexGroup volume, each constituent uses the same throttle value. The throttle value is not divided among the constituents.
++
+[NOTE]
+====
+You cannot use SnapMirror labels of Snapshot copies for FlexGroup volumes.
+====
++
+In ONTAP 9.4 and earlier, if the policy is not specified with the `snapmirror create` command, the `MirrorAllSnapshots` policy is used by default. In ONTAP 9.5, if the policy is not specified with the `snapmirror create` command, the `MirrorAndVault` policy is used by default.
++
+----
+cluster2::> snapmirror create -source-path vss:srcFG -destination-path vsd:dstFG -type XDP -policy MirrorAllSnapshots -schedule hourly
+Operation succeeded: snapmirror create for the relationship with destination "vsd:dstFG".
+----
+
+. From the destination cluster, initialize the SnapMirror relationship by performing a baseline transfer: `snapmirror initialize -destination-path dest_svm:dest_flexgroup`
++
+After the baseline transfer is completed, the destination FlexGroup volume is updated periodically based on the schedule of the SnapMirror relationship.
++
+----
+cluster2::> snapmirror initialize -destination-path vsd:dstFG
+Operation is queued: snapmirror initialize of destination "vsd:dstFG".
+----
++
+[NOTE]
+====
+If you have created any SnapMirror relationship between FlexGroup volumes with the source cluster running ONTAP 9.3 and the destination cluster running ONTAP 9.2 or earlier, and if you create any qtrees in the source FlexGroup volume, the SnapMirror updates fail. To recover from this situation, you must delete all of the non-default qtrees in the FlexGroup volume, disable the qtree functionality on the FlexGroup volume, and then delete all of the Snapshot copies that are enabled with the qtree functionality. You must also perform these steps before reverting from ONTAP 9.3 to an earlier version of ONTAP, if you have the qtree functionality enabled on the FlexGroup volumes.    https://docs.netapp.com/us-en/ontap/revert/task_disabling_qtrees_in_flexgroup_volumes_before_reverting.html[Disable qtree functionality in FlexGroup volumes before reverting]
+====
+
+.After you finish
+
+You should set up the destination SVM for data access by setting up required configurations such as LIFs and export policies.

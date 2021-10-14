@@ -1,0 +1,101 @@
+---
+permalink: disks-aggregates/setup-active-passive-config-root-data-data-task.html
+sidebar: sidebar
+keywords: root-data-data, partitioning, disks, active-passive
+summary: "When an HA pair is configured to use root-data-data partitioning by the factory, ownership of the data partitions is split between both nodes in the pair, for use in an active-active configuration. If you want to use the HA pair in an active-passive configuration, you must update partition ownership before creating your data aggregate."
+---
+= Set up an active-passive configuration on nodes using root-data-data partitioning
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When an HA pair is configured to use root-data-data partitioning by the factory, ownership of the data partitions is split between both nodes in the pair, for use in an active-active configuration. If you want to use the HA pair in an active-passive configuration, you must update partition ownership before creating your data aggregate.
+
+.What you'll need
+
+* You should have decided which node will be the active node and which node will be the passive node.
+* Storage failover must be configured on the HA pair.
+
+.About this task
+
+This task is performed on two nodes: Node A and Node B.
+
+All commands are input at the clustershell.
+
+This procedure is designed for nodes for which no data aggregate has been created from the partitioned disks.
+
+.Steps
+
+. View the current ownership of the data partitions:
++
+`storage aggregate show-spare-disks -original-owner _passive_node_name_ -fields local-usable-data1-size, local-usable-data2-size`
++
+You should see that half of the data partitions are owned by one node and half are owned by the other node. All of the data partitions should be spare.
+
+. Enter the advanced privilege level:
++
+`set advanced`
+. For each data1 partition owned by the node that will be the passive node, assign it to the active node:
++
+`storage disk assign -force -data1 -owner _active_node_name_ -disk disk_name`
++
+You do not need to include the partition as part of the disk name
+
+. For each data2 partition owned by the node that will be the passive node, assign it to the active node:
++
+`storage disk assign -force -data2 -owner active_node_name -disk disk_name`
++
+You do not need to include the partition as part of the disk name
+
+. Confirm that all of the partitions are assigned to the active node:
++
+`storage aggregate show-spare-disks`
++
+----
+cluster1::*> storage aggregate show-spare-disks
+
+Original Owner: cluster1-01
+ Pool0
+  Partitioned Spares
+                                                            Local    Local
+                                                             Data     Root Physical
+ Disk                        Type     RPM Checksum         Usable   Usable     Size
+ --------------------------- ----- ------ -------------- -------- -------- --------
+ 1.0.0                       BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.1                       BSAS    7200 block           753.8GB  73.89GB  828.0GB
+ 1.0.2                       BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.3                       BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.4                       BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.5                       BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.6                       BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.7                       BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.8                       BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.9                       BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.10                      BSAS    7200 block           753.8GB       0B  828.0GB
+ 1.0.11                      BSAS    7200 block           753.8GB       0B  828.0GB
+
+Original Owner: cluster1-02
+ Pool0
+  Partitioned Spares
+                                                            Local    Local
+                                                             Data     Root Physical
+ Disk                        Type     RPM Checksum         Usable   Usable     Size
+ --------------------------- ----- ------ -------------- -------- -------- --------
+ 1.0.8                       BSAS    7200 block                0B  73.89GB  828.0GB
+13 entries were displayed.
+----
++
+Note that cluster1-02 still owns a spare root partition.
+
+. Return to administrative privilege:
++
+`set admin`
+. Create your data aggregate, leaving at least one data partition as spare:
++
+`storage aggregate create _new_aggr_name_ -diskcount _number_of_partitions_ -node _active_node_name_`
++
+The data aggregate is created and is owned by the active node.
+
+. Alternatively, you can use ONTAP's recommend aggregate layout which includes best practices for RAID group layout and spare counts:
++
+`storage aggregate auto-provision`

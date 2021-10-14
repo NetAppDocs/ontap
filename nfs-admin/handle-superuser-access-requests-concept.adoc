@@ -1,0 +1,78 @@
+---
+permalink: nfs-admin/handle-superuser-access-requests-concept.html
+sidebar: sidebar
+keywords: how, handle, superuser, access, request
+summary: "When you configure export policies, you need to consider what you want to happen if the storage system receives a client access request with user ID 0, meaning as a superuser, and set up your export rules accordingly."
+---
+= How to handle superuser access requests
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When you configure export policies, you need to consider what you want to happen if the storage system receives a client access request with user ID 0, meaning as a superuser, and set up your export rules accordingly.
+
+In the UNIX world, a user with the user ID 0 is known as the superuser, typically called root, who has unlimited access rights on a system. Using superuser privileges can be dangerous for several reasons, including breach of system and data security.
+
+By default, ONTAP maps clients presenting with user ID 0 to the anonymous user. However, you can specify the `- superuser` parameter in export rules to determine how to handle clients presenting with user ID 0 depending on their security type. The following are valid options for the `-superuser` parameter:
+
+* `any`
+* `none`
++
+This is the default setting if you do not specify the `-superuser` parameter.
+
+* `krb5`
+* `ntlm`
+* `sys`
+
+There are two different ways how clients presenting with user ID 0 are handled, depending on the `-superuser` parameter configuration:
+[cols="2*",options="header"]
+|===
+| If the `*-superuser*` parameter and the client's security type...| Then the client...
+a|
+Match
+a|
+Gets superuser access with user ID 0.
+a|
+Do not match
+a|
+Gets access as the anonymous user with the user ID specified by the `-anon` parameter and its assigned permissions. This is regardless of whether the read-only or read-write parameter specifies the option `none`.
+
+|===
+If a client presents with user ID 0 to access a volume with NTFS security style and the `-superuser` parameter is set to `none`, ONTAP uses the name mapping for the anonymous user to obtain the proper credentials.
+
+.Example
+
+The export policy contains an export rule with the following parameters:
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `krb5,ntlm`
+* `-anon` `127`
+
+Client #1 has the IP address 10.1.16.207, has user ID 746, sends an access request using the NFSv3 protocol, and authenticated with Kerberos v5.
+
+Client #2 has the IP address 10.1.16.211, has user ID 0, sends an access request using the NFSv3 protocol, and authenticated with AUTH_SYS.
+
+The client access protocol and IP address matches for both clients. The read-only parameter allows read-only access to all clients regardless of the security type they authenticated with. However, only client #1 gets read-write access because it used the approved security type Kerberos v5 to authenticate.
+
+Client #2 does not get superuser access. Instead, it gets mapped to anonymous because the `-superuser` parameter is not specified. This means it defaults to `none` and automatically maps user ID 0 to anonymous. Client #2 also only gets read-only access because its security type did not match the read-write parameter.
+
+.Example
+
+The export policy contains an export rule with the following parameters:
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `krb5,ntlm`
+* `-superuser` `krb5`
+* `-anon` `0`
+
+Client #1 has the IP address 10.1.16.207, has user ID 0, sends an access request using the NFSv3 protocol, and authenticated with Kerberos v5.
+
+Client #2 has the IP address 10.1.16.211, has user ID 0, sends an access request using the NFSv3 protocol, and authenticated with AUTH_SYS.
+
+The client access protocol and IP address matches for both clients. The read-only parameter allows read-only access to all clients regardless of the security type they authenticated with. However, only client #1 gets read-write access because it used the approved security type Kerberos v5 to authenticate. Client #2 does not get read-write access.
+
+The export rule allows superuser access for clients with user ID 0. Client #1 gets superuser access because it matches the user ID and security type for the read-only and `-superuser` parameters. Client #2 does not get read-write or superuser access because its security type does not match the read-write parameter or the `-superuser` parameter. Instead, client #2 is mapped to the anonymous user, which in this case has the user ID 0.

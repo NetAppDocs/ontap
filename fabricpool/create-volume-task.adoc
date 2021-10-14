@@ -1,0 +1,78 @@
+---
+permalink: fabricpool/create-volume-task.html
+sidebar: sidebar
+keywords: creating, volume, fabricpool
+summary: "When you create a volume for FabricPool, you have the option to specify a tiering policy. If no tiering policy is specified, the created volume uses the default snapshot-only tiering policy. For a volume with the snapshot-only or auto tiering policy, you can also specify the tiering minimum cooling period."
+---
+= Create a volume for FabricPool
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+
+You can add volumes to FabricPool by creating new volumes directly in the FabricPool-enabled aggregate or by moving existing volumes from another aggregate to the FabricPool-enabled aggregate.
+
+When you create a volume for FabricPool, you have the option to specify a tiering policy. If no tiering policy is specified, the created volume uses the default `snapshot-only` tiering policy. For a volume with the `snapshot-only` or `auto` tiering policy, you can also specify the tiering minimum cooling period.
+
+.What you'll need
+
+* Setting a volume to use the `auto` tiering policy or specifying the tiering minimum cooling period requires ONTAP 9.4 or later.
+* Using FlexGroup volumes requires ONTAP 9.5 or later.
+* Setting a volume to use the `all` tiering policy requires ONTAP 9.6 or later.
+* Setting a volume to use the `-cloud-retrieval-policy` parameter requires ONTAP 9.8 or later.
+
+.Steps
+
+. Create a new volume for FabricPool by using the `volume create` command.
+ ** The `-tiering-policy` optional parameter enables you to specify the tiering policy for the volume.
++
+You can specify one of the following tiering policies:
+
+  *** `snapshot-only` (default)
+  *** `auto`
+  *** `all`
+  *** `backup` (deprecated)
+  *** `none`
++
+link:tiering-policies-concept.html#types-of-fabricpool-tiering-policies[Types of FabricPool tiering policies]
+
+ ** The `-cloud-retrieval-policy` optional parameter enables cluster administrators with the advanced privilege level to override the default cloud migration or retrieval behavior controlled by the tiering policy.
++
+You can specify one of the following cloud retrieval policies:
+
+  *** `default`
++
+The tiering policy determines what data is pulled back, so there is no change to cloud data retrieval with `default` cloud-retrieval-policy. This means the behavior is the same as in pre-ONTAP 9.8 releases:
+
+   **** If the tiering policy is `none` or `snapshot-only`, then "`default`" means that any client-driven data read is pulled from the cloud tier to performance tier.
+   **** If the tiering policy is `auto`, then any client-driven random read is pulled but not sequential reads.
+   **** If the tiering policy is `all` then no client-driven data is pulled from the cloud tier.
+
+  *** `on-read`
++
+All client-driven data reads are pulled from the cloud tier to performance tier.
+
+  *** `never`
++
+No client-driven data is pulled from the cloud tier to performance tier
+
+  *** `promote`
+   **** For tiering policy `none`, all cloud data is pulled from the cloud tier to the performance tier
+   **** For tiering policy `snapshot-only`, all active filesystem data is pulled from the cloud tier to the performance tier.
+
+ ** The `-tiering-minimum-cooling-days` optional parameter in the advanced privilege level enables you to specify the tiering minimum cooling period for a volume that uses the `snapshot-only` or `auto` tiering policy.
++
+Starting in ONTAP 9.8, you can specify a value between 2 and 183 for the tiering minimum cooling days. If you are using a version of ONTAP earlier than 9.8, you can specify a value between 2 and 63 for the tiering minimum cooling days.
+
+.Example of creating a volume for FabricPool
+
+The following example creates a volume called "`myvol1`" in the "`myFabricPool`" FabricPool-enabled aggregate. The tiering policy is set to `auto` and the tiering minimum cooling period is set to 45 days:
+
+----
+cluster1::*> volume create -vserver myVS -aggregate myFabricPool
+-volume myvol1 -tiering-policy auto -tiering-minimum-cooling-days 45
+----
+
+*Related information*
+
+https://docs.netapp.com/us-en/ontap/flexgroup/index.html[FlexGroup volumes management]

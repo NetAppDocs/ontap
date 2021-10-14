@@ -1,0 +1,117 @@
+---
+permalink: smb-admin/configure-offline-files-support-task.html
+sidebar: sidebar
+keywords: configure, offline, file, support, ontap, cli, smb, modify, exist, smb, share, manual, default, setting, configure offline files support on smb shares using the cli
+summary: "You can configure offline files support using the ONTAP CLI by specifying one of the four offline files setting when you create SMB shares or at any time by modifying existing SMB shares. Manual offline files support is the default setting."
+---
+= Configure offline files support on SMB shares using the CLI
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can configure offline files support using the ONTAP CLI by specifying one of the four offline files setting when you create SMB shares or at any time by modifying existing SMB shares. Manual offline files support is the default setting.
+
+.About this task
+
+When configuring offline files support, you can choose one of the following four offline files settings:
+
+[options="header"]
+|===
+| Setting| Description
+a|
+`none`
+a|
+Disallows Windows clients from caching any files on this share.
+a|
+`manual`
+a|
+Allows users on Windows clients to manually select files to be cached.
+a|
+`documents`
+a|
+Allows Windows clients to cache user documents that are used by the user for offline access.
+a|
+`programs`
+a|
+Allows Windows clients to cache programs that are used by the user for offline access. Clients can use the cached program files in offline mode even if the share is available.
+|===
+You can choose only one offline file setting. If you modify an offline files setting on an existing SMB share, the new offline files setting replaces the original setting. Other existing SMB share configuration settings and share properties are not removed or replaced. They remain in effect until they are explicitly removed or changed.
+
+.Steps
+
+. Perform the appropriate action:
++
+[options="header"]
+|===
+| If you want to configure offline files on...| Enter the command...
+a|
+A new SMB share
+a|
+`vserver cifs share create -vserver vserver_name -share-name share_name -path path -offline-files {none\|manual\|documents\|programs}`
+a|
+An existing SMB share
+a|
+`vserver cifs share modify -vserver vserver_name -share-name share_name -offline-files {none\|manual\|documents\|programs}`
+|===
+
+. Verify that the SMB share configuration is correct: `vserver cifs share show -vserver vserver_name -share-name share_name -instance`
+
+.Example
+
+The following command creates an SMB share named "`data1`" with offline files set to `documents`:
+
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name data1 -path /data1 -comment "Offline files" -offline-files documents
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data1 -instance
+
+                          Vserver: vs1
+                            Share: data1
+         CIFS Server NetBIOS Name: VS1
+                             Path: /data1
+                 Share Properties: oplocks
+                                   browsable
+                                   changenotify
+               Symlink Properties: enable
+          File Mode Creation Mask: -
+     Directory Mode Creation Mask: -
+                    Share Comment: Offline files
+                        Share ACL: Everyone / Full Control
+    File Attribute Cache Lifetime: -
+                      Volume Name: -
+                    Offline Files: documents
+    Vscan File-Operations Profile: standard
+Maximum Tree Connections on Share: 4294967295
+       UNIX Group for File Create: -
+----
+
+The following command modifies an existing SMB share named "`data1`" by changing the offline files setting to `manual` and adding values for the file and directory mode creation mask:
+
+----
+cluster1::> vserver cifs share modify -vserver vs1 -share-name data1 -offline-files manual -file-umask 644 -dir-umask 777
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data1 -instance
+
+                          Vserver: vs1
+                            Share: data1
+         CIFS Server NetBIOS Name: VS1
+                             Path: /data1
+                 Share Properties: oplocks
+                                   browsable
+                                   changenotify
+               Symlink Properties: enable
+          File Mode Creation Mask: 644
+     Directory Mode Creation Mask: 777
+                    Share Comment: Offline files
+                        Share ACL: Everyone / Full Control
+    File Attribute Cache Lifetime: -
+                      Volume Name: -
+                    Offline Files: manual
+    Vscan File-Operations Profile: standard
+Maximum Tree Connections on Share: 4294967295
+       UNIX Group for File Create: -
+----
+
+*Related information*
+
+xref:add-remove-share-properties-eexisting-share-task.adoc[Adding or removing share properties on an existing SMB share]

@@ -1,0 +1,63 @@
+---
+permalink: smb-admin/export-rules-concept.html
+sidebar: sidebar
+keywords: export, rule, functional, element, policy, match, client, access, request, parameter, how export rules work
+summary: "Export rules are the functional elements of an export policy. Export rules match client access requests to a volume against specific parameters you configure to determine how to handle the client access requests."
+---
+= How export rules work
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Export rules are the functional elements of an export policy. Export rules match client access requests to a volume against specific parameters you configure to determine how to handle the client access requests.
+
+An export policy must contain at least one export rule to allow access to clients. If an export policy contains more than one rule, the rules are processed in the order in which they appear in the export policy. The rule order is dictated by the rule index number. If a rule matches a client, the permissions of that rule are used and no further rules are processed. If no rules match, the client is denied access.
+
+You can configure export rules to determine client access permissions using the following criteria:
+
+* The file access protocol used by the client sending the request, for example, NFSv4 or SMB.
+* A client identifier, for example, host name or IP address.
+* The security type used by the client to authenticate, for example, Kerberos v5, NTLM, or AUTH_SYS.
+
+If a rule specifies multiple criteria, the client must match all of them for the rule to apply.
+
+.Example
+
+The export policy contains an export rule with the following parameters:
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `any`
+
+The client access request is sent using the NFSv3 protocol and the client has the IP address 10.1.17.37.
+
+Even though the client access protocol matches, the IP address of the client is in a different subnet from the one specified in the export rule. Therefore, client matching fails and this rule does not apply to this client.
+
+.Example
+
+The export policy contains an export rule with the following parameters:
+
+* `-protocol` `nfs`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `any`
+
+The client access request is sent using the NFSv4 protocol and the client has the IP address 10.1.16.54.
+
+The client access protocol matches and the IP address of the client is in the specified subnet. Therefore, client matching is successful and this rule applies to this client. The client gets read-write access regardless of its security type.
+
+.Example
+
+The export policy contains an export rule with the following parameters:
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `krb5,ntlm`
+
+Client #1 has the IP address 10.1.16.207, sends an access request using the NFSv3 protocol, and authenticated with Kerberos v5.
+
+Client #2 has the IP address 10.1.16.211, sends an access request using the NFSv3 protocol, and authenticated with AUTH_SYS.
+
+The client access protocol and IP address matches for both clients. The read-only parameter allows read-only access to all clients regardless of the security type they authenticated with. Therefore both clients get read-only access. However, only client #1 gets read-write access because it used the approved security type Kerberos v5 to authenticate. Client #2 does not get read-write access.

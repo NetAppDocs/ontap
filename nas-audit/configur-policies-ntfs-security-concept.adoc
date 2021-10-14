@@ -1,0 +1,148 @@
+---
+permalink: nas-audit/configur-policies-ntfs-security-concept.html
+sidebar: sidebar
+keywords: configure, audit policies, ntfs security-style files, directories
+summary: "Before you can audit file and directory operations, you must configure audit policies on the files and directories for which you want to collect audit information. This is in addition to setting up and enabling the audit configuration. You can configure NTFS audit policies by using the Windows Security tab or by using the ONTAP CLI."
+---
+= Configure audit policies on NTFS security-style files and directories
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you can audit file and directory operations, you must configure audit policies on the files and directories for which you want to collect audit information. This is in addition to setting up and enabling the audit configuration. You can configure NTFS audit policies by using the Windows Security tab or by using the ONTAP CLI.
+
+== Configuring NTFS audit policies using the Windows Security tab
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can configure NTFS audit policies on files and directories by using the *Windows Security* tab in the Windows Properties window. This is the same method used when configuring audit policies on data residing on a Windows client, which enables you to use the same GUI interface that you are accustomed to using.
+
+.What you'll need
+
+Auditing must be configured on the storage virtual machine (SVM) that contains the data to which you are applying system access control lists (SACLs).
+
+.About this task
+
+Configuring NTFS audit policies is done by adding entries to NTFS SACLs that are associated with an NTFS security descriptor. The security descriptor is then applied to NTFS files and directories. These tasks are automatically handled by the Windows GUI. The security descriptor can contain discretionary access control lists (DACLs) for applying file and folder access permissions, SACLs for file and folder auditing, or both SACLs and DACLs.
+
+To set NTFS audit policies using the Windows Security tab, complete the following steps on a Windows host:
+
+.Steps
+
+. From the *Tools* menu in Windows Explorer, select *Map network drive*.
+. Complete the *Map Network Drive* box:
+ .. Select a *Drive* letter.
+ .. In the *Folder* box, type the CIFS server name that contains the share, holding the data you want to audit and the name of the share.
++
+You can specify the IP address of the data interface for the CIFS server instead of the CIFS server name.
++
+If your CIFS server name is "`CIFS_SERVER`" and your share is named "`share1`", you should enter `\\CIFS_SERVER\share1`.
+
+ .. Click *Finish*.
+
++
+The drive you selected is mounted and ready with the Windows Explorer window displaying files and folders contained within the share.
+. Select the file or directory for which you want to enable auditing access.
+. Right-click the file or directory, and then select *Properties*.
+. Select the *Security* tab.
+. Click *Advanced*.
+. Select the *Auditing* tab.
+. Perform the desired actions:
++
+[cols="2*",options="header"]
+|===
+| If you want to....| Do the following
+a|
+Set up auditing for a new user or group
+a|
+
+ .. Click *Add*.
+ .. In the Enter the object name to select box, type the name of the user or group that you want to add.
+ .. Click *OK*.
+
+a|
+Remove auditing from a user or group
+a|
+
+ .. In the Enter the object name to select box, select the user or group that you want to remove.
+ .. Click *Remove*.
+ .. Click *OK*.
+ .. Skip the rest of this procedure.
+
+a|
+Change auditing for a user or group
+a|
+
+ .. In the Enter the object name to select box, select the user or group that you want to change.
+ .. Click *Edit*.
+ .. Click *OK*.
+
++
+|===
+If you are setting up auditing on a user or group or changing auditing on an existing user or group, the Auditing Entry for <object> box opens.
+
+. In the *Apply to* box, select how you want to apply this auditing entry.
++
+You can select one of the following:
+
+ ** *This folder, subfolders and files*
+ ** *This folder and subfolders*
+ ** *This folder only*
+ ** *This folder and files*
+ ** *Subfolders and files only*
+ ** *Subfolders only*
+ ** *Files only*
+If you are setting up auditing on a single file, the Apply to box is not active. The Apply to box setting defaults to *This object only*.
+
++
+[NOTE]
+====
+Because auditing takes SVM resources, select only the minimal level that provides the auditing events that meet your security requirements.
+====
+
+. In the *Access* box, select what you want audited and whether you want to audit successful events, failure events, or both.
+ ** To audit successful events, select the Success box.
+ ** To audit failure events, select the Failure box.
+Select only the actions that you need to monitor to meet your security requirements. For more information about these auditable events, see your Windows documentation. You can audit the following events:
+ ** *Full control*
+ ** *Traverse folder / execute file*
+ ** *List folder / read data*
+ ** *Read attributes*
+ ** *Read extended attributes*
+ ** *Create files / write data*
+ ** *Create folders / append data*
+ ** *Write attributes*
+ ** *Write extended attributes*
+ ** *Delete subfolders and files*
+ ** *Delete*
+ ** *Read permissions*
+ ** *Change permissions*
+ ** *Take ownership*
+. If you do not want the auditing setting to propagate to subsequent files and folders of the original container, select the *Apply these auditing entries to objects and/or containers within this container only* box.
+. Click *Apply*.
+. After you finish adding, removing, or editing auditing entries, click *OK*.
++
+The Auditing Entry for <object> box closes.
+
+. In the *Auditing* box, select the inheritance settings for this folder.
++
+Select only the minimal level that provides the auditing events that meet your security requirements. You can choose one of the following:
+
+ ** Select the Include inheritable auditing entries from this object's parent box.
+ ** Select the Replace all existing inheritable auditing entries on all descendants with inheritable auditing entries from this object box.
+ ** Select both boxes.
+ ** Select neither box.
+If you are setting SACLs on a single file, the Replace all existing inheritable auditing entries on all descendants with inheritable auditing entries from this object box is not present in the Auditing box.
+
+. Click *OK*.
++
+The Auditing box closes.
+
+== How to configure NTFS audit policies using the ONTAP CLI
+
+You can configure audit policies on files and folders using the ONTAP CLI. This enables you to configure NTFS audit policies without needing to connect to the data using an SMB share on a Windows client.
+
+You can configure NTFS audit policies by using the `vserver security file-directory` command family.
+
+You can only configure NTFS SACLs using the CLI. Configuring NFSv4 SACLs is not supported with this ONTAP command family. See the man pages for more information about using these commands to configure and add NTFS SACLs to files and folders.

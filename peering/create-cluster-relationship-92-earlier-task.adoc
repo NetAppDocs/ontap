@@ -1,0 +1,94 @@
+---
+permalink: peering/create-cluster-relationship-92-earlier-task.html
+sidebar: sidebar
+keywords: create, cluster, peer, relationship
+summary: "You can use the cluster peer create command to initiate a request for a peering relationship between a local and remote cluster. After the peer relationship has been requested by the local cluster, you can run cluster peer create on the remote cluster to accept the relationship."
+---
+= Create a cluster peer relationship (ONTAP 9.2 and earlier)
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `cluster peer create` command to initiate a request for a peering relationship between a local and remote cluster. After the peer relationship has been requested by the local cluster, you can run `cluster peer create` on the remote cluster to accept the relationship.
+
+.What you'll need
+
+* You must have created intercluster LIFs on every node in the clusters being peered.
+* The cluster administrators must have agreed on the passphrase each cluster will use to authenticate itself to the other.
+
+.Steps
+
+. On the data protection destination cluster, create a peer relationship with the data protection source cluster:
++
+`cluster peer create -peer-addrs _peer_LIF_IPs_ -ipspace _ipspace_`
++
+You can ignore the `-ipspace` option if you are not using a custom IPspace. For complete command syntax, see the man page.
++
+The following example creates a cluster peer relationship with the remote cluster at intercluster LIF IP addresses 192.168.2.201 and 192.168.2.202:
++
+----
+cluster02::> cluster peer create -peer-addrs 192.168.2.201,192.168.2.202
+Enter the passphrase:
+Please enter the passphrase again:
+----
++
+Enter the passphrase for the peer relationship when prompted.
+
+. On the data protection source cluster, authenticate the source cluster to the destination cluster:
++
+`cluster peer create -peer-addrs _peer_LIF_IPs_ -ipspace _ipspace_`
++
+For complete command syntax, see the man page.
++
+The following example authenticates the local cluster to the remote cluster at intercluster LIF IP addresses 192.140.112.203 and 192.140.112.204:
++
+----
+cluster01::> cluster peer create -peer-addrs 192.168.2.203,192.168.2.204
+Please confirm the passphrase:
+Please confirm the passphrase again:
+----
++
+Enter the passphrase for the peer relationship when prompted.
+
+. Verify that the cluster peer relationship was created:
++
+`cluster peer show –instance`
++
+For complete command syntax, see the man page.
++
+----
+cluster01::> cluster peer show –instance
+Peer Cluster Name: cluster01
+Remote Intercluster Addresses: 192.168.2.201,192.168.2.202
+Availability: Available
+Remote Cluster Name: cluster02
+Active IP Addresses: 192.168.2.201,192.168.2.202
+Cluster Serial Number: 1-80-000013
+----
+
+. Check the connectivity and status of the nodes in the peer relationship:
++
+`cluster peer health show`
++
+For complete command syntax, see the man page.
++
+----
+cluster01::> cluster peer health show
+Node       cluster-Name                Node-Name
+             Ping-Status               RDB-Health Cluster-Health  Avail…
+---------- --------------------------- ---------  --------------- --------
+cluster01-01
+           cluster02                   cluster02-01
+             Data: interface_reachable
+             ICMP: interface_reachable true       true            true
+                                       cluster02-02
+             Data: interface_reachable
+             ICMP: interface_reachable true       true            true
+cluster01-02
+           cluster02                   cluster02-01
+             Data: interface_reachable
+             ICMP: interface_reachable true       true            true
+                                       cluster02-02
+             Data: interface_reachable
+             ICMP: interface_reachable true       true            true
+----

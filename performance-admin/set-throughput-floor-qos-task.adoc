@@ -1,0 +1,113 @@
+---
+permalink: performance-admin/set-throughput-floor-qos-task.html
+sidebar: sidebar
+keywords: setting, throughput, floor, qos
+summary: "You can use the min-throughput field for a policy group to define a throughput floor for storage object workloads (QoS Min). You can apply the policy group when you create or modify the storage object. Starting with ONTAP 9.8, you can specify the throughput floor in IOPS or MBps, or IOPS and MBps."
+---
+= Set a throughput floor with QoS
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `min-throughput` field for a policy group to define a throughput floor for storage object workloads (QoS Min). You can apply the policy group when you create or modify the storage object. Starting with ONTAP 9.8, you can specify the throughput floor in IOPS or MBps, or IOPS and MBps.
+
+.What you'll need
+
+* You must be running ONTAP 9.2 or later. Throughput floors are available starting with ONTAP 9.2.
+* You must be a cluster administrator to create a policy group.
+
+.About this task
+
+* Starting with ONTAP 9.4, you can use a _non-shared_ QoS policy group to specify that the defined throughput floor be applied to each member workload individually. This is the only condition in which a policy group for a throughput floor can be applied to multiple workloads.
++
+Set `-is-shared=false` for the `qos policy-group create` command to specify a non-shared policy group.
+
+* Throughput to a workload might fall below the specified floor if there is insufficient performance capacity (headroom) on the node or aggregate.
+* A storage object that is subject to a QoS limit must be contained by the SVM to which the policy group belongs. Multiple policy groups can belong to the same SVM.
+* It is a QoS best practice to apply a policy group to the same type of storage objects.
+* A policy group that defines a throughput floor cannot be applied to an SVM.
+
+.Steps
+
+. Check for adequate performance capacity on the node or aggregate, as described in xref:identify-remaining-performance-capacity-task.adoc[Identifying remaining performance capacity].
+. Create a policy group:
++
+`qos policy-group create -policy group _policy_group_ -vserver _SVM_ -min-throughput _qos_target_ -is-shared true|false`
++
+For complete command syntax, see the man page for your ONTAP release. You can use the `qos policy-group modify` command to adjust throughput floors.
++
+The following command creates the shared policy group `pg-vs2` with a minimum throughput of 1,000 IOPS:
++
+----
+cluster1::> qos policy-group create -policy group pg-vs2 -vserver vs2 -min-throughput 1000iops -is-shared true
+----
++
+The following command creates the non-shared policy group `pg-vs4` without a throughput limit:
++
+----
+cluster1::> qos policy-group create -policy group pg-vs4 -vserver vs4 -is-shared false
+----
+
+. Apply a policy group to a volume or LUN:
++
+`_storage_object_ create -vserver _SVM_ -qos-policy-group _policy_group_`
++
+For complete command syntax, see the man pages. You can use the `_storage_object_modify` command to apply a different policy group to the storage object.
++
+The following command applies policy group `pg-app2` to the volume `app2`:
++
+----
+cluster1::> volume create -vserver vs2 -volume app2 -aggregate aggr1 -qos-policy-group pg-app2
+----
+
+. Monitor policy group performance:
++
+`qos statistics performance show`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+Monitor performance from the cluster. Do not use a tool on the host to monitor performance.
+====
++
+The following command shows policy group performance:
++
+----
+cluster1::> qos statistics performance show
+Policy Group           IOPS      Throughput   Latency
+-------------------- -------- --------------- ----------
+-total-                 12316       47.76MB/s  1264.00us
+pg_app2                  7216       28.19MB/s   420.00us
+_System-Best-Effort        62       13.36KB/s     4.13ms
+_System-Background         30           0KB/s        0ms
+----
+
+. Monitor workload performance:
++
+`qos statistics workload performance show`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+Monitor performance from the cluster. Do not use a tool on the host to monitor performance.
+====
++
+The following command shows workload performance:
++
+----
+cluster1::> qos statistics workload performance show
+Workload          ID     IOPS      Throughput    Latency
+--------------- ------ -------- ---------------- ----------
+-total-              -    12320        47.84MB/s  1215.00us
+app2-wid7967      7967     7219        28.20MB/s   319.00us
+vs1-wid12279     12279     5026        19.63MB/s     2.52ms
+_USERSPACE_APPS     14       55        10.92KB/s   236.00us
+_Scan_Backgro..   5688       20            0KB/s        0ms
+----
++
+[NOTE]
+====
+You can use the `qos statistics workload latency show` command to view detailed latency statistics for QoS workloads.
+====

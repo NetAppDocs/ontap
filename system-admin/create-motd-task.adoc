@@ -1,0 +1,95 @@
+---
+permalink: system-admin/create-motd-task.html
+sidebar: sidebar
+keywords: create, motd, cli, user, clustershell, ssh, session, cluster, access, message, day
+summary: "You can create a message of the day (MOTD) to communicate information to authenticated CLI users. The MOTD is displayed in a console session (for cluster access only) or an SSH session (for cluster or SVM access) after a user is authenticated but before the clustershell prompt appears."
+---
+= Create an MOTD
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create a message of the day (MOTD) to communicate information to authenticated CLI users. The MOTD is displayed in a console session (for cluster access only) or an SSH session (for cluster or SVM access) after a user is authenticated but before the clustershell prompt appears.
+
+.Steps
+
+. Use the `security login motd modify` command to create an MOTD for the cluster or SVM:
++
+[options="header"]
+|===
+| If you want to...| Then...
+a|
+Specify a message that is a single line
+a|
+Use the `-message` "[.code]``text``" parameter to specify the text.
+a|
+Include newlines (also known as end of lines)
+a|
+Use the command without the `-message` or `-uri` parameter to launch the interactive mode for editing the MOTD.
+a|
+Upload content from a location to use for the MOTD
+a|
+Use the `-uri` parameter to specify the content's FTP or HTTP location.
+|===
+The maximum size for an MOTD is 2,048 bytes, including newlines.
++
+The `security login motd modify` man page describes the escape sequences that you can use to enable the MOTD to display dynamically generated content.
++
+An MOTD created by using the `-uri` parameter is static. It is not automatically refreshed to reflect subsequent changes of the source content.
++
+An MOTD created for the cluster is displayed also for all SVM logins by default, along with an SVM-level MOTD that you can create separately for a given SVM. Setting the `-is-cluster-message-enabled` parameter to `false` for an SVM prevents the cluster-level MOTD from being displayed for that SVM.
+
+. Verify that the MOTD has been created by displaying it with the `security login motd show` command.
++
+Specifying the `-message` parameter with an empty string (`""`) displays MOTDs that are not configured or have no content.
++
+See the https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr-980/security%5F%5Flogin%5F%5Fmotd%5F%5Fmodify.html[security login motd modify] command man page for a list of parameters to use to enable the MOTD to display dynamically generated content. Be sure to check the man page specific to your ONTAP version.
+
+.Examples of creating MOTDs
+
+The following example uses the noninteractive mode to create an MOTD for the "`cluster1`" cluster:
+
+----
+cluster1::> security login motd modify -message "Greetings!"
+
+cluster1::>
+----
+
+The following example uses the interactive mode to create an MOTD for the "`svm1`"SVM that uses escape sequences to display dynamically generated content:
+
+----
+cluster1::> security login motd modify -vserver svm1
+
+Enter the message of the day for Vserver "svm1".
+Max size: 2048. Enter a blank line to terminate input. Press Ctrl-C to abort.
+0        1         2         3         4         5         6         7         8
+12345678901234567890123456789012345678901234567890123456789012345678901234567890
+Welcome to the \n SVM.  Your user ID is '\N'. Your last successful login was \L.
+
+cluster1::>
+----
+
+The following example displays the MOTDs that have been created:
+
+----
+cluster1::> security login motd show
+Vserver: cluster1
+Is the Cluster MOTD Displayed?: true
+Message
+-----------------------------------------------------------------------------
+Greetings!
+
+Vserver: svm1
+Is the Cluster MOTD Displayed?: true
+Message
+-----------------------------------------------------------------------------
+Welcome to the \n SVM.  Your user ID is '\N'. Your last successful login was \L.
+
+2 entries were displayed.
+
+cluster1::>
+----
+
+*Related information*
+
+xref:manage-motd-reference.adoc[Managing the MOTD]

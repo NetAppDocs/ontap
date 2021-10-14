@@ -1,0 +1,105 @@
+---
+permalink: data-protection/exclude-network-name-service-svm-replication-task.html
+sidebar: sidebar
+keywords: exclude, network, name service, other settings, svm replication
+summary: "You can use the -identity-preserve false option of the snapmirror create command to replicate only the volumes and security configurations of an SVM. Some protocol and name service settings are also preserved."
+---
+= Exclude network, name service, and other settings from SVM replication
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `-identity-preserve false` option of the `snapmirror create` command to replicate only the volumes and security configurations of an SVM. Some protocol and name service settings are also preserved.
+
+.What you'll need
+
+The source and destination clusters and SVMs must be peered.
+
+.About this task
+
+For a list of preserved protocol and name service settings, see link:snapmirror-svm-replication-concept.html#configurations-replicated-in-svm-dr-relationships[Configurations replicated in SVM DR relationships].
+
+For complete command syntax, see the man page.
+
+.Steps
+
+. Create a destination SVM:
++
+`vserver create -vserver _SVM_ -subtype dp-destination`
++
+The SVM name must be unique across the source and destination clusters.
++
+The following example creates a destination SVM named `svm_backup`:
++
+----
+cluster_dst:> vserver create -vserver svm_backup -subtype dp-destination
+----
+
+. Create a replication job schedule:
++
+`job schedule cron create -name _job_name_ -month _month_ -dayofweek _day_of_week_ -day _day_of_month_ -hour _hour_ -minute _minute_`
++
+For `-month`, `-dayofweek`, and `-hour`, you can specify `all` to run the job every month, day of the week, and hour, respectively.
++
+The following example creates a job schedule named `my_weekly` that runs on Saturdays at 3:00 a.m.:
++
+----
+cluster_dst::> job schedule cron create -name my_weekly -dayofweek "Saturday" -hour 3 -minute 0
+----
+
+. Create a replication relationship that excludes network, name service, and other configuration settings:
++
+`snapmirror create -source-path _SVM_: -destination-path _SVM_: -type DP|XDP -schedule schedule -policy policy -identity-preserve false`
++
+[NOTE]
+====
+You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options. See the examples below.    You must run this command from the destination SVM or the destination cluster.
+====
++
+The following example creates a SnapMirror DR relationship using the default `MirrorAllSnapshots` policy. The relationship excludes network, name service, and other configuration settings from SVM replication:
++
+----
+cluster_dst::> snapmirror create -source-path svm1: -destination-path svm_backup: -type XDP -schedule my_daily -policy MirrorAllSnapshots -identity-preserve false
+----
++
+The following example creates a unified replication relationship using the default `MirrorAndVault` policy. The relationship excludes network, name service, and other configuration settings:
++
+----
+cluster_dst:> snapmirror create svm1: -destination-path svm_backup: -type XDP -schedule my_daily -policy MirrorAndVault -identity-preserve false
+----
++
+Assuming you have created a custom policy with the policy type `async-mirror`, the following example creates a SnapMirror DR relationship. The relationship excludes network, name service, and other configuration settings from SVM replication:
++
+----
+cluster_dst::> snapmirror create -source-path svm1: -destination-path svm_backup: -type XDP -schedule my_daily -policy my_mirrored -identity-preserve false
+----
++
+Assuming you have created a custom policy with the policy type `mirror-vault`, the following example creates a unified replication relationship. The relationship excludes network, name service, and other configuration settings from SVM replication:
++
+----
+cluster_dst::> snapmirror create -source-path svm1: -destination-path svm_backup: -type XDP -schedule my_daily -policy my_unified -identity-preserve false
+----
+
+. Stop the destination SVM:
++
+`vserver stop`
++
+`_SVM name_`
++
+The following example stops a destination SVM named dvs1:
++
+----
+destination_cluster::> vserver stop -vserver dvs1
+----
+
+. If you are using SMB, you must also configure a CIFS server.
++
+See link:create-smb-server-task.html[CIFS only: Creating a CIFS server].
+
+. From the destination SVM or the destination cluster, initialize the SVM replication relationship:
++
+`snapmirror initialize -source-path _SVM_name_: -destination-path _SVM_name_:`
+
+.After you finish
+
+You must configure the network and protocols on the destination SVM for data access in the event a disaster occurs.

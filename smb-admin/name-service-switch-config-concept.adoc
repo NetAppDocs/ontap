@@ -1,0 +1,96 @@
+---
+permalink: smb-admin/name-service-switch-config-concept.html
+sidebar: sidebar
+keywords: ontap, store, name, service, configuration, information, table, equivalent, unix, system, appropriate, environment, how ontap name service switch configuration works
+summary: "ONTAP stores name service configuration information in a table that is the equivalent of the /etc/nsswitch.conf file on UNIX systems. You must understand the function of the table and how ONTAP uses it so that you can configure it appropriately for your environment."
+---
+= How ONTAP name service switch configuration works
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP stores name service configuration information in a table that is the equivalent of the `/etc/nsswitch.conf` file on UNIX systems. You must understand the function of the table and how ONTAP uses it so that you can configure it appropriately for your environment.
+
+The ONTAP name service switch table determines which name service sources ONTAP consults in which order to retrieve information for a certain type of name service information. ONTAP maintains a separate name service switch table for each SVM.
+
+== Database types
+
+The table stores a separate name service list for each of the following database types:
+
+[options="header"]
+|===
+| Database type| Defines name service sources for...| Valid sources are...
+a|
+hosts
+a|
+Converting host names to IP addresses
+a|
+files, dns
+a|
+group
+a|
+Looking up user group information
+a|
+files, nis, ldap
+a|
+passwd
+a|
+Looking up user information
+a|
+files, nis, ldap
+a|
+netgroup
+a|
+Looking up netgroup information
+a|
+files, nis, ldap
+a|
+namemap
+a|
+Mapping user names
+a|
+files, ldap
+|===
+
+== Source types
+
+The sources specify which name service source to use for retrieving the appropriate information.
+
+[options="header"]
+|===
+| Specify source type...| To look up information in...| Managed by the command families...
+a|
+files
+a|
+Local source files
+a|
+`vserver services name-service unix-user` `vserver services name-service unix-group`
+
+`vserver services name-service netgroup`
+
+`vserver services name-service dns hosts`
+
+a|
+nis
+a|
+External NIS servers as specified in the NIS domain configuration of the SVM
+a|
+`vserver services name-service nis-domain`
+a|
+ldap
+a|
+External LDAP servers as specified in the LDAP client configuration of the SVM
+a|
+`vserver services name-service ldap`
+a|
+dns
+a|
+External DNS servers as specified in the DNS configuration of the SVM
+a|
+`vserver services name-service dns`
+|===
+Even if you plan to use NIS or LDAP for both data access and SVM administration authentication, you should still include `files` and configure local users as a fallback in case NIS or LDAP authentication fails.
+
+== Protocols used to access external sources
+
+To access the servers for external sources, ONTAP uses the following protocols:

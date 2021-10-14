@@ -1,0 +1,74 @@
+---
+permalink: encryption-at-rest/restore-external-encryption-keys-93-later-task.html
+sidebar: sidebar
+keywords: restoring, external key management, encryption keys
+summary: "You can manually restore external key management encryption keys and 'push' them to a different node. You might want to do this if you are restarting a node that was down temporarily when you created the keys for the cluster."
+---
+= Restore external key management encryption keys
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can manually restore external key management encryption keys and "`push`" them to a different node. You might want to do this if you are restarting a node that was down temporarily when you created the keys for the cluster.
+
+.What you'll need
+
+You must be a cluster or SVM administrator to perform this task.
+
+.About this task
+
+In ONTAP 9.6 and later, you can use the `security key-manager key query -node node_name` command to verify if your key needs to be restored.
+
+In ONTAP 9.5 and earlier, you can use the `security key-manager key show` command to verify if your key needs to be restored.
+
+.Steps
+
+. If you are running ONTAP 9.8 or later and your root volume is encrypted, do the following:
++
+If you are running ONTAP 9.7 or earlier, or if you are running ONTAP 9.8 or later and your root volume is not encrypted, skip this step.
+
+ .. Set the bootargs:
+ +
+`setenv kmip.init.ipaddr <ip-address>`
+ +
+`setenv kmip.init.netmask <netmask>`
+ +
+`setenv kmip.init.gateway <gateway>`
+ +
+`setenv kmip.init.interface e0M`
+ +
+`boot_ontap`
+
+  .. Boot the node to the boot menu and select option `(11) Configure node for external key management`.
+ .. Follow prompts to enter management certificate.
++
+After all management certificate information is entered, the system returns to the boot menu.
+
+ .. From the boot menu, select option `(1) Normal Boot`.
+
+. Restore the key:
++
+[options="header"]
+|===
+| For this ONTAP version...| Use this command...
+
+a|
+ONTAP 9.6 and later
+a|
+`security key-manager external restore -vserver SVM -node node -key-server host_name\|IP_address:port -key-id key_id -key-tag key_tag`
+a|
+ONTAP 9.5 and earlier
+a|
+`security key-manager restore -node node -address IP_address -key-id key_id -key-tag key_tag`
+|===
++
+[NOTE]
+====
+`node` defaults to all nodes. For complete command syntax, see the man pages. This command is not supported when onboard key management is enabled.
+====
++
+The following ONTAP 9.6 command restores external key management authentication keys to all nodes in `cluster1`:
++
+----
+clusterl::> security key-manager external restore
+----

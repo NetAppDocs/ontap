@@ -1,0 +1,118 @@
+---
+permalink: snaplock/mirror-worm-files-task.html
+sidebar: sidebar
+keywords: mirror, worm, file, snapmirror, replicate, volume, compliance, enterprise, snaplock
+summary: "You can use SnapMirror to replicate WORM files to another geographic location for disaster recovery and other purposes. Both the source volume and destination volume must be configured for SnapLock, and both volumes must have the same SnapLock mode, Compliance or Enterprise. All key SnapLock properties of the volume and files are replicated."
+---
+= Mirror WORM files
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use SnapMirror to replicate WORM files to another geographic location for disaster recovery and other purposes. Both the source volume and destination volume must be configured for SnapLock, and both volumes must have the same SnapLock mode, Compliance or Enterprise. All key SnapLock properties of the volume and files are replicated.
+
+.Prerequisites
+
+The source and destination volumes must be created in peered clusters with peered SVMs. For more information, see the _Cluster and SVM Peering Express Guide_.
+
+.About this task
+
+* Starting with ONTAP 9.5, you can replicate WORM files with the XDP (extended data protection) type SnapMirror relationship rather than the DP (data protection) type relationship. XDP mode is ONTAP version-independent, and is able to differentiate files stored in the same block, making it much easier to resync replicated Compliance-mode volumes. For information on how to convert an existing DP-type relationship to an XDP-type relationship, see the _Data Protection Power Guide_.
+* A resync operation on a DP type SnapMirror relationship fails for a Compliance-mode volume if SnapLock determines that it will result in a loss of data. If a resync operation fails, you can use the `volume clone create` command to make a clone of the destination volume. You can then resync the source volume with the clone.
+* A SnapMirror relationship of type XDP between SnapLock compliant volumes supports a resync after a break even if data on the destination has diverged from the source post the break.
++
+On a resync, when data divergence is detected between the source the destination beyond the common snapshot, a new snapshot is cut on the destination to capture this divergence. The new snapshot and the common snapshot are both locked with a retention time as follows:
+
+ ** The volume expiry time of the destination
+ ** If the volume expiry time is in the past or has not been set, then the snapshot is locked for a period of 30 days
+ ** If the destination has legal-holds, the actual volume expiry period is masked and shows up as '`indefinite`', however the snapshot is locked for the duration of the actual volume expiry period.
+
+If the destination volume has an expiry period that is later than the source, the destination expiry period is retained and will not be overwritten by the expiry period of the source volume post the resync.
+
+If the destination has legal-holds placed on it that differ from the source, a resync is not allowed. The source and destination must have identical legal-holds or all legal-holds on the destination must be released before a resync is attempted.
++
+A locked snapshot on the destination volume created to capture the divergent data can be copied to the source by running the `snapmirror update -s snapshot` command. The snapshot once copied will continue to be locked at the source as well.
+
+* SVM data protection relationships are not supported.
+* Load-sharing data protection relationships are not supported.
+
+The following illustration shows the procedure for initializing a SnapMirror relationship:
+
+image::../media/snapmirror-steps-clustered.gif[This illustration shows the procedure for initializing a SnapMirror relationship: identifying the destination cluster, creating a destination volume, creating a SnapMirror relationship between the volumes, and then initializing the relationship to start a baseline transfer.]
+
+.Steps
+
+. Identify the destination cluster.
+. On the destination cluster, install the SnapLock license, initialize the ComplianceClock, and create a SnapLock aggregate.
++
+xref:configure-snaplock-concept.adoc[Configure SnapLock]
+
+. On the destination cluster, create a SnapLock destination volume of type `DP` that is either the same size as or greater in size than the source volume:
++
+`*volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -type DP -size _size_*`
++
+[NOTE]
+====
+The SnapLock mode--Compliance or Enterprise--is inherited from the aggregate. Version-flexible destination volumes are not supported. The language setting of the destination volume must match the language setting of the source volume.
+====
++
+The following command creates a 2 GB SnapLock `Compliance` volume named `dstvolB` in `SVM2` on the aggregate `node01_aggr`:
++
+----
+cluster2::> volume create -vserver SVM2 -volume dstvolB -aggregate node01_aggr -type DP -size 2GB
+----
+
+. On the destination SVM, create a SnapMirror policy:
++
+`*snapmirror policy create -vserver _SVM_name_ -policy _policy_name_*`
++
+The following command creates the SVM-wide policy `SVM1-mirror`:
++
+----
+SVM2::> snapmirror policy create -vserver SVM2 -policy SVM1-mirror
+----
+
+. On the destination SVM, create a SnapMirror schedule:
++
+`*job schedule cron create -name _schedule_name_ -dayofweek _day_of_week_ -hour _hour_ -minute _minute_*`
++
+The following command creates a SnapMirror schedule named `weekendcron`:
++
+----
+SVM2::> job schedule cron create -name weekendcron -dayofweek "Saturday, Sunday" -hour 3 -minute 0
+----
+
+. On the destination SVM, create a SnapMirror relationship:
++
+`*snapmirror create -source-path _source_path_ -destination-path _destination_path_ -type XDP|DP -policy _policy_name_ -schedule _schedule_name_*`
++
+The following command creates a SnapMirror relationship between the source volume `srcvolA` on `SVM1` and the destination volume `dstvolB` on `SVM2`, and assigns the policy `SVM1-mirror` and the schedule `weekendcron`:
++
+----
+SVM2::> snapmirror create -source-path SVM1:srcvolA -destination-path SVM2:dstvolB -type XDP -policy SVM1-mirror -schedule weekendcron
+----
++
+[NOTE]
+====
+The XDP type is available in ONTAP 9.5 and later. You must use the DP type in ONTAP 9.4 and earlier.
+====
+
+. On the destination SVM, initialize the SnapMirror relationship:
++
+`*snapmirror initialize -destination-path _destination_path_*`
++
+The initialization process performs a _baseline transfer_ to the destination volume. SnapMirror makes a Snapshot copy of the source volume, then transfers the copy and all the data blocks that it references to the destination volume. It also transfers any other Snapshot copies on the source volume to the destination volume.
++
+The following command initializes the relationship between the source volume `srcvolA` on `SVM1` and the destination volume `dstvolB` on `SVM2`:
++
+----
+SVM2::> snapmirror initialize -destination-path SVM2:dstvolB
+----
+
+*Related information*
+
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.exp-clus-peer/home.html[Cluster and SVM peering express configuration]
+
+https://docs.netapp.com/ontap-9/topic/com.netapp.doc.exp-sm-ic-cg/home.html[Volume disaster recovery express preparation]
+
+https://docs.netapp.com/us-en/ontap/data-protection/index.html[Data protection]

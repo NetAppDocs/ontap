@@ -1,0 +1,80 @@
+---
+permalink: ndmp/configure-lifs-node-scoped-task.html
+sidebar: sidebar
+keywords: configure, lif
+summary: "You must identify a LIF that will be used for establishing a data connection and control connection between the node and the backup application. After identifying the LIF, you must verify that firewall and failover policies are set for the LIF."
+---
+= Configure a LIF
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You must identify a LIF that will be used for establishing a data connection and control connection between the node and the backup application. After identifying the LIF, you must verify that firewall and failover policies are set for the LIF.
+
+.Steps
+
+. Identify the intercluster LIF hosted on the nodes by using the `network interface show` command with the `-role` parameter.
++
+----
+cluster1::> network interface show -role intercluster
+
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+cluster1    IC1        up/up      192.0.2.65/24      cluster1-1    e0a     true
+cluster1    IC2        up/up      192.0.2.68/24      cluster1-2    e0b     true
+----
+
+. Ensure that the firewall policy is enabled for NDMP on the intercluster LIFs:
+ .. Verify that the firewall policy is enabled for NDMP by using the `system services firewall policy show` command.
++
+The following command displays the firewall policy for the intercluster LIF:
++
+----
+cluster1::> system services firewall policy show -policy intercluster
+
+Vserver     Policy       Service    Allowed
+-------     ------------ ---------- -------------------
+cluster1    intercluster dns        -
+                         http       -
+                         https      -
+                         **ndmp       0.0.0.0/0, ::/0**
+                         ndmps      -
+                         ntp        -
+                         rsh        -
+                         ssh        -
+                         telnet     -
+9 entries were displayed.
+----
+
+ .. If the firewall policy is not enabled, enable the firewall policy by using the `system services firewall policy modify` command with the `-service` parameter.
++
+The following command enables firewall policy for the intercluster LIF:
++
+----
+cluster1::> system services firewall policy modify -vserver cluster1 -policy intercluster -service ndmp 0.0.0.0/0
+----
+. Ensure that the failover policy is set appropriately for the intercluster LIFs:
+ .. Verify that the failover policy for the intercluster LIFs is set to `local-only` by using the `network interface show -failover` command.
++
+----
+cluster1::> network interface show -failover
+            Logical          Home              Failover     Failover
+Vserver     Interface        Node:Port         Policy       Group
+--------    ---------------  ----------------- ------------ --------
+cluster1    **IC1               cluster1-1:e0a    local-only   Default**
+                                                    Failover Targets:
+                                                    .......
+            **IC2               cluster1-2:e0b    local-only   Default**
+                                                    Failover Targets:
+                                                    .......
+cluster1-1  cluster1-1_mgmt1 cluster1-1:e0m    local-only    Default
+                                                    Failover Targets:
+                                                    .......
+----
+
+ .. If the failover policy is not set appropriately, modify the failover policy by using the `network interface modify` command with the `-failover-policy` parameter.
++
+----
+cluster1::> network interface modify -vserver cluster1 -lif IC1 -failover-policy local-only
+----

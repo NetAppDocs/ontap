@@ -1,0 +1,70 @@
+---
+permalink: smb-admin/add-home-directory-share-task.html
+sidebar: sidebar
+keywords: smb, home, directory, feature, add, property, share, properties, property, add a home directory share
+summary: "If you want to use the SMB home directory feature, you must add at least one share with the home directory property included in the share properties."
+---
+= Add a home directory share
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you want to use the SMB home directory feature, you must add at least one share with the home directory property included in the share properties.
+
+.About this task
+
+You can create a home directory share at the time you create the share by using the `vserver cifs share create` command, or you can change an existing share into a home directory share at any time by using the `vserver cifs share modify` command.
+
+To create a home directory share, you must include the `homedirectory` value in the `-share-properties` option when you create or modify a share. You can specify the share name and share path using variables that are dynamically expanded when users connect to their home directories. Available variables that you can use in the path are `%w`, `%d`, and `%u`, corresponding to the Windows user name, domain, and mapped UNIX user name, respectively.
+
+.Steps
+
+. Add a home directory share: `+vserver cifs share create -vserver vserver -share-name share_name -path path -share-properties homedirectory\[,...\]+`
++
+`-vserver` `vserver` specifies the CIFS-enabled storage virtual machine (SVM) on which to add the search path.
++
+`-share-name` `share-name` specifies the home directory share name.
++
+In addition to containing one of the required variables, if the share name contains one of the literal strings `%w`, `%u`, or `%d`, you must precede the literal string with a % (percent) character to prevent ONTAP from treating the literal string as a variable (for example, `%%w`).
+
+ ** The share name must contain either the `%w` or the `%u` variable.
+ ** The share name can additionally contain the `%d` variable (for example, `%d`/`%w`) or a static portion in the share name (for example, home1_``%w``).
+ ** If the share is used by administrators to connect to other users' home directories or to permit users to connect to other users' home directories, the dynamic share name pattern must be preceded by a tilde (~).
++
+The `vserver cifs home-directory modify` is used to enable this access by setting the `-is-home-dirs-access-for-admin-enabled` option to `true`) or by setting the advanced option `-is-home-dirs-access-for-public-enabled` to `true`.
+
++
+`-path` `path` specifies the relative path to the home directory.
++
+`-share-properties` `+homedirectory[,...]+` specifies the share properties for that share. You must specify the `homedirectory` value. You can specify additional share properties using a comma delimited list.
+
+. Verify that you successfully added the home directory share by using the `vserver cifs share show` command.
+
+.Example
+
+The following command creates a home directory share named `%w`. The `oplocks`, `browsable`, and `changenotify` share properties are set in addition to setting the `homedirectory` share property.
+
+[NOTE]
+====
+This example does not display output for all of the shares on the SVM. Output is truncated.
+====
+
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name %w -path %w -share-properties oplocks,browsable,changenotify,homedirectory
+
+vs1::> vserver cifs share show -vserver vs1
+Vserver    Share    Path         Properties     Comment  ACL
+---------- -------- ------------ -------------- -------- -----------
+vs1        %w       %w           oplocks        -        Everyone / Full Control
+                                 browsable
+                                 changenotify
+                                 homedirectory
+----
+
+*Related information*
+
+xref:add-home-directory-search-path-task.adoc[Adding a home directory search path]
+
+xref:requirements-automatic-node-referrals-concept.adoc[Requirements and guidelines for using automatic node referrals]
+
+xref:manage-accessibility-users-home-directories-task.adoc[Managing accessibility to users' home directories]

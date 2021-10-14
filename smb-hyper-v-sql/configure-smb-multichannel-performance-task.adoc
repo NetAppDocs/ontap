@@ -1,0 +1,101 @@
+---
+permalink: smb-hyper-v-sql/configure-smb-multichannel-performance-task.html
+sidebar: sidebar
+keywords: configure, smb, multichannel, performance, redundancy, session, fault, tolerance, hyper, v, sql
+summary: "Beginning in ONTAP 9.4, you can configure SMB Multichannel to provide multiple connections between ONTAP and clients in a single SMB session. Doing so improves throughput and fault tolerance for Hyper-V and SQL server over SMB configurations."
+---
+= Configure SMB Multichannel for performance and redundancy
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning in ONTAP 9.4, you can configure SMB Multichannel to provide multiple connections between ONTAP and clients in a single SMB session. Doing so improves throughput and fault tolerance for Hyper-V and SQL server over SMB configurations.
+
+.What you'll need
+
+You can use SMB Multichannel functionality only when clients negotiate at SMB 3.0 or later versions. SMB 3.0 and later is enabled on the ONTAP SMB/CIFS server by default.
+
+.About this task
+
+SMB clients automatically detect and use multiple network connections if a proper configuration is identified on the ONTAP cluster.
+
+The number of simultaneous connections in an SMB session depends on the NICs you have deployed:
+
+* *1G NICs on client and ONTAP cluster*
++
+The client establishes one connection per NIC and binds the session to all connections.
+
+* *10G and larger capacity NICs on client and ONTAP cluster*
++
+The client establishes up to four connections per NIC and binds the session to all connections. The client can establish connections on multiple 10G and larger capacity NICs.
+
+You can also modify the following parameters (advanced privilege):
+
+* *`-max-connections-per-session`*
++
+The maximum number of connections allowed per Multichannel session. The default is 32 connections.
++
+If you want to enable more connections than the default, you must make comparable adjustments to the client configuration, which also has a default of 32 connections.
+
+* *`-max-lifs-per-session`*
++
+The maximum number of network interfaces advertised per Multichannel session. The default is 256 network interfaces.
+
+.Steps
+
+. Set the privilege level to advanced:
++
+`*set -privilege advanced*`
+. Enable SMB Multichannel on the SMB/CIFS server:
++
+`*vserver cifs options modify -vserver _vserver_name_ -is-multichannel-enabled true*`
+. Verify that ONTAP is reporting SMB Multichannel sessions:
++
+`*vserver cifs session show options*`
+. Return to the admin privilege level:
++
+`*set -privilege admin*`
+
+.Example
+
+The following example displays information about all SMB/CIFS sessions, showing multiple connections for a single session:
+
+----
+cluster1::> vserver cifs session show
+Node:    node1
+Vserver: vs1
+Connection Session                                        Open            Idle
+IDs        ID      Workstation      Windows User         Files            Time
+---------- ------- ---------------- ---------------- --------- ---------------
+138683,
+138684,
+138685     1       10.1.1.1         DOMAIN\                   0              4s
+                                    Administrator
+----
+
+The following example displays detailed information about an SMB/CIFS session with session-id 1:
+
+----
+cluster1::> vserver cifs session show -session-id 1 -instance
+
+Vserver: vs1
+                           Node: node1
+                     Session ID: 1
+                 Connection IDs: 138683,138684,138685
+               Connection Count: 3
+   Incoming Data LIF IP Address: 192.1.1.1
+         Workstation IP Address: 10.1.1.1
+       Authentication Mechanism: NTLMv1
+          User Authenticated as: domain-user
+                   Windows User: DOMAIN\administrator
+                      UNIX User: root
+                    Open Shares: 2
+                     Open Files: 5
+                     Open Other: 0
+                 Connected Time: 5s
+                      Idle Time: 5s
+               Protocol Version: SMB3
+         Continuously Available: No
+              Is Session Signed: false
+                   NetBIOS Name: -
+----

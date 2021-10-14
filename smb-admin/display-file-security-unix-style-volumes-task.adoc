@@ -1,0 +1,100 @@
+---
+permalink: smb-admin/display-file-security-unix-style-volumes-task.html
+sidebar: sidebar
+keywords: display, information, file, directory, security, unix, security-style, volume, style, effective, permission, applied, apply, owner, group, result, validate, configuration, troubleshoot, access, issues, display information about file security on unix security-style volumes
+summary: "You can display information about file and directory security on UNIX security-style volumes, including what the security styles and effective security styles are, what permissions are applied, and information about UNIX owners and groups. You can use the results to validate your security configuration or to troubleshoot file access issues."
+---
+= Display information about file security on UNIX security-style volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can display information about file and directory security on UNIX security-style volumes, including what the security styles and effective security styles are, what permissions are applied, and information about UNIX owners and groups. You can use the results to validate your security configuration or to troubleshoot file access issues.
+
+.About this task
+
+You must supply the name of the storage virtual machine (SVM) and the path to the data whose file or directory security information you want to display. You can display the output in summary form or as a detailed list.
+
+* UNIX security-style volumes and qtrees use only UNIX file permissions, either mode bits or NFSv4 ACLs when determining file access rights.
+* ACL output is displayed only for file and folders with NFSv4 security.
++
+This field is empty for files and directories using UNIX security that have only mode bit permissions applied (no NFSv4 ACLs).
+
+* The owner and group output fields in the ACL output does not apply in the case of NFSv4 security descriptors.
++
+They are only meaningful for NTFS security descriptors.
+
+* Because Storage-Level Access Guard security is supported on a UNIX volume or qtree if a CIFS server is configured on the SVM, the output might contain information about Storage-Level Access Guard security applied to the volume or qtree specified in the `-path` parameter.
+
+.Steps
+
+. Display file and directory security settings with the desired level of detail:
++
+[options="header"]
+|===
+| If you want to display information...| Enter the following command...
+a|
+In summary form
+a|
+`vserver security file-directory show -vserver vserver_name -path path`
+a|
+With expanded detail
+a|
+`vserver security file-directory show -vserver vserver_name -path path -expand-mask true`
+|===
+
+.Examples
+
+The following example displays the security information about the path `/home` in SVM vs1:
+
+----
+cluster1::> vserver security file-directory show -vserver vs1 -path /home
+
+                                  Vserver: vs1
+                                File Path: /home
+                        File Inode Number: 9590
+                           Security Style: unix
+                          Effective Style: unix
+                           DOS Attributes: 10
+                   DOS Attributes in Text: ----D---
+                  Expanded Dos Attributes: -
+                             Unix User Id: 0
+                            Unix Group Id: 1
+                           Unix Mode Bits: 700
+                   Unix Mode Bits in Text: rwx------
+                                     ACLs: -
+----
+
+The following example displays the security information about the path `/home` in SVM vs1 in expanded-mask form:
+
+----
+cluster1::> vserver security file-directory show -vserver vs1 -path /home -expand-mask true
+
+                                 Vserver: vs1
+                               File Path: /home
+                       File Inode Number: 9590
+                          Security Style: unix
+                         Effective Style: unix
+                          DOS Attributes: 10
+                  DOS Attributes in Text: ----D---
+                 Expanded Dos Attributes: 0x10
+                      ...0 .... .... .... = Offline
+                      .... ..0. .... .... = Sparse
+                      .... .... 0... .... = Normal
+                      .... .... ..0. .... = Archive
+                      .... .... ...1 .... = Directory
+                      .... .... .... .0.. = System
+                      .... .... .... ..0. = Hidden
+                      .... .... .... ...0 = Read Only
+                            Unix User Id: 0
+                           Unix Group Id: 1
+                          Unix Mode Bits: 700
+                  Unix Mode Bits in Text: rwx------
+                                    ACLs: -
+----
+
+*Related information*
+
+xref:display-file-security-ntfs-style-volumes-task.adoc[Displaying information about file security on NTFS security-style volumes]
+
+xref:display-file-security-mixed-style-volumes-task.adoc[Displaying information about file security on mixed security-style volumes]

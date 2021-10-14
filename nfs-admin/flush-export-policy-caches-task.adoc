@@ -1,0 +1,73 @@
+---
+permalink: nfs-admin/flush-export-policy-caches-task.html
+sidebar: sidebar
+keywords: flush, export, policy, cache
+summary: "Flushing export policy caches manually (vserver export-policy cache flush) removes potentially outdated information and forces ONTAP to retrieve current information from the appropriate external resources. This can help resolve a variety of issues related to client access to NFS exports."
+---
+= Flush export policy caches
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP uses several export policy caches to store information related to export policies for faster access. Flushing export policy caches manually (`vserver export-policy cache flush`) removes potentially outdated information and forces ONTAP to retrieve current information from the appropriate external resources. This can help resolve a variety of issues related to client access to NFS exports.
+
+.About this task
+
+Export policy cache information might be outdated due to the following reasons:
+
+* A recent change to export policy rules
+* A recent change to host name records in name servers
+* A recent change to netgroup entries in name servers
+* Recovering from a network outage that prevented netgroups from being fully loaded
+
+.Steps
+
+. If you do not have name service cache enabled, perform one of the following actions in advance privilege mode:
++
+[cols="2*",options="header"]
+|===
+| If you want to flush...| Enter the command...
+a|
+All export policy caches (except for showmount)
+a|
+`vserver export-policy cache flush -vserver vserver_name`
+a|
+The export policy rules access cache
+a|
+`vserver export-policy cache flush -vserver vserver_name -cache access`     You can include the optional `-node` parameter to specify the node on which you want to flush the access cache.
+a|
+The host name cache
+a|
+`vserver export-policy cache flush -vserver vserver_name -cache host`
+a|
+The netgroup cache
+a|
+`vserver export-policy cache flush -vserver vserver_name -cache netgroup`     Processing of netgroups is resource intensive. You should only flush the netgroup cache if you are trying to resolve a client access issue that is caused by a stale netgroup.
+a|
+The showmount cache
+a|
+`vserver export-policy cache flush -vserver vserver_name -cache showmount`
+|===
+
+. If name service cache is enabled, perform one of the following actions:
++
+[cols="2*",options="header"]
+|===
+| If you want to flush...| Enter the command...
+a|
+The export policy rules access cache
+a|
+`vserver export-policy cache flush -vserver vserver_name -cache access`     You can include the optional `-node` parameter to specify the node on which you want to flush the access cache.
+a|
+The host name cache
+a|
+`vserver services name-service cache hosts forward-lookup delete-all`
+a|
+The netgroup cache
+a|
+`vserver services name-service cache netgroups ip-to-netgroup delete-all` `vserver services name-service cache netgroups members delete-all`     Processing of netgroups is resource intensive. You should only flush the netgroup cache if you are trying to resolve a client access issue that is caused by a stale netgroup.
+a|
+The showmount cache
+a|
+`vserver export-policy cache flush -vserver vserver_name -cache showmount`
+|===

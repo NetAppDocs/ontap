@@ -1,0 +1,47 @@
+---
+permalink: smb-admin/change-branchcache-server-key-task.html
+sidebar: sidebar
+keywords: change, branchcache, server, key, modify, configuration, storage, virtual, machine, svm, change the branchcache server key
+summary: "You can change the BranchCache server key by modifying the BranchCache configuration on the storage virtual machine (SVM) and specifying a different server key."
+---
+= Change the BranchCache server key
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can change the BranchCache server key by modifying the BranchCache configuration on the storage virtual machine (SVM) and specifying a different server key.
+
+.About this task
+
+You can set the server key to a specific value so that if multiple servers are providing BranchCache data for the same files, clients can use hashes from any server using that same server key.
+
+When you change the server key, you must also flush the hash cache. After flushing the hashes, ONTAP creates new hashes as new requests are made by BranchCache-enabled clients.
+
+.Steps
+
+. Change the server key by using the following command: `vserver cifs branchcache modify -vserver vserver_name -server-key text -flush-hashes true`
++
+When configuring a new server key, you must also specify `-flush-hashes` and set the value to `true`.
+
+. Verify that the BranchCache configuration is correct by using the `vserver cifs branchcache show` command.
+
+.Example
+
+The following example sets a new server key that contains spaces and flushes the hash cache on SVM vs1:
+
+----
+cluster1::> vserver cifs branchcache modify -vserver vs1 -server-key "new vserver secret" -flush-hashes true
+
+cluster1::> vserver cifs branchcache show -vserver vs1
+
+                                 Vserver: vs1
+          Supported BranchCache Versions: enable_all
+                      Path to Hash Store: /hash_data
+          Maximum Size of the Hash Store: 20GB
+Encryption Key Used to Secure the Hashes: -
+        CIFS BranchCache Operating Modes: per_share
+----
+
+*Related information*
+
+xref:reasons-invalidates-branchcache-hashes-concept.adoc[Reasons ONTAP invalidates BranchCache hashes]

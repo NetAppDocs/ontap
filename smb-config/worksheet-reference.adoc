@@ -1,0 +1,476 @@
+---
+permalink: smb-config/worksheet-reference.html
+sidebar: sidebar
+keywords: smb, configuration, worksheet, enable, collect, require, information, access, client, worksheet, gather, cifs, worksheet for gathering smb/cifs configuration information
+summary: "The SMB configuration worksheet enables you to collect the required information to set up SMB access for clients."
+---
+= Worksheet for gathering SMB/CIFS configuration information
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The SMB configuration worksheet enables you to collect the required information to set up SMB access for clients.
+
+You should complete one or both sections of the worksheet, depending on the decision you made about where to provision storage:
+
+* If you are configuring SMB access to an SVM, you should complete both sections.
++
+xref:configure-access-svm-task.adoc[Configuring SMB/CIFS access to an SVM]
++
+xref:configure-client-access-shared-storage-concept.adoc[Configuring SMB client access to shared storage]
+
+* If you are adding storage capacity to an SMB-enabled SVM, you should complete only the second section.
++
+xref:configure-client-access-shared-storage-concept.adoc[Configuring SMB client access to shared storage]
+
+The command man pages contain details about the parameters.
+
+== Configuring SMB access to an SVM
+
+*Parameters for creating an SVM*
+
+You supply these values with the `vserver create` command if you are creating a new SVM.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+A name you supply for the new SVM that is either a fully qualified domain name (FQDN) or follows another convention that enforces unique SVM names across a cluster.
+a|
+
+a|
+`-aggregate`
+a|
+The name of an aggregate in the cluster with sufficient space for new SMB storage capacity.
+a|
+
+a|
+`-rootvolume`
+a|
+A unique name you supply for the SVM root volume.
+a|
+
+a|
+`-rootvolume-security-style`
+a|
+Use the NTFS security style for the SVM.
+a|
+`ntfs`
+a|
+`-language`
+a|
+Use the default language setting in this workflow.
+a|
+`C.UTF-8`
+a|
+`ipspace`
+a|
+Optional: IPspaces are distinct IP address spaces in which SVMs reside.
+a|
+
+|===
+*Parameters for creating a LIF*
+
+You supply these values with the `network interface create` command when you are creating LIFs.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-lif`
+a|
+A name you supply for the new LIF.
+a|
+
+a|
+`-role`
+a|
+Use the data LIF role in this workflow.
+a|
+`data`
+a|
+`-data-protocol`
+a|
+Use only the SMB protocol in this workflow.
+a|
+`cifs`
+a|
+`-home-node`
+a|
+The node to which the LIF returns when the `network interface revert` command is run on the LIF.
+a|
+
+a|
+`-home-port`
+a|
+The port or interface group to which the LIF returns when the `network interface revert` command is run on the LIF.
+a|
+
+a|
+`-address`
+a|
+The IPv4 or IPv6 address on the cluster that will be used for data access by the new LIF.
+a|
+
+a|
+`-netmask`
+a|
+The network mask and gateway for the LIF.
+a|
+
+a|
+`-subnet`
+a|
+A pool of IP addresses. Used instead of `-address` and `-netmask` to assign addresses and netmasks automatically.
+a|
+
+a|
+`-firewall-policy`
+a|
+Use the default data firewall policy in this workflow.
+a|
+`data`
+a|
+`-auto-revert`
+a|
+Optional: Specifies whether a data LIF is automatically reverted to its home node on startup or under other circumstances. The default setting is `false`.
+a|
+
+|===
+*Parameters for DNS host name resolution*
+
+You supply these values with the `vserver services name-service dns create` command when you are configuring DNS.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-domains`
+a|
+Up to five DNS domain names.
+a|
+
+a|
+`-name-servers`
+a|
+Up to three IP addresses for each DNS name server.
+a|
+
+|===
+
+== Setting up an SMB server in an Active Directory domain
+
+*Parameters for time service configuration*
+
+You supply these values with the `cluster time-service ntp server create` command when you are configuring time services.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-server`
+a|
+The host name or IP address of the NTP server for the Active Directory domain.
+a|
+
+|===
+*Parameters for creating an SMB server in an Active Directory domain*
+
+You supply these values with the `vserver cifs create` command when you create a new SMB server and specify domain information.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which to create the SMB server.
+a|
+
+a|
+`-cifs-server`
+a|
+The name of the SMB server (up to 15 characters).
+a|
+
+a|
+`-domain`
+a|
+The fully qualified domain name (FQDN) of the Active Directory domain to associate with the SMB server.
+a|
+
+a|
+`-ou`
+a|
+Optional: The organizational unit within the Active Directory domain to associate with the SMB server. By default, this parameter is set to CN=Computers.
+a|
+
+a|
+`-netbios-aliases`
+a|
+Optional: A list of NetBIOS aliases, which are alternate names to the SMB server name.
+a|
+
+a|
+`-comment`
+a|
+Optional: A text comment for the server. Windows clients can see this SMB server description when browsing servers on the network.
+a|
+
+|===
+
+== Setting up an SMB server in a workgroup
+
+*Parameters for creating an SMB server in a workgroup*
+
+You supply these values with the `vserver cifs create` command when you create a new SMB server and specify supported SMB versions.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which to create the SMB server.
+a|
+
+a|
+`-cifs-server`
+a|
+The name of the SMB server (up to 15 characters).
+a|
+
+a|
+`-workgroup`
+a|
+The name of the workgroup (up to 15 characters).
+a|
+
+a|
+`-comment`
+a|
+Optional: A text comment for the server. Windows clients can see this SMB server description when browsing servers on the network.
+a|
+
+|===
+*Parameters for creating local users*
+
+You supply these values when you create local users by using the `vserver cifs users-and-groups local-user create` command. They are required for SMB servers in workgroups and optional in AD domains.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which to create the local user.
+a|
+
+a|
+`-user-name`
+a|
+The name of the local user (up to 20 characters).
+a|
+
+a|
+`-full-name`
+a|
+Optional: The user's full name. If the full name contains a space, enclose the full name within double quotation marks.
+a|
+
+a|
+`-description`
+a|
+Optional: A description for the local user. If the description contains a space, enclose the parameter in quotation marks.
+a|
+
+a|
+`-is-account-disabled`
+a|
+Optional: Specifies whether the user account is enabled or disabled. If this parameter is not specified, the default is to enable the user account.
+a|
+
+|===
+*Parameters for creating local groups*
+
+You supply these values when you create local groups by using the `vserver cifs users-and-groups local-group create` command. They are optional for SMB servers in AD domains and workgroups.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which to create the local group.
+a|
+
+a|
+`-group-name`
+a|
+The name of the local group (up to 256 characters).
+a|
+
+a|
+`-description`
+a|
+Optional: A description for the local group. If the description contains a space, enclose the parameter in quotation marks.
+a|
+
+|===
+
+== Adding storage capacity to an SMB-enabled SVM
+
+*Parameters for creating a volume*
+
+You supply these values with the `volume create` command if you are creating a volume instead of a qtree.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of a new or existing SVM that will host the new volume.
+a|
+
+a|
+`-volume`
+a|
+A unique descriptive name you supply for the new volume.
+a|
+
+a|
+`-aggregate`
+a|
+The name of an aggregate in the cluster with sufficient space for the new SMB volume.
+a|
+
+a|
+`-size`
+a|
+An integer you supply for the size of the new volume.
+a|
+
+a|
+`-security-style`
+a|
+Use the NTFS security style for this workflow.
+a|
+`ntfs`
+a|
+`-junction-path`
+a|
+Location under root (/) where the new volume is to be mounted.
+a|
+
+|===
+*Parameters for creating a qtree*
+
+You supply these values with the `volume qtree create` command if you are creating a qtree instead of a volume.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which the volume containing the qtree resides.
+a|
+
+a|
+`-volume`
+a|
+The name of the volume that will contain the new qtree.
+a|
+
+a|
+`-qtree`
+a|
+A unique descriptive name you supply for the new qtree, 64 characters or less.
+a|
+
+a|
+`-qtree-path`
+a|
+The qtree path argument in the format `/vol/volume_name/qtree_name\>` can be specified instead of specifying volume and qtree as separate arguments.
+a|
+
+|===
+*Parameters for creating SMB shares*
+
+You supply these values with the `vserver cifs share create` command.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which to create the SMB share.
+a|
+
+a|
+`-share-name`
+a|
+The name of the SMB share that you want to create (up to 256 characters).
+a|
+
+a|
+`-path`
+a|
+The name of the path to the SMB share (up to 256 characters). This path must exist in a volume before creating the share.
+a|
+
+a|
+`-share-properties`
+a|
+Optional: A list of share properties. The default settings are `oplocks`, `browsable`, `changenotify`, and `show-previous-versions`.
+a|
+
+a|
+`-comment`
+a|
+Optional: A text comment for the server (up to 256 characters). Windows clients can see this SMB share description when browsing on the network.
+a|
+
+|===
+*Parameters for creating SMB share access control lists (ACLs)*
+
+You supply these values with the `vserver cifs share access-control create` command.
+
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which to create the SMB ACL.
+a|
+
+a|
+`-share`
+a|
+The name of the SMB share on which to create.
+a|
+
+a|
+`-user-group-type`
+a|
+The type of the user or group to add to the share's ACL. The default type is `windows`
+a|
+`windows`
+a|
+`-user-or-group`
+a|
+The user or group to add to the share's ACL. If you specify the user name, you must include the user's domain using the "`domain\username`" format.
+a|
+
+a|
+`-permission`
+a|
+Specifies the permissions for the user or group.
+a|
+`[ No_access \| Read \| Change \| Full_Control ]`
+|===

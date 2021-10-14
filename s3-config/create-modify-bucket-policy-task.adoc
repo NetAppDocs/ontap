@@ -1,0 +1,69 @@
+---
+permalink: s3-config/create-modify-bucket-policy-task.html
+sidebar: sidebar
+keywords: modify, bucket, policy
+summary: "You can add access rules to the default bucket policy. The scope of its access control is the containing bucket, so it is most appropriate when there is a single bucket."
+---
+= Modify a bucket policy
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can add access rules to the default bucket policy. The scope of its access control is the containing bucket, so it is most appropriate when there is a single bucket.
+
+.What you'll need
+
+An S3-enabled SVM containing an S3 server and a bucket must already exist.
+
+.About this task
+
+You can add new statements for new users and groups, or you can modify the attributes of existing statements. For more options, see the `vserver object-store-server bucket policy` man pages.
+
+.Steps
+
+. Add a statement to a bucket policy:
++
+`vserver object-store-server bucket policy add-statement -vserver svm_name -bucket bucket_name -effect {allow|deny} -action object_store_actions -principal user_and_group_names -resource object_store_resources [-sid text] [-index integer]`
++
+The following parameters define access permissions:
++
+[cols="2*"]
+|===
+    a|
+`-effect`
+a|
+The statement may allow or deny access
+a|
+`-action`
+a|
+You can specify `*` to mean all actions, or a list of one or more of the following: `GetObject, PutObject, DeleteObject, ListBucket, GetBucketAcl,GetObjectAcl, ListBucketMultipartUploads,` and `ListMultipartUploadParts`.
+a|
+`-principal`
+a|
+A list of one or more S3 users or groups.
+
+ ** A maximum of 10 users or groups can be specified.
+ ** If an S3 group is specified, it must be in the form `group/group_name.`
+ ** `*` can be specified to mean public access; that is, access without an access-key and secret-key.
+ ** If no principal is specified, all S3 users in the SVM are granted access.
+
+a|
+`-resource`
+a|
+The bucket and any object it contains. The wildcard characters `*` and `?` can be used to form a regular expression for specifying a resource.
+|===
+You can optionally specify a text string as comment with the `-sid` option.
+
+.Examples
+
+The following example creates an object store server bucket policy statement for the SVM svm1.example.com and bucket1 which specifies allowed access to a readme folder for object store server user user1.
+
+----
+cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal user1 -resource bucket1/readme/* -sid "fullAccessToReadmeForUser1"
+----
+
+The following example creates an object store server bucket policy statement for the SVM svm1.example.com and bucket1 which specifies allowed access to all objects for object store server group group1.
+
+----
+cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal group/group1 -resource bucket1/* -sid "fullAccessForGroup1"
+----

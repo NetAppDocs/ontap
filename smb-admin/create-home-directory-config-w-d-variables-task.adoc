@@ -1,0 +1,95 @@
+---
+permalink: smb-admin/create-home-directory-config-w-d-variables-task.html
+sidebar: sidebar
+keywords: create, home, directory, configuration, variable, user, connect, share, dynamic, create, share, %w, %d, create a home directory configuration using the %w and %d variables
+summary: "You can create a home directory configuration using the %w and %d variables. Users can then connect to their home share using dynamically created shares."
+---
+= Create a home directory configuration using the %w and %d variables
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create a home directory configuration using the `%w` and `%d` variables. Users can then connect to their home share using dynamically created shares.
+
+.Steps
+
+. Create a qtree to contain user's home directories by entering the following command: `volume qtree create -vserver vserver_name -qtree-path qtree_path`
+. Verify that the qtree is using the correct security style by entering the following command: `volume qtree show`
+. If the qtree is not using the desired security style, change the security style using the `volume qtree security` command.
+. Add a home directory share by entering the following command: `+vserver cifs share create -vserver vserver -share-name %w -path %d/%w -share-properties homedirectory\[,...\]+`
++
+`-vserver` `vserver` specifies the CIFS-enabled storage virtual machine (SVM) on which to add the search path.
++
+`-share-name` `%w` specifies the home directory share name. ONTAP dynamically creates the share name as each user connects to their home directory. The share name will be of the form _windows_user_name_.
++
+`-path` `%d/%w` specifies the relative path to the home directory. The relative path is dynamically created as each user connects to their home directory and will be of the form _domain/windows_user_name_.
++
+`-share-properties` `+homedirectory[,...]+` specifies the share properties for that share. You must specify the `homedirectory` value. You can specify additional share properties using a comma delimited list.
+
+. Verify that the share has the desired configuration using the `vserver cifs share show` command.
+. Add a home directory search path by entering the following command: `vserver cifs home-directory search-path add -vserver vserver -path path`
++
+`-vserver` `vserver` specifies the CIFS-enabled SVM on which to add the search path.
++
+`-path` `path` specifies the absolute directory path to the search path.
+
+. Verify that you successfully added the search path using the `vserver cifs home-directory search-path show` command.
+. For users with a home directory, create a corresponding directory in the qtree or volume designated to contain home directories.
++
+For example, if you created a qtree with the path of `/vol/vol1/users` and the user name whose directory you want to create is mydomain\user1, you would create a directory with the following path: `/vol/vol1/users/mydomain/user1`.
++
+If you created a volume named "`home1`" mounted at `/home1`, you would create a directory with the following path: `/home1/mydomain/user1`.
+
+. Verify that a user can successfully connect to the home share either by mapping a drive or connecting using the UNC path.
++
+For example, if user mydomain\user1 wants to connect to the directory created in Step 8 that is located on SVM vs1, user1 would connect using the UNC path `\\vs1\user1`.
+
+.Example
+
+The commands in the following example create a home directory configuration with the following settings:
+
+* The share name is %w.
+* The relative home directory path is %d/%w.
+* The search path that is used to contain the home directories, `/home1`, is a volume configured with NTFS security style.
+* The configuration is created on SVM vs1.
+
+You can use this type of home directory configuration when users access their home directories from Windows hosts. You can also use this type of configuration when users access their home directories from Windows and UNIX hosts and the file system administrator uses Windows-based users and groups to control access to the file system.
+
+----
+cluster::> vserver cifs share create -vserver vs1 -share-name %w -path %d/%w -share-properties oplocks,browsable,changenotify,homedirectory
+
+cluster::> vserver cifs share show -vserver vs1 -share-name %w
+
+                      Vserver: vs1
+                        Share: %w
+     CIFS Server NetBIOS Name: VS1
+                         Path: %d/%w
+             Share Properties: oplocks
+                               browsable
+                               changenotify
+                               homedirectory
+           Symlink Properties: enable
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+
+cluster::> vserver cifs home-directory search-path add -vserver vs1 ‑path /home1
+
+cluster::> vserver cifs home-directory search-path show
+Vserver     Position Path
+----------- -------- -----------------
+vs1         1        /home1
+----
+
+*Related information*
+
+xref:configure-home-directories-u-variable-task.adoc[Configuring home directories using the %u variable]
+
+xref:home-directory-config-concept.adoc[Additional home directory configurations]
+
+xref:display-user-home-directory-path-task.adoc[Displaying information about an SMB user's home directory path]

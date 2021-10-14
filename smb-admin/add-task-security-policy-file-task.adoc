@@ -1,0 +1,78 @@
+---
+permalink: smb-admin/add-task-security-policy-file-task.html
+sidebar: sidebar
+keywords: creating, create, add, policy, task, security, policy, configuring, configure, apply, acl, associate, task, entries, add a task to the security policy
+summary: "Creating and adding a policy task to a security policy is the fourth step in configuring and applying ACLs to files or folders in SVMs. When you create the policy task, you associate the task with a security policy. You can add one or more task entries to a security policy."
+---
+= Add a task to the security policy
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Creating and adding a policy task to a security policy is the fourth step in configuring and applying ACLs to files or folders in SVMs. When you create the policy task, you associate the task with a security policy. You can add one or more task entries to a security policy.
+
+.About this task
+
+The security policy is a container for a task. A task refers to a single operation that can be done by a security policy to files or folders with NTFS or mixed security (or to a volume object if configuring Storage-Level Access Guard).
+
+There are two types of tasks:
+
+* File and directory tasks
++
+Used to specify tasks that apply security descriptors to specified files and folders. ACLs applied through file and directory tasks can be managed with SMB clients or the ONTAP CLI.
+
+* Storage-Level Access Guard tasks
++
+Used to specify tasks that apply Storage-Level Access Guard security descriptors to a specified volume. ACLs applied through Storage-Level Access Guard tasks can be managed only through the ONTAP CLI.
+
+A task contains definitions for the security configuration of a file (or folder) or set of files (or folders). Every task in a policy is uniquely identified by the path. There can be only one task per path within a single policy. A policy cannot have duplicate task entries.
+
+Guidelines for adding a task to a policy:
+
+* There can be a maximum of 10,000 tasks entries per policy.
+* A policy can contain one or more tasks.
++
+Even though a policy can contain more than one task, you cannot configure a policy to contain both file-directory and Storage-Level Access Guard tasks. A policy must contain either all Storage-Level Access Guard tasks or all file-directory tasks.
+
+* Storage-Level Access Guard is used to restrict permissions.
++
+It will never give extra access permissions.
+
+When adding tasks to security policies, you must specify the following four required parameters:
+
+* SVM name
+* Policy name
+* Path
+* Security descriptor to associate with the path
+
+You can customize the security descriptor configuration by using the following optional parameters:
+
+* Security type
+* Propagation mode
+* Index position
+* Access control type
+
+The value for any optional parameter is ignored for Storage-Level Access Guard. See the man pages for more information.
+
+.Steps
+
+. Add a task with an associated security descriptor to the security policy: `vserver security file-directory policy task add -vserver vserver_name -policy-name policy_name -path path -ntfs-sd SD_nameoptional_parameters`
++
+`file-directory` is the default value for the `-access-control` parameter. Specifying the access control type when configuring file and directory access tasks is optional.
++
+`vserver security file-directory policy task add -vserver vs1 -policy-name policy1 -path /home/dir1 -security-type ntfs -ntfs-mode propagate -ntfs-sd sd2 -index-num 1 -access-control file-directory`
+
+. Verify the policy task configuration: `vserver security file-directory policy task show -vserver vserver_name -policy-name policy_name -path path`
++
+`vserver security file-directory policy task show`
++
+----
+
+Vserver: vs1
+Policy: policy1
+
+Index    File/Folder    Access           Security   NTFS       NTFS Security
+         Path           Control          Type       Mode       Descriptor Name
+-----    --------       -----------      --------   ------     ----------------
+1        /home/dir1     file-directory   ntfs       propagate  sd2
+----

@@ -1,0 +1,140 @@
+---
+permalink: encryption-at-rest/enable-onboard-key-management-96-later-nve-task.html
+sidebar: sidebar
+keywords: enabling, onboard key management, ontap 9.6, later, nve
+summary: "You can use the Onboard Key Manager to secure the keys that the cluster uses to access encrypted data. You must enable Onboard Key Manager on each cluster that accesses an encrypted volume or a self-encrypting disk."
+---
+= Enable onboard key management in ONTAP 9.6 and later (NVE)
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the Onboard Key Manager to secure the keys that the cluster uses to access encrypted data. You must enable Onboard Key Manager on each cluster that accesses an encrypted volume or a self-encrypting disk.
+
+.What you'll need
+
+* You must be a cluster administrator to perform this task.
+* You must configure the MetroCluster environment before you configure an external key manager.
+
+.About this task
+
+You must run the `security key-manager onboard sync` command each time you add a node to the cluster.
+
+If you have a MetroCluster configuration you must run `security key-manager onboard enable` on the local cluster first, then run `security key-manager onboard sync` on the remote cluster, using the same passphrase on each.
+
+By default, you are not required to enter the key manager passphrase when a node is rebooted. You can use the `cc-mode-enabled=yes` option to require that users enter the passphrase after a reboot.
+
+For NVE, if you set `cc-mode-enabled=yes`, volumes you create with the `volume create` and `volume move start` commands are automatically encrypted. For `volume create`, you need not specify `-encrypt true`. For `volume move start`, you need not specify `-encrypt-destination true`.
+
+[NOTE]
+====
+When the Onboard Key Manager is enabled in Common Criteria mode (`cc-mode-enabled=yes`), system behavior is changed in the following ways:
+
+* The system monitors for consecutive failed cluster passphrase attempts when operating in Common Criteria mode.
++
+If you fail to enter the correct cluster passphrase at boot, encrypted volumes are not mounted. To correct this, you must reboot the node and enter the correct cluster passphrase. Once booted, the system allows up to 5 consecutive attempts to correctly enter the cluster passphrase in a 24-hour period for any command that requires the cluster passphrase as a parameter. If the limit is reached (for example, you have failed to correctly enter the cluster passphrase 5 times in a row) then you must either wait for the 24-hour timeout period to elapse, or you must reboot the node, in order to reset the limit.
+
+* System image updates use the NetApp RSA-3072 code signing certificate together with SHA-384 code signed digests to check the image integrity instead of the usual NetApp RSA-2048 code signing certificate and SHA-256 code signed digests.
++
+The upgrade command verifies that the image contents have not been altered or corrupted by checking various digital signatures. The image update process proceeds to the next step if validation succeeds; otherwise, the image update fails. See the "`cluster image`" man page for information concerning system updates.
+
+====
+
+[NOTE]
+====
+The Onboard Key Manager stores keys in volatile memory. Volatile memory contents are cleared when the system is rebooted or halted. Under normal operating conditions, volatile memory contents will be cleared within 30s when a system is halted.
+====
+
+.Steps
+
+. Start the key manager setup wizard:
++
+`security key-manager onboard enable -cc-mode-enabled yes|no`
++
+[NOTE]
+====
+Set `cc-mode-enabled=yes` to require that users enter the key manager passphrase after a reboot. For NVE, if you set `cc-mode-enabled=yes`, volumes you create with the `volume create` and `volume move start` commands are automatically encrypted. The `- cc-mode-enabled` option is not supported in MetroCluster configurations.    The `security key-manager onboard enable` command replaces the `security key-manager setup` command.
+====
++
+The following example starts the key manager setup command on cluster1 without requiring that the passphrase be entered after every reboot:
++
+----
+cluster1::> security key-manager onboard enable
+
+Enter the cluster-wide passphrase for onboard key management in Vserver "cluster1"::    <32..256 ASCII characters long text>
+Reenter the cluster-wide passphrase:    <32..256 ASCII characters long text>
+----
+
+. At the passphrase prompt, enter a passphrase between 32 and 256 characters, or for "`cc-mode`", a passphrase between 64 and 256 characters.
++
+[NOTE]
+====
+If the specified "`cc-mode`" passphrase is less than 64 characters, there is a five-second delay before the key manager setup wizard displays the passphrase prompt again.
+====
+
+. At the passphrase confirmation prompt, reenter the passphrase.
+. Verify that the authentication keys have been created:
++
+`security key-manager key query -key-type NSE-AK`
++
+[NOTE]
+====
+The `security key-manager key query` command replaces the `security key-manager query key` command. For complete command syntax, see the man page.
+====
++
+The following example verifies that authentication keys have been created for `cluster1`:
++
+----
+cluster1::> security key-manager key query -key-type NSE-AK
+       Vserver: cluster1
+   Key Manager: onboard
+          Node: node1
+
+Key Tag                               Key Type  Restored
+------------------------------------  --------  --------
+node1                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
+node1                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+
+       Vserver: svm1
+   Key Manager: onboard
+          Node: node1
+    Key Server: keyserver.svm1.com:5965
+
+Key Tag                               Key Type  Restored
+------------------------------------  --------  --------
+eb9f8311-e8d8-487e-9663-7642d7788a75  VEK       yes
+    Key ID: 0000000000000000020000000000004001cb18336f7c8223743d3e75c6a7726e0000000000000000
+9d09cbbf-0da9-4696-87a1-8e083d8261bb  VEK       yes
+    Key ID: 0000000000000000020000000000004064f2e1533356a470385274a9c3ffb9770000000000000000
+
+       Vserver: cluster1
+   Key Manager: onboard
+          Node: node2
+
+Key Tag                               Key Type  Restored
+------------------------------------  --------  --------
+node1                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
+node1                                 NSE-AK    yes
+    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+
+       Vserver: svm1
+   Key Manager: onboard
+          Node: node2
+    Key Server: keyserver.svm1.com:5965
+
+Key Tag                               Key Type  Restored
+------------------------------------  --------  --------
+eb9f8311-e8d8-487e-9663-7642d7788a75  VEK       yes
+    Key ID: 0000000000000000020000000000004001cb18336f7c8223743d3e75c6a7726e0000000000000000
+9d09cbbf-0da9-4696-87a1-8e083d8261bb  VEK       yes
+    Key ID: 0000000000000000020000000000004064f2e1533356a470385274a9c3ffb9770000000000000000
+----
+
+.After you finish
+
+Copy the passphrase to a secure location outside the storage system for future use.
+
+All key management information is automatically backed up to the replicated database (RDB) for the cluster. You should also back up the information manually for use in case of a disaster.

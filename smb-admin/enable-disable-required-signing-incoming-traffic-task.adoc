@@ -1,0 +1,65 @@
+---
+permalink: smb-admin/enable-disable-required-signing-incoming-traffic-task.html
+sidebar: sidebar
+keywords: enforce, requirement, client, smb, message, enabling, enable, require, sign, disable, enable or disable require smb signing for incoming smb traffic
+summary: "You can enforce the requirement for clients to sign SMB messages by enabling required SMB signing. If enabled, ONTAP accepts SMB messages only if they have valid signatures. If you want to permit SMB signing, but not require it, you can disable required SMB signing."
+---
+= Enable or disable required SMB signing for incoming SMB traffic
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can enforce the requirement for clients to sign SMB messages by enabling required SMB signing. If enabled, ONTAP accepts SMB messages only if they have valid signatures. If you want to permit SMB signing, but not require it, you can disable required SMB signing.
+
+.About this task
+
+By default, required SMB signing is disabled. You can enable or disable required SMB signing at any time.
+
+[NOTE]
+====
+SMB signing is not disabled by default under the following circumstances:
+
+. Required SMB signing is enabled, and the cluster is reverted to a version of ONTAP that does not support SMB signing.
+. The cluster is subsequently upgraded to a version of ONTAP that supports SMB signing.
++
+Under these circumstances, the SMB signing configuration that was originally configured on a supported version of ONTAP is retained through reversion and subsequent upgrade.
+
+====
+
+When you set up a storage virtual machine (SVM) disaster recovery relationship, the value that you select for the `-identity-preserve` option of the `snapmirror create` command determines the configuration details that are replicated in the destination SVM.
+
+If you set the `-identity-preserve` option to `true` (ID-preserve), the SMB signing security setting is replicated to the destination.
+
+If you set the `-identity-preserve` option to `false` (non-ID-preserve), the SMB signing security setting is not replicated to the destination. In this case, the CIFS server security settings on the destination are set to the default values. If you have enabled required SMB signing on the source SVM, you must manually enable required SMB signing on the destination SVM.
+
+.Steps
+
+. Perform one of the following actions:
++
+[options="header"]
+|===
+| If you want required SMB signing to be...| Enter the command...
+a|
+Enabled
+a|
+`vserver cifs security modify -vserver vserver_name -is-signing-required true`
+a|
+Disabled
+a|
+`vserver cifs security modify -vserver vserver_name -is-signing-required false`
+|===
+
+. Verify that required SMB signing is enabled or disabled by determining whether the value in the `Is Signing Required` field in the output of the following command is set to the desired value: `vserver cifs security show -vserver vserver_name -fields is-signing-required`
+
+.Example
+
+The following example enables required SMB signing for SVM vs1:
+
+----
+cluster1::> vserver cifs security modify -vserver vs1 -is-signing-required true
+
+cluster1::> vserver cifs security show -vserver vs1 -fields is-signing-required
+vserver  is-signing-required
+-------- -------------------
+vs1      true
+----

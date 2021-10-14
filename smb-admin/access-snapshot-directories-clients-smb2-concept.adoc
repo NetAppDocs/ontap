@@ -1,0 +1,49 @@
+---
+permalink: smb-admin/access-snapshot-directories-clients-smb2-concept.html
+sidebar: sidebar
+keywords: method, access, snapshot, directory, windows, client, smb, data, store, copies, copy, how to access the snapshot directory from windows clients using smb 2.x
+summary: "The method that you use to access the ~snapshot directory from Windows clients using SMB 2.x differs from the method used for SMB 1.0. You need to understand how to access the ~snapshot directory when using SMB 2.x connections to successfully access data stored in Snapshot copies."
+---
+= How to access the ~snapshot directory from Windows clients using SMB 2.x
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The method that you use to access the `~snapshot` directory from Windows clients using SMB 2.x differs from the method used for SMB 1.0. You need to understand how to access the `~snapshot` directory when using SMB 2.x connections to successfully access data stored in Snapshot copies.
+
+The SVM administrator controls whether users on Windows clients can view and access the `~snapshot` directory on a share by enabling or disabling the `showsnapshot` share property using commands from the vserver cifs share properties families.
+
+When the `showsnapshot` share property is disabled, a user on a Windows client using SMB 2.x cannot view the `~snapshot` directory and cannot access Snapshot copies within the `~snapshot` directory, even when manually entering the path to the `~snapshot` directory or to specific Snapshot copies within the directory.
+
+When the `showsnapshot` share property is enabled, a user on a Windows client using SMB 2.x still cannot view the `~snapshot` directory either at the root of the share or within any junction or directory below the root of the share. However, after connecting to a share, the user can access the hidden `~snapshot` directory by manually appending `\~snapshot` to the end of the share path. The hidden `~snapshot` directory is accessible from two entry points:
+
+* At the root of the share
+* At every junction point in the share space
+
+The hidden `~snapshot` directory is not accessible from non-junction subdirectories within the share.
+
+.Example
+
+With the configuration shown in the following example, a user on a Windows client with an SMB 2.x connection to the "`eng`" share can access the `~snapshot` directory by manually appending `\~snapshot` to the share path at the root of the share and at every junction point in the path. The hidden `~snapshot` directory is accessible from the following three paths:
+
+* `\\vs1\eng\~snapshot`
+* `\\vs1\eng\projects1\~snapshot`
+* `\\vs1\eng\projects2\~snapshot`
+
+----
+cluster1::> volume show -vserver vs1 -fields volume,junction-path
+vserver volume       junction-path
+------- ------------ ----------------------------------------
+vs1     vs1_root      /
+vs1     vs1_vol1      /eng
+vs1     vs1_vol2      /eng/projects1
+vs1     vs1_vol3      /eng/projects2
+
+cluster1::> vserver cifs share show
+Vserver  Share   Path     Properties    Comment  ACL
+-------- ------  -------  ----------    -------- ----------
+vs1      eng     /eng     oplocks       -        Everyone / Full Control
+                          changenotify
+                          browsable
+                          showsnapshot
+----

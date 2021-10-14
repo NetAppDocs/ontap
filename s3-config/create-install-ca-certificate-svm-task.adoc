@@ -1,0 +1,117 @@
+---
+permalink: s3-config/create-install-ca-certificate-svm-task.html
+sidebar: sidebar
+keywords: create, install, ca certificate, svm
+summary: "A Certificate Authority (CA) certificate is required to enable HTTPS traffic from S3 clients to the S3-enabled SVM."
+---
+= Create and install a CA certificate on the SVM
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+A Certificate Authority (CA) certificate is required to enable HTTPS traffic from S3 clients to the S3-enabled SVM.
+
+.About this task
+
+Although it is possible to configure an S3 server to use HTTP only, and although it is possible to configure clients without a CA certificate requirement, it is a best practice to secure HTTPS traffic to ONTAP S3 servers with a CA certificate.
+
+A CA certificate is not necessary for a local tiering use case, where IP traffic is going over cluster LIFs only.
+
+The instructions in this procedure will create and install an ONTAP self-signed certificate. CA certificates from third-party vendors are also supported; see the administrator authentication documentation for more information.
+
+https://docs.netapp.com/us-en/ontap/authentication/index.html[Administrator authentication and RBAC]
+
+See the `security certificate` man pages for additional configuration options.
+
+.Steps
+
+. Create a self-signed digital certificate:
++
+`security certificate create -vserver svm_name -type root-ca -common-name ca_cert_name`
++
+The `-type root-ca` option creates and installs a self-signed digital certificate to sign other certificates by acting as a certificate authority (CA).
++
+The `-common-name` option creates the SVM's Certificate Authority (CA) name and will be used when generating the certificate's complete name.
++
+The default certificate size is 2048 bits.
++
+Example
++
+----
+cluster-1::> security certificate create -vserver svm1.example.com -type root-ca -common-name svm1_ca
+
+The certificate's generated name for reference: svm1_ca_159D1587CE21E9D4_svm1_ca
+----
++
+When the certificate's generated name is displayed; be sure to save it for later steps in this procedure.
+
+. Generate a certificate signing request:
++
+`security certificate generate-csr -common-name s3_server_name [additional_options]`
++
+The `-common-name` parameter for the signing request must be the S3 server name (FQDN).
++
+You can provide the location and other detailed information about the SVM if desired.
++
+You are prompted to keep a copy of your certificate request and private key for future reference.
+
+. Sign the CSR using SVM_CA to generate S3 Server's certificate:
++
+`security certificate sign -vserver svm_name -ca ca_cert_name -ca-serial ca_cert_serial_number [additional_options]`
++
+Enter the command options that you used in previous steps:
++
+  ** `-ca` -- the common name of the CA that you entered in Step 1.
+  ** `-ca-serial` -- the CA serial number from Step 1. For example, if the CA certificate name is svm1_ca_159D1587CE21E9D4_svm1_ca, the serial number is 159D1587CE21E9D4.
++
+By default, the signed certificate will expire in 365 days. You can select another value, and specify other signing details.
++
+When prompted, copy and enter the certificate request string you saved in Step 2.
++
+A signed certificate is displayed; save it for later use.
+
+. Install the signed certificate on the S3-enabled SVM:
++
+`security certificate install -type server -vserver svm_name`
++
+When prompted, enter the certificate and private key.
++
+You have the option to enter intermediate certificates if a certificate chain is desired.
++
+When the private key and the CA-signed digital certificate are displayed; save them for future reference.
+
+. Get the public key certificate:
++
+`security certificate show -vserver svm_name -common-name ca_cert_name -type root-ca -instance`
++
+Save the public key certificate for later client-side configuration.
++
+Example
++
+----
+cluster-1::> security certificate show -vserver svm1.example.com -common-name svm1_ca -type root-ca  -instance
+
+                      Name of Vserver: svm1.example.com
+           FQDN or Custom Common Name: svm1_ca
+         Serial Number of Certificate: 159D1587CE21E9D4
+                Certificate Authority: svm1_ca
+                  Type of Certificate: root-ca
+     (DEPRECATED)-Certificate Subtype: -
+              Unique Certificate Name: svm1_ca_159D1587CE21E9D4_svm1_ca
+Size of Requested Certificate in Bits: 2048
+               Certificate Start Date: Thu May 09 10:58:39 2020
+          Certificate Expiration Date: Fri May 08 10:58:39 2021
+               Public Key Certificate: -----BEGIN CERTIFICATE-----
+MIIDZ ...==
+-----END CERTIFICATE-----
+                         Country Name: US
+               State or Province Name:
+                        Locality Name:
+                    Organization Name:
+                    Organization Unit:
+Contact Administrator's Email Address:
+                             Protocol: SSL
+                     Hashing Function: SHA256
+              Self-Signed Certificate: true
+       Is System Internal Certificate: false
+----

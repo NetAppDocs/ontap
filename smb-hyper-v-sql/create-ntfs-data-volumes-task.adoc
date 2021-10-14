@@ -1,0 +1,50 @@
+---
+permalink: smb-hyper-v-sql/create-ntfs-data-volumes-task.html
+sidebar: sidebar
+keywords: create, ntfs, data, volume, storage, virutal, machine, svm, smb, application, server, volume, configuration
+summary: "You must create NTFS data volumes on the storage virtual machine (SVM) before you can configure continuously available shares for use with Hyper-V or SQL Server over SMB application servers. Use the volume configuration worksheet to create your data volumes."
+---
+= Create NTFS data volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You must create NTFS data volumes on the storage virtual machine (SVM) before you can configure continuously available shares for use with Hyper-V or SQL Server over SMB application servers. Use the volume configuration worksheet to create your data volumes.
+
+.About this task
+
+There are optional parameters that you can use to customize a data volume. For more information about customizing volumes, see the link:https://docs.netapp.com/us-en/ontap/volumes/index.html[_Logical Storage Management_].
+
+As you create your data volumes, you should not create junction points within a volume that contains the following:
+
+* Hyper-V files for which ONTAP makes shadow copies
+* SQL Server database files that are backed up using SQL Server
+
+[NOTE]
+====
+If you inadvertently create a volume that uses mixed or UNIX security style, you cannot change the volume to an NTFS security style volume and then directly use it to create continuously available shares for nondisruptive operations. Nondisruptive operations for Hyper-V and SQL Server over SMB do not work correctly unless the volumes used in the configuration are created as NTFS security-style volumes.You must either delete the volume and re-create the volume with NTFS security style, or you can map the volume on a Windows host and apply an ACL at the top of the volume and propagate the ACL to all files and folders in the volume.
+
+====
+
+.Steps
+
+. Create the data volume by entering the appropriate command:
++
+[options="header"]
+[cols="1, 4"]
+|===
+| If you want to create a volume in an SVM where the root volume security style is...| Enter the command...
+a|
+NTFS
+a|
+`*volume create -vserver _vserver_name_ -volume _volume_name_ -aggregate _aggregate_name_ -size integer[KB|MB|GB|TB|PB] -junction-path _path_*`
+a|
+Not NTFS
+a|
+`*volume create -vserver _vserver_name_ -volume _volume_name_ -aggregate _aggregate_name_ -size integer[KB|MB|GB|TB|PB] -security-style ntfs -junction-path path*`
+|===
+
+. Verify that the volume configuration is correct:
++
+`*volume show -vserver _vserver_name_ -volume _volume_name_*`
+

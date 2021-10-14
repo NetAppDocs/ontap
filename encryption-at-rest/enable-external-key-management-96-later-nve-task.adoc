@@ -1,0 +1,107 @@
+---
+permalink: encryption-at-rest/enable-external-key-management-96-later-nve-task.html
+sidebar: sidebar
+keywords: enabling, external key management, ontap 9.6, later, nve
+summary: "You can use one or more KMIP servers to secure the keys the cluster uses to access encrypted data. Starting with ONTAP 9.6, you can use one or more KMIP servers to secure the keys a given SVM uses to access encrypted data."
+---
+= Enable external key management in ONTAP 9.6 and later (NVE)
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use one or more KMIP servers to secure the keys the cluster uses to access encrypted data. Starting with ONTAP 9.6, you can use one or more KMIP servers to secure the keys a given SVM uses to access encrypted data.
+
+.What you'll need
+
+* The KMIP SSL client and server certificates must have been installed.
+* You must be a cluster or SVM administrator to perform this task.
+* You must configure the MetroCluster environment before you enable encryption.
+
+.About this task
+
+You can connect up to four KMIP servers to a cluster or SVM. A minimum of two servers is recommended for redundancy and disaster recovery.
+
+The scope of external key management determines whether key management servers secure all the SVMs in the cluster or selected SVMs only:
+
+* You can use a _cluster scope_ to configure external key management for all the SVMs in the cluster. The cluster administrator has access to every key stored on the servers.
+* Starting with ONTAP 9.6, you can use an _SVM scope_ to configure external key management for a named SVM in the cluster. That's best for multitenant environments in which each tenant uses a different SVM (or set of SVMs) to serve data. Only the SVM administrator for a given tenant has access to the keys for that tenant.
+* For multitenant environments, install a license for _MT_EK_MGMT_ by using the following command:
++
+`system license add -license-code <MT_EK_MGMT license code>`
++
+For complete command syntax, see the man page for the command.
+
+You can use both scopes in the same cluster. If key management servers have been configured for an SVM, ONTAP uses only those servers to secure keys. Otherwise, ONTAP secures keys with the key management servers configured for the cluster.
+
+You can configure onboard key management at the cluster scope and external key management at the SVM scope. You can use the `security key-manager key migrate` command to migrate keys from onboard key management at the cluster scope to external key managers at the SVM scope.
+
+.Steps
+
+. Configure key manager connectivity for the cluster:
++
+`security key-manager external enable -vserver admin_SVM -key-servers host_name|IP_address:port,... -client-cert client_certificate -server-ca-cert server_CA_certificates`
++
+[NOTE]
+====
+The `security key-manager external enable` command replaces the `security key-manager setup` command. If you run the command at the cluster login prompt, `_admin_SVM_` defaults to the admin SVM of the current cluster.     You must be the cluster administrator to configure cluster scope. You can run the `security key-manager external modify` command to change the external key management configuration.
+====
++
+The following command enables external key management for `cluster1` with three external key servers. The first key server is specified using its hostname and port, the second is specified using an IP address and the default port, and the third is specified using an IPv6 address and port:
++
+----
+clusterl::> security key-manager external enable -vserver cluster1 -key-servers ks1.local:15696,10.0.0.10,[fd20:8b1e:b255:814e:32bd:f35c:832c:5a09]:1234 -client-cert AdminVserverClientCert -server-ca-certs AdminVserverServerCaCert
+----
+
+. Configure key manager connectivity for an SVM:
++
+`security key-manager external enable -vserver SVM -key-servers host_name|IP_address:port,... -client-cert client_certificate -server-ca-cert server_CA_certificates`
++
+[NOTE]
+====
+If you run the command at the SVM login prompt, `SVM` defaults to the current SVM.     You must be a cluster or SVM administrator to configure SVM scope. You can run the `security key-manager external modify` command to change the external key management configuration.
+====
++
+The following command enables external key management for `svm1` with a single key server listening on the default port 5696:
++
+----
+svm1l::> security key-manager external enable -vserver svm1 -key-servers keyserver.svm1.com -client-cert SVM1ClientCert -server-ca-certs SVM1ServerCaCert
+----
+
+. Repeat the last step for any additional SVMs.
++
+[NOTE]
+====
+You can also use the `security key-manager external add servers` command to configure additional SVMs. The `security key-manager external add servers` command replaces the `security key-manager add` command. For complete command syntax, see the man page.
+====
+
+. Verify that all configured KMIP servers are connected:
++
+`security key-manager external show-status -node node_name`
++
+[NOTE]
+====
+The `security key-manager external show-status` command replaces the `security key-manager show -status` command. For complete command syntax, see the man page.
+====
++
+----
+cluster1::> security key-manager external show-status
+
+Node  Vserver  Key Server                                     Status
+----  -------  ---------------------------------------        -------------
+node1
+      svm1
+               keyserver.svm1.com:5696                        available
+      cluster1
+               10.0.0.10:5696                                 available
+               fd20:8b1e:b255:814e:32bd:f35c:832c:5a09:1234   available
+               ks1.local:15696                                available
+node2
+      svm1
+               keyserver.svm1.com:5696                        available
+      cluster1
+               10.0.0.10:5696                                 available
+               fd20:8b1e:b255:814e:32bd:f35c:832c:5a09:1234   available
+               ks1.local:15696                                available
+
+8 entries were displayed.
+----

@@ -1,0 +1,129 @@
+---
+permalink: smb-admin/configure-home-directories-u-variable-task.html
+sidebar: sidebar
+keywords: create, home, directory, configuration, designate, share, name, variable, user, windows, dynamic, configure, configure home directories using the %u variable
+summary: "You can create a home directory configuration where you designate the share name using the %w variable but you use the %u variable to designate the relative path to the home directory share. Users can then connect to their home share using dynamically shares created using their Windows user name without being aware of the actual name or path of the home directory."
+---
+= Configure home directories using the %u variable
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create a home directory configuration where you designate the share name using the `%w` variable but you use the `%u` variable to designate the relative path to the home directory share. Users can then connect to their home share using dynamically shares created using their Windows user name without being aware of the actual name or path of the home directory.
+
+.Steps
+
+. Create a qtree to contain user's home directories by entering the following command: `volume qtree create -vserver vserver_name -qtree-path qtree_path`
+. Verify that the qtree is using the correct security style by entering the following command: `volume qtree show`
+. If the qtree is not using the desired security style, change the security style using the `volume qtree security` command.
+. Add a home directory share by entering the following command: `+vserver cifs share create -vserver vserver -share-name %w -path %u -share-properties homedirectory ,...]+`
++
+`-vserver` `vserver` specifies the CIFS-enabled storage virtual machine (SVM) on which to add the search path.
++
+`-share-name` `%w` specifies the home directory share name. The share name is dynamically created as each user connects to their home directory and is of the form _windows_user_name_.
++
+[NOTE]
+====
+You can also use the `%u` variable for the `-share-name` option. This creates a relative share path that uses the mapped UNIX user name.
+====
++
+`-path` `%u` specifies the relative path to the home directory. The relative path is created dynamically as each user connects to their home directory and is of the form _mapped_UNIX_user_name_.
++
+[NOTE]
+====
+The value for this option can contain static elements as well. For example, `eng/%u`.
+====
++
+`-share-properties` `+homedirectory\[,...\]+` specifies the share properties for that share. You must specify the `homedirectory` value. You can specify additional share properties using a comma delimited list.
+
+. Verify that the share has the desired configuration using the `vserver cifs share show` command.
+. Add a home directory search path by entering the following command: `vserver cifs home-directory search-path add -vserver vserver -path path`
++
+`-vserver` `vserver` specifies the CIFS-enabled SVM on which to add the search path.
++
+`-path` `path` specifies the absolute directory path to the search path.
+
+. Verify that you successfully added the search path using the `vserver cifs home-directory search-path show` command.
+. If the UNIX user does not exist, create the UNIX user using the `vserver services unix-user create` command.
++
+[NOTE]
+====
+The UNIX user name to which you map the Windows user name must exist before mapping the user.
+====
+
+. Create a name mapping for the Windows user to the UNIX user using the following command: `vserver name-mapping create -vserver vserver_name -direction win-unix -priority integer -pattern windows_user_name -replacement unix_user_name`
++
+[NOTE]
+====
+If name mappings already exist that map Windows users to UNIX users, you do not have to perform the mapping step.
+====
++
+The Windows user name is mapped to the corresponding UNIX user name. When the Windows user connects to their home directory share, they connect to a dynamically created home directory with a share name that corresponds to their Windows user name without being aware that the directory name corresponds to the UNIX user name.
+
+. For users with a home directory, create a corresponding directory in the qtree or volume designated to contain home directories.
++
+For example, if you created a qtree with the path of `/vol/vol1/users` and the mapped UNIX user name of the user whose directory you want to create is "`unixuser1`", you would create a directory with the following path: `/vol/vol1/users/unixuser1`.
++
+If you created a volume named "`home1`" mounted at `/home1`, you would create a directory with the following path: `/home1/unixuser1`.
+
+. Verify that a user can successfully connect to the home share either by mapping a drive or connecting using the UNC path.
++
+For example, if user mydomain\user1 maps to UNIX user unixuser1 and wants to connect to the directory created in Step 10 that is located on SVM vs1, user1 would connect using the UNC path `\\vs1\user1`.
+
+.Example
+
+The commands in the following example create a home directory configuration with the following settings:
+
+* The share name is %w.
+* The relative home directory path is %u.
+* The search path that is used to contain the home directories, `/home1`, is a volume configured with UNIX security style.
+* The configuration is created on SVM vs1.
+
+You can use this type of home directory configuration when users access their home directories from both Windows hosts or Windows and UNIX hosts and the file system administrator uses UNIX-based users and groups to control access to the file system.
+
+----
+cluster::> vserver cifs share create -vserver vs1 -share-name %w -path %u ‑share-properties oplocks,browsable,changenotify,homedirectory
+
+cluster::> vserver cifs share show -vserver vs1 -share-name %u
+
+                      Vserver: vs1
+                        Share: %w
+     CIFS Server NetBIOS Name: VS1
+                         Path: %u
+             Share Properties: oplocks
+                               browsable
+                               changenotify
+                               homedirectory
+           Symlink Properties: enable
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+
+cluster::> vserver cifs home-directory search-path add -vserver vs1 ‑path /home1
+
+cluster::> vserver cifs home-directory search-path show -vserver vs1
+Vserver     Position Path
+----------- -------- -----------------
+vs1         1        /home1
+
+cluster::> vserver name-mapping create -vserver vs1 -direction win-unix ‑position 5 -pattern user1 -replacement unixuser1
+
+cluster::> vserver name-mapping show -pattern user1
+Vserver        Direction Position
+-------------- --------- --------
+vs1            win-unix  5        Pattern: user1
+                              Replacement: unixuser1
+----
+
+*Related information*
+
+xref:create-home-directory-config-w-d-variables-task.adoc[Creating a home directory configuration using the %w and %d variables]
+
+xref:home-directory-config-concept.adoc[Additional home directory configurations]
+
+xref:display-user-home-directory-path-task.adoc[Displaying information about an SMB user's home directory path]

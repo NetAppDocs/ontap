@@ -1,0 +1,132 @@
+---
+permalink: system-admin/troubleshoot-autosupport-delivery-smtp-task.html
+sidebar: sidebar
+keywords: troubleshoot, autosupport, deliver, system, smtp, settings, resolve, problem
+summary: "If the system cannot deliver AutoSupport messages over SMTP, you can check a number of settings to resolve the problem."
+---
+= Troubleshoot AutoSupport message delivery over SMTP
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If the system cannot deliver AutoSupport messages over SMTP, you can check a number of settings to resolve the problem.
+
+.What you'll need
+
+You should have confirmed basic network connectivity and DNS lookup:
+
+* Your node management LIF must be up for operational and administrative status.
+* You must be able to ping a functioning host on the same subnet from the cluster management LIF (not a LIF on any of the nodes).
+* You must be able to ping a functioning host outside the subnet from the cluster management LIF.
+* You must be able to ping a functioning host outside the subnet from the cluster management LIF using the name of the host (not the IP address).
+
+.About this task
+
+These steps are for cases when you have determined that AutoSupport can generate the message, but cannot deliver the message over SMTP.
+
+If you encounter errors or cannot complete a step in this procedure, determine and address the problem before proceeding to the next step.
+
+All commands are entered at the ONTAP command-line interface, unless otherwise specified.
+
+.Steps
+
+. Verify the status of the node management LIF:
++
+`*network interface show -home-node local -role node-mgmt -fields vserver,lif,status-oper,status-admin,address,role*`
++
+The `status-oper` and `status-admin` fields should return `up`.
+
+. Record the SVM name, the LIF name, and the LIF IP address for later use.
+. Ensure that DNS is enabled and configured correctly:
++
+`*vserver services name-service dns show*`
+. Display all of the servers configured to be used by AutoSupport:
++
+`*system node autosupport show -fields mail-hosts*`
++
+Record all server names displayed.
+
+. For each server displayed by the previous step, and `support.netapp.com`, ensure that the server or URL can be reached by the node:
++
+`*network traceroute -node local -destination _server_name_*`
++
+If any of these routes is not functioning, try the same route from a functioning host on the same subnet as the cluster, using the "`traceroute`" or "`tracert`" utility found on most third-party network clients. This assists you in determining whether the issue is in your network configuration or your cluster configuration.
+
+. Log in to the host designated as the mail host, and ensure that it can serve SMTP requests:
++
+`*netstat -aAn|grep 25*`
++
+`25` is the listener SMTP port number.
++
+A message similar to the following text is displayed:
++
+----
+ff64878c tcp        0      0  *.25    *.*    LISTEN.
+----
+
+. From some other host, open a Telnet session with the SMTP port of the mail host:
++
+`*telnet _mailhost_ 25*`
++
+A message similar to the following text is displayed:
++
+----
+
+220 filer.yourco.com Sendmail 4.1/SMI-4.1 ready at Thu, 30 Nov 2014 10:49:04 PST
+----
+
+. At the telnet prompt, ensure that a message can be relayed from your mail host:
++
+`*HELO _domain_name_*`
++
+`*MAIL FROM: _your_email_address_*`
++
+`*RCPT TO: autosupport@netapp.com*`
++
+`domain_name` is the domain name of your network.
++
+If an error is returned saying that relaying is denied, relaying is not enabled on the mail host. Contact your system administrator.
+
+. At the telnet prompt, send a test message:
++
+`*DATA*`
++
+`*SUBJECT: TESTING*`
+`*THIS IS A TEST*`
++
+`*.*`
++
+[NOTE]
+====
+Ensure that you enter the last period (.) on a line by itself. The period indicates to the mail host that the message is complete.
+====
++
+If an error is returned, your mail host is not configured correctly. Contact your system administrator.
+
+. From the ONTAP command-line interface, send an AutoSupport test message to a trusted email address that you have access to:
++
+`*system node autosupport invoke -node local -type test*`
+. Find the sequence number of the attempt:
++
+`*system node autosupport history show -node local -destination smtp*`
++
+Find the sequence number for your attempt based on the timestamp. It is probably the most recent attempt.
+
+. Display the error for your test message attempt:
++
+`*system node autosupport history show -node local -seq-num seq_num -fields error*`
++
+If the error displayed is `Login denied`, your SMTP server is not accepting send requests from the cluster management LIF. If you do not want to change to using HTTPS as your transport protocol, contact your site network administrator to configure the SMTP gateways to address this issue.
++
+If this test succeeds but the same message sent to mailto:autosupport@netapp.com does not, ensure that SMTP relay is enabled on all of your SMTP mail hosts, or use HTTPS as a transport protocol.
++
+If even the message to the locally administered email account does not succeed, confirm that your SMTP servers are configured to forward attachments with both of these characteristics:
+
+ ** The "`7z`" suffix
+ ** The "`application/x-7x-compressed`" MIME type.
+
+*Related information*
+
+xref:troubleshoot-autosupport-messages-not-received-task.adoc[Troubleshooting AutoSupport when messages are not received]
+
+https://docs.netapp.com/us-en/ontap/networking/index.html[Network management]

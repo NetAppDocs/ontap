@@ -1,0 +1,113 @@
+---
+permalink: flexgroup/perform-snapmirror-single-file-restore-task.html
+sidebar: sidebar
+keywords: perform, snapmirror, single, file, restore, flexgroup, volume
+summary: "Starting in ONTAP 9.8, you can restore a single file from a FlexGroup SnapMirror vault or from a UDP destination."
+---
+= Perform a SnapMirror single file restore from a FlexGroup volume
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Starting in ONTAP 9.8, you can restore a single file from a FlexGroup SnapMirror vault or from a UDP destination.
+
+.About this task
+
+* You can restore from a FlexGroup volume of any geometry to FlexGroup volume of any geometry
+* Only one file per restore operation is supported
+* You can restore to either the original source FlexGroup volume or to a new FlexGroup volume
+* Remote fenced file lookup is not supported.
++
+Single file restore fails if the source file is fenced.
+
+* You can restart or clean up an aborted single file restore
+* You should clean up a failed single file restore transfer by using the `clean-up-failure` option of the `snapmirror restore` command
+* Expansion of FlexGroup volumes is supported when a FlexGroup single file restore is in progress or in an aborted state
+
+.Steps
+
+. Restore a file from a FlexGroup volume:``snapmirror restore -destination-path destination_path -source-path source_path -file-list /f1 -throttle throttle -source-snapshot snapshot``
++
+The following is an example of a FlexGroup volume single file restore operation.
++
+----
+vserverA::> snapmirror restore -destination-path vs0:fg2 -source-path vs0:fgd -file-list /f1 -throttle 5 -source-snapshot snapmirror.81072ce1-d57b-11e9-94c0-005056a7e422_2159190496.2019-09-19_062631
+[Job 135] Job is queued: snapmirror restore from source "vs0:fgd" for the snapshot snapmirror.81072ce1-d57b-11e9-94c0-005056a7e422_2159190496.2019-09-19_062631.
+vserverA::> snapmirror show
+                                                                                         Source              Destination Mirror   Relationship                   Total Last
+Path       Type   Path            State    Status           Progress Healthy Updated
+----------- ----      ------------     -------    ---------          ----- --------- ------- --------
+vs0:v1d RST    vs0:v2          -           Transferring Idle 83.12KB true 09/19 11:38:42
+
+vserverA::*> snapmirror show vs0:fg2
+
+Source Path: vs0:fgd
+Source Cluster: -
+Source Vserver: vs0
+Source Volume: fgd
+Destination Path: vs0:fg2
+Destination Cluster: -
+Destination Vserver: vs0
+Destination Volume: fg2
+Relationship Type: RST
+Relationship Group Type: none
+Managing Vserver: vs0
+SnapMirror Schedule: -
+SnapMirror Policy Type: -
+SnapMirror Policy: -
+Tries Limit: -
+Throttle (KB/sec): unlimited
+Current Transfer Throttle (KB/sec): 2
+Mirror State: -
+Relationship Status: Transferring
+File Restore File Count: 1
+File Restore File List: f1
+Transfer Snapshot: snapmirror.81072ce1-d57b-11e9-94c0-005056a7e422_2159190496.2019-09-19_062631
+Snapshot Progress: 2.87MB
+Total Progress: 2.87MB
+Network Compression Ratio: 1:1
+Snapshot Checkpoint: 2.97KB
+Newest Snapshot: -
+Newest Snapshot Timestamp: -
+Exported Snapshot: -
+Exported Snapshot Timestamp: -
+Healthy: true
+Physical Replica: -
+Relationship ID: e6081667-dacb-11e9-94c0-005056a7e422
+Source Vserver UUID: 81072ce1-d57b-11e9-94c0-005056a7e422
+Destination Vserver UUID: 81072ce1-d57b-11e9-94c0-005056a7e422
+Current Operation ID: 138f12e6-dacc-11e9-94c0-005056a7e422
+Transfer Type: cg_file_restore
+Transfer Error: -
+Last Transfer Type: -
+Last Transfer Error: -
+Last Transfer Error Codes: -
+Last Transfer Size: -
+Last Transfer Network Compression Ratio: -
+Last Transfer Duration: -
+Last Transfer From: -
+Last Transfer End Timestamp: -
+Unhealthy Reason: -
+Progress Last Updated: 09/19 07:07:36
+Relationship Capability: 8.2 and above
+Lag Time: -
+Current Transfer Priority: normal
+SMTape Operation: -
+Constituent Relationship: false
+Destination Volume Node Name: vserverA
+Identity Preserve Vserver DR: -
+Number of Successful Updates: 0
+Number of Failed Updates: 0
+Number of Successful Resyncs: 0
+Number of Failed Resyncs: 0
+Number of Successful Breaks: 0
+Number of Failed Breaks: 0
+Total Transfer Bytes: 0
+Total Transfer Time in Seconds: 0
+Source Volume MSIDs Preserved: -
+OpMask: ffffffffffffffff
+Is Auto Expand Enabled: -
+Source Endpoint UUID: -
+Destination Endpoint UUID: -
+Is Catalog Enabled: false
+----

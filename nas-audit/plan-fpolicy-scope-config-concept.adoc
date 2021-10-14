@@ -1,0 +1,138 @@
+---
+permalink: nas-audit/plan-fpolicy-scope-config-concept.html
+sidebar: sidebar
+keywords: plan, fpolicy, scope, configuration
+summary: "Before you configure the FPolicy scope, you must understand what it means to create a scope. You must understand what the scope configuration contains. You also need to understand what the scope rules of precedence are. This information can help you plan the values that you want to set."
+---
+= Plan the FPolicy scope configuration overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you configure the FPolicy scope, you must understand what it means to create a scope. You must understand what the scope configuration contains. You also need to understand what the scope rules of precedence are. This information can help you plan the values that you want to set.
+
+== What it means to create an FPolicy scope
+
+Creating the FPolicy scope means defining the boundaries on which the FPolicy policy applies. The storage virtual machine (SVM) is the basic boundary. When you create a scope for an FPolicy policy, you must define the FPolicy policy to which it will apply, and you must designate to which SVM you want to apply the scope.
+
+There are a number of parameters that further restrict the scope within the specified SVM. You can restrict the scope by specifying what to include in the scope or by specifying what to exclude from the scope. After you apply a scope to an enabled policy, policy event checks get applied to the scope defined by this command.
+
+Notifications are generated for file access events where matches are found in the "`include`" options. Notifications are not generated for file access events where matches are found in the "`exclude`" options.
+
+The FPolicy scope configuration defines the following configuration information:
+
+* SVM name
+* Policy name
+* The shares to include or exclude from what gets monitored
+* The export policies to include or exclude from what gets monitored
+* The volumes to include or exclude from what gets monitored
+* The file extensions to include or exclude from what gets monitored
+* Whether to do file extension checks on directory objects
+
+[NOTE]
+====
+There are special considerations for the scope for a cluster FPolicy policy. The cluster FPolicy policy is a policy that the cluster administrator creates for the admin SVM. If the cluster administrator also creates the scope for that cluster FPolicy policy, the SVM administrator cannot create a scope for that same policy. However, if the cluster administrator does not create a scope for the cluster FPolicy policy, then any SVM administrator can create the scope for that cluster policy. If the SVM administrator creates a scope for that cluster FPolicy policy, the cluster administrator cannot subsequently create a cluster scope for that same cluster policy. This is because the cluster administrator cannot override the scope for the same cluster policy.
+====
+
+== What the scope rules of precedence are
+
+The following rules of precedence apply to scope configurations:
+
+* When a share is included in the `-shares-to-include` parameter and the parent volume of the share is included in the `-volumes-to-exclude` parameter, `-volumes-to-exclude` has precedence over `-shares-to-include`.
+* When an export policy is included in the `-export-policies-to-include` parameter and the parent volume of the export policy is included in the `-volumes-to-exclude` parameter, `-volumes-to-exclude` has precedence over `-export-policies-to-include`.
+* An administrator can specify both `-file-extensions-to-include` and `-file-extensions-to-exclude` lists.
++
+The `-file-extensions-to-exclude` parameter is checked before the `-file-extensions-to-include` parameter is checked.
+
+== What the FPolicy scope configuration contains
+
+You can use the following list of available FPolicy scope configuration parameters to help you plan your configuration:
+
+[NOTE]
+====
+When configuring what shares, export policies, volumes, and file extensions to include or exclude from the scope, the include and exclude parameters can contain regular expressions and can include metacharacters such as "`?`" and "`*`".
+====
+
+[cols="70,30",options="header"]
+|===
+| Type of information| Option
+a|
+_SVM_
+
+Specifies the SVM name on which you want to create an FPolicy scope.
+
+Each FPolicy configuration is defined within a single SVM. The external engine, policy event, policy scope, and policy that combine together to create an FPolicy policy configuration must all be associated with the same SVM.
+
+a|
+`-vserver` `vserver_name`
+a|
+_Policy name_
+
+Specifies the name of the FPolicy policy to which you want to attach the scope. The FPolicy policy must already exist.
+
+a|
+`-policy-name` `policy_name`
+a|
+_Shares to include_
+
+Specifies a comma-delimited list of shares to monitor for the FPolicy policy to which the scope is applied.
+
+a|
+`-shares-to-include` `share_name`, ...
+a|
+_Shares to exclude_
+
+Specifies a comma-delimited list of shares to exclude from monitoring for the FPolicy policy to which the scope is applied.
+
+a|
+`-shares-to-exclude` `share_name`, ...
+a|
+_Volumes to include_ Specifies a comma-delimited list of volumes to monitor for the FPolicy policy to which the scope is applied.
+
+a|
+`-volumes-to-include` `volume_name`, ...
+a|
+_Volumes to exclude_
+
+Specifies a comma-delimited list of volumes to exclude from monitoring for the FPolicy policy to which the scope is applied.
+
+a|
+`-volumes-to-exclude` `volume_name`, ...
+a|
+_Export policies to include_
+
+Specifies a comma-delimited list of export policies to monitor for the FPolicy policy to which the scope is applied.
+
+a|
+`-export-policies-to-include` `export_policy_name`, ...
+a|
+_Export policies to exclude_
+
+Specifies a comma-delimited list of export policies to exclude from monitoring for the FPolicy policy to which the scope is applied.
+
+a|
+`-export-policies-to-exclude` `export_policy_name`, ...
+a|
+_File extensions to include_
+
+Specifies a comma-delimited list of file extensions to monitor for the FPolicy policy to which the scope is applied.
+
+a|
+`-file-extensions-to-include` `file_extensions`, ...
+a|
+_File extension to exclude_
+
+Specifies a comma-delimited list of file extensions to exclude from monitoring for the FPolicy policy to which the scope is applied.
+
+a|
+`-file-extensions-to-exclude` `file_extensions`, ...
+a|
+_Is file extension check on directory enabled_
+
+Specifies whether the file name extension checks apply to directory objects as well. If this parameter is set to `true`, the directory objects are subjected to the same extension checks as regular files. If this parameter is set to `false`, the directory names are not matched for extensions and notifications are sent for directories even if their name extensions do not match.
+
+If the FPolicy policy to which the scope is assigned is configured to use the native engine, this parameter must be set to `true`.
+
+a|
+`-is-file-extension-check-on-directories-enabled` {`true`\| `false`\|}
+|===

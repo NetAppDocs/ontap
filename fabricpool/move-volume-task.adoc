@@ -1,0 +1,48 @@
+---
+permalink: fabricpool/move-volume-task.html
+sidebar: sidebar
+keywords: moving, volume, fabricpool
+summary: "When you move a volume to FabricPool, you have the option to specify or change the tiering policy for the volume with the move. Starting in ONTAP 9.8, when you move a non-FabricPool volume with inactive data reporting enabled, FabricPool uses a heat map to read tierable blocks, and moves cold data to the capacity tier on the FabricPool destination."
+---
+= Move a volume to FabricPool
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When you move a volume to FabricPool, you have the option to specify or change the tiering policy for the volume with the move. Starting in ONTAP 9.8, when you move a non-FabricPool volume with inactive data reporting enabled, FabricPool uses a heat map to read tierable blocks, and moves cold data to the capacity tier on the FabricPool destination.
+
+.What you'll need
+
+You must understand how changing the tiering policy might affect how long it takes for data to become cold and be moved to the cloud tier.
+
+link:tiering-policies-concept.html#what-happens-to-the-tiering-policy-when-you-move-a-volume[What happens to the tiering policy when you move a volume]
+
+.About this task
+
+If a non-FabricPool volume has inactive data reporting enabled, when you move a volume with tiering-policy `auto` or `snapshot-only` to a FabricPool, FabricPool reads the temperature tierable blocks from a heat map file and uses that temperature to move the cold data directly to the capacity tier on the FabricPool destination.
+
+You should not use the `-tiering-policy` option on volume move if you are using ONTAP 9.8 and you want FabricPools to use inactive data reporting information to move data directly to the capacity tier. Using this option causes FabricPools to ignore the temperature data and instead follow the move behavior of releases prior to ONTAP 9.8.
+
+.Step
+
+. Use the `volume move start` command to move a volume to FabricPool.
++
+The `-tiering-policy` optional parameter enables you to specify the tiering policy for the volume.
++
+You can specify one of the following tiering policies:
+
+ ** `snapshot-only` (default)
+ ** `auto`
+ ** `all`
+ ** `none`
+ +
+link:tiering-policies-concept.html#types-of-fabricpool-tiering-policies[Types of FabricPool tiering policies]
+
+.Example of moving a volume to FabricPool
+
+The following example moves a volume named "`myvol2`" of the "vs1" SVM to the "dest_FabricPool" FabricPool-enabled aggregate. The volume is explicitly set to use the `none` tiering policy:
+
+----
+cluster1::> volume move start -vserver vs1 -volume myvol2
+-destination-aggregate dest_FabricPool -tiering-policy none
+----

@@ -1,0 +1,97 @@
+---
+permalink: smb-admin/statistics-monitor-automatic-node-referral-task.html
+sidebar: sidebar
+keywords: smb, connection, refer, monitor, automatic, node, referral, extent, locating, locate, host, redistribute, lif, local, access, cifs, use statistics to monitor automatic node referral activity
+summary: "To determine how many SMB connections are referred, you can monitor automatic node referral activity by using the statistics command. By monitoring referrals you can determine the extent to which automatic referrals are locating connections on nodes that host the shares and whether you should redistribute your data LIFs to provide better local access to shares on the CIFS server."
+---
+= Use statistics to monitor automatic node referral activity
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+To determine how many SMB connections are referred, you can monitor automatic node referral activity by using the `statistics` command. By monitoring referrals you can determine the extent to which automatic referrals are locating connections on nodes that host the shares and whether you should redistribute your data LIFs to provide better local access to shares on the CIFS server.
+
+.About this task
+
+The `cifs` object provides several counters at the advanced privilege level that are helpful when monitoring SMB automatic node referrals:
+
+* `node_referral_issued`
++
+Number of clients that have been issued a referral to the share root's node after the client connected using a LIF hosted by a node different from the share root's node.
+
+* `node_referral_local`
++
+Number of clients that connected using a LIF hosted by the same node that hosts the share root. Local access generally provides optimal performance.
+
+* `node_referral_not_possible`
++
+Number of clients that have not been issued a referral to the node hosting the share root after connecting using a LIF hosted by a node different from the share root's node. This is because an active data LIF for the share root's node was not found.
+
+* `node_referral_remote`
++
+Number of clients that connected using a LIF hosted by a node different from the node that hosts the share root. Remote access might result in degraded performance.
+
+You can monitor automatic node referral statistics on your storage virtual machine (SVM) by collecting and viewing data for a specific time period (a sample). You can view data from the sample if you do not stop data collection. Stopping data collection gives you a fixed sample. Not stopping data collection gives you the ability to get updated data that you can use to compare against previous queries. The comparison can help you identify performance trends.
+
+[NOTE]
+====
+To evaluate and use the information you gather from the `statistics` command, you should understand the distribution of clients in your environments.
+====
+
+For more information about using the `statistics` command, see the _Performance Monitoring Power Guide_.
+
+.Steps
+
+. Set the privilege level to advanced: `set -privilege advanced`
+. View automatic node referral statistics by using the `statistics` command.
++
+This example views automatic node referral statistics by collecting and viewing data for a sampled time period:
+
+ .. Start the collection: `statistics start -object cifs -instance vs1 -sample-id sample1`
++
+----
+Statistics collection is being started for Sample-id: sample1
+----
+
+ .. Wait for the desired collection time to elapse.
+ .. Stop the collection: `statistics stop -sample-id sample1`
++
+----
+Statistics collection is being stopped for Sample-id: sample1
+----
+
+ .. View the automatic node referral statistics: `statistics show -sample-id sample1 -counter *node*`
++
+----
+Object: cifs
+Instance: vs1
+Start-time: 2/4/2013 19:27:02
+End-time: 2/4/2013 19:30:11
+Cluster: cluster1
+
+    Counter                                             Value
+    ----------------------------- ---------------------------
+    node_name                                          node1
+    node_referral_issued                                    0
+    node_referral_local                                     1
+    node_referral_not_possible                              2
+    node_referral_remote                                    2
+    ...
+
+    node_name                                          node2
+    node_referral_issued                                    2
+    node_referral_local                                     1
+    node_referral_not_possible                              0
+    node_referral_remote                                    2
+    ...
+----
++
+Output displays counters for all nodes participating in SVM vs1. For clarity, only output fields related to automatic node referral statistics are provided in the example.
+
+. Return to the admin privilege level: `set -privilege admin`
+
+*Related information*
+
+xref:display-statistics-task.adoc[Displaying statistics]
+
+https://docs.netapp.com/us-en/ontap/performance-config/index.html[Performance monitoring express setup]

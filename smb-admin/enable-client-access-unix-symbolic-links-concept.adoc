@@ -1,0 +1,44 @@
+---
+permalink: smb-admin/enable-client-access-unix-symbolic-links-concept.html
+sidebar: sidebar
+keywords: smybol, link, file, create, unix, environment, reference, directory, client, access, redirect, target, absolute, widelinks, local, file, system, how ontap enables you to provide smb client access to unix symbolic links
+summary: "A symbolic link is a file that is created in a UNIX environment that contains a reference to another file or directory. If a client accesses a symbolic link, the client is redirected to the target file or directory to which the symbolic link refers. ONTAP supports relative and absolute symbolic links, including widelinks (absolute links with targets outside the local file system)."
+---
+= How ONTAP enables you to provide SMB client access to UNIX symbolic links
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+A symbolic link is a file that is created in a UNIX environment that contains a reference to another file or directory. If a client accesses a symbolic link, the client is redirected to the target file or directory to which the symbolic link refers. ONTAP supports relative and absolute symbolic links, including widelinks (absolute links with targets outside the local file system).
+
+ONTAP provides SMB clients the ability to follow UNIX symbolic links that are configured on the SVM. This feature is optional, and you can configure it on a per-share basis, using the `-symlink-properties` option of the `vserver cifs share create` command, with one of the following settings:
+
+* Enabled with read/write access
+* Enabled with read-only access
+* Disabled by hiding symbolic links from SMB clients
+* Disabled with no access to symbolic links from SMB clients
+
+If you enable symbolic links on a share, relative symbolic links work without further configuration.
+
+If you enable symbolic links on a share, absolute symbolic links do not work right away. You must first create a mapping between the UNIX path of the symbolic link to the destination SMB path. When creating absolute symbolic link mappings, you can specify whether it is a local link or a _widelink_; widelinks can be links to file systems on other storage devices or links to file systems hosted in separate SVMs on the same ONTAP system. When you create a widelink, it must include the information for the client to follow; that is, you create a reparse point for the client to discover the directory junction point. If you create an absolute symbolic link to a file or directory outside of the local share but set the locality to local, ONTAP disallows access to the target.
+
+[NOTE]
+====
+If a client attempts to delete a local symbolic link (absolute or relative), only the symbolic link is deleted, not the target file or directory. However, if a client attempts to delete a widelink, it might delete the actual target file or directory to which the widelink refers. ONTAP does not have control over this because the client can explicitly open the target file or directory outside the SVM and delete it.
+====
+
+* *Reparse points and ONTAP file system services*
++
+A _reparse point_ is an NTFS file system object that can be optionally stored on volumes along with a file. Reparse points provide SMB clients the ability to receive enhanced or extended file system services when working with NTFS style volumes. Reparse points consist of standard tags that identify the type of reparse point, and the content of the reparse point that can be retrieved by SMB clients for further processing by the client. Of the object types available for extended file system functionality, ONTAP implements support for NTFS symbolic links and directory junction points using reparse point tags. SMB clients that cannot understand the contents of a reparse point simply ignore it and don't provide the extended file system service that the reparse point might enable.
+
+* *Directory junction points and ONTAP support for symbolic links*
++
+Directory junction points are locations within a file system directory structure that can refer to alternate locations where files are stored, either on a different path (symbolic links) or a separate storage device (widelinks). ONTAP SMB servers expose directory junction points to Windows clients as reparse points, allowing capable clients to obtain reparse point contents from ONTAP when a directory junction point is traversed. They can thereby navigate and connect to different paths or storage devices as though they were part of the same file system.
+
+* *Enabling widelink support using reparse point options*
++
+The `-is-use-junctions-as-reparse-points-enabled` option is enabled by default in ONTAP 9. Not all SMB clients support widelinks, so the option to enable the information is configurable on a per-protocol version basis, allowing administrators to accommodate both supported and non-supported SMB clients. In ONTAP 9.2 and later releases, you must enable the option `-widelink-as-reparse-point-versions` for each client protocol that accesses the share using widelinks; the default is SMB1. In earlier releases, only widelinks accessed using the default SMB1 were reported, and systems using SMB2 or SMB3 were unable to access the widelinks.
+
+For more information, see the Microsoft NTFS documentation.
+
+https://docs.microsoft.com/en-us/windows/win32/fileio/reparse-points[Microsoft Documentation: Reparse Points]

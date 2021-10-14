@@ -1,0 +1,129 @@
+---
+permalink: data-protection/snapmirror-synchronous-disaster-recovery-basics-concept.html
+sidebar: sidebar
+keywords: snapMirror, synchronous, disaster, recovery
+summary: "Beginning with ONTAP 9.5, SnapMirror Synchronous (SM-S) technology is supported on all FAS and AFF platforms that have at least 16 GB of memory and on all ONTAP Select platforms. SnapMirror Synchronous technology is a per-node, licensed feature that provides synchronous data replication at the volume level."
+---
+= SnapMirror Synchronous disaster recovery basics
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.5, SnapMirror Synchronous (SM-S) technology is supported on all FAS and AFF platforms that have at least 16 GB of memory and on all ONTAP Select platforms. SnapMirror Synchronous technology is a per-node, licensed feature that provides synchronous data replication at the volume level.
+
+This functionality addresses the regulatory and national mandates for synchronous replication in financial, healthcare, and other regulated industries where zero data loss is required.
+
+The limit on the number of SnapMirror Synchronous replication operations per HA pair depends on the controller model.
+
+[cols="3*",options="header"]
+|===
+| Platform| Number of SnapMirror Synchronous operations that are allowed per HA pair in releases earlier than ONTAP 9.9.1| Number of SnapMirror Synchronous operations that are allowed per HA pair in ONTAP 9.9.1 and later
+a|
+AFF
+a|
+80
+a|
+160
+a|
+FAS
+a|
+40
+a|
+80
+a|
+ONTAP Select
+a|
+20
+a|
+40
+|===
+
+== Supported features
+
+In ONTAP 9.5 and later, SnapMirror Synchronous technology supports the NFSv3, FC, and iSCSI protocols over all networks for which the latency does not exceed 10ms.
+
+The following features are supported for SnapMirror Synchronous technology in ONTAP 9.7:
+
+* Replication of application-created Snapshot copies
++
+Only the Snapshot copies with the SnapMirror label that match the rule associated with Sync or Strict Sync policy. Scheduled Snapshot copies created using a Snapshot policy are not replicated.
+
+* FC-NVMe
+* LUN clones and NVMe namespace clones
++
+LUN clones backed by application-created Snapshot copies are also supported.
+
+The following features are supported for SnapMirror Synchronous technology in ONTAP 9.6; provided all nodes in the source and destination cluster are running ONTAP 9.6:
+
+* NFSv4.0 and NFSv4.1
+* SMB 2.0 or later
+* Mixed protocol access(NFSv3 and SMB/CIFS)
+* Antivirus on the primary volume of the SnapMirror Synchronous relationship
+* Hard or soft quotas on the primary volume of the SnapMirror Synchronous relationship
++
+The quota rules are not replicated to the destination; therefore, the quota database is not replicated to the destination.
+
+* FPolicy on the primary volume of the SnapMirror Synchronous relationship
+* SnapMirror Synchronous mirror-mirror cascade
++
+The relationship from the destination volume of the SnapMirror Synchronous relationship must be an asynchronous SnapMirror relationship.
+
+* Timestamp parity between source and destination volumes for NAS
++
+If you have upgraded from ONTAP 9.5 to ONTAP 9.6, the timestamp is replicated only for any new and modified files in the source volume. The timestamp of existing files in the source volume is not synchronized.
+
+* Removal of high metadata operation frequency limitation
+* Security for sensitive data in-transit using TLS 1.2 encryption
+* Clone autodelete
+
+== Unsupported features
+
+The following features are not supported with Synchronous SnapMirror relationships:
+
+* SVM DR
+* Mixed SAN and NAS access
++
+The primary volume of a SnapMirror Synchronous relationship can either serve NAS data or SAN data. Both SAN and NAS access from the primary volume of a SnapMirror Synchronous relationship is not supported.
+
+* Mixed SAN and NVMe access
++
+LUNs and NVMe namespaces are not supported on the same volume or SVM.
+
+* SnapLock volumes
+* FlexGroup volumes
+* FlexCache volumes
+* SnapRestore
+* DP_Optimized (DPO) systems
+* Tape backup or restore using dump and SMTape on the destination volume
+* Tape based restore to the source volume
+* Throughput floor (QoS Min) for source volumes
+* In a fan-out configuration, only one relationship can be a SnapMirror Synchronous relationship; all the other relationships from the source volume must be asynchronous SnapMirror relationships.
+* Global throttling
+
+== Modes of operation
+
+SnapMirror Synchronous has two modes of operation based on the type of the SnapMirror policy used:
+
+* *Sync mode*
++
+In Sync mode, an I/O to primary storage is first replicated to secondary storage. Then the I/O is written to primary storage, and acknowledgment is sent to the application that issued the I/O. If the write to the secondary storage is not completed for any reason, the application is allowed to continue writing to the primary storage. When the error condition is corrected, SnapMirror Synchronous technology automatically resynchronizes with the secondary storage and resumes replicating from primary storage to secondary storage in Synchronous mode.
++
+In Sync mode, RPO=0 and RTO is very low until a secondary replication failure occurs at which time RPO and RTO become indeterminate, but equal the time to repair the issue that caused secondary replication to fail and for the resync to complete.
+
+* *StrictSync mode*
++
+SnapMirror Synchronous can optionally operate in StrictSync mode. If the write to the secondary storage is not completed for any reason, the application I/O fails, thereby ensuring that the primary and secondary storage are identical. Application I/O to the primary resumes only after the SnapMirror relationship returns to the `InSync` status. If the primary storage fails, application I/O can be resumed on the secondary storage, after failover, with no loss of data.
++
+In StrictSync mode RPO is always zero, and RTO is very low.
+
+== Relationship status
+
+The status of a SnapMirror Synchronous relationship is always in the `InSync` status during normal operation. If the SnapMirror transfer fails for any reason, the destination is not in sync with the source and can go to the `OutofSync` status.
+
+For SnapMirror Synchronous relationships, the system automatically checks the relationship status (`InSync` or `OutofSync`) at a fixed interval. If the relationship status is `OutofSync`, ONTAP automatically triggers the auto resync process to bring back the relationship to the `InSync` status. Auto resync is triggered only if the transfer fails due to any operation, such as unplanned storage failover at source or destination or a network outage. User-initiated operations such as `snapmirror quiesce` and `snapmirror break` do not trigger auto resync.
+
+If the relationship status becomes `OutofSync` for a SnapMirror Synchronous relationship in the StrictSync mode, all I/O operations to the primary volume are stopped. The `OutofSync` state for SnapMirror Synchronous relationship in the Sync mode is not disruptive to the primary and I/O operations are allowed on the primary volume.
+
+*Related information*
+
+http://www.netapp.com/us/media/tr-4733.pdf[NetApp Technical Report 4733: SnapMirror Synchronous for ONTAP 9.6]

@@ -1,0 +1,144 @@
+---
+permalink: tape-backup/format-tape-config-file-concept.html
+sidebar: sidebar
+keywords: format, tape, configuration, file, vendor, id, product, compression, type, drive
+summary: "The tape configuration file format consists of fields such as vendor ID, product ID, and details of compression types for a tape drive. This file also consists of optional fields for enabling the autoload feature of a tape drive and changing the command timeout values of a tape drive."
+---
+= Format of the tape configuration file
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The tape configuration file format consists of fields such as vendor ID, product ID, and details of compression types for a tape drive. This file also consists of optional fields for enabling the autoload feature of a tape drive and changing the command timeout values of a tape drive.
+
+The following table displays the format of the tape configuration file:
+
+[options="header"]
+|===
+| Item| Size| Description
+a|
+`vendor_id` (string)
+a|
+up to 8 bytes
+a|
+The vendor ID as reported by the `SCSI Inquiry` command.
+a|
+`product_id`(string)
+a|
+up to 16 bytes
+a|
+The product ID as reported by the `SCSI Inquiry` command.
+a|
+`id_match_size`(number)
+a|
+
+a|
+The number of bytes of the product ID to be used for matching to detect the tape drive to be identified, beginning with the first character of the product ID in the Inquiry data.
+a|
+`vendor_pretty` (string)
+a|
+up to 16 bytes
+a|
+If this parameter is present, it is specified by the string displayed by the command, `storage tape show -device-names`; otherwise, INQ_VENDOR_ID is displayed.
+a|
+`product_pretty`(string)
+a|
+up to 16 bytes
+a|
+If this parameter is present, it is specified by the string displayed by the command, `storage tape show -device-names`; otherwise, INQ_PRODUCT_ID is displayed.
+|===
+
+[NOTE]
+====
+The `vendor_pretty` and `product_pretty` fields are optional, but if one of these fields has a value, the other must also have a value.
+====
+
+The following table explains the description, density code, and compression algorithm for the various compression types, such as `l`, `m`, `h`, and `a`:
+
+[options="header"]
+|===
+| Item| Size| Description
+a|
+`{l \| m \| h \| a}_description=(string)`
+a|
+up to 24 bytes
+a|
+The string to print for the nodeshell command, `sysconfig -t`, that describes characteristics of the particular density setting.
+a|
+`{l \| m \| h \| a}_density=(hex codes)`
+a|
+
+a|
+The density code to be set in the SCSI mode page block descriptor corresponding to the desired density code for l, m, h, or a.
+a|
+`{l \| m \| h \| a}_algorithm=(hex codes)`
+a|
+
+a|
+The compression algorithm to be set in the SCSI Compression Mode Page corresponding to the density code and the desired density characteristic.
+|===
+The following table describes the optional fields available in the tape configuration file:
+
+[options="header"]
+|===
+| Field| Description
+a|
+`autoload=(Boolean yes/no)`
+a|
+This field is set to `yes` if the tape drive has an automatic loading feature; that is, after tape cartridge is inserted, the tape drive becomes ready without the need to execute a `SCSI load` (start/stop unit) command. The default for this field is `no`.
+a|
+`cmd_timeout_0x`
+a|
+Individual timeout value. You must use this field only if you want to specify a different timeout value from the one being used as a default by the tape driver. The sample file lists the default SCSI command timeout values used by the tape drive. The timeout value can be expressed in minutes (m), seconds (s), or milliseconds (ms).
+
+[NOTE]
+====
+You should change this field only with guidance from technical support.
+====
+
+|===
+You can download and view the tape configuration file from the NetApp Support Site.
+
+.Example of a tape configuration file format
+
+The tape configuration file format for the HP LTO5 ULTRIUM tape drive is as follows:
+
+`vendor_id`="HP"
+
+`product_id`="Ultrium 5-SCSI"
+
+`id_match_size`=9
+
+`vendor_pretty`="Hewlett-Packard"
+
+`product_pretty`="LTO-5"
+
+`l_description`="LTO-3(ro)/4 4/800GB"
+
+`l_density`=0x00
+
+`l_algorithm`=0x00
+
+`m_description`="LTO-3(ro)/4 8/1600GB cmp"
+
+`m_density`=0x00
+
+`m_algorithm`=0x01
+
+`h_description`="LTO-5 1600GB"
+
+`h_density`=0x58
+
+`h_algorithm`=0x00
+
+`a_description`="LTO-5 3200GB cmp"
+
+`a_density`=0x58
+
+`a_algorithm`=0x01
+
+`autoload`="yes"
+
+*Related information*
+
+http://mysupport.netapp.com/NOW/download/tools/tape_config[NetApp Downloads: Tape Device Configuration Files]

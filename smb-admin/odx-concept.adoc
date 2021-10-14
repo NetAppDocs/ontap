@@ -1,0 +1,47 @@
+---
+permalink: smb-admin/odx-concept.html
+sidebar: sidebar
+keywords: odx, copy, offload, token-based, mechanism, read, write, writing, cifs, server, routing, route, data, client, destination, how odx works
+summary: "ODX copy offload uses a token-based mechanism for reading and writing data within or between ODX-enabled CIFS servers. Instead of routing the data through the host, the CIFS server sends a small token, which represents the data, to the client. The ODX client presents that token to the destination server, which then can transfer the data represented by that token from the source to the destination."
+---
+= How ODX works
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ODX copy offload uses a token-based mechanism for reading and writing data within or between ODX-enabled CIFS servers. Instead of routing the data through the host, the CIFS server sends a small token, which represents the data, to the client. The ODX client presents that token to the destination server, which then can transfer the data represented by that token from the source to the destination.
+
+When an ODX client learns that the CIFS server is ODX-capable, it opens the source file and requests a token from the CIFS server. After opening the destination file, the client uses the token to instruct the server to copy the data directly from the source to the destination.
+
+[NOTE]
+====
+The source and destination can be on the same storage virtual machine (SVM) or on different SVMs, depending on the scope of the copy operation.
+====
+
+The token serves as a point-in-time representation of the data. As an example, when you copy data between storage locations, a token representing a data segment is returned to the requesting client, which the client copies to the destination, thereby removing the need to copy the underlying data through the client.
+
+ONTAP supports tokens that represent 8 MB of data. ODX copies of greater than 8 MB are performed by using multiple tokens, with each token representing 8 MB of data.
+
+The following figure explains the steps that are involved with an ODX copy operation:
+
+image::../media/how-odx-copy-offload-works.gif[This graphic is described by the surrounding text]
+
+. A user copies or moves a file by using Windows Explorer, a command-line interface, or as part of a virtual machine migration, or an application initiates file copies or moves.
+. The ODX-capable client automatically translates this transfer request into an ODX request.
++
+The ODX request that is sent to the CIFS server contains a request for a token.
+
+. If ODX is enabled on the CIFS server and the connection is over SMB 3.0, the CIFS server generates a token, which is a logical representation of the data on the source.
+. The client receives a token that represents the data and sends it with the write request to the destination CIFS server.
++
+This is the only data that is copied over the network from the source to the client and then from the client to the destination.
+
+. The token is delivered to the storage subsystem.
+. The SVM internally performs the copy or move.
++
+If the file that is copied or moved is larger than 8 MB, multiple tokens are needed to perform the copy. Steps 2 through 6 as performed as needed to complete the copy.
+
+[NOTE]
+====
+If there is a failure with the ODX offloaded copy, the copy or move operation falls back to traditional reads and writes for the copy or move operation. Similarly, if the destination CIFS server does not support ODX or ODX is disabled, the copy or move operation falls back to traditional reads and writes for the copy or move operation.
+====

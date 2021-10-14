@@ -1,0 +1,78 @@
+---
+permalink: flexgroup/enable-svm-protection-task.html
+sidebar: sidebar
+keywords: enable, svm, protection, flexgroup, volume
+summary: "When the SVM DR protection flag is set to unprotected on a FlexGroup volume, you can set the flag to protected to enable SVM DR protection."
+---
+= Enable SVM protection on a FlexGroup volume
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When the SVM DR protection flag is set to `unprotected` on a FlexGroup volume, you can set the flag to `protected` to enable SVM DR protection.
+
+.What you'll need
+
+* The SVM DR relationship between the primary and secondary is healthy.
+* SVM DR protection parameter is set to `unprotected`.
+
+.Steps
+
+. Enable protection by using the `volume modify` to change the `vserver-dr-protection` parameter for the FlexGroup volume to `protected`.
++
+----
+cluster2::> volume modify -vserver vs1 -volume fg_src -vserver-dr-protection protected
+[Job 5384] Job is queued: Modify fg_src.
+[Job 5384] Steps completed: 4 of 4.
+cluster2::>
+----
+
+. Update the SVM at the secondary site: `snapmirror update -destination-path destination_svm_name -source-path source_svm_name`
++
+----
+snapmirror update -destination-path vs1_dst: -source-path vs1:
+----
+
+. Verify that the SnapMirror relationship is healthy: `snapmirror show`
++
+----
+cluster2::> snapmirror show
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vs1:        XDP  vs1_dst:     Snapmirrored
+                                      Idle           -         true    -
+----
+
+. Verify that the FlexGroup SnapMirror relationship is healthy: `snapmirror show -expand`
++
+----
+cluster2::> snapmirror show -expand
+                                                                       Progress
+Source            Destination Mirror  Relationship   Total             Last
+Path        Type  Path        State   Status         Progress  Healthy Updated
+----------- ---- ------------ ------- -------------- --------- ------- --------
+vs1:        XDP  vs1_dst:     Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src  XDP  vs1_dst:fg_src
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0001
+            XDP  vs1_dst:fg_src__0001
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0002
+            XDP  vs1_dst:fg_src__0002
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0003
+            XDP  vs1_dst:fg_src__0003
+                              Snapmirrored
+                                      Idle           -         true    -
+vs1:fg_src__0004
+            XDP  vs1_dst:fg_src__0004
+                              Snapmirrored
+                                      Idle           -         true    -
+6 entries were displayed.
+----

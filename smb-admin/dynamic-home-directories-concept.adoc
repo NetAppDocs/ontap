@@ -1,0 +1,61 @@
+---
+permalink: smb-admin/dynamic-home-directories-concept.html
+sidebar: sidebar
+keywords: ontap, home, directories, directory, configure, smb, share, map, base, connect, set, variable, creating, create, separate, share, user, define, home, relationship, entry, point, svm, how ontap enables dynamic home directories
+summary: "ONTAP home directories enable you to configure an SMB share that maps to different directories based on the user that connects to it and a set of variables. Instead of creating separate shares for each user, you can configure one share with a few home directory parameters to define a user’s relationship between an entry point (the share) and the home directory (a directory on the SVM)."
+---
+= How ONTAP enables dynamic home directories
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP home directories enable you to configure an SMB share that maps to different directories based on the user that connects to it and a set of variables. Instead of creating separate shares for each user, you can configure one share with a few home directory parameters to define a user's relationship between an entry point (the share) and the home directory (a directory on the SVM).
+
+A user who is logged in as a guest user does not have a home directory and cannot access other users' home directories. There are four variables that determine how a user is mapped to a directory:
+
+* *Share name*
++
+This is the name of the share that you create to which the user connects. You must set the home directory property for this share.
++
+The share name can use the following dynamic names:
+
+ ** `%w` (the user's Windows user name)
+ ** `%d` (the user's Windows domain name)
+ ** `%u` (the user's mapped UNIX user name)
+To make the share name unique across all home directories, the share name must contain either the `%w` or the `%u` variable. The share name can contain both the `%d` and the `%w` variable (for example, `%d`/`%w`), or the share name can contain a static portion and a variable portion (for example, home_``%w``).
+
+* *Share path*
++
+This is the relative path, which is defined by the share and is therefore associated with one of the share names, that is appended to each search path to generate the user's entire home directory path from the root of the SVM. It can be static (for example, `home`), dynamic (for example, `%w`), or a combination of the two (for example, `eng/%w`).
+
+* *Search paths*
++
+This is the set of absolute paths from the root of the SVM that you specify that directs the ONTAP search for home directories. You can specify one or more search paths by using the `vserver cifs home-directory search-path add` command. If you specify multiple search paths, ONTAP tries them in the order specified until it finds a valid path.
+
+* *Directory*
++
+This is the user's home directory that you create for the user. The directory name is usually the user's name. You must create the home directory in one of the directories that are defined by the search paths.
+
+As an example, consider the following setup:
+
+* User: John Smith
+* User domain: acme
+* User name: jsmith
+* SVM name: vs1
+* Home directory share name #1: home_``%w`` - share path: `%w`
+* Home directory share name #2: `%w` - share path: `%d/%w`
+* Search path #1: `/vol0home/home`
+* Search path #2: `/vol1home/home`
+* Search path #3: `/vol2home/home`
+* Home directory: `/vol1home/home/jsmith`
+
+Scenario 1: The user connects to `\\vs1\home_jsmith`. This matches the first home directory share name and generates the relative path `jsmith`. ONTAP now searches for a directory named `jsmith` by checking each search path in order:
+
+* `/vol0home/home/jsmith` does not exist; moving on to search path #2.
+* `/vol1home/home/jsmith` does exist; therefore, search path #3 is not checked; the user is now connected to his home directory.
+
+Scenario 2: The user connects to `\\vs1\jsmith`. This matches the second home directory share name and generates the relative path `acme/jsmith`. ONTAP now searches for a directory named `acme/jsmith` by checking each search path in order:
+
+* `/vol0home/home/acme/jsmith` does not exist; moving on to search path #2.
+* `/vol1home/home/acme/jsmith` does not exist; moving on to search path #3.
+* `/vol2home/home/acme/jsmith` does not exist; the home directory does not exist; therefore, the connection fails.

@@ -1,0 +1,75 @@
+---
+permalink: smb-config/create-share-access-control-lists-task.html
+sidebar: sidebar
+keywords: configure, configuring, share, permission, create, access, control, list, acl, smb, enable, level, access, user, group, create smb share access control lists
+summary: "Configuring share permissions by creating access control lists (ACLs) for SMB shares enables you to control the level of access to a share for users and groups."
+---
+= Create SMB share access control lists
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Configuring share permissions by creating access control lists (ACLs) for SMB shares enables you to control the level of access to a share for users and groups.
+
+.Before you begin
+
+You must have decided which users or groups will be given access to the share.
+
+.About this task
+
+You can configure share-level ACLs by using local or domain Windows user or group names.
+
+Before creating a new ACL, you should delete the default share ACL `Everyone / Full Control`, which poses a security risk.
+
+In workgroup mode, the local domain name is the SMB server name.
+
+.Steps
+
+. Delete the default share ACL:``vserver cifs share access-control delete -vserver vserver_name -share share_name -user-or-group everyone``
+. Configure the new ACL:
++
+[options="header"]
+|===
+| If you want to configure ACLs by using a...| Enter the command...
+a|
+Windows user
+a|
+`vserver cifs share access-control create -vserver vserver_name -share share_name -user-group-type windows -user-or-group Windows_domain_name\\user_name -permission access_right`
+a|
+Windows group
+a|
+`vserver cifs share access-control create -vserver vserver_name -share share_name -user-group-type windows -user-or-group Windows_group_name -permission access_right`
+|===
+
+. Verify that the ACL applied to the share is correct by using the `vserver cifs share access-control show` command.
+
+.Example
+
+The following command gives `Change` permissions to the "`Sales Team`" Windows group for the "`sales`" share on the "`vs1.example.com`"SVM:
+
+----
+cluster1::> vserver cifs share access-control create -vserver vs1.example.com -share sales -user-or-group "Sales Team" -permission Change
+
+cluster1::> vserver cifs share access-control show
+                 Share       User/Group              User/Group  Access
+Vserver          Name        Name                    Type        Permission
+---------------- ----------- --------------------    ---------   -----------
+vs1.example.com  c$          BUILTIN\Administrators  windows     Full_Control
+vs1.example.com  sales       DOMAIN\"Sales Team"     windows     Change
+----
+
+The following commands give `Change` permission to the local Windows group named "`Tiger Team`" and `Full_Control` permission to the local Windows user named "`Sue Chang`" for the "`datavol5`" share on the "`vs1`"SVM:
+
+----
+cluster1::> vserver cifs share access-control create -vserver vs1 -share datavol5 -user-group-type windows -user-or-group "Tiger Team" -permission Change
+
+cluster1::> vserver cifs share access-control create -vserver vs1 -share datavol5 -user-group-type windows -user-or-group "Sue Chang" -permission Full_Control
+
+cluster1::> vserver cifs share access-control show -vserver vs1
+               Share       User/Group                  User/Group  Access
+Vserver        Name        Name                        Type        Permission
+-------------- ----------- --------------------------- ----------- -----------
+vs1            c$          BUILTIN\Administrators      windows     Full_Control
+vs1            datavol5    DOMAIN\"Tiger Team"         windows     Change
+vs1            datavol5    DOMAIN\"Sue Chang"          windows     Full_Control
+----

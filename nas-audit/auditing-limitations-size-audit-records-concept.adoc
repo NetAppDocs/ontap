@@ -1,0 +1,42 @@
+---
+permalink: nas-audit/auditing-limitations-size-audit-records-concept.html
+sidebar: sidebar
+keywords: limitations, size, audit records, stage files
+summary: "The size of an audit record on a staging file cannot be greater than 32 KB."
+---
+= Limitations for the size of audit records on staging files
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The size of an audit record on a staging file cannot be greater than 32 KB.
+
+== When large audit records can occur
+
+Large audit records might occur during management auditing in one of the following scenarios:
+
+* Adding or deleting users to or from groups with a large number of users.
+* Adding or deleting a file-share access control list (ACL) on a file-share with a large number of file-share users.
+* Other scenarios.
+
+Disable management auditing to avoid this issue. To do this, modify the audit configuration and remove the following from the list of audit event types:
+
+* file-share
+* user-account
+* security-group
+* authorization-policy-change
++
+After removal, they will not be audited by the file services auditing subsystem.
+
+== The effects of audit records that are too large
+
+* If the size of an audit record is too large (over 32 KB), the audit record is not created and the auditing subsystem generates an event management system (EMS) message similar to the following:
++
+`File Services Auditing subsystem failed the operation or truncated an audit record because it was greater than max_audit_record_size value. Vserver UUID=%s, event_id=%u, size=%u`
++
+If auditing is guaranteed, the file operation fails because its audit record cannot be created.
+
+* If the size of the audit record is more than 9,999 bytes, the same EMS message as above is displayed. A partial audit record is created with the larger key value missing.
+* If the audit record exceeds 2,000 characters, the following error message shows instead of the actual value:
++
+`The value of this field was too long to display.`

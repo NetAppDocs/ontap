@@ -1,0 +1,28 @@
+---
+permalink: smb-admin/signing-multiple-data-lifs-concept.html
+sidebar: sidebar
+keywords: enable, disable, require, smb, sign, server, guideline, lifs, configuration, svm, guidelines for smb signing when multiple data lifs are configured
+summary: "If you enable or disable required SMB signing on the SMB server, you should be aware of the guidelines for multiple data LIFS configurations for an SVM."
+---
+= Guidelines for SMB signing when multiple data LIFS are configured
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you enable or disable required SMB signing on the SMB server, you should be aware of the guidelines for multiple data LIFS configurations for an SVM.
+
+When you configure a SMB server, there might be multiple data LIFs configured. If so, the DNS server contains multiple `A` record entries for the CIFS server, all using the same SMB server host name, but each with a unique IP address. For example, a SMB server that has two data LIFs configured might have the following DNS `A` record entries:
+
+----
+10.1.1.128 A VS1.IEPUB.LOCAL VS1
+10.1.1.129 A VS1.IEPUB.LOCAL VS1
+----
+
+The normal behavior is that upon changing the required SMB signing setting, only new connections from clients are affected by the change in the SMB signing setting. However, there is an exception to this behavior. There is a case where a client has an existing connection to a share, and the client creates a new connection to the same share after the setting is changed, while maintaining the original connection. In this case, both the new and the existing SMB connection adopt the new SMB signing requirements.
+
+Consider the following example:
+
+. Client1 connects to a share without required SMB signing using the path `O:\`.
+. The storage administrator modifies the SMB server configuration to require SMB signing.
+. Client1 connects to the same share with required SMB signing using the path `S:\` (while maintaining the connection using the path `O:\`).
+. The result is that SMB signing is used when accessing data over both the `O:\` and `S:\` drives.

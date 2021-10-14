@@ -1,0 +1,45 @@
+---
+permalink: smb-hyper-v-sql/continuously-available-share-hyper-v-concept.html
+sidebar: sidebar
+keywords: share, requirements, continuously, share, consideration, hyper, v, smb, nondiruptive, operation
+summary: "You need to be aware of certain requirements and considerations when configuring continuously available shares for Hyper-V over SMB configurations that support nondisruptive operations."
+---
+= Continuously available share requirements and considerations for Hyper-V over SMB
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You need to be aware of certain requirements and considerations when configuring continuously available shares for Hyper-V over SMB configurations that support nondisruptive operations.
+
+== Share requirements
+
+* Shares used by the application servers must be configured with the continuously available property set.
++
+Application servers that connect to continuously available shares receive persistent handles that allow them to reconnect nondisruptively to SMB shares and reclaim file locks after disruptive events, such as takeover, giveback, and aggregate relocation.
+
+* If you want to use Remote VSS-enabled backup services, you cannot put Hyper-V files into shares that contain junctions.
++
+In the auto-recovery case, the shadow copy creation fails if a junction is encountered while traversing the share. In the non auto-recovery case, the shadow copy creation does not fail, but the junction does not point to anything.
+
+* If you want to use Remote VSS-enabled backup services with auto-recovery, you cannot put Hyper-V files into shares that contain the following:
+ ** Symlinks, hardlinks, or widelinks
+ ** Non-regular files
++
+The shadow copy creation fails if there are any links or non-regular files in the share to shadow copy. This requirement only applies to shadow copies with auto-recovery.
+
+ ** For shadow copy operations to succeed, you must have enough available space on the volume (for Hyper-V over SMB only).
++
+The available space must be at least as large as the combined space used by all files, directories, and subdirectories contained within the shares included in the shadow copy backup set. This requirement only applies to shadow copies with auto-recovery.
+* The following share properties must not be set on continuously available shares used by the application servers:
+ ** Home directory
+ ** Attribute caching
+ ** BranchCache
+ ** Access-based enumerations
+
+== Considerations
+
+* Quotas are supported on continuously available shares.
+* The following functionality is not supported for Hyper-V over SMB configurations:
+ ** Auditing
+ ** FPolicy
+* Virus scanning is not performed on SMB shares with the `continuously-availability` parameter set to `Yes`.

@@ -1,0 +1,67 @@
+---
+permalink: snaplock/create-audit-log-task.html
+sidebar: sidebar
+keywords: create, audit, log, snaplock, protected, administrator, accounts
+summary: "You must create a SnapLock-protected audit log before performing a privileged delete or SnapLock volume move. The audit log records the creation and deletion of SnapLock administrator accounts, modifications to the log volume, whether privileged delete is enabled, privileged delete operations, and SnapLock volume move operations."
+---
+= Create an audit log
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You must create a SnapLock-protected audit log before performing a privileged delete or SnapLock volume move. The audit log records the creation and deletion of SnapLock administrator accounts, modifications to the log volume, whether privileged delete is enabled, privileged delete operations, and SnapLock volume move operations.
+
+.What you'll need
+
+You must be a cluster administrator to create a SnapLock aggregate.
+
+.About this task
+
+You cannot delete an audit log until the log file retention period has elapsed. You cannot modify an audit log even after the retention period has elapsed.
+
+[NOTE]
+====
+In ONTAP 9.4 and earlier, you cannot use a SnapLock Enterprise volume for audit logging. You must use a SnapLock Compliance volume. In ONTAP 9.5 and later, you can use either a SnapLock Enterprise volume or a SnapLock Compliance volume for audit logging. In all cases, the audit log volume must be mounted at the junction path `/snaplock_audit_log`. No other volume can use this junction path.
+
+====
+
+You can find the SnapLock audit logs in the `/snaplock_log` directory under the root of the audit log volume, in subdirectories named `privdel_log` (privileged delete operations) and `system_log` (everything else). Audit log file names contain the timestamp of the first logged operation, making it easy to search for records by the approximate time that operations were executed.
+
+* You can use the `snaplock log file show` command to view the log files on the audit log volume.
+* You can use the `snaplock log file archive` command to archive the current log file and create a new one, which is useful in cases where you need to record audit log information in a separate file.
+
+For more information, see the man pages for the commands.
+
+[NOTE]
+====
+A data protection volume cannot be used as a SnapLock audit log volume.
+====
+
+.Steps
+
+. Create a SnapLock aggregate.
++
+xref:create-snaplock-aggregate-task.adoc[Create a SnapLock aggregate]
+
+. On the SVM that you want to configure for audit logging, create a SnapLock volume.
++
+xref:create-snaplock-volume-task.adoc[Creating a SnapLock volume]
+
+. Configure the SVM for audit logging:
++
+`*snaplock log create -vserver _SVM_name_ -volume _snaplock_volume_name_ -max-file-size _size_ -retention-period _default_retention_period_*`
++
+[NOTE]
+====
+The minimum default retention period for audit log files is six months. If the retention period of an affected file is longer than the retention period of the audit log, the retention period of the log inherits the retention period of the file. So, if the retention period for a file deleted using privileged delete is 10 months, and the retention period of the audit log is 8 months, the retention period of the log is extended to 10 months.
+====
++
+The following command configures `SVM1` for audit logging using the SnapLock volume `logVol`. The audit log has a maximum size of 20 GB and is retained for eight months.
++
+----
+SVM1::> snaplock log create -vserver SVM1 -volume logVol -max-file-size 20GB -retention-period 8months
+----
+
+. On the SVM that you configured for audit logging, mount the SnapLock volume at the junction path `/snaplock_audit_log`.
++
+xref:mount-snaplock-volume-task.adoc[Mount a SnapLock volume]

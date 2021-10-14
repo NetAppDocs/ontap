@@ -1,0 +1,44 @@
+---
+permalink: nfs-config/create-kerberos-realm-config-task.html
+sidebar: sidebar
+keywords: create, nfs, kerberos, realm, configuration
+summary: "If you want ONTAP to access external Kerberos servers in your environment, you must first configure the SVM to use an existing Kerberos realm. To do so, you need to gather configuration values for the Kerberos KDC server, and then use the vserver nfs kerberos realm create command to create the Kerberos realm configuration on an SVM."
+---
+= Create an NFS Kerberos realm configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you want ONTAP to access external Kerberos servers in your environment, you must first configure the SVM to use an existing Kerberos realm. To do so, you need to gather configuration values for the Kerberos KDC server, and then use the `vserver nfs kerberos realm create` command to create the Kerberos realm configuration on an SVM.
+
+.What you'll need
+
+The cluster administrator should have configured NTP on the storage system, client, and KDC server to avoid authentication issues. Time differences between a client and server (clock skew) are a common cause of authentication failures.
+
+.Steps
+
+. Consult with your Kerberos administrator to determine the appropriate configuration values to supply with the `vserver nfs kerberos realm create` command.
+. Create a Kerberos realm configuration on the SVM:
++
+`vserver nfs kerberos realm create -vserver _vserver_name_ -realm _realm_name_ _{AD_KDC_server_values |AD_KDC_server_values}_ -comment "_text_"`
+. Verify that the Kerberos realm configuration was created successfully:
++
+`vserver nfs kerberos realm show`
+
+.Examples
+
+The following command creates an NFS Kerberos realm configuration for the SVM vs1 that uses a Microsoft Active Directory server as the KDC server. The Kerberos realm is AUTH.EXAMPLE.COM. The Active Directory server is named ad-1 and its IP address is 10.10.8.14. The permitted clock skew is 300 seconds (the default). The IP address of the KDC server is 10.10.8.14, and its port number is 88 (the default). "Microsoft Kerberos config" is the comment.
+
+----
+vs1::> vserver nfs kerberos realm create -vserver vs1 -realm AUTH.EXAMPLE.COM -adserver-name ad-1
+-adserver-ip 10.10.8.14 -clock-skew 300 -kdc-ip 10.10.8.14 -kdc-port 88 -kdc-vendor Microsoft
+-comment "Microsoft Kerberos config"
+----
+
+The following command creates an NFS Kerberos realm configuration for the SVM vs1 that uses an MIT KDC. The Kerberos realm is SECURITY.EXAMPLE.COM. The permitted clock skew is 300 seconds. The IP address of the KDC server is 10.10.9.1, and its port number is 88. The KDC vendor is Other to indicate a UNIX vendor. The IP address of the administrative server is 10.10.9.1, and its port number is 749 (the default). The IP address of the password server is 10.10.9.1, and its port number is 464 (the default). "UNIX Kerberos config" is the comment.
+
+----
+vs1::> vserver nfs kerberos realm create -vserver vs1 -realm SECURITY.EXAMPLE.COM. -clock-skew 300
+-kdc-ip 10.10.9.1 -kdc-port 88 -kdc-vendor Other -adminserver-ip 10.10.9.1 -adminserver-port 749
+-passwordserver-ip 10.10.9.1 -passwordserver-port 464 -comment "UNIX Kerberos config"
+----

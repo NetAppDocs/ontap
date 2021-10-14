@@ -1,0 +1,65 @@
+---
+permalink: smb-admin/configure-bypass-traverse-checking-concept.html
+sidebar: sidebar
+keywords: bypass, traverse, user, privilege, permission, directory, allow, check, configure, storage, virtual, machine, svm, configure bypass traverse checking
+summary: "Bypass traverse checking is a user right (also known as a privilege) that determines whether a user can traverse all the directories in the path to a file even if the user does not have permissions on the traversed directory. You should understand what happens when allowing or disallowing bypass traverse checking, and how to configure bypass traverse checking for users on storage virtual machines (SVMs)."
+---
+= Configure bypass traverse checking overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Bypass traverse checking is a user right (also known as a _privilege_) that determines whether a user can traverse all the directories in the path to a file even if the user does not have permissions on the traversed directory. You should understand what happens when allowing or disallowing bypass traverse checking, and how to configure bypass traverse checking for users on storage virtual machines (SVMs).
+
+== What happens when allowing or disallowing bypass traverse checking
+
+* If allowed, when a user attempts to access a file, ONTAP does not check the traverse permission for the intermediate directories when determining whether to grant or deny access to the file.
+* If disallowed, ONTAP checks the traverse (execute) permission for all directories in the path to the file.
++
+If any of the intermediate directories do not have the "`X`" (traverse permission), ONTAP denies access to the file.
+
+== How to configure bypass traverse checking
+
+You can configure bypass traverse checking by using the ONTAP CLI or by configuring Active Directory group policies with this user right.
+
+The `SeChangeNotifyPrivilege` privilege controls whether users are allowed to bypass traverse checking.
+
+* Adding it to local SMB users or groups on the SVM or to domain users or groups allows bypass traverse checking.
+* Removing it from local SMB users or groups on the SVM or from domain users or groups disallows bypass traverse checking.
+
+By default, the following BUILTIN groups on the SVM have the right to bypass traverse checking:
+
+* `BUILTIN\Administrators`
+* `BUILTIN\Power Users`
+* `BUILTIN\Backup Operators`
+* `BUILTIN\Users`
+* `Everyone`
+
+If you do not want to allow members of one of these groups to bypass traverse checking, you must remove this privilege from the group.
+
+You must keep the following in mind when configuring bypass traverse checking for local SMB users and groups on the SVM by using the CLI:
+
+* If you want to allow members of a custom local or domain group to bypass traverse checking, you must add the `SeChangeNotifyPrivilege` privilege to that group.
+* If you want to allow an individual local or domain user to bypass traverse checking and that user is not a member of a group with that privilege, you can add the `SeChangeNotifyPrivilege` privilege to that user account.
+* You can disable bypass traverse checking for local or domain users or groups by removing the `SeChangeNotifyPrivilege` privilege at any time.
++
+[NOTE]
+====
+To disable bypass travers checking for specified local or domain users or groups, you must also remove the `SeChangeNotifyPrivilege` privilege from the `Everyone` group.
+====
+
+*Related information*
+
+xref:allow-users-groups-bypass-directory-traverse-task.adoc[Allowing users or groups to bypass directory traverse checking]
+
+xref:disallow-users-groups-bypass-directory-traverse-task.adoc[Disallowing users or groups from bypassing directory traverse checking]
+
+xref:configure-character-mappings-file-name-translation-task.adoc[Configuring character mapping for SMB file name translation on volumes]
+
+xref:secure-file-access-share-acls-concept.adoc[Securing file access by using SMB share ACLs]
+
+xref:secure-file-access-file-permissions-concept.adoc[Securing file access by using file permissions]
+
+xref:list-supported-privileges-reference.adoc[List of supported privileges]
+
+xref:manage-local-privileges-concept.adoc[Managing local privileges]

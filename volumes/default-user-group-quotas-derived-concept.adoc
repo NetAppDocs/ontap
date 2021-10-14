@@ -1,0 +1,50 @@
+---
+permalink: volumes/default-user-group-quotas-derived-concept.html
+sidebar: sidebar
+keywords: how, default, user, group quotas, create, derived, quotas
+summary: "When you create default user or group quotas, corresponding derived user or group quotas are automatically created for every user or group that owns files at the same level."
+---
+= How default user and group quotas create derived quotas
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When you create default user or group quotas, corresponding derived user or group quotas are automatically created for every user or group that owns files at the same level.
+
+Derived user and group quotas are created in the following ways:
+
+* A default user quota on a FlexVol volume creates derived user quotas for every user that owns a file anywhere on the volume.
+* A default user quota on a qtree creates derived user quotas for every user that owns a file in the qtree.
+* A default group quota on a FlexVol volume creates derived group quotas for every group that owns a file anywhere on the volume.
+* A default group quota on a qtree creates derived group quotas for every group that owns a file in the qtree.
+
+If a user or group does not own files at the level of a default user or group quota, derived quotas are not created for the user or group. For example, if a default user quota is created for qtree proj1 and the user jsmith owns files on a different qtree, no derived user quota is created for jsmith.
+
+The derived quotas have the same settings as the default quotas, including limits and user mapping. For example, if a default user quota has a 50-MB disk limit and has user mapping turned on, any resulting derived quotas also have a 50-MB disk limit and user mapping turned on.
+
+However, no limits exist in derived quotas for three special users and groups. If the following users and groups own files at the level of a default user or group quota, a derived quota is created with the same user-mapping setting as the default user or group quota, but it is only a tracking quota (with no limits):
+
+* UNIX root user (UID 0)
+* UNIX root group (GID 0)
+* Windows BUILTIN\Administrators group
++
+Since quotas for Windows groups are tracked as user quotas, a derived quota for this group is a user quota that is derived from a default user quota, not a default group quota.
+
+.Example of derived user quotas
+
+If you have volume where three users--root, jsmith, and bob--own files, and you create a default user quota on the volume, ONTAP automatically creates three derived user quotas. Therefore, after you reinitialize quotas on the volume, four new quotas appear in the quota report:
+
+----
+cluster1::> volume quota report
+  Vserver: vs1
+                                     ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1               user    *           0B   50MB       0       -   *
+vol1               user    root        5B      -       1       -
+vol1               user    jsmith     30B   50MB      10       -   *
+vol1               user    bob        40B   50MB      15       -   *
+4 entries were displayed.
+----
+
+The first new line is the default user quota that you created, which is identifiable by the asterisk (*) as the ID. The other new lines are the derived user quotas. The derived quotas for jsmith and bob have the same 50-MB disk limit as the default quota. The derived quota for the root user is a tracking quota without limits.

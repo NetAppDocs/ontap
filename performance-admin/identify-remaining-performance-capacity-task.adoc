@@ -1,0 +1,94 @@
+---
+permalink: performance-admin/identify-remaining-performance-capacity-task.html
+sidebar: sidebar
+keywords: identify, remaining, performance, capacity
+summary: "Performance capacity, or headroom, measures how much work you can place on a node or an aggregate before performance of workloads on the resource begins to be affected by latency. Knowing the available performance capacity on the cluster helps you provision and balance workloads."
+---
+= Identify remaining performance capacity
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Performance capacity, or _headroom_, measures how much work you can place on a node or an aggregate before performance of workloads on the resource begins to be affected by latency. Knowing the available performance capacity on the cluster helps you provision and balance workloads.
+
+.What you'll need
+
+Advanced privilege level commands are required for this task.
+
+.About this task
+
+You can use the following values for the `-object` option to collect and display headroom statistics:
+
+* For CPUs, `resource_headroom_cpu`.
+* For aggregates, `resource_headroom_aggr`.
+
+You can also complete this task using ONTAP System Manager and Active IQ Unified Manager.
+
+.Steps
+
+. Change to advanced privilege level:
++
+`set -privilege advanced`
+. Start real-time headroom statistics collection:
++
+`statistics start –object resource_headroom_cpu|aggr`
++
+For complete command syntax, see the man page.
+
+. Display real-time headroom statistics information:
++
+`statistics show -object resource_headroom_cpu|aggr`
++
+For complete command syntax, see the man page.
+
+. Return to administrative privilege:
++
+`set -privilege admin`
+
+.Example
+
+The following example displays the average hourly headroom statistics for cluster nodes.
+
+You can compute the available performance capacity for a node by subtracting the `current_utilization` counter from the `optimal_point_utilization` counter. In this example, the utilization capacity for `CPU_sti2520-213` is -14% (72%-86%), which suggests that the CPU has been overutilized on average for the past hour.
+
+You could have specified `ewma_daily`, `ewma_weekly`, or `ewma_monthly` to get the same information averaged over longer periods of time.
+
+----
+sti2520-2131454963690::*> statistics show -object resource_headroom_cpu -raw -counter ewma_hourly
+  (statistics show)
+
+Object: resource_headroom_cpu
+Instance: CPU_sti2520-213
+Start-time: 2/9/2016 16:06:27
+End-time: 2/9/2016 16:06:27
+Scope: sti2520-213
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    ewma_hourly                                                     -
+                         current_ops                             4376
+                     current_latency                            37719
+                 current_utilization                               86
+                   optimal_point_ops                             2573
+               optimal_point_latency                             3589
+           optimal_point_utilization                               72
+     optimal_point_confidence_factor                                1
+
+Object: resource_headroom_cpu
+Instance: CPU_sti2520-214
+Start-time: 2/9/2016 16:06:27
+End-time: 2/9/2016 16:06:27
+Scope: sti2520-214
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    ewma_hourly                                                     -
+                         current_ops                                0
+                     current_latency                                0
+                 current_utilization                                0
+                   optimal_point_ops                                0
+               optimal_point_latency                                0
+           optimal_point_utilization                               71
+     optimal_point_confidence_factor                                1
+2 entries were displayed.
+----

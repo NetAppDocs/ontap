@@ -1,0 +1,77 @@
+---
+permalink: nas-audit/create-auditing-config-task.html
+sidebar: sidebar
+keywords: create, audit, configuration
+summary: "Before you can begin auditing file and directory events, you must create an auditing configuration on the storage virtual machine (SVM)."
+---
+= Create the auditing configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Creating a file and directory auditing configuration on your storage virtual machine (SVM) includes understanding the available configuration options, planning the configuration, and then configuring and enabling the configuration. You can then display information about the auditing configuration to confirm that the resultant configuration is the desired configuration.
+
+Before you can begin auditing file and directory events, you must create an auditing configuration on the storage virtual machine (SVM).
+
+.What you'll need
+
+If you plan on creating an auditing configuration for central access policy staging, a CIFS server must exist on the SVM.
+
+[NOTE]
+====
+
+* Although you can enable central access policy staging in the auditing configuration without enabling Dynamic Access Control on the CIFS server, central access policy staging events are generated only if Dynamic Access Control is enabled.
++
+Dynamic Access Control is enabled through a CIFS server option. It is not enabled by default.
+
+* If the arguments of a field in a command is invalid, for example, invalid entries for fields, duplicate entries, and non-existent entries, then the command fails before the audit phase.
++
+Such failures do not generate an audit record.
+
+====
+
+.About this task
+
+If the SVM is an SVM disaster recovery source, the destination path cannot be on the root volume.
+
+.Step
+
+. Using the information in the planning worksheet, create the auditing configuration to rotate audit logs based on log size or a schedule:
++
+[cols="2*",options="header"]
+|===
+| If you want to rotate audit logs by...| Enter...
+a|
+Log size
+a|
+`vserver audit create -vserver vserver_name -destination path -events [{file-ops\|cifs-logon-logoff\|cap-staging\|file-share\|audit-policy-change\|user-account\|security-group\|authorization-policy-change}] [-format {xml\|evtx}] [-rotate-limit integer] [-rotate-size {integer[KB\|MB\|GB\|TB\|PB]}]`
+a|
+A schedule
+a|
+`vserver audit create -vserver vserver_name -destination path -events [{file-ops\|cifs-logon-logoff\|cap-staging}] [-format {xml\|evtx}] [-rotate-limit integer] [-rotate-schedule-month chron_month] [-rotate-schedule-dayofweek chron_dayofweek] [-rotate-schedule-day chron_dayofmonth] [-rotate-schedule-hour chron_hour] -rotate-schedule-minute chron_minute`
+[NOTE]
+====
+The `-rotate-schedule-minute` parameter is required if you are configuring time-based audit log rotation.
+====
+
+|===
+
+.Examples
+
+The following example creates an auditing configuration that audits file operations and CIFS logon and logoff events (the default) using size-based rotation. The log format is `EVTX` (the default). The logs are stored in the `/audit_log` directory. The log file size limit is `200 MB`. The logs are rotated when they reach 200 MB in size:
+
+----
+cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-size 200MB
+----
+
+The following example creates an auditing configuration that audits file operations and CIFS logon and logoff events (the default) using size-based rotation. The log format is `EVTX` (the default). The log file size limit is `100 MB` (the default), and the log rotation limit is `5`:
+
+----
+cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-limit 5
+----
+
+The following example creates an auditing configuration that audits file operations, CIFS logon and logoff events, and central access policy staging events using time-based rotation. The log format is `EVTX` (the default). The audit logs are rotated monthly, at 12:30 p.m. on all days of the week. The log rotation limit is `5`:
+
+----
+cluster1::> vserver audit create -vserver vs1 -destination /audit_log -events file-ops,cifs-logon-logoff,file-share,audit-policy-change,user-account,security-group,authorization-policy-change,cap-staging -rotate-schedule-month all -rotate-schedule-dayofweek all -rotate-schedule-hour 12 -rotate-schedule-minute 30 -rotate-limit 5
+----

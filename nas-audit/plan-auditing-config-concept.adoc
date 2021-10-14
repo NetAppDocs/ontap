@@ -1,0 +1,266 @@
+---
+permalink: nas-audit/plan-auditing-config-concept.html
+sidebar: sidebar
+keywords: plan, audit configuration
+summary: "Before you configure auditing on storage virtual machines (SVMs), you must understand which configuration options are available and plan the values that you want to set for each option. This information can help you configure the auditing configuration that meets your business needs."
+---
+= Plan the auditing configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you configure auditing on storage virtual machines (SVMs), you must understand which configuration options are available and plan the values that you want to set for each option. This information can help you configure the auditing configuration that meets your business needs.
+
+There are certain configuration parameters that are common to all auditing configurations.
+
+Additionally, there are certain parameters that you can use to specify which methods are used when rotating the consolidated and converted audit logs. You can specify one of the three following methods when you configure auditing:
+
+* Rotate logs based on log size
++
+This is the default method used to rotate logs.
+
+* Rotate logs based on a schedule
+* Rotate logs based on log size and schedule (whichever event occurs first)
+
+[NOTE]
+====
+At least one of the methods for log rotation should always be set.
+====
+
+== Parameters common to all auditing configurations
+
+There are two required parameters that you must specify when you create the auditing configuration. There are also three optional parameters that you can specify:
+
+[cols="40,30,10,10,10",options="header"]
+|===
+| Type of information| Option| Required| Include| Your values
+a|
+_SVM name_
+
+Name of the SVM on which to create the auditing configuration. The SVM must already exist.
+
+a|
+`-vserver` `vserver_name`
+a|
+Yes
+a|
+Yes
+a|
+
+a|
+_Log destination path_
+
+Specifies where the converted audit logs are stored. The path must already exist on the SVM.
+
+The path can be up to 864 characters in length and must have read-write permissions.
+
+If the path is not valid, the audit configuration command fails.
+
+If the SVM is an SVM disaster recovery source, the log destination path cannot be on the root volume. This is because root volume content is not replicated to the disaster recovery destination.
+
+You cannot use a FlexCache volume as a log destination (ONTAP 9.7 and later).
+
+a|
+`-destination` `text`
+a|
+Yes
+a|
+Yes
+a|
+
+a|
+_Categories of events to audit_
+
+Specifies the categories of events to audit. The following event categories can be audited:
+
+* File access events (both SMB and NFSv4)
+* CIFS logon and logoff events
+* Central access policy staging events
++
+Central access policy staging events are a new advanced auditing event available starting with Windows 2012 Active Directory domains. Central access policy staging events log information about changes to central access policies configured in Active Directory.
+
+* File share category events
+* Audit policy change events
+* Local user account management events
+* Security group management events
+* Authorization policy change events
+
+The default is to audit file access and CIFS logon and logoff events.
+
+[NOTE]
+====
+Before you can specify `cap-staging` as an event category, a CIFS server must exist on the SVM. Although you can enable central access policy staging in the auditing configuration without enabling Dynamic Access Control on the CIFS server, central access policy staging events are generated only if Dynamic Access Control is enabled. Dynamic Access Control is enabled through a CIFS server option. It is not enabled by default.
+
+====
+
+a|
+`-events` {`file-ops`\|`cifs-logon-logoff`\|`cap-staging`\|`file-share`\|`audit-policy-change`\|`user-account`\|`security-group`\|`authorization-policy-change`}
+a|
+No
+a|
+
+a|
+
+a|
+_Log file output format_
+
+Determines the output format of the audit logs. The output format can be either ONTAP-specific `XML` or Microsoft Windows `EVTX` log format. By default, the output format is `EVTX`.
+
+a|
+`-format` {`xml`\|`evtx`}
+a|
+No
+a|
+
+a|
+
+a|
+_Log files rotation limit_
+
+Determines how many audit log files to retain before rotating the oldest log file out. For example, if you enter a value of `5`, the last five log files are retained.
+
+A value of `0` indicates that all the log files are retained. The default value is 0.
+
+a|
+`-rotate-limit` `integer`
+a|
+No
+a|
+
+a|
+
+|===
+
+== Parameters used for determining when to rotate audit event logs
+
+*Rotate logs based on log size*
+
+The default is to rotate audit logs based on size.
+
+* The default log size is 100 MB
+* If you want to use the default log rotation method and the default log size, you do not need to configure any specific parameters for log rotation.
+* If you want to rotate the audit logs based on a log size alone, use the following command to unset the `-rotate-schedule-minute` parameter: `vserver audit modify -vserver vs0 -destination / -rotate-schedule-minute -`
+
+If you do not want to use the default log size, you can configure the `-rotate-size` parameter to specify a custom log size:
+
+[cols="40,30,10,10,10",options="header"]
+|===
+| Type of information| Option| Required| Include| Your values
+a|
+_Log file size limit_
+
+Determines the audit log file size limit.
+
+a|
+`-rotate-size` {`integer`[KB\|MB\|GB\|TB\|PB]}
+a|
+No
+a|
+
+a|
+
+|===
+*Rotate logs based on a schedule*
+
+If you choose to rotate the audit logs based on a schedule, you can schedule log rotation by using the time-based rotation parameters in any combination.
+
+* If you use time-based rotation, the `-rotate-schedule-minute` parameter is mandatory.
+* All other time-based rotation parameters are optional.
+* The rotation schedule is calculated by using all the time-related values.
++
+For example, if you specify only the `-rotate-schedule-minute` parameter, the audit log files are rotated based on the minutes specified on all days of the week, during all hours on all months of the year.
+
+* If you specify only one or two time-based rotation parameters (for example, `-rotate-schedule-month` and `-rotate-schedule-minutes`), the log files are rotated based on the minute values that you specified on all days of the week, during all hours, but only during the specified months.
++
+For example, you can specify that the audit log is to be rotated during the months January, March, and August on all Mondays, Wednesdays, and Saturdays at 10:30 a.m.
+
+* If you specify values for both `-rotate-schedule-dayofweek` and `-rotate-schedule-day`, they are considered independently.
++
+For example, if you specify `-rotate-schedule-dayofweek` as Friday and `-rotate-schedule-day` as 13, then the audit logs would be rotated on every Friday and on the 13th day of the specified month, not just on every Friday the 13th.
+
+* If you want to rotate the audit logs based on a schedule alone, use the following command to unset the `-rotate-size` parameter: `vserver audit modify -vserver vs0 -destination / -rotate-size -`
+
+You can use the following list of available auditing parameters to determine what values to use for configuring a schedule for audit event log rotations:
+
+[cols="40,30,10,10,10",options="header"]
+|===
+| Type of information| Option| Required| Include| Your values
+a|
+_Log rotation schedule: Month_
+
+Determines the monthly schedule for rotating audit logs.
+
+Valid values are `January` through `December`, and `all`. For example, you can specify that the audit log is to be rotated during the months January, March, and August.
+
+a|
+`-rotate-schedule-month` `chron_month`
+a|
+No
+a|
+
+a|
+
+a|
+_Log rotation schedule: Day of week_
+
+Determines the daily (day of week) schedule for rotating audit logs.
+
+Valid values are `Sunday` through `Saturday`, and `all`. For example, you can specify that the audit log is to be rotated on Tuesdays and Fridays, or during all the days of a week.
+
+a|
+`-rotate-schedule-dayofweek` `chron_dayofweek`
+a|
+No
+a|
+
+a|
+
+a|
+_Log rotation schedule: Day_
+
+Determines the day of the month schedule for rotating the audit log.
+
+Valid values range from `1` through `31`. For example, you can specify that the audit log is to be rotated on the 10th and 20th days of a month, or all days of a month.
+
+a|
+`-rotate-schedule-day` `chron_dayofmonth`
+a|
+No
+a|
+
+a|
+
+a|
+_Log rotation schedule: Hour_
+
+Determines the hourly schedule for rotating the audit log.
+
+Valid values range from `0` (midnight) to `23` (11:00 p.m.). Specifying `all` rotates the audit logs every hour. For example, you can specify that the audit log is to be rotated at 6 (6 a.m.) and 18 (6 p.m.).
+
+a|
+`-rotate-schedule-hour` `chron_hour`
+a|
+No
+a|
+
+a|
+
+a|
+_Log rotation schedule: Minute_
+
+Determines the minute schedule for rotating the audit log.
+
+Valid values range from `0` to `59`. For example, you can specify that the audit log is to be rotated at the 30th minute.
+
+a|
+`-rotate-schedule-minute` `chron_minute`
+a|
+Yes, if configuring schedule-based log rotation; otherwise, no.
+a|
+
+a|
+
+|===
+*Rotate logs based on log size and schedule*
+
+You can choose to rotate the log files based on log size and a schedule by setting both the `-rotate-size` parameter and the time-based rotation parameters in any combination. For example: if `-rotate-size` is set to 10 MB and `-rotate-schedule-minute` is set to 15, the log files rotate when the log file size reaches 10 MB or on the 15th minute of every hour (whichever event occurs first).

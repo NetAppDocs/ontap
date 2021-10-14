@@ -1,0 +1,79 @@
+---
+permalink: nfs-admin/display-nis-statistics-task.html
+sidebar: sidebar
+keywords: display, nis, statistics
+summary: "You can display NIS statistics for storage virtual machines (SVMs) on the storage system to monitor performance and diagnose issues."
+---
+= Display NIS statistics
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can display NIS statistics for storage virtual machines (SVMs) on the storage system to monitor performance and diagnose issues.
+
+.Steps
+
+. Use the `statistics catalog object show` command to identify the NIS objects from which you can view data.
++
+`statistics catalog object show -object external_service_op*`
++
+For more information about the statistics commands, see the _Performance Monitoring Power Guide_.
+
+. Use the `statistics start` and `statistics stop` commands to collect a data sample from one or more objects.
+. Use the `statistics show` command to view the sample data.
+
+== Monitoring NIS statistics
+
+The following examples display performance data for NIS queries. The following commands start data collection for a new sample:
+
+----
+vs1::*> statistics start -object external_service_op -sample-id nis_sample1
+vs1::*> statistics start -object external_service_op_error -sample-id nis_sample2
+----
+
+The following command displays data from the sample by specifying counters that show the number of NIS queries sent versus the number of NIS queries received, failed, or timed out:
+
+----
+vs1::*> statistics show -sample-id nis_sample1 -counter instance|num_requests_sent|num_responses_received|num_successful_responses|num_timeouts|num_request_failures|num_not_found_responses
+
+Object: external_service_op
+Instance: vs1:NIS:Query:10.227.13.221
+Start-time: 3/8/2016 11:27:39
+End-time: 3/8/2016 11:27:56
+Elapsed-time: 17s
+Scope: vs1
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    num_not_found_responses                                         0
+    num_request_failures                                            1
+    num_requests_sent                                               2
+    num_responses_received                                          1
+    num_successful_responses                                        1
+    num_timeouts                                                    0
+6 entries were displayed.
+----
+
+The following command displays data from the sample by specifying counters that show the number of times a specific error was received for a NIS query on the particular server:
+
+----
+vs1::*> statistics show -sample-id nis_sample2 -counter server_ip_address|error_string|count
+
+Object: external_service_op_error
+Instance: vs1:NIS:Query:YP_NOTFOUND:10.227.13.221
+Start-time: 3/8/2016 11:33:05
+End-time: 3/8/2016 11:33:10
+Elapsed-time: 5s
+Scope: vs1
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    count                                                           1
+    error_string                                          YP_NOTFOUND
+    server_ip_address                                   10.227.13.221
+3 entries were displayed.
+----
+
+*Related information*
+
+https://docs.netapp.com/us-en/ontap/performance-config/index.html[Performance monitoring express setup]

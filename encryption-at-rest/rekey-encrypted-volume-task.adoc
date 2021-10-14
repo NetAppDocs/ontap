@@ -1,0 +1,67 @@
+---
+permalink: encryption-at-rest/rekey-encrypted-volume-task.html
+sidebar: sidebar
+keywords:  changing, encryption key, volume encryption rekey start, command
+summary: "It is a security best practice to change the encryption key for a volume periodically. Starting with ONTAP 9.3, you can use the volume encryption rekey start command to change the encryption key."
+---
+= Change the encryption key for a volume with the volume encryption rekey start command
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+It is a security best practice to change the encryption key for a volume periodically. Starting with ONTAP 9.3, you can use the `volume encryption rekey start` command to change the encryption key.
+
+.About this task
+
+Once you start a rekey operation, it must complete. There is no returning to the old key. If you encounter a performance issue during the operation, you can run the `volume encryption rekey pause` command to pause the operation, and the `volume encryption rekey resume` command to resume the operation.
+
+Until the rekey operation finishes, the volume will have two keys. New writes and their corresponding reads will use the new key. Otherwise, reads will use the old key.
+
+[NOTE]
+====
+You cannot use `volume encryption rekey start` to rekey a SnapLock volume.
+====
+
+.Steps
+
+. Change an encryption key:
++
+`volume encryption rekey start -vserver SVM_name -volume volume_name`
++
+The following command changes the encryption key for `vol1` on SVM``vs1``:
++
+----
+cluster1::> volume encryption rekey start -vserver vs1 -volume vol1
+----
+
+. Verify the status of the rekey operation:
++
+`volume encryption rekey show`
++
+For complete command syntax, see the man page for the command.
++
+The following command displays the status of the rekey operation:
++
+----
+cluster1::> volume encryption rekey show
+
+Vserver   Volume   Start Time           Status
+-------   ------   ------------------   ---------------------------
+vs1       vol1     9/18/2017 17:51:41   Phase 2 of 2 is in progress.
+----
+
+. When the rekey operation is complete, verify that the volume is enabled for encryption:
++
+`volume show -is-encrypted true`
++
+For complete command syntax, see the man page for the command.
++
+The following command displays the encrypted volumes on `cluster1`:
++
+----
+cluster1::> volume show -is-encrypted true
+
+Vserver  Volume  Aggregate  State  Type  Size  Available  Used
+-------  ------  ---------  -----  ----  -----  --------- ----
+vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
+----

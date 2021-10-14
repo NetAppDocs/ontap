@@ -1,0 +1,169 @@
+---
+permalink: data-protection/create-replication-relationship-task.html
+sidebar: sidebar
+keywords: create, replication, relationship
+summary: "The relationship between the source volume in primary storage and the destination volume in secondary storage is called a data protection relationship. You can use the snapmirror create command to create SnapMirror DR, SnapVault, or unified replication data protection relationships."
+---
+= Create a replication relationship
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The relationship between the source volume in primary storage and the destination volume in secondary storage is called a _data protection relationship._ You can use the `snapmirror create` command to create SnapMirror DR, SnapVault, or unified replication data protection relationships.
+
+.What you'll need
+
+* The source and destination clusters and SVMs must be peered.
++
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.exp-clus-peer/home.html[Cluster and SVM peering express configuration]
+
+* The language on the destination volume must be the same as the language on the source volume.
+
+.About this task
+
+Until ONTAP 9.3, SnapMirror invoked in DP mode and SnapMirror invoked in XDP mode used different replication engines, with different approaches to version-dependence:
+
+* SnapMirror invoked in DP mode used a _version-dependent_ replication engine in which the ONTAP version was required to be the same on primary and secondary storage:
++
+----
+cluster_dst::>  snapmirror create -type DP -source-path ... -destination-path ...
+----
+
+* SnapMirror invoked in XDP mode used a _version-flexible_ replication engine that supported different ONTAP versions on primary and secondary storage:
++
+----
+cluster_dst::>  snapmirror create -type XDP -source-path ... -destination-path ...
+----
+
+With improvements in performance, the significant benefits of version-flexible SnapMirror outweigh the slight advantage in replication throughput obtained with version-dependent mode. For this reason, starting with ONTAP 9.3, XDP mode has been made the new default, and any invocations of DP mode on the command line or in new or existing scripts are automatically converted to XDP mode.
+
+Existing relationships are not affected. If a relationship is already of type DP, it will continue to be of type DP. The table below shows the behavior you can expect.
+
+[cols="3*",options="header"]
+|===
+| If you specify...
+
+| The type is...| The default policy (if you do not specify a policy) is...
+
+a|
+DP
+a|
+XDP
+a|
+MirrorAllSnapshots (SnapMirror DR)
+a|
+Nothing
+a|
+XDP
+a|
+MirrorAllSnapshots (SnapMirror DR)
+a|
+XDP
+a|
+XDP
+a|
+XDPDefault (SnapVault)
+|===
+See also the examples in the procedure below.
+
+The only exceptions to conversion are as follows:
+
+* SVM data protection relationships continue to default to DP mode.
++
+Specify XDP explicitly to obtain XDP mode with the default `MirrorAllSnapshots` policy.
+
+* Load-sharing data protection relationships continue to default to DP mode.
+* SnapLock data protection relationships continue to default to DP mode.
+* Explicit invocations of DP continue to default to DP mode if you set the following cluster-wide option:
++
+----
+options replication.create_data_protection_rels.enable on
+----
++
+This option is ignored if you do not explicitly invoke DP.
+
+In ONTAP 9.3 and earlier, a destination volume can contain up to 251 Snapshot copies. In ONTAP 9.4 and later, a destination volume can contain up to 1019 Snapshot copies.
+
+Starting with ONTAP 9.5, SnapMirror Synchronous relationships are supported.
+
+.Step
+
+. From the destination cluster, create a replication relationship:
++
+`snapmirror create -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ... -type DP|XDP -schedule _schedule_ -policy _policy_`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+The `schedule` parameter is not applicable when creating SnapMirror Synchronous relationships.
+====
++
+The following example creates a SnapMirror DR relationship using the default `MirrorLatest` policy:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy MirrorLatest
+----
++
+The following example creates a SnapVault relationship using the default `XDPDefault` policy:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy XDPDefault
+----
++
+The following example creates a unified replication relationship using the default `MirrorAndVault` policy:
++
+----
+cluster_dst:> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy MirrorAndVault
+----
++
+The following example creates a unified replication relationship using the custom `my_unified` policy:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily -policy my_unified
+----
++
+The following example creates a SnapMirror Synchronous relationship using the default `Sync` policy:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -policy Sync
+----
++
+The following example creates a SnapMirror Synchronous relationship using the default `StrictSync` policy:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -policy StrictSync
+----
++
+The following example creates a SnapMirror DR relationship. With the DP type automatically converted to XDP and with no policy specified, the policy defaults to the `MirrorAllSnapshots` policy:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type DP -schedule my_daily
+----
++
+The following example creates a SnapMirror DR relationship. With no type or policy specified, the policy defaults to the `MirrorAllSnapshots` policy:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -schedule my_daily
+----
++
+The following example creates a SnapMirror DR relationship. With no policy specified, the policy defaults to the `XDPDefault` policy:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -schedule my_daily
+----
++
+The following example creates a SnapMirror Synchronous relationship with the predefined policy `SnapCenterSync`:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst -type XDP -policy SnapCenterSync
+----
++
+[NOTE]
+====
+The predefined policy `SnapCenterSync` is of type `Sync`. This policy replicates any Snapshot copy that is created with the `snapmirror-label` of "app_consistent".
+====
+
+.After you finish
+
+Use the `snapmirror show` command to verify that the SnapMirror relationship was created. For complete command syntax, see the man page.

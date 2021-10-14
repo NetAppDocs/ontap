@@ -1,0 +1,108 @@
+---
+permalink: smb-hyper-v-sql/smb-share-config-worksheet-reference.html
+sidebar: sidebar
+keywords: complete, smb, share, configuration, worksheet, information, settings
+summary: "Use this worksheet to record the values that you need when creating continuously available SMB shares for SQL Server and Hyper-V over SMB configurations."
+---
+= Complete the SMB share configuration worksheet
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Use this worksheet to record the values that you need when creating continuously available SMB shares for SQL Server and Hyper-V over SMB configurations.
+
+== Information about SMB shares properties and configuration settings
+
+For each share, you must specify the following information:
+
+* storage virtual machine (SVM) name
++
+The SVM name is the same for all shares
+
+* Share name
+* Path
+* Share properties
++
+You must configure the following two share properties:
+
+ ** `oplocks`
+ ** `continuously-available`
+
+The following share properties must not be set:
+
+ ** `homedirectory attributecache`
+ ** `branchcache`
+ ** `access-based-enumeration`
+
++
+[NOTE]
+====
+With change notify disabled, Windows 2012 Server does not refresh the Explorer window, which causes an inconsistent view of directory contents.
+====
+
+* Symlinks must be disabled (the value for the `-symlink-properties` parameter must be null [""]).
+
+== Information about share paths
+
+If you are using Remote VSS to back up Hyper-V files, the choice of share paths to use when making SMB connections from the Hyper-V servers to the storage locations where the virtual machine files are stored is important. Although shares can be created at any point in the namespace, paths for shares that the Hyper-V servers use should not contain junctioned volumes. Shadow copy operations cannot be performed on share paths that contain junction points.
+
+SQL Server cannot cross junctions when creating the database directory structure. You should not create share paths for SQL server that contain junction points.
+
+For example, given the namespace shown, if you want to store virtual machine files or database files on volumes "`vol1`", "`vol2`", "`vol3`", and "`vol4`", you should create shares for the application servers at the following paths: `/data1/vol1`, `/data1/vol2`, `/data2/vol3`, and `/data2/vol4`.
+
+----
+
+                     Junction                       Junction
+Vserver Volume       Active   Junction Path         Path Source
+------- ------------ -------- -------------------   -----------
+vs1     data1         true     /data1               RW_volume
+vs1     vol1          true     /data1/vol1          RW_volume
+vs1     vol2          true     /data1/vol2          RW_volume
+vs1     data2         true     /data2               RW_volume
+vs1     vol3          true     /data2/vol3          RW_volume
+vs1     vol4          true     /data2/vol4          RW_volume
+----
+
+[NOTE]
+====
+Although you can create shares on the `/data1` and `/data2` paths for administrative management, you must not configure the application servers to use those shares to store data.
+====
+
+== Planning worksheet
+
+[options="header"]
+|===
+| Types of information| Values
+a|
+_Volume 1: SMB share name and path_
+a|
+
+a|
+_Volume 2: SMB share name and path_
+a|
+
+a|
+_Volume 3: SMB share name and path_
+a|
+
+a|
+_Volume 4: SMB share name and path_
+a|
+
+a|
+_Volume 5: SMB share name and path_
+a|
+
+a|
+_Volume 6: SMB share name and path_
+a|
+
+a|
+_Volume 7: SMB share name and path_
+a|
+
+a|
+_Additional volumes: SMB share names and paths_
+a|
+
+|===

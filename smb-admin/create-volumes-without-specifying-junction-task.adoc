@@ -1,0 +1,44 @@
+---
+permalink: smb-admin/create-volumes-without-specifying-junction-task.html
+sidebar: sidebar
+keywords: create, data, volume, junction, point, resultant, automatic, mount, nas, access, configure, smb, share, nfs, create data volumes without specifying junction points
+summary: "You can create a data volume without specifying a junction point. The resultant volume is not automatically mounted, and is not available to configure for NAS access. You must mount the volume before you can configure SMB shares or NFS exports for that volume."
+---
+= Create data volumes without specifying junction points
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create a data volume without specifying a junction point. The resultant volume is not automatically mounted, and is not available to configure for NAS access. You must mount the volume before you can configure SMB shares or NFS exports for that volume.
+
+.Before you begin
+
+The aggregate in which you want to create the volume must already exist.
+
+.Steps
+
+. Create the volume without a junction point by using the following command: `volume create -vserver vserver_name -volume volume_name -aggregate aggregate_name -size {integer[KB|MB|GB|TB|PB]} -security-style {ntfs|unix|mixed}`
++
+Specifying a volume security style is optional. If you do not specify a security style, ONTAP creates the volume with the same security style that is applied to the root volume of the storage virtual machine (SVM). However, the root volume's security style might not be the security style you want applied to the data volume. The recommendation is to specify the security style when you create the volume to minimize difficult-to-troubleshoot file-access issues.
++
+There are many optional parameters that you can use to customize a data volume. To learn more about them, see the man pages for the `volume create` command.
+
+. Verify that the volume was created without a junction point: `volume show -vserver vserver_name -volume volume_name -junction`
+
+.Example
+
+The following example creates a volume named "`sales`" located on SVM vs1 that is not mounted at a junction point:
+
+----
+cluster1::> volume create -vserver vs1 -volume sales -aggregate aggr3 -size 20GB
+[Job 3406] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1 -junction
+                     Junction                 Junction
+Vserver   Volume     Active   Junction Path   Path Source
+--------- ---------- -------- --------------- -----------
+vs1       data       true     /data           RW_volume
+vs1       home4      true     /eng/home       RW_volume
+vs1       vs1_root   -        /               -
+vs1       sales      -        -               -
+----

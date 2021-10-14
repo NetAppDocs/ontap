@@ -1,0 +1,101 @@
+---
+permalink: volumes/san-volumes-concept.html
+sidebar: sidebar
+keywords: understand, san volumes
+summary: "ONTAP provides three basic volume provisioning options: thick provisioning, thin provisioning, and semi-thick provisioning. Each option uses different ways to manage the volume space and the space requirements for ONTAP block sharing technologies. Understanding how the options work enables you to choose the best option for your environment."
+---
+= About SAN volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP provides three basic volume provisioning options: thick provisioning, thin provisioning, and semi-thick provisioning. Each option uses different ways to manage the volume space and the space requirements for ONTAP block sharing technologies. Understanding how the options work enables you to choose the best option for your environment.
+
+[NOTE]
+====
+Putting SAN LUNs and NAS shares in the same FlexVol volume is not recommended. You should provision separate FlexVol volumes specifically for your SAN LUNs and you should provision separate FlexVol volumes specifically to your NAS shares. This simplifies management and replication deployments and parallels the way FlexVol volumes are supported in Active IQ Unified Manager (formerly OnCommand Unified Manager).
+
+====
+
+== Thin provisioning for volumes
+
+When a thinly provisioned volume is created, ONTAP does not reserve any extra space when the volume is created. As data is written to the volume, the volume requests the storage it needs from the aggregate to accommodate the write operation. Using thin-provisioned volumes enables you to overcommit your aggregate, which introduces the possibility of the volume not being able to secure the space it needs when the aggregate runs out of free space.
+
+You create a thin-provisioned FlexVol volume by setting its `-space-guarantee` option to `none`.
+
+== Thick provisioning for volumes
+
+When a thick-provisioned volume is created, ONTAP sets aside enough storage from the aggregate to ensure that any block in the volume can be written to at any time. When you configure a volume to use thick provisioning, you can employ any of the ONTAP storage efficiency capabilities, such as compression and deduplication, to offset the larger upfront storage requirements.
+
+You create a thick-provisioned FlexVol volume by setting its `-space-slo` (service level objective) option to `thick`.
+
+== Semi-thick provisioning for volumes
+
+When a volume using semi-thick provisioning is created, ONTAP sets aside storage space from the aggregate to account for the volume size. If the volume is running out of free space because blocks are in use by block-sharing technologies, ONTAP makes an effort to delete protection data objects (Snapshot copies and FlexClone files and LUNs) to free up the space they are holding. As long as ONTAP can delete the protection data objects fast enough to keep pace with the space required for overwrites, the write operations continue to succeed. This is called a "`best effort`" write guarantee.
+
+[NOTE]
+====
+You cannot employ storage efficiency technologies such as deduplication, compression, and compaction on a volume that is using semi-thick provisioning.
+====
+
+You create a semi-thick-provisioned FlexVol volume by setting its `-space-slo` (service level objective) option to `semi-thick`.
+
+== Use with space-reserved files and LUNs
+
+A space-reserved file or LUN is one for which storage is allocated when it is created. Historically, NetApp has used the term "`thin-provisioned LUN`" to mean a LUN for which space reservation is disabled (a non-space-reserved LUN).
+
+[NOTE]
+====
+Non-space-reserved files are not generally referred to as "`thin-provisioned files.`"
+====
+
+The following table summarizes the major differences in how the three volume provisioning options can be used with space-reserved files and LUNs:
+[cols="5*",options="header"]
+|===
+| Volume provisioning| LUN/file space reservation| Overwrites| Protection data^2^ | Storage efficiency^3^
+a|
+Thick
+a|
+Supported
+a|
+Guaranteed^1^
+a|
+Guaranteed
+a|
+Supported
+a|
+Thin
+a|
+No effect
+a|
+None
+a|
+Guaranteed
+a|
+Supported
+a|
+Semi-thick
+a|
+Supported
+a|
+Best effort^1^
+a|
+Best effort
+a|
+Not supported
+|===
+*Notes*
+
+. The ability to guarantee overwrites or provide a best-effort overwrite assurance requires that space reservation is enabled on the LUN or file.
+. Protection data includes Snapshot copies, and FlexClone files and LUNs marked for automatic deletion (backup clones).
+. Storage efficiency includes deduplication, compression, any FlexClone files and LUNs not marked for automatic deletion (active clones), and FlexClone subfiles (used for Copy Offload).
+
+== Support for SCSI thin-provisioned LUNs
+
+ONTAP supports T10 SCSI thin-provisioned LUNs as well as NetApp thin-provisioned LUNs. T10 SCSI thin provisioning enables host applications to support SCSI features including LUN space reclamation and LUN space monitoring capabilities for blocks environments. T10 SCSI thin provisioning must be supported by your SCSI host software.
+
+You use the ONTAP `space-allocation` setting to enable/disable support for the T10 thin provisioning on a LUN. You use the ONTAP `space-allocation enable` setting to enable T10 SCSI thin provisioning on a LUN.
+
+The `[-space-allocation {enabled|disabled}]` command in the ONTAP Command Reference Manual has more information to enable/disable support for the T10 thin provisioning and to enable T10 SCSI thin provisioning on a LUN.
+
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html[ONTAP 9 commands]

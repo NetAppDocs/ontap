@@ -1,0 +1,144 @@
+---
+permalink: smb-admin/display-branchcache-statistics-task.html
+sidebar: sidebar
+keywords: display, branchcache, statistics, identify, caching, cache, perform, configuration, content, client, hash, file, delete, room, data, display branchcache statistics
+summary: "You can display BranchCache statistics to, among other things, identify how well caching is performing, determine whether your configuration is providing cached content to clients, and determine whether hash files were deleted to make room for more recent hash data."
+---
+= Display BranchCache statistics
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can display BranchCache statistics to, among other things, identify how well caching is performing, determine whether your configuration is providing cached content to clients, and determine whether hash files were deleted to make room for more recent hash data.
+
+.About this task
+
+The `hashd` statistic object contains counters that provide statistical information about BranchCache hashes. The `cifs` statistic object contains counters that provide statistical information about BranchCache-related activity. You can collect and display information about these objects at the advanced-privilege level.
+
+.Steps
+
+. Set the privilege level to advanced: `set -privilege advanced`
++
+----
+cluster1::> set -privilege advanced
+
+Warning: These advanced commands are potentially dangerous; use them only when directed to do so by support personnel.
+Do you want to continue? {y|n}: y
+----
+
+. Display the BranchCache-related counters by using the `statistics catalog counter show` command.
++
+For more information about statistics counters, see the man page for this command.
++
+----
+cluster1::*> statistics catalog counter show -object hashd
+
+Object: hashd
+    Counter                     Description
+    --------------------------- ----------------------------------------------
+    branchcache_hash_created    Number of times a request to generate
+                                BranchCache hash for a file succeeded.
+    branchcache_hash_files_replaced
+                                Number of times a BranchCache hash file was
+                                deleted to make room for more recent hash
+                                data. This happens if the hash store size is
+                                exceeded.
+    branchcache_hash_rejected   Number of times a request to generate
+                                BranchCache hash data failed.
+    branchcache_hash_store_bytes
+                                Total number of bytes used to store hash data.
+    branchcache_hash_store_size Total space used to store BranchCache hash
+                                data for the Vserver.
+    instance_name               Instance Name
+    instance_uuid               Instance UUID
+    node_name                   System node name
+    node_uuid                   System node id
+9 entries were displayed.
+
+cluster1::*> statistics catalog counter show -object cifs
+
+Object: cifs
+    Counter                     Description
+    --------------------------- ----------------------------------------------
+    active_searches             Number of active searches over SMB and SMB2
+    auth_reject_too_many        Authentication refused after too many
+                                requests were made in rapid succession
+    avg_directory_depth         Average number of directories crossed by SMB
+                                and SMB2 path-based commands
+    avg_junction_depth          Average number of junctions crossed by SMB
+                                and SMB2 path-based commands
+    branchcache_hash_fetch_fail Total number of times a request to fetch hash
+                                data failed. These are failures when
+                                attempting to read existing hash data. It
+                                does not include attempts to fetch hash data
+                                that has not yet been generated.
+    branchcache_hash_fetch_ok   Total number of times a request to fetch hash
+                                data succeeded.
+    branchcache_hash_sent_bytes Total number of bytes sent to clients
+                                requesting hashes.
+    branchcache_missing_hash_bytes
+                                Total number of bytes of data that had to be
+                                read by the client because the hash for that
+                                content was not available on the server.
+   ....Output truncated....
+----
+
+. Collect BranchCache-related statistics by using the `statistics start` and `statistics stop` commands.
++
+For more information about collecting statistics, see the _Performance Monitoring Power Guide_.
++
+----
+cluster1::*> statistics start -object cifs -vserver vs1 -sample-id 11
+Statistics collection is being started for Sample-id: 11
+
+cluster1::*> statistics stop -sample-id 11
+Statistics collection is being stopped for Sample-id: 11
+----
+
+. Display the collected BranchCache statistics by using the `statistics show` command.
++
+For more information about displaying statistical information, see the _Performance Monitoring Power Guide_.
++
+----
+cluster1::*> statistics show -object cifs -counter  branchcache_hash_sent_bytes -sample-id 11
+
+Object: cifs
+Instance: vs1
+Start-time: 12/26/2012 19:50:24
+End-time: 12/26/2012 19:51:01
+Cluster: cluster1
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    branchcache_hash_sent_bytes                                     0
+    branchcache_hash_sent_bytes                                     0
+    branchcache_hash_sent_bytes                                     0
+    branchcache_hash_sent_bytes                                     0
+
+cluster1::*> statistics show -object cifs -counter  branchcache_missing_hash_bytes -sample-id 11
+
+Object: cifs
+Instance: vs1
+Start-time: 12/26/2012 19:50:24
+End-time: 12/26/2012 19:51:01
+Cluster: cluster1
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    branchcache_missing_hash_bytes                                  0
+    branchcache_missing_hash_bytes                                  0
+    branchcache_missing_hash_bytes                                  0
+    branchcache_missing_hash_bytes                                  0
+----
+
+. Return to the admin privilege level: `set -privilege admin`
++
+----
+cluster1::*> set -privilege admin
+----
+
+*Related information*
+
+xref:display-statistics-task.adoc[Displaying statistics]
+
+https://docs.netapp.com/us-en/ontap/performance-config/index.html[Performance monitoring express setup]

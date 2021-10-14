@@ -1,0 +1,184 @@
+---
+permalink: system-admin/sp-sensor-status-values-command-output-concept.html
+sidebar: sidebar
+keywords: understand, discrete, sp, sensor, status, values, command, output, cli, hexedecimal, format
+summary: "Discrete sensors do not have thresholds. Their readings, displayed under the Current column in the SP CLI system sensors command output, do not carry actual meanings and thus are ignored by the SP. The Status column in the system sensors command output displays the status values of discrete sensors in hexadecimal format."
+---
+= About the discrete SP sensor status values of the system sensors command output
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Discrete sensors do not have thresholds. Their readings, displayed under the `Current` column in the SP CLI `system sensors` command output, do not carry actual meanings and thus are ignored by the SP. The `Status` column in the `system sensors` command output displays the status values of discrete sensors in hexadecimal format.
+
+Examples of discrete sensors include sensors for the fan, power supply unit (PSU) fault, and system fault. The specific list of discrete sensors depends on the platform.
+
+You can use the SP CLI `system sensors get` `sensor_name` command for help with interpreting the status values for most discrete sensors. The following examples show the results of entering `system sensors get` `sensor_name` for the discrete sensors CPU0_Error and IO_Slot1_Present:
+
+----
+SP node1> system sensors get CPU0_Error
+Locating sensor record...
+Sensor ID              : CPU0_Error (0x67)
+ Entity ID             : 7.97
+ Sensor Type (Discrete): Temperature
+ States Asserted       : Digital State
+                         [State Deasserted]
+----
+
+----
+SP node1> system sensors get IO_Slot1_Present
+Locating sensor record...
+Sensor ID              : IO_Slot1_Present (0x74)
+ Entity ID             : 11.97
+ Sensor Type (Discrete): Add-in Card
+ States Asserted       : Availability State
+                        [Device Present]
+----
+
+Although the `system sensors get` `sensor_name` command displays the status information for most discrete sensors, it does not provide status information for the System_FW_Status, System_Watchdog, PSU1_Input_Type, and PSU2_Input_Type discrete sensors. You can use the following information to interpret these sensors' status values.
+
+== System_FW_Status
+
+The System_FW_Status sensor's condition appears in the form of `0xAABB`. You can combine the information of `AA` and `BB` to determine the condition of the sensor.
+
+`AA` can have one of the following values:
+
+[options="header"]
+|===
+a| Values|Condition of the sensor
+a|
+01
+a|
+System firmware error
+a|
+02
+a|
+System firmware hang
+a|
+04
+a|
+System firmware progress
+|===
+`BB` can have one of the following values:
+
+[options="header"]
+|===
+a|Values |Condition of the sensor
+a|
+00
+a|
+System software has properly shut down
+a|
+01
+a|
+Memory initialization in progress
+a|
+02
+a|
+NVMEM initialization in progress (when NVMEM is present)
+a|
+04
+a|
+Restoring memory controller hub (MCH) values (when NVMEM is present)
+a|
+05
+a|
+User has entered Setup
+a|
+13
+a|
+Booting the operating system or LOADER
+a|
+1F
+a|
+BIOS is starting up
+a|
+20
+a|
+LOADER is running
+a|
+21
+a|
+LOADER is programming the primary BIOS firmware. You must not power down the system.
+a|
+22
+a|
+LOADER is programming the alternate BIOS firmware. You must not power down the system.
+a|
+2F
+a|
+ONTAP is running
+a|
+60
+a|
+SP has powered off the system
+a|
+61
+a|
+SP has powered on the system
+a|
+62
+a|
+SP has reset the system
+a|
+63
+a|
+SP watchdog power cycle
+a|
+64
+a|
+SP watchdog cold reset
+|===
+For instance, the System_FW_Status sensor status 0x042F means "system firmware progress (04), ONTAP is running (2F)."
+
+== System_Watchdog
+
+The System_Watchdog sensor can have one of the following conditions:
+
+* *0x0080*
++
+The state of this sensor has not changed
+
+[options="header"]
+|===
+a| Values| Condition of the sensor
+a|
+0x0081
+a|
+Timer interrupt
+a|
+0x0180
+a|
+Timer expired
+a|
+0x0280
+a|
+Hard reset
+a|
+0x0480
+a|
+Power down
+a|
+0x0880
+a|
+Power cycle
+|===
+For instance, the System_Watchdog sensor status 0x0880 means a watchdog timeout occurs and causes a system power cycle.
+
+== PSU1_Input_Type and PSU2_Input_Type
+
+For direct current (DC) power supplies, the PSU1_Input_Type and PSU2_Input_Type sensors do not apply. For alternating current (AC) power supplies, the sensors' status can have one of the following values:
+
+[options="header"]
+|===
+| Values| Condition of the sensor
+a|
+0x01 xx
+a|
+220V PSU type
+a|
+0x02 xx
+a|
+110V PSU type
+|===
+For instance, the PSU1_Input_Type sensor status 0x0280 means that the sensor reports that the PSU type is 110V.

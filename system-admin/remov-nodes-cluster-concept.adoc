@@ -1,0 +1,117 @@
+---
+permalink: system-admin/remov-nodes-cluster-concept.html
+sidebar: sidebar
+keywords: remove, node, cluster, failover, partner, erase, inaccessible
+summary: "You can remove unwanted nodes from a cluster, one node at a time. After you remove a node, you must also remove its failover partner. If you are removing a node, then its data becomes inaccessible or erased."
+---
+= Remove nodes from the cluster
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can remove unwanted nodes from a cluster, one node at a time. After you remove a node, you must also remove its failover partner. If you are removing a node, then its data becomes inaccessible or erased.
+
+.What you'll need
+
+* More than half of the nodes in the cluster must be healthy.
+* All of the data on the node that you want to remove must have been evacuated.
+* All intercluster LIFs must have been removed.
++
+[NOTE]
+====
+When you remove intercluster LIFs a warning is displayed that can be ignored.
+====
+
+[NOTE]
+====
+You must not perform operations such as `cluster remove-node`, `cluster unjoin`, and `node rename` when an automated ONTAP upgrade is in progress.
+====
+
+.About this task
+
+If you are running a mixed-version cluster, you can remove the last low-version node by using one of the advanced privilege commands beginning with ONTAP 9.3:
+
+* ONTAP 9.3: `cluster unjoin -skip-last-low-version-node-check`
+* ONTAP 9.4 and later: `cluster remove-node -skip-last-low-version-node-check`
+
+[NOTE]
+====
+You must make all of the system and user data from the disks that are connected to the node inaccessible to users before removing a node from the cluster. After removing a node from the cluster, if you need to join the node back to the same cluster, contact technical support for assistance about restoring data.
+====
+
+.Steps
+
+. Change the privilege level to advanced:
++
+`*set -privilege advanced*`
+. If Storage Encryption is enabled on the cluster and the self-encrypting disks (SEDs) are operating you must set the data-id-key to 0x0.
+ .. Set the data-id-key to 0x0:
+ +
+ `*storage encryption disk modify -disk \[_disk_path_name_\] -data-key-id 0x0*`
+ .. Optional: If Storage Encryption is enabled and the SEDs are operating in the Federal Information Processing Standard (FIPS) compliance mode, in addition to setting the data-id-key you must also disable the FIPS compliance mode.
++
+This enables the disks that are attached to the node to be sanitized and repurposed after the node is removed from the cluster.
+
+  *** Display the SEDs that are currently in the FIPS compliance mode:
++
+`*storage encryption disk show -fips*`
+  *** Disable the FIPS compliance mode:
++
+`*storage encryption disk modify disk [_disk_path_name_]-fips-key-id 0x0*`
+  *** Verify that the modified SEDs are no longer in the FIPS compliance mode:
++
+`*storage encryption disk show -fips*`
+. If the node you want to remove is the current master node, then enable another node in the cluster to be elected as the master node by changing the master node's cluster eligibility to `false`:
++
+`*cluster modify –eligibility false*`
++
+The master node is the node that holds processes such as "`mgmt`", "`vldb`", "`vifmgr`", "`bcomd`", and "`crs`". The `cluster ring show` advanced command shows the current master node.
++
+----
+cluster::*> cluster modify -node node1 -eligibility false
+----
+
+. Remove the node from the cluster:
++
+[options="header"]
+|===
+| For this ONTAP version...| Use this command...
+a|
+ONTAP 9.3
+a|
+`cluster unjoin`
+a|
+ONTAP 9.4 and later
+a|
+`cluster remove-node`
+|===
+If you have a mixed version cluster and you are removing the last lower version node, use the `-skip-last-low-version-node-check` parameter with these commands.
++
+The system informs you of the following:
+
+ ** You must also remove the node's failover partner from the cluster.
+ ** After the node is removed and before it can rejoin a cluster, you must use boot menu option *(4) Clean configuration and initialize all disks* or option *(9) Configure Advanced Drive Partitioning* to erase the node's configuration and initialize all disks.
+A failure message is generated if you have conditions that you must address before removing the node. For example, the message might indicate that the node has shared resources that you must remove or that the node is in a cluster HA configuration or storage failover configuration that you must disable.
+
++
+If the node is the quorum master, the cluster will briefly lose and then return to quorum. This quorum loss is temporary and does not affect any data operations.
+
+. If a failure message indicates error conditions, address those conditions and rerun the `cluster remove-node` or `cluster unjoin` command.
++
+The node is automatically rebooted after it is successfully removed from the cluster.
+
+. If you are repurposing the node, erase the node configuration and initialize all disks:
+ .. During the boot process, press Ctrl-C to display the boot menu when prompted to do so.
+ .. Select the boot menu option *(4) Clean configuration and initialize all disks*.
+. Return to admin privilege level: `set -privilege admin`
+. Repeat the preceding steps to remove the failover partner from the cluster.
+
+.After you finish
+
+If you removed nodes to have a single-node cluster, you should modify the cluster ports to serve data traffic by modifying the cluster ports to be data ports, and then creating data LIFs on the data ports.
+
+*Related information*
+
+xref:reboot-node-system-prompt-task.adoc[Rebooting a node at the system prompt]
+
+https://docs.netapp.com/us-en/ontap/networking/index.html[Network management]
