@@ -1,0 +1,66 @@
+---
+permalink: san-admin/configure-svm-nvme-task.html
+sidebar: sidebar
+keywords: configure, svm, nvme
+summary: "If you want to use the NVMe protocol on a node, you must configure your SVM specifically for NVMe."
+---
+= Configure an SVM for NVMe
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you want to use the NVMe protocol on a node, you must configure your SVM specifically for NVMe.
+
+.What you'll need
+
+Your FC adapters must support NVMe. Supported adapters are listed in the https://hwu.netapp.com[NetApp Hardware Universe].
+
+.Steps
+
+. Verify that you have NVMe capable adapters installed in your cluster:
++
+`network fcp adapter show -data-protocols-supported fc-nvme`
+. Create an SVM:
++
+`vserver create -vserver _SVM_name_`
+. Verify that the SVM is created:
++
+`vserver show`
+. If you are running ONTAP 9.7 or earlier, remove all protocols from the SVM:
++
+`vserver remove-protocols -vserver _SVM_name_ -protocols iscsi,fcp,nfs,cifs,ndmp`
++
+Beginning in ONTAP 9.8, it is not necessary to remove other protocols when adding NVMe.
+
+. Add the NVMe protocol to the SVM:
++
+`vserver add-protocols -vserver _SVM_name_ -protocols nvme`
+. If you are running ONTAP 9.7 or earlier, verify that NVMe is the only protocol allowed on the SVM:
++
+`vserver show -vserver _SVM_name_ -fields allowed-protocols`
++
+NVMe should be the only protocol displayed under the `allowed protocols` column.
+
+. Create the NVMe service:
++
+`vserver nvme create -vserver _SVM_name_`
+. Verify that the NVMe service was created:
++
+`vserver nvme show -vserver _SVM_name_`
++
+The `Administrative Status` of the SVM should be listed as `up`.
+
+. Create an NVMe/FC LIF:
++
+`network interface create -vserver _SVM_name_ -lif _lif_name_ -role data -data-protocol fc-nvme -home-node _home_node_ -home-port _home_port_`
+. Create an NVMe/FC LIF on the HA partner node:
++
+`network interface create -vserver _SVM_name_ -lif _lif_name_ -role data -data-protocol fc-nvme -home-node _home_node_ -home-port _home_port_`
+. Verify the NVMe/FC LIFs were created:
++
+`net interface show -vserver _SVM_name_`
+. Create volume on the same node as the LIF:
++
+`vol create -vserver _SVM_name_ -volume _vol_name_ -aggregate _aggregate_name_ -size _volume_size_`
++
+If a warning message is displayed about the auto efficiency policy, it can be safely ignored.

@@ -1,0 +1,67 @@
+---
+permalink: smb-config/create-volume-task.html
+sidebar: sidebar
+keywords: create, volume, junction, point, properties, property, command, create a volume
+summary: "You can create a volume and specify its junction point and other properties by using the volume create command."
+---
+= Create a volume
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create a volume and specify its junction point and other properties by using the `volume create` command.
+
+.Before you begin
+
+The SVM security style must be NTFS, and SMB should be set up and running.
+
+.About this task
+
+A volume must include a _junction path_ for its data to be made available to clients. You can specify the junction path when you create a new volume. If you create a volume without specifying a junction path, you must _mount_ the volume in the SVM namespace using the `volume mount` command.
+
+.Steps
+
+. Create the volume with a junction point: `volume create -vserver vserver_name -volume volume_name -aggregate aggregate_name -size {integer[KB|MB|GB|TB|PB]} -security-style ntfs -junction-path junction_path]`
++
+The choices for `-junction-path` are the following:
+
+ ** Directly under root, for example, `/new_vol`
++
+You can create a new volume and specify that it be mounted directly to the SVM root volume.
+
+ ** Under an existing directory, for example, `/existing_dir/new_vol`
++
+You can create a new volume and specify that it be mounted to an existing volume (in an existing hierarchy), expressed as a directory.
+
++
+If you want to create a volume in a new directory (in a new hierarchy under a new volume), for example, `/new_dir/new_vol`, then you must first create a new parent volume that is junctioned to the SVM root volume. You would then create the new child volume in the junction path of the new parent volume (new directory).
+
+. Verify that the volume was created with the desired junction point: `volume show -vserver vserver_name -volume volume_name -junction`
+
+.Examples
+
+The following command creates a new volume named users1 on the SVM vs1.example.com and the aggregate aggr1. The new volume is made available at `/users`. The volume is 750 GB in size, and its volume guarantee is of type volume (by default).
+
+----
+cluster1::> volume create -vserver vs1.example.com -volume users -aggregate aggr1 -size 750g -junction-path /users
+[Job 1642] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1.example.com -volume users -junction
+                          Junction                 Junction
+Vserver           Volume  Active   Junction Path   Path Source
+----------------- ------- -------- --------------- -----------
+vs1.example.com   users1  true     /users          RW_volume
+----
+
+The following command creates a new volume named "`home4`" on the SVM"`vs1.example.com`" and the aggregate "`aggr1`". The directory `/eng/` already exists in the namespace for the vs1 SVM, and the new volume is made available at `/eng/home`, which becomes the home directory for the `/eng/` namespace. The volume is 750 GB in size, and its volume guarantee is of type `volume` (by default).
+
+----
+cluster1::> volume create -vserver vs1.example.com -volume home4 -aggregate aggr1 -size 750g -junction-path /eng/home
+[Job 1642] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1.example.com -volume home4 -junction
+                         Junction                 Junction
+Vserver          Volume  Active   Junction Path   Path Source
+---------------- ------- -------- --------------- -----------
+vs1.example.com  home4   true     /eng/home       RW_volume
+----

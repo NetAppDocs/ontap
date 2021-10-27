@@ -1,0 +1,91 @@
+---
+permalink: smb-hyper-v-sql/volume-config-worksheet-reference.html
+sidebar: sidebar
+keywords: complete, volume, configuration, worksheet, sql, server, hyper, v, smb, configuration
+summary: "The worksheet provides an easy way to record the values that you need when creating volumes for SQL Server and Hyper-V over SMB configurations."
+---
+= Complete the volume configuration worksheet
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The worksheet provides an easy way to record the values that you need when creating volumes for SQL Server and Hyper-V over SMB configurations.
+
+For each volume, you must specify the following information:
+
+* storage virtual machine (SVM) name
++
+The SVM name is the same for all volumes.
+
+* Volume name
+* Aggregate name
++
+You can create volumes on aggregates located on any node in the cluster.
+
+* Size
+* Junction path
+
+You should keep the following in mind when creating volumes used to store application server data:
+
+* If the root volume does not have NTFS security style, you must specify the security style as NTFS when you create the volume.
++
+By default, volumes inherit the security style of the SVM root volume.
+
+* Volumes should be configured with the default volume space guarantee.
+* You can optionally configure the autosize space management setting.
+* You should set the option that determines the Snapshot copy space reserve to `0`.
+* The Snapshot policy applied to the volume must be disabled.
++
+If the SVM Snapshot policy is disabled, then you do not need to specify a Snapshot policy for the volumes. The volumes inherit the Snapshot policy for the SVM. If the Snapshot policy for the SVM is not disabled and is configured to create Snapshot copies, you must specify a Snapshot policy at the volume level, and that policy must be disabled. Shadow copy service-enabled backups and SQL Server backups manage Snapshot copy creation and deletion.
+
+* You cannot configure load-sharing mirrors for the volumes.
+
+Junction paths on which you plan to create shares that the application servers use should be chosen so that there are no junctioned volumes below the share entry point.
+
+For example, if you want to store virtual machine files on four volumes named "`vol1`", "`vol2`", "`vol3`", and "`vol4`", you can create the namespace shown in the example. You can then create shares for the application servers at the following paths: `/data1/vol1`, `/data1/vol2`, `/data2/vol3`, and `/data2/vol4`.
+
+----
+
+                     Junction                       Junction
+Vserver Volume       Active   Junction Path         Path Source
+------- ------------ -------- -------------------   -----------
+vs1     data1         true     /data1               RW_volume
+vs1     vol1          true     /data1/vol1          RW_volume
+vs1     vol2          true     /data1/vol2          RW_volume
+vs1     data2         true     /data2               RW_volume
+vs1     vol3          true     /data2/vol3          RW_volume
+vs1     vol4          true     /data2/vol4          RW_volume
+----
+
+[options="header"]
+|===
+| Types of information| Values
+a|
+_Volume 1: Volume name, aggregate, size, junction path_
+a|
+
+a|
+_Volume 2: Volume name, aggregate, size, junction path_
+a|
+
+a|
+_Volume 3: Volume name, aggregate, size, junction path_
+a|
+
+a|
+_Volume 4: Volume name, aggregate, size, junction path_
+a|
+
+a|
+_Volume 5: Volume name, aggregate, size, junction path_
+a|
+
+a|
+_Volume 6: Volume name, aggregate, size, junction path_
+a|
+
+a|
+_Additional volumes: Volume name, aggregate, size, junction path_
+a|
+
+|===

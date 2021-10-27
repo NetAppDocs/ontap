@@ -1,0 +1,39 @@
+---
+permalink: concepts/snapmirror-disaster-recovery-data-transfer-concept.html
+sidebar: sidebar
+keywords: snapmirror disaster recovery, data transfer
+summary: "SnapMirror is disaster recovery technology, designed for failover from primary storage to secondary storage at a geographically remote site. As its name implies, SnapMirror creates a replica, or mirror, of your working data in secondary storage from which you can continue to serve data in the event of a catastrophe at the primary site."
+---
+= SnapMirror disaster recovery and data transfer
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+_SnapMirror_ is disaster recovery technology, designed for failover from primary storage to secondary storage at a geographically remote site. As its name implies, SnapMirror creates a replica, or _mirror,_ of your working data in secondary storage from which you can continue to serve data in the event of a catastrophe at the primary site.
+
+Data is mirrored at the volume level. The relationship between the source volume in primary storage and the destination volume in secondary storage is called a _data protection relationship._ The clusters in which the volumes reside and the SVMs that serve data from the volumes must be _peered._ A peer relationship enables clusters and SVMs to exchange data securely.
+
+[TIP]
+====
+You can also create a data protection relationship between SVMs. In this type of relationship, all or part of the SVM's configuration, from NFS exports and SMB shares to RBAC, is replicated, as well as the data in the volumes the SVM owns.
+====
+
+The first time you invoke SnapMirror, it performs a _baseline transfer_ from the source volume to the destination volume. The baseline transfer typically involves the following steps:
+
+* Make a Snapshot copy of the source volume.
+* Transfer the Snapshot copy and all the data blocks it references to the destination volume.
+* Transfer the remaining, less recent Snapshot copies on the source volume to the destination volume for use in case the "`active`" mirror is corrupted.
+
+Once a baseline transfer is complete, SnapMirror transfers only new Snapshot copies to the mirror. Updates are asynchronous, following the schedule you configure. Retention mirrors the Snapshot policy on the source. You can activate the destination volume with minimal disruption in case of a disaster at the primary site, and reactivate the source volume when service is restored.
+
+Because SnapMirror transfers only Snapshot copies after the baseline is created, replication is fast and nondisruptive. As the failover use case implies, the controllers on the secondary system should be equivalent or nearly equivalent to the controllers on the primary system to serve data efficiently from mirrored storage.
+
+image::../media/snapmirror.gif[]
+
+|===
+a|
+*_Using SnapMirror for data transfer_*
+
+You can also use SnapMirror to replicate data between endpoints in the NetApp data fabric. You can choose between one-time replication or recurring replication when you create the SnapMirror policy.
+
+|===

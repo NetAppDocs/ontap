@@ -1,0 +1,62 @@
+---
+permalink: smb-admin/secure-file-access-storage-level-access-guard-concept.html
+sidebar: sidebar
+keywords: addition, securing, secure, access, native, file-level, export, share, security, storage-level, guard, apply, applied, secure file access by using storage-level access guard
+summary: "In addition to securing access by using native file-level and export and share security, you can configure Storage-Level Access Guard, a third layer of security applied by ONTAP at the volume level. Storage-Level Access Guard applies to access from all NAS protocols to the storage object to which it is applied."
+---
+= Secure file access by using Storage-Level Access Guard
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+In addition to securing access by using native file-level and export and share security, you can configure Storage-Level Access Guard, a third layer of security applied by ONTAP at the volume level. Storage-Level Access Guard applies to access from all NAS protocols to the storage object to which it is applied.
+
+Only NTFS access permissions are supported. For ONTAP to perform security checks on UNIX users for access to data on volumes for which Storage-Level Access Guard has been applied, the UNIX user must map to a Windows user on the SVM that owns the volume.
+
+== Storage-Level Access Guard behavior
+
+* Storage-Level Access Guard applies to all the files or all the directories in a storage object.
++
+Because all files or directories in a volume are subject to Storage-Level Access Guard settings, inheritance through propagation is not required.
+
+* You can configure Storage-Level Access Guard to apply to files only, to directories only, or to both files and directories within a volume.
+ ** File and directory security
++
+Applies to every directory and file within the storage object. This is the default setting.
+
+ ** File security
++
+Applies to every file within the storage object. Applying this security does not affect access to, or auditing of, directories.
+
+ ** Directory security
++
+Applies to every directory within the storage object. Applying this security does not affect access to, or auditing of, files.
+* Storage-Level Access Guard is used to restrict permissions.
++
+It will never give extra access permissions.
+
+* If you view the security settings on a file or directory from an NFS or SMB client, you do not see the Storage-Level Access Guard security.
++
+It's applied at the storage object level and stored in the metadata used to determine the effective permissions.
+
+* Storage-level security cannot be revoked from a client, even by a system (Windows or UNIX) administrator.
++
+It is designed to be modified by storage administrators only.
+
+* You can apply Storage-Level Access Guard to volumes with NTFS or mixed security style.
+* You can apply Storage-Level Access Guard to volumes with UNIX security style as long as the SVM containing the volume has a CIFS server configured.
+* When volumes are mounted under a volume junction path and if Storage-Level Access Guard is present on that path, it will not be propagated to volumes mounted under it.
+* The Storage-Level Access Guard security descriptor is replicated with SnapMirror data replication and with SVM replication.
+* There is special dispensation for virus scanners.
++
+Exceptional access is allowed to these servers to screen files and directories, even if Storage-Level Access Guard denies access to the object.
+
+* FPolicy notifications are not sent if access is denied because of Storage-Level Access Guard.
+
+== Order of access checks
+
+Access to a file or directory is determined by the combined effect of the export or share permissions, the Storage-Level Access Guard permissions set on volumes, and the native file permissions applied to files and/or directories. All levels of security are evaluated to determine what the effective permissions a file or directory has. The security access checks are performed in the following order:
+
+. SMB share or NFS export-level permissions
+. Storage-Level Access Guard
+. NTFS file/folder access control lists (ACLs), NFSv4 ACLs, or UNIX mode bits

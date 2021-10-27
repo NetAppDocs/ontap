@@ -1,0 +1,57 @@
+---
+permalink: disks-aggregates/remove-ownership-disk-task.html
+sidebar: sidebar
+keywords: remove, ownership, disk
+summary: "ONTAP writes disk ownership information to the disk. Before you remove a spare disk or its shelf from a node, you should remove its ownership information so that it can be properly integrated into another node."
+---
+= Remove ownership from a disk
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP writes disk ownership information to the disk. Before you remove a spare disk or its shelf from a node, you should remove its ownership information so that it can be properly integrated into another node.
+
+.What you'll need
+
+The disk you want to remove ownership from must meet the following requirements:
+
+* It must be a spare disk.
++
+You cannot remove ownership from a disk that is being used in an aggregate.
+
+* It cannot be in the maintenance center.
+* It cannot be undergoing sanitization.
+* It cannot be failed.
++
+It is not necessary to remove ownership from a failed disk.
+
+.About this task
+
+If you have automatic disk assignment enabled, ONTAP could automatically reassign ownership before you remove the disk from the node. For this reason, you disable automatic ownership assignment until the disk is removed, and then reenable it.
+
+.Steps
+
+. If disk ownership automatic assignment is on, turn it off:
++
+`storage disk option modify -node _node_name_ -autoassign off`
+. If needed, repeat the previous step for the node's HA partner.
+. Remove the software ownership information from the disk:
++
+`storage disk removeowner _disk_name_`
++
+To remove ownership information from multiple disks, use a comma-separated list:
++
+storage disk removeowner sys1:0a.23,sys1:0a.24,sys1:0a.25
+
+. If the disk is partitioned for root-data partitioning, remove ownership from the partitions by entering both of the following commands:
++
+`storage disk removeowner -disk _disk_name_ -root true`
++
+`storage disk removeowner -disk _disk_name_ -data true`
++
+Both partitions are no longer owned by any node.
+
+. If you turned off disk ownership automatic assignment previously, turn it on after the disk has been removed or reassigned:
++
+`storage disk option modify -node _node_name_ -autoassign on`
+. If needed, repeat the previous step for the node's HA partner.

@@ -1,0 +1,71 @@
+---
+permalink: flexgroup/protect-snapshot-copies-task.html
+sidebar: sidebar
+keywords: protect, flexgroup, volume, snapshot, copy
+summary: "You can create Snapshot policies that automatically manage the creation of Snapshot copies or you can manually create Snapshot copies for FlexGroup volumes. A valid Snapshot copy is created for a FlexGroup volume only after ONTAP can successfully create a Snapshot copy for each constituent of the FlexGroup volume."
+---
+= Protect FlexGroup volumes using Snapshot copies
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create Snapshot policies that automatically manage the creation of Snapshot copies or you can manually create Snapshot copies for FlexGroup volumes. A valid Snapshot copy is created for a FlexGroup volume only after ONTAP can successfully create a Snapshot copy for each constituent of the FlexGroup volume.
+
+.About this task
+
+If you have multiple FlexGroup volumes associated with a Snapshot policy, you should ensure that the FlexGroup volumes schedules do not overlap. Starting in ONTAP 9.8, the maximum number of Snapshot copies supported on a FlexGroup volume is 1023.
+
+.Steps
+
+. Create a Snapshot policy or manually create a Snapshot copy:
++
+[cols="2*",options="header"]
+|===
+| If you want to create a...| Enter this command...
+a|
+Snapshot policy
+a|
+`volume snapshot policy create`
+[NOTE]
+====
+The schedules that are associated with the Snapshot policy of a FlexGroup volume must have an interval greater than 30 minutes.
+====
+
+When you create a FlexGroup volume, the `default` Snapshot policy is applied to the FlexGroup volume.
+a|
+Snapshot copy manually
+a|
+`volume snapshot create`
+[NOTE]
+====
+After you create a Snapshot copy for a FlexGroup volume, you cannot modify the attributes of the Snapshot copy. If you want to modify the attributes, you must delete and then re-create the Snapshot copy.
+====
+|===
+Client access to the FlexGroup volume is briefly quiesced when a Snapshot copy is created.
+
+. Verify that a valid Snapshot copy is created for the FlexGroup volume: `volume snapshot show -volume volume_name -fields state`
++
+----
+cluster1::> volume snapshot show -volume fg -fields state
+vserver volume snapshot               state
+------- ------ ---------------------- -----
+fg_vs   fg     hourly.2016-08-23_0505 valid
+----
+
+. View the Snapshot copies for the constituents of the FlexGroup volume: `volume snapshot show -is-constituent true`
++
+----
+cluster1::> volume snapshot show -is-constituent true
+                                                                 ---Blocks---
+Vserver  Volume   Snapshot                                  Size Total% Used%
+-------- -------- ------------------------------------- -------- ------ -----
+fg_vs    fg__0001
+                  hourly.2016-08-23_0505                    72MB     0%   27%
+         fg__0002
+                  hourly.2016-08-23_0505                    72MB     0%   27%
+         fg__0003
+                  hourly.2016-08-23_0505                    72MB     0%   27%
+...
+         fg__0016
+                  hourly.2016-08-23_0505                    72MB     0%   27%
+----

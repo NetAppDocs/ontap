@@ -1,0 +1,163 @@
+---
+permalink: nfs-config/create-ldap-client-config-task.html
+sidebar: sidebar
+keywords: create, ldap, client, configuration
+summary: "If you want ONTAP to access the external LDAP servers in your environment, you must first set up an LDAP client on the storage system."
+---
+= Create an LDAP client configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you want ONTAP to access the external LDAP servers in your environment, you must first set up an LDAP client on the storage system.
+
+.What you'll need
+
+One of the first three servers in the AD-domain resolved list must be up and serving data. Otherwise, this task fails.
+
+[NOTE]
+====
+There are multiple servers, out of which more than two servers are down at any point of time.
+====
+
+.Steps
+
+. Consult with your LDAP administrator to determine the appropriate configuration values for the `vserver services name-service ldap client create` command:
+ .. Specify a domain-based or an address-based connection to LDAP servers.
++
+The `-ad-domain` and `-servers` options are mutually exclusive.
+
+*** Use the `-ad-domain` option to enable LDAP server discovery in the Active Directory domain.
++
+You can use the `-preferred-ad-servers` option to specify one or more preferred Active Directory servers by IP address in a comma-delimited list. After the client is created, you can modify this list by using the `vserver services name-service ldap client modify` command.
+
+*** Use the `-servers` option to specify one or more LDAP servers (AD or UNIX) by IP address in a comma-delimited list.
++
+[NOTE]
+====
+The `-servers` option is deprecated in ONTAP 9.2. Starting in ONTAP 9.2, the `-ldap-servers` field replaces the `-servers` field. This new field can take either a host name or an IP address for the LDAP server.
+====
+
+ .. Specify a default or custom LDAP schema.
++
+Most LDAP servers can use the default read-only schemas that are provided by ONTAP. It is best to use those default schemas unless there is a requirement to do otherwise. If so, you can create your own schema by copying a default schema (they are read-only), and then modifying the copy.
++
+Default schemas:
+
+  *** MS-AD-BIS
++
+Based on RFC-2307bis, this is the preferred LDAP schema for most standard Windows 2012 and later LDAP deployments.
+
+  *** `AD-IDMU`
++
+Based on Active Directory Identity Management for UNIX, this schema is appropriate for most Windows 2008, Windows 2012, and later AD servers.
+
+  *** `AD-SFU`
++
+Based on Active Directory Services for UNIX, this schema is appropriate for most Windows 2003 and earlier AD servers.
+
+  *** `RFC-2307`
++
+Based on RFC-2307 (_An Approach for Using LDAP as a Network Information Service_), this schema is appropriate for most UNIX AD servers.
+
+ .. Select bind values.
+  *** `-min-bind-level {anonymous|simple|sasl}` specifies the minimum bind authentication level.
++
+The default value is `*anonymous*`.
+
+  *** `-bind-dn _LDAP_DN_` specifies the bind user.
++
+For Active Directory servers, you must specify the user in the account (DOMAIN\user) or principal (user@domain.com) form. Otherwise, you must specify the user in distinguished name (CN=user,DC=domain,DC=com) form.
+
+  *** `-bind-password _password_` specifies the bind password.
+  .. Select session security options, if required.
++
+You can enable either LDAP signing and sealing or LDAP over TLS if required by the LDAP server.
+
+  *** `--session-security {none|sign|seal}`
++
+You can enable signing (`sign`, data integrity), signing and sealing (`seal`, data integrity and encryption), or neither (`none`, no signing or sealing). The default value is `none`.
++
+You should also set `-min-bind-level` {`sasl`} unless you want the bind authentication to fall back to `*anonymous*` or `*simple*` if the signing and sealing bind fails.
+
+  *** `-use-start-tls` {`true`|`false`}
++
+If set to `*true*` and the LDAP server supports it, the LDAP client uses an encrypted TLS connection to the server. The default value is `*false*`. You must install a self-signed root CA certificate of the LDAP server to use this option.
++
+[NOTE]
+====
+If the SVM has a CIFS server added to a domain and the LDAP server is one of the domain controllers of the home-domain of the CIFS server, then you can modify the `-session-security-for-ad-ldap` option by using the `vserver cifs security modify` command.
+====
+
+ .. Select port, query, and base values.
++
+The default values are recommended, but you must verify with your LDAP administrator that they are appropriate for your environment.
+
+  *** `-port _port_` specifies the LDAP server port.
++
+The default value is `389`.
++
+If you plan to use Start TLS to secure the LDAP connection, you must use the default port 389. Start TLS begins as a plaintext connection over the LDAP default port 389, and that connection is then upgraded to TLS. If you change the port, Start TLS fails.
+
+  *** `-query-timeout _integer_` specifies the query timeout in seconds.
++
+The allowed range is from 1 through 10 seconds. The default value is `3` seconds.
+
+  *** `-base-dn _LDAP_DN_` specifies the base DN.
++
+Multiple values can be entered if needed (for example, if LDAP referral chasing is enabled). The default value is `""` (root).
+
+  *** `-base-scope` {`base`|`onelevel`|`subtree`} specifies the base search scope.
++
+The default value is `subtree`.
+
+  *** `-referral-enabled` {`true`|`false`} specifies whether LDAP referral chasing is enabled.
++
+Beginning in ONTAP 9.5, this allows the ONTAP LDAP client to refer look-up requests to other LDAP servers if an LDAP referral response is returned by the primary LDAP server indicating that the desired records are present on referred LDAP servers. The default value is `*false*`.
++
+To search for records present in the referred LDAP servers, the base-dn of the referred records must be added to the base-dn as part of LDAP client configuration.
+
+. Create an LDAP client configuration on the SVM:
++
+`vserver services name-service ldap client create -vserver _vserver_name_ -client-config _client_config_name_ {-servers _LDAP_server_list_ | -ad-domain _ad_domain_ -preferred-ad-servers _preferred_ad_server_list_ -schema _schema_ -port 389 -query-timeout 3 -min-bind-level {anonymous|simple|sasl} -bind-dn _LDAP_DN_ -bind-password _password_ -base-dn _LDAP_DN_ -base-scope subtree -session-security {none|sign|seal} [-referral-enabled {true|false}]`
++
+[NOTE]
+====
+You must provide the SVM name when creating an LDAP client configuration.
+====
+
+. Verify that the LDAP client configuration is created successfully:
++
+`vserver services name-service ldap client show -client-config client_config_name`
+
+.Examples
+
+The following command creates a new LDAP client configuration named ldap1 for the SVM vs1 to work with an Active Directory server for LDAP:
+
+----
+cluster1::> vserver services name-service ldap client create -vserver vs1 -client-config ldapclient1 –ad-domain addomain.example.com -schema AD-SFU -port 389 -query-timeout 3 -min-bind-level simple -base-dn DC=addomain,DC=example,DC=com -base-scope subtree -preferred-ad-servers 172.17.32.100
+----
+
+The following command creates a new LDAP client configuration named ldap1 for the SVM vs1 to work with an Active Directory server for LDAP on which signing and sealing is required:
+
+----
+cluster1::> vserver services name-service ldap client create -vserver vs1 -client-config ldapclient1 –ad-domain addomain.example.com -schema AD-SFU -port 389 -query-timeout 3 -min-bind-level sasl -base-dn DC=addomain,DC=example,DC=com -base-scope subtree -preferred-ad-servers 172.17.32.100 -session-security seal
+----
+
+The following command creates a new LDAP client configuration named ldap1 for the SVM vs1 to work with an Active Directory server for LDAP where LDAP referral chasing is required:
+
+----
+cluster1::> vserver services name-service ldap client create -vserver vs1 -client-config ldapclient1 –ad-domain addomain.example.com -schema AD-SFU -port 389 -query-timeout 3 -min-bind-level sasl -base-dn "DC=adbasedomain,DC=example1,DC=com; DC=adrefdomain,DC=example2,DC=com" -base-scope subtree -preferred-ad-servers 172.17.32.100 -referral-enabled true
+----
+
+The following command modifies the LDAP client configuration named ldap1 for the SVM vs1 by specifying the base DN:
+
+----
+cluster1::> vserver services name-service ldap client modify -vserver vs1 -client-config ldap1 -base-dn CN=Users,DC=addomain,DC=example,DC=com
+----
+
+The following command modifies the LDAP client configuration named ldap1 for the SVM vs1 by enabling referral chasing:
+
+----
+cluster1::> vserver services name-service ldap client modify -vserver vs1 -client-config ldap1 -base-dn "DC=adbasedomain,DC=example1,DC=com; DC=adrefdomain,DC=example2,DC=com"  -referral-enabled true
+----

@@ -1,0 +1,51 @@
+---
+permalink: tape-backup/dump-backup-concept.html
+sidebar: sidebar
+keywords: dump, backup, qtree, file, system, data
+summary: "A dump backup writes file system data from disk to tape using a predefined process. You can back up a volume, a qtree, or a subtree that is neither an entire volume nor an entire qtree."
+---
+= How a dump backup works
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+A dump backup writes file system data from disk to tape using a predefined process. You can back up a volume, a qtree, or a subtree that is neither an entire volume nor an entire qtree.
+
+The following table describes the process that ONTAP uses to back up the object indicated by the dump path:
+
+[options="header"]
+[cols="1,4"]
+|===
+| Stage| Action
+a|
+1
+a|
+For less than full volume or full qtree backups, ONTAP traverses directories to identify the files to be backed up. If you are backing up an entire volume or qtree, ONTAP combines this stage with Stage 2.
+
+a|
+2
+a|
+For a full volume or full qtree backup, ONTAP identifies the directories in the volumes or qtrees to be backed up.
+a|
+3
+a|
+ONTAP writes the directories to tape.
+a|
+4
+a|
+ONTAP writes the files to tape.
+a|
+5
+a|
+ONTAP writes the ACL information (if applicable) to tape.
+|===
+The dump backup uses a Snapshot copy of your data for the backup. Therefore, you do not have to take the volume offline before initiating the backup.
+
+The dump backup names each Snapshot copy it creates as `snapshot_for_backup.n`, where `n` is an integer starting at 0. Each time the dump backup creates a Snapshot copy, it increments the integer by 1. The integer is reset to 0 after the storage system is rebooted. After the backup operation is completed, the dump engine deletes this Snapshot copy.
+
+When ONTAP performs multiple dump backups simultaneously, the dump engine creates multiple Snapshot copies. For example, if ONTAP is running two dump backups simultaneously, you find the following Snapshot copies in the volumes from which data is being backed up: `snapshot_for_backup.0` and `snapshot_for_backup.1`.
+
+[NOTE]
+====
+When you are backing up from a Snapshot copy, the dump engine does not create an additional Snapshot copy.
+====

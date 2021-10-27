@@ -1,0 +1,127 @@
+---
+permalink: encryption-at-rest/encrypt-existing-volume-task.html
+sidebar: sidebar
+keywords: enabling, encryption, existing, volume, volume move start, command
+summary: "You can use the volume move start command to enable encryption by moving an existing volume. You must use volume move start in ONTAP 9.2 and earlier. You can use the same aggregate or a different aggregate."
+---
+= Enable encryption on an existing volume with the volume move start command
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `volume move start` command to enable encryption by moving an existing volume. You must use `volume move start` in ONTAP 9.2 and earlier. You can use the same aggregate or a different aggregate.
+
+.What you'll need
+
+You must be a cluster administrator to perform this task, or an SVM administrator to whom the cluster administrator has delegated authority.
+
+xref:delegate-volume-encryption-svm-administrator-task.adoc[Delegating authority to run the volume move command]
+
+.About this task
+
+You cannot use `volume move start` to enable encryption on a SnapLock or FlexGroup volume.
+
+Starting with ONTAP 9.4, if you enable "`cc-mode`" when you set up the Onboard Key Manager, volumes you create with the `volume move start` command are automatically encrypted. You need not specify `-encrypt-destination true`.
+
+Starting with ONTAP 9.6, you can use aggregate-level encryption to assign keys to the containing aggregate for the volumes to be moved. A volume encrypted with a unique key is called an _NVE volume_. A volume encrypted with an aggregate-level key is called an _NAE volume_ (for NetApp Aggregate Encryption). Plaintext volumes are not supported in NAE aggregates.
+
+.Steps
+
+. Move an existing volume and specify whether encryption is enabled on the volume:
++
+[options="header"]
+|===
+| To convert...| Use this command...
+
+a|
+A plaintext volume to an NVE volume
+a|
+`volume move start -vserver SVM_name -volume volume_name -destination-aggregate aggregate_name -encrypt-destination true`
+a|
+An NVE or plaintext volume to an NAE volume (assuming aggregate-level encryption is enabled on the destination)
+a|
+`volume move start -vserver SVM_name -volume volume_name -destination-aggregate aggregate_name -encrypt-with-aggr-key true`
+a|
+An NAE volume to an NVE volume
+a|
+`volume move start -vserver SVM_name -volume volume_name -destination-aggregate aggregate_name -encrypt-with-aggr-key false`
+a|
+An NAE volume to a plaintext volume
+a|
+`volume move start -vserver SVM_name -volume volume_name -destination-aggregate aggregate_name -encrypt-destination false -encrypt-with-aggr-key false`
+a|
+An NVE volume to a plaintext volume
+a|
+`volume move start -vserver SVM_name -volume volume_name -destination-aggregate aggregate_name -encrypt-destination false`
+|===
+For complete command syntax, see the man page for the command.
++
+The following command converts a plaintext volume named `vol1` to an NVE volume:
++
+----
+cluster1::> volume move start -vserver vs1 -volume vol1 -destination-aggregate aggr2 -encrypt-destination true
+----
++
+Assuming aggregate-level encryption is enabled on the destination, the following command converts an NVE or plaintext volume named `vol1` to an NAE volume:
++
+----
+cluster1::> volume move start -vserver vs1 -volume vol1 -destination-aggregate aggr2 -encrypt-with-aggr-key true
+----
++
+The following command converts an NAE volume named `vol2` to an NVE volume:
++
+----
+cluster1::> volume move start -vserver vs1 -volume vol2 -destination-aggregate aggr2 -encrypt-with-aggr-key false
+----
++
+The following command converts an NAE volume named `vol2` to a plaintext volume:
++
+----
+cluster1::> volume move start -vserver vs1 -volume vol2 -destination-aggregate aggr2 -encrypt-destination false -encrypt-with-aggr-key false
+----
++
+The following command converts an NVE volume named `vol2` to a plaintext volume:
++
+----
+cluster1::> volume move start -vserver vs1 -volume vol2 -destination-aggregate aggr2 -encrypt-destination false
+----
+
+. View the encryption type of cluster volumes:
++
+`volume show -fields encryption-type none|volume|aggregate`
++
+The `encryption-type` field is available in ONTAP 9.6 and later.
++
+For complete command syntax, see the man page for the command.
++
+The following command displays the encryption type of volumes in `cluster2`:
++
+----
+cluster2::> volume show -fields encryption-type
+
+vserver  volume  encryption-type
+-------  ------  ---------------
+vs1      vol1    none
+vs2      vol2    volume
+vs3      vol3    aggregate
+----
+
+. Verify that volumes are enabled for encryption:
++
+`volume show -is-encrypted true`
++
+For complete command syntax, see the man page for the command.
++
+The following command displays the encrypted volumes on `cluster2`:
++
+----
+cluster2::> volume show -is-encrypted true
+
+Vserver  Volume  Aggregate  State  Type  Size  Available  Used
+-------  ------  ---------  -----  ----  -----  --------- ----
+vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
+----
+
+== Result
+
+If you are using a KMIP server to store the encryption keys for a node, ONTAP automatically "`pushes`" an encryption key to the server when you encrypt a volume.

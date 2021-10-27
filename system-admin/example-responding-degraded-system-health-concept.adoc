@@ -1,0 +1,94 @@
+---
+permalink: system-admin/example-responding-degraded-system-health-concept.html
+sidebar: sidebar
+keywords: respond, degraded, system, health, node, cli
+summary: "By reviewing a specific example of degraded system health caused by a shelf that lacks two paths to a node, you can see what the CLI displays when you respond to an alert."
+---
+= Example of responding to degraded system health
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+By reviewing a specific example of degraded system health caused by a shelf that lacks two paths to a node, you can see what the CLI displays when you respond to an alert.
+
+After starting ONTAP, you check the system health and you discover that the status is degraded:
+
+----
+
+      cluster1::>system health status show
+        Status
+        ---------------
+        degraded
+----
+
+You show alerts to find out where the problem is, and see that shelf 2 does not have two paths to node1:
+
+----
+
+      cluster1::>system health alert show
+               Node: node1
+           Resource: Shelf ID 2
+           Severity: Major
+	   Indication Time: Mon Nov 10 16:48:12 2013
+     Probable Cause: Disk shelf 2 does not have two paths to controller
+                     node1.
+    Possible Effect: Access to disk shelf 2 via controller node1 will be
+                     lost with a single hardware component failure (e.g.
+                     cable, HBA, or IOM failure).
+ Corrective Actions: 1. Halt controller node1 and all controllers attached to disk shelf 2.
+                     2. Connect disk shelf 2 to controller node1 via two paths following the rules in the Universal SAS and ACP Cabling Guide.
+                     3. Reboot the halted controllers.
+                     4. Contact support personnel if the alert persists.
+----
+
+You display details about the alert to get more information, including the alert ID:
+
+----
+
+      cluster1::>system health alert show -monitor node-connect -alert-id DualPathToDiskShelf_Alert -instance
+                  Node: node1
+               Monitor: node-connect
+              Alert ID: DualPathToDiskShelf_Alert
+     Alerting Resource: 50:05:0c:c1:02:00:0f:02
+             Subsystem: SAS-connect
+       Indication Time: Mon Mar 21 10:26:38 2011
+    Perceived Severity: Major
+        Probable Cause: Connection_establishment_error
+           Description: Disk shelf 2 does not have two paths to controller node1.
+    Corrective Actions: 1. Halt controller node1 and all controllers attached to disk shelf 2.
+                        2. Connect disk shelf 2 to controller node1 via two paths following the rules in the Universal SAS and ACP Cabling Guide.
+                        3. Reboot the halted controllers.
+                        4. Contact support personnel if the alert persists.
+       Possible Effect: Access to disk shelf 2 via controller node1 will be lost with a single
+ hardware component failure (e.g. cable, HBA, or IOM failure).
+           Acknowledge: false
+              Suppress: false
+                Policy: DualPathToDiskShelf_Policy
+          Acknowledger: -
+            Suppressor: -
+Additional Information: Shelf uuid: 50:05:0c:c1:02:00:0f:02
+                        Shelf id: 2
+                        Shelf Name: 4d.shelf2
+                        Number of Paths: 1
+                        Number of Disks: 6
+                        Adapter connected to IOMA:
+                        Adapter connected to IOMB: 4d
+Alerting Resource Name: Shelf ID 2
+----
+
+You acknowledge the alert to indicate that you are working on it.
+
+----
+
+      cluster1::>system health alert modify -node node1 -alert-id DualPathToDiskShelf_Alert -acknowledge true
+----
+
+You fix the cabling between shelf 2 and node1, and then reboot the system. Then you check system health again, and see that the status is `OK`:
+
+----
+
+      cluster1::>system health status show
+        Status
+        ---------------
+        OK
+----

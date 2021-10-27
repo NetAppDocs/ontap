@@ -1,0 +1,50 @@
+---
+permalink: smb-config/open-export-policy-svm-root-volume-task.html
+sidebar: sidebar
+keywords: default, export, policy, svm, root, volume, rule, client, smb, rule, open the export policy of the svm root volume
+summary: "The default export policy of the SVM root volume must include a rule to allow all clients open access through SMB. Without such a rule, all SMB clients are denied access to the SVM and its volumes."
+---
+= Open the export policy of the SVM root volume
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The default export policy of the SVM root volume must include a rule to allow all clients open access through SMB. Without such a rule, all SMB clients are denied access to the SVM and its volumes.
+
+.About this task
+
+When a new SVM is created, a default export policy (called default) is created automatically for the root volume of the SVM. You must create one or more rules for the default export policy before clients can access data on the SVM.
+
+You should verify that all SMB access is open in the default export policy, and later restrict access to individual volumes by creating custom export policies for individual volumes or qtrees.
+
+.Steps
+
+. If you are using an existing SVM, check the default root volume export policy: `vserver export-policy rule show`
++
+The command output should be similar to the following:
++
+----
+
+cluster::> vserver export-policy rule show -vserver vs1.example.com -policyname default -instance
+
+                                    Vserver: vs1.example.com
+                                Policy Name: default
+                                 Rule Index: 1
+                            Access Protocol: cifs
+Client Match Hostname, IP Address, Netgroup, or Domain: 0.0.0.0/0
+                             RO Access Rule: any
+                             RW Access Rule: any
+User ID To Which Anonymous Users Are Mapped: 65534
+                   Superuser Security Types: any
+               Honor SetUID Bits in SETATTR: true
+                  Allow Creation of Devices: true
+----
++
+If such a rule exists that allows open access, this task is complete. If not, proceed to the next step.
+
+. Create an export rule for the SVM root volume: `vserver export-policy rule create -vserver vserver_name -policyname default -ruleindex 1 -protocol cifs -clientmatch 0.0.0.0/0 -rorule any -rwrule any -superuser any`
+. Verify rule creation by using the `vserver export-policy rule show` command.
+
+.Results
+
+Any SMB client can now access any volume or qtree created on the SVM.

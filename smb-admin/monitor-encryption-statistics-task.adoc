@@ -1,0 +1,205 @@
+---
+permalink: smb-admin/monitor-encryption-statistics-task.html
+sidebar: sidebar
+keywords: monitor, smb, encryption, statistics, determine, establish, session, share, connection, encrypt, monitor smb encryption statistics
+summary: "You can monitor SMB encryption statistics and determine which established sessions and share connections are encrypted and which are not."
+---
+= Monitor SMB encryption statistics
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can monitor SMB encryption statistics and determine which established sessions and share connections are encrypted and which are not.
+
+.About this task
+
+The `statistics` command at the advanced privilege level provides the following counters, which you can use to monitor the number of encrypted SMB sessions and share connections:
+
+[options="header"]
+|===
+| Counter name| Descriptions
+a|
+`encrypted_sessions`
+a|
+Gives the number of encrypted SMB 3.0 sessions
+a|
+`encrypted_share_connections`
+a|
+Gives the number of encrypted shares on which a tree connect has happened
+a|
+`rejected_unencrypted_sessions`
+a|
+Gives the number of session setups rejected due to a lack of client encryption capability
+a|
+`rejected_unencrypted_shares`
+a|
+Gives the number of share mappings rejected due to a lack of client encryption capability
+|===
+These counters are available with the following statistics objects:
+
+* `cifs` enables you to monitor SMB encryption for all SMB 3.0 sessions.
++
+[NOTE]
+====
+SMB 3.0 statistics are included in the output for the `cifs` object.    If you want to compare the number of encrypted sessions to the total number of sessions, you can compare output for the `encrypted_sessions` counter with the output for the `established_sessions` counter.
+
+ If you want to compare the number of encrypted share connections to the total number of share connections, you can compare output for the `encrypted_share_connections` counter with the output for the `connected_shares` counter.
+====
+
+* `rejected_unencrypted_sessions` provides the number of times an attempt has been made to establish an SMB session that requires encryption from a client that does not support SMB encryption.
+* `rejected_unencrypted_shares` provides the number of times an attempt has been made to connect to an SMB share that requires encryption from a client that does not support SMB encryption.
+
+You must start a statistics sample collection before you can view the resultant data. You can view data from the sample if you do not stop the data collection. Stopping data collection gives you a fixed sample. Not stopping data collection gives you the ability to get updated data that you can use to compare against previous queries. The comparison can help you identify trends.
+
+link:../performance-admin/index.html[Performance management]
+
+.Steps
+
+. Set the privilege level to advanced: `set -privilege advanced`
+. Start a data collection: `statistics start -object {cifs|smb1|smb2} -instance _instance_ -sample-id _sample_ID_ [-node _node_name_]`
++
+If you do not specify the `-sample-id` parameter, the command generates a sample identifier for you and defines this sample as the default sample for the CLI session. The value for `-sample-id` is a text string. If you run this command during the same CLI session and do not specify the `-sample-id` parameter, the command overwrites the previous default sample.
++
+You can optionally specify the node on which you want to collect statistics. If you do not specify the node, the sample collects statistics for all nodes in the cluster.
+
+. Use the `statistics stop` command to stop collecting data for the sample.
+. View SMB encryption statistics:
++
+[options="header"]
+|===
+| If you want to view information for...| Enter...
+a|
+Encrypted sessions
+a|
+`show -sample-id _sample_ID_ -counter encrypted_sessions\|_node_name_ [-node _node_name_]`
+a|
+Encrypted sessions and established sessions
+a|
+`show -sample-id _sample_ID_ -counter encrypted_sessions\|established_sessions\|_node_name_ [-node _node_name_]`
+a|
+Encrypted share connections
+a|
+`show -sample-id _sample_ID_ -counter encrypted_share_connections\|_node_name_ [-node _node_name_]`
+a|
+Encrypted share connections and connected shares
+a|
+`show -sample-id _sample_ID_ -counter encrypted_share_connections\|connected_shares\|_node_name_ [-node _node_name_]`
+a|
+Rejected unencrypted sessions
+a|
+`show -sample-id _sample_ID_ -counter rejected_unencrypted_sessions\|_node_name_ [-node _node_name_]`
+a|
+Rejected unencrypted share connections
+a|
+`show -sample-id _sample_ID_ -counter rejected_unencrypted_share\|_node_name_ [-node _node_name_]`
+|===
+If you want to display information only for a single node, specify the optional `-node` parameter.
+
+. Return to the admin privilege level: `set -privilege admin`
+
+.Examples
+
+The following example shows how you can monitor SMB 3.0 encryption statistics on storage virtual machine (SVM) vs1.
+
+The following command moves to the advanced privilege level:
+
+----
+cluster1::> set -privilege advanced
+
+Warning: These advanced commands are potentially dangerous; use them only when directed to do so by support personnel.
+Do you want to continue? {y|n}: y
+----
+
+The following command starts data collection for a new sample:
+
+----
+cluster1::*> statistics start -object cifs -sample-id smbencryption_sample -vserver vs1
+Statistics collection is being started for Sample-id: smbencryption_sample
+----
+
+The following command stops data collection for that sample:
+
+----
+cluster1::*> statistics stop -sample-id smbencryption_sample
+Statistics collection is being stopped for Sample-id: smbencryption_sample
+----
+
+The following command shows encrypted SMB sessions and established SMB sessions by the node from the sample:
+
+----
+cluster2::*> statistics show -object cifs -counter established_sessions|encrypted_sessions|node_name –node node_name
+
+Object: cifs
+Instance: [proto_ctx:003]
+Start-time: 4/12/2016 11:17:45
+End-time: 4/12/2016 11:21:45
+Scope: vsim2
+
+    Counter                               Value
+    ----------------------------  ----------------------
+    established_sessions                     1
+    encrypted_sessions                       1
+
+2 entries were displayed
+----
+
+The following command shows the number of rejected unencrypted SMB sessions by the node from the sample:
+
+----
+clus-2::*> statistics show -object cifs -counter rejected_unencrypted_sessions –node node_name
+
+Object: cifs
+Instance: [proto_ctx:003]
+Start-time: 4/12/2016 11:17:45
+End-time: 4/12/2016 11:21:51
+Scope: vsim2
+
+    Counter                                    Value
+    ----------------------------    ----------------------
+    rejected_unencrypted_sessions                1
+
+1 entry was displayed.
+----
+
+The following command shows the number of connected SMB shares and encrypted SMB shares by the node from the sample:
+
+----
+clus-2::*> statistics show -object cifs -counter connected_shares|encrypted_share_connections|node_name –node node_name
+
+Object: cifs
+Instance: [proto_ctx:003]
+Start-time: 4/12/2016 10:41:38
+End-time: 4/12/2016 10:41:43
+Scope: vsim2
+
+    Counter                                     Value
+    ----------------------------    ----------------------
+    connected_shares                              2
+    encrypted_share_connections                   1
+
+2 entries were displayed.
+----
+
+The following command shows the number of rejected unencrypted SMB share connections by the node from the sample:
+
+----
+clus-2::*> statistics show -object cifs -counter rejected_unencrypted_shares –node node_name
+
+Object: cifs
+Instance: [proto_ctx:003]
+Start-time: 4/12/2016 10:41:38
+End-time: 4/12/2016 10:42:06
+Scope: vsim2
+
+    Counter                                     Value
+    --------------------------------    ----------------------
+    rejected_unencrypted_shares                   1
+
+1 entry was displayed.
+----
+
+*Related information*
+
+xref:determine-statistics-objects-counters-available-task.adoc[Determining which statistics objects and counters are available]
+
+link:../performance-config/index.html[Performance monitoring express setup]

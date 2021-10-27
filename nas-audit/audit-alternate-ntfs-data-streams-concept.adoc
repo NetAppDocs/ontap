@@ -1,0 +1,82 @@
+---
+permalink: nas-audit/audit-alternate-ntfs-data-streams-concept.html
+sidebar: sidebar
+keywords: considerations, audit, alternate, ntfs data streams
+summary: "There are certain considerations you must keep in mind when auditing files with NTFS alternate data streams."
+---
+= Considerations when auditing alternate NTFS data streams
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+There are certain considerations you must keep in mind when auditing files with NTFS alternate data streams.
+
+The location of an object being audited is recorded in an event record using two tags, the `ObjectName` tag (the path) and the `HandleID` tag (the handle). To properly identify which stream requests are being logged, you must be aware of what ONTAP records in these fields for NTFS alternate data streams:
+
+* EVTX ID: 4656 events (open and create audit events)
+ ** The path of the alternate data stream is recorded in the `ObjectName` tag.
+ ** The handle of the alternate data stream is recorded in the `HandleID` tag.
+* EVTX ID: 4663 events (all other audit events, such as read, write, getattr, and so on)
+ ** The path of the base file, not the alternate data stream, is recorded in the `ObjectName` tag.
+ ** The handle of the alternate data stream is recorded in the `HandleID` tag.
+
+.Example
+
+The following example illustrates how to identify EVTX ID: 4663 events for alternate data streams using the `HandleID` tag. Even though the `ObjectName` tag (path) recorded in the read audit event is to the base file path, the `HandleID` tag can be used to identify the event as an audit record for the alternate data stream.
+
+Stream file names take the form `base_file_name:stream_name`. In this example, the `dir1` directory contains a base file with an alternate data stream having the following paths:
+
+----
+
+/dir1/file1.txt
+/dir1/file1.txt:stream1
+----
+
+[NOTE]
+====
+The output in the following event example is truncated as indicated; the output does not display all of the available output tags for the events.
+====
+
+For an EVTX ID 4656 (open audit event), the audit record output for the alternate data stream records the alternate data stream name in the `ObjectName` tag:
+
+----
+
+- <Event>
+- <System>
+  <Provider Name="Netapp-Security-Auditing" />
+  <EventID>4656</EventID>
+  <EventName>Open Object</EventName>
+  [...]
+  </System>
+- <EventData>
+  [...]
+  **<Data Name="ObjectType"\>Stream</Data\>
+  <Data Name="HandleID"\>00000000000401;00;000001e4;00176767</Data\>
+  <Data Name="ObjectName"\>\(data1\);/dir1/file1.txt:stream1</Data\>          **
+  [...]
+  </EventData>
+  </Event>
+- <Event>
+----
+
+For an EVTX ID 4663 (read audit event), the audit record output for the same alternate data stream records the base file name in the `ObjectName` tag; however, the handle in the `HandleID` tag is the alternative data stream's handle and can be used to correlate this event with the alternative data stream:
+
+----
+
+- <Event>
+- <System>
+  <Provider Name="Netapp-Security-Auditing" />
+  <EventID>4663</EventID>
+  <EventName>Read Object</EventName>
+  [...]
+  </System>
+- <EventData>
+  [...]
+  **<Data Name="ObjectType"\>Stream</Data\>
+  <Data Name="HandleID"\>00000000000401;00;000001e4;00176767</Data\>
+  <Data Name="ObjectName"\>\(data1\);/dir1/file1.txt</Data\> **
+  [...]
+  </EventData>
+  </Event>
+- <Event>
+----

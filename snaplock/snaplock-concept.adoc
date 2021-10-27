@@ -1,0 +1,170 @@
+---
+permalink: snaplock/snaplock-concept.html
+sidebar: sidebar
+keywords: snaplock, worm, storage, compliance, enterprise, mode, sec, rule, 17a, license
+summary: "SnapLock is a high-performance compliance solution for organizations that use WORM storage to retain files in unmodified form for regulatory and governance purposes. A single license entitles you to use SnapLock in strict Compliance mode, to satisfy external mandates like SEC Rule 17a-4, and a looser Enterprise mode, to meet internally mandated regulations for the protection of digital assets."
+---
+= What SnapLock is
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+SnapLock is a high-performance compliance solution for organizations that use WORM storage to retain files in unmodified form for regulatory and governance purposes. A single license entitles you to use SnapLock in strict _Compliance mode_, to satisfy external mandates like SEC Rule 17a-4, and a looser _Enterprise mode_, to meet internally mandated regulations for the protection of digital assets.
+
+== Differences between Compliance and Enterprise modes
+
+SnapLock Compliance and Enterprise modes differ mainly in the level at which each mode protects WORM files:
+
+* Compliance-mode WORM files are protected at the disk level.
++
+You cannot reinitialize a disk that contains Compliance-mode aggregates.
+
+* Enterprise-mode WORM files are protected at the file level.
+
+A related difference involves how strictly each mode manages file deletes:
+
+* Compliance-mode WORM files cannot be deleted during the retention period.
+* Enterprise-mode WORM files can be deleted during the retention period by the compliance administrator, using an audited _privileged delete_ procedure.
+
+After the retention period has elapsed, you are responsible for deleting any files you no longer need. Once a file has been committed to WORM, whether under Compliance or Enterprise mode, it cannot be modified, even after the retention period has expired.
+
+You cannot move a WORM file during or after the retention period. You can copy a WORM file, but the copy will not retain its WORM characteristics.
+
+The following table shows the differences between SnapLock Compliance and Enterprise modes:
+
+|===
+| Capability| SnapLock Compliance| SnapLock Enterprise
+
+a|
+Privileged delete
+a|
+No
+a|
+Yes
+a|
+Reinitialize disk
+a|
+No
+a|
+Yes
+a|
+Destroy SnapLock aggregate and volume during retention period
+a|
+No
+a|
+Yes
+a|
+Rename an aggregate or volume
+a|
+No
+a|
+Yes
+a|
+Non-NetApp disks
+
+a|
+No
+a|
+Yes (with FlexArray Virtualization)
+a|
+Use SnapLock volume for audit logging
+a|
+Yes
+a|
+Yes, starting with ONTAP 9.5
+a|
+Single-file SnapRestore
+a|
+No
+a|
+Yes
+a|
+SnapRestore
+a|
+No
+a|
+Yes
+a|
+FlexClone
+a|
+You can clone SnapLock volumes, but you cannot clone files on a SnapLock volume.
+
+a|
+You can clone SnapLock volumes, but you cannot clone files on a SnapLock volume.
+
+a|
+LUNs
+a|
+No
+a|
+No
+a|
+SMTape
+a|
+No
+a|
+No
+a|
+MetroCluster configurations
+a|
+SnapLock Compliance or Enterprise aggregates are supported to host SnapLock audit log volumes on MetroCluster configurations, with the following limitation:
+
+* SnapLock Enterprise is supported on mirrored and unmirrored aggregates.
+* SnapLock Compliance is supported only on unmirrored aggregates only.
+
+All MetroCluster configurations support mirrored aggregates. See the ONTAP release notes to determine if your MetroCluster configuration supports unmirrored aggregates.
+
+https://library.netapp.com/ecmdocs/ECMLP2492508/html/frameset.html[ONTAP 9 Release Notes]
+
+a|
+No
+a|
+Support FabricPools on SnapLock aggregates
+a|
+No
+a|
+Yes, starting with ONTAP 9.8
+[NOTE]
+====
+You should be aware that any data that FabricPool tiers to a public or private cloud is no longer protected by SnapLock because that data can be deleted by a cloud admin.
+====
+
+|===
+
+== MetroCluster configurations and compliance clocks
+
+MetroCluster configurations use two compliance clock mechanisms, the Volume Compliance Clock (VCC) and the System Compliance Clock (SCC). The VCC and SCC are available to all SnapLock configurations. When you create a new volume on a node, its VCC is initialized with the current value of the SCC on that node. After the volume is created, the volume and file retention time is always tracked with the VCC.
+
+When a volume is replicated to another site, its VCC is also replicated. When a volume switchover occurs, from Site A to Site B, for example, the VCC continues to be updated on Site B while the SCC on Site A halts when Site A goes offline.
+
+When Site A is brought back online and the volume switchback is performed, the Site A SCC clock restarts while the VCC of the volume continues to be updated. Because the VCC is continuously updated, regardless of switchover and switchback operations, the file retention times do not depend on SCC clocks and do not stretch.
+
+== Committing files to WORM
+
+You can use an application to commit files to WORM over NFS or CIFS, or use the SnapLock autocommit feature to commit files to WORM automatically. You can use a _WORM appendable file_ to retain data that is written incrementally, like log information.
+
+== Data protection
+
+SnapLock supports data protection methods that should satisfy most compliance requirements:
+
+* You can use SnapLock for SnapVault to WORM-protect Snapshot copies on secondary storage.
+* You can use SnapMirror to replicate WORM files to another geographic location for disaster recovery.
+
+== Storage efficiency
+
+Starting with ONTAP 9.9.1, SnapLock supports storage efficiency features, such as data compaction, cross-volume-deduplication, and adaptive compression for SnapLock volumes and aggregates.
+
+== 7-Mode Transition
+
+You can use the Copy-Based Transition (CBT) feature of the 7-Mode Transition Tool to migrate SnapLock volumes from 7-Mode to ONTAP. The SnapLock mode of the destination volume, Compliance or Enterprise, must match the SnapLock mode of the source volume. You cannot use Copy-Free Transition (CFT) to migrate SnapLock volumes.
+
+== Encryption
+
+ONTAP offers both software- and hardware-based encryption technologies for ensuring that data at rest cannot be read if the storage medium is repurposed, returned, misplaced, or stolen.
+
+*Disclaimer:* NetApp cannot guarantee that SnapLock-protected WORM files on self-encrypting drives or volumes will be retrievable if the authentication key is lost or if the number of failed authentication attempts exceeds the specified limit and results in the drive being permanently locked. You are responsible for ensuring against authentication failures.
+
+[NOTE]
+====
+Starting with ONTAP 9.2, encrypted volumes are supported on SnapLock aggregates.
+====

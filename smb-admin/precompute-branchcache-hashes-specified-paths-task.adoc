@@ -1,0 +1,93 @@
+---
+permalink: smb-admin/precompute-branchcache-hashes-specified-paths-task.html
+sidebar: sidebar
+keywords: configure, branchcache, service, pre-compute, hash, file, directory, structure, compute, branchcache-enabled share non-peak hours, pre-compute branchcache hashes on specified paths
+summary: "You can configure the BranchCache service to pre-compute hashes for a single file, for a directory, or for all files in a directory structure. This can be helpful if you want to compute hashes on data in a BranchCache-enabled share during off, non-peak hours."
+---
+= Pre-compute BranchCache hashes on specified paths
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can configure the BranchCache service to pre-compute hashes for a single file, for a directory, or for all files in a directory structure. This can be helpful if you want to compute hashes on data in a BranchCache-enabled share during off, non-peak hours.
+
+.About this task
+
+If you want to collect a data sample before you display hash statistics, you must use the `statistics start` and optional `statistics stop` commands.
+
+* You must specify the storage virtual machine (SVM) and path on which you want to pre-compute hashes.
+* You must also specify whether you want hashes computed recursively.
+* If you want hashes computed recursively, the BranchCache service traverses the entire directory tree under the specified path, and computes hashes for each eligible object.
+
+.Steps
+
+. Pre-compute hashes as desired:
++
+[options="header"]
+|===
+| If you want to pre-compute hashes on...| Enter the command...
+a|
+A single file or directory
+a|
+`vserver cifs branchcache hash-create -vserver vserver_name -path path -recurse false`
+a|
+Recursively on all files in a directory structure
+a|
+`vserver cifs branchcache hash-create -vserver vserver_name -path absolute_path -recurse true`
+|===
+
+. Verify that hashes are being computed by using the `statistics` command:
+ .. Display statistics for the `hashd` object on the desired SVM instance: `statistics show -object hashd -instance vserver_name`
+ .. Verify that the number of hashes created is increasing by repeating the command.
+
+.Examples
+
+The following example creates hashes on the path `/data` and on all contained files and subdirectories on SVM vs1:
+
+----
+cluster1::> vserver cifs branchcache hash-create -vserver vs1 -path /data -recurse true
+
+cluster1::> statistics show -object hashd -instance vs1
+Object: hashd
+Instance: vs1
+Start-time: 9/6/2012 19:09:54
+End-time: 9/6/2012 19:11:15
+Cluster: cluster1
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    branchcache_hash_created                                       85
+    branchcache_hash_files_replaced                                 0
+    branchcache_hash_rejected                                       0
+    branchcache_hash_store_bytes                                    0
+    branchcache_hash_store_size                                     0
+    instance_name                                                vs1
+    node_name                                                  node1
+    node_uuid
+                                11111111-1111-1111-1111-111111111111
+    process_name                                                   -
+
+cluster1::> statistics show -object hashd -instance vs1
+Object: hashd
+Instance: vs1
+Start-time: 9/6/2012 19:09:54
+End-time: 9/6/2012 19:11:15
+Cluster: cluster1
+
+    Counter                                                     Value
+    -------------------------------- --------------------------------
+    branchcache_hash_created                                       92
+    branchcache_hash_files_replaced                                 0
+    branchcache_hash_rejected                                       0
+    branchcache_hash_store_bytes                                    0
+    branchcache_hash_store_size                                     0
+    instance_name                                                vs1
+    node_name                                                  node1
+    node_uuid
+                                11111111-1111-1111-1111-111111111111
+    process_name                                                   -
+----
+
+*Related information*
+
+link:../performance-config/index.html[Performance monitoring setup]

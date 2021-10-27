@@ -1,0 +1,45 @@
+---
+permalink: system-admin/manage-cluster-time-concept.html
+sidebar: sidebar
+keywords: manage, cluster, time, administrator, ntp, network, time, protocol, zone
+summary: "Problems can occur when the cluster time is inaccurate. Although ONTAP enables you to manually set the time zone, date, and time on the cluster, you should configure the Network Time Protocol (NTP) servers to synchronize the cluster time."
+---
+= Manage the cluster time (cluster administrators only)
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Problems can occur when the cluster time is inaccurate. Although ONTAP enables you to manually set the time zone, date, and time on the cluster, you should configure the Network Time Protocol (NTP) servers to synchronize the cluster time.
+
+Beginning in ONTAP 9.5, you can configure your NTP server with symmetric authentication.
+
+NTP is always enabled. However, configuration is still required for the cluster to synchronize with an external time source. ONTAP enables you to manage the cluster's NTP configuration in the following ways:
+
+* You can associate a maximum of 10 external NTP servers with the cluster (`cluster time-service ntp server create`).
+ ** For redundancy and quality of time service, you should associate at least three external NTP servers with the cluster.
+ ** You can specify an NTP server by using its IPv4 or IPv6 address or fully qualified host name.
+ ** You can manually specify the NTP version (v3 or v4) to use.
++
+By default, ONTAP automatically selects the NTP version that is supported for a given external NTP server.
++
+If the NTP version you specify is not supported for the NTP server, time exchange cannot take place.
+
+ ** At the advanced privilege level, you can specify an external NTP server that is associated with the cluster to be the primary time source for correcting and adjusting the cluster time.
+* You can display the NTP servers that are associated with the cluster (`cluster time-service ntp server show`).
+* You can modify the cluster's NTP configuration (`cluster time-service ntp server modify`).
+* You can disassociate the cluster from an external NTP server (`cluster time-service ntp server delete`).
+* At the advanced privilege level, you can reset the configuration by clearing all external NTP servers' association with the cluster (`cluster time-service ntp server reset`).
+
+A node that joins a cluster automatically adopts the NTP configuration of the cluster.
+
+In addition to using NTP, ONTAP also enables you to manually manage the cluster time. This capability is helpful when you need to correct erroneous time (for example, a node's time has become significantly incorrect after a reboot). In that case, you can specify an approximate time for the cluster until NTP can synchronize with an external time server. The time you manually set takes effect across all nodes in the cluster.
+
+You can manually manage the cluster time in the following ways:
+
+* You can set or modify the time zone, date, and time on the cluster (`cluster date modify`).
+* You can display the current time zone, date, and time settings of the cluster (`cluster date show`).
+
+[NOTE]
+====
+Job schedules do not adjust to manual cluster date and time changes. These jobs are scheduled to run based on the current cluster time when the job was created or when the job most recently ran. Therefore, if you manually change the cluster date or time, you must use the `job show` and `job history show` commands to verify that all scheduled jobs are queued and completed according to your requirements.
+====

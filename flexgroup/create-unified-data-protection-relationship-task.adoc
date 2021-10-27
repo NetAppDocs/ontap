@@ -1,0 +1,95 @@
+---
+permalink: flexgroup/create-unified-data-protection-relationship-task.html
+sidebar: sidebar
+keywords: create, unified, data, protection, relationship, flexgroup, volumes
+summary: "Starting with ONTAP 9.3, you can create and configure SnapMirror unified data protection relationships to configure disaster recovery and archiving on the same destination volume."
+---
+= Create a unified data protection relationship for FlexGroup volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Starting with ONTAP 9.3, you can create and configure SnapMirror unified data protection relationships to configure disaster recovery and archiving on the same destination volume.
+
+.What you'll need
+
+You must be aware of the considerations for creating unified data protection relationships for FlexGroup volumes.
+
+xref:snapvault-backup-concept.adoc[Considerations for creating a SnapVault backup relationship and a unified data protection relationship for FlexGroup volumes]
+
+.Steps
+
+. Create a destination FlexGroup volume of type `DP` that has the same number of constituents as that of the source FlexGroup volume:
+ .. From the source cluster, determine the number of constituents in the source FlexGroup volume: `volume show -volume volume_name* -is-constituent true`
++
+----
+cluster1::> volume show  -volume srcFG* -is-constituent true
+Vserver   Volume         Aggregate    State      Type       Size  Available  Used%
+--------- ------------   ------------ ---------- ---- ----------  ---------- -----
+vss       srcFG          -            online     RW         400TB   172.86GB  56%
+vss       srcFG__0001    Aggr_cmode   online     RW         25GB    10.86TB   56%
+vss       srcFG__0002    aggr1        online     RW         25TB    10.86TB   56%
+vss       srcFG__0003    Aggr_cmode   online     RW         25TB    10.72TB   57%
+vss       srcFG__0004    aggr1        online     RW         25TB    10.73TB   57%
+vss       srcFG__0005    Aggr_cmode   online     RW         25TB    10.67TB   57%
+vss       srcFG__0006    aggr1        online     RW         25TB    10.64TB   57%
+vss       srcFG__0007    Aggr_cmode   online     RW         25TB    10.63TB   57%
+...
+----
+
+ .. From the destination cluster, create a destination FlexGroup volume of type `DP` with the same number of constituents as that of the source FlexGroup volume.
++
+----
+cluster2::> volume create -vserver vsd -aggr-list aggr1,aggr2 -aggr-list-multiplier 8 -size 400TB -type DP dstFG
+
+Warning: The FlexGroup volume "dstFG" will be created with the following number of constituents of size 25TB: 16.
+Do you want to continue? {y|n}: y
+[Job 766] Job succeeded: Successful
+----
+
+ .. From the destination cluster, verify the number of constituents in the destination FlexGroup volume: `volume show -volume volume_name* -is-constituent true`
++
+----
+cluster2::> volume show  -volume dstFG* -is-constituent true
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+--------- ------------ ------------ ---------- ---- ---------- ---------- -----
+vsd       dstFG          -            online     RW         400TB   172.86GB  56%
+vsd       dstFG__0001    Aggr_cmode   online     RW         25GB    10.86TB   56%
+vsd       dstFG__0002    aggr1        online     RW         25TB    10.86TB   56%
+vsd       dstFG__0003    Aggr_cmode   online     RW         25TB    10.72TB   57%
+vsd       dstFG__0004    aggr1        online     RW         25TB    10.73TB   57%
+vsd       dstFG__0005    Aggr_cmode   online     RW         25TB    10.67TB   57%
+vsd       dstFG__0006    aggr1        online     RW         25TB    10.64TB   57%
+vsd       dstFG__0007    Aggr_cmode   online     RW         25TB    10.63TB   57%
+...
+----
+. Create a job schedule: `job schedule cron create -name job_name -month month -dayofweek day_of_week -day day_of_month -hour hour -minute minute`
++
+For the `-month`, `-dayofweek`, and `-hour` options, you can specify `all` to run the job every month, every day of the week, and every hour, respectively.
++
+The following example creates a job schedule named `my_weekly` that runs on Saturdays at 3:00 a.m.:
++
+----
+cluster1::> job schedule cron create -name my_weekly -dayofweek "Saturday" -hour 3 -minute 0
+----
+
+. Create a custom policy of type `mirror-vault`, and then define a rule for the mirror and vault policy:
+ .. Create a custom policy of type `mirror-vault` for the unified data protection relationship: `snapmirror policy create -vserver svm_name -policy policy_name -type mirror-vault`
+ .. Define a rule for the mirror and vault policy that determines which Snapshot copies are transferred during initialization and update operations: `snapmirror policy add-rule -vserver svm_name -policy policy_for_rule - snapmirror-label snapmirror-label -keep retention_count -schedule schedule`
+
++
+If you do not specify a custom policy, the `MirrorAndVault` policy is used for unified data protection relationships.
+. Create a unified data protection relationship: `snapmirror create -source-path src_svm:src_flexgroup -destination-path dest_svm:dest_flexgroup -type XDP -schedule schedule_name -policy MirrorAndVault`
++
+In ONTAP 9.4 and earlier, if the policy is not specified with the `snapmirror create` command, the `MirrorAllSnapshots` policy is used by default. In ONTAP 9.5, if the policy is not specified with the `snapmirror create` command, the `MirrorAndVault` policy is used by default.
++
+----
+cluster2::> snapmirror create -source-path vss:srcFG -destination-path vsd:dstFG -type XDP -schedule Daily -policy MirrorAndVault
+----
+
+. From the destination cluster, initialize the unified data protection relationship by performing a baseline transfer: `snapmirror initialize -destination-path dest_svm:dest_flexgroup`
++
+----
+cluster2::> snapmirror initialize -destination-path vsd:dstFG
+Operation is queued: snapmirror initialize of destination "vsd:dstFG".
+----

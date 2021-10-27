@@ -1,0 +1,78 @@
+---
+permalink: s3-config/create-svm-s3-task.html
+sidebar: sidebar
+keywords: create, svm, s3
+summary: "Although S3 can coexist in an SVM with other protocols, you might want to create a new SVM to isolate the namespace and workload."
+---
+= Create an SVM for S3
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Although S3 can coexist in an SVM with other protocols, you might want to create a new SVM to isolate the namespace and workload.
+
+.About this task
+
+If you are only providing S3 object storage from this SVM, the S3 server does not require any DNS configuration. However, you might want to configure DNS on the SVM if other protocols are used.
+
+.Steps
+
+. Verify that S3 is licensed on your cluster:
++
+`system license show -package s3`
++
+If it is not, contact your sales representative.
+
+. Create an SVM:
++
+`vserver create -vserver svm_name -rootvolume root_volume_name -aggregate aggregate_name -rootvolume-security-style unix -language C.UTF-8 -ipspace ipspace_name`
+
+** Use the UNIX setting for the `-rootvolume-security-style` option.
+** Use the default C.UTF-8 `-language` option.
+** The `ipspace` setting is optional.
+. Verify the configuration and status of the newly created SVM:
++
+`vserver show -vserver svm_name`
++
+The `Vserver Operational State` field must display the `running` state. If it displays the `initializing` state, it means that some intermediate operation such as root volume creation failed, and you must delete the SVM and re-create it.
+
+.Examples
+
+The following command creates an SVM for data access in the IPspace ipspaceA:
+
+----
+cluster-1::> vserver create -vserver svm1.example.com -rootvolume root_svm1 -aggregate aggr1
+-rootvolume-security-style unix -language C.UTF-8 -ipspace ipspaceA
+
+[Job 2059] Job succeeded:
+Vserver creation completed
+----
+
+The following command shows that an SVM was created with a root volume of 1 GB, and it was started automatically and is in `running` state. The root volume has a default export policy that does not include any rules, so the root volume is not exported upon creation. By default, the vsadmin user account is created and is in the `locked` state. The vsadmin role is assigned to the default vsadmin user account.
+
+----
+cluster-1::> vserver show -vserver svm1.example.com
+                                    Vserver: svm1.example.com
+                               Vserver Type: data
+                            Vserver Subtype: default
+                               Vserver UUID: b8375669-19b0-11e5-b9d1-00a0983d9736
+                                Root Volume: root_svm1
+                                  Aggregate: aggr1
+                                 NIS Domain: -
+                 Root Volume Security Style: unix
+                                LDAP Client: -
+               Default Volume Language Code: C.UTF-8
+                            Snapshot Policy: default
+                                    Comment:
+                               Quota Policy: default
+                List of Aggregates Assigned: -
+ Limit on Maximum Number of Volumes allowed: unlimited
+                        Vserver Admin State: running
+                  Vserver Operational State: running
+   Vserver Operational State Stopped Reason: -
+                          Allowed Protocols: nfs, cifs
+                       Disallowed Protocols: -
+                           QoS Policy Group: -
+                                Config Lock: false
+                               IPspace Name: ipspaceA
+----

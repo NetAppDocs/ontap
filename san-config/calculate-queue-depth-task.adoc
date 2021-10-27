@@ -1,0 +1,68 @@
+---
+permalink: san-config/calculate-queue-depth-task.html
+sidebar: sidebar
+keywords: calculate, queue depth
+summary: "You might need to tune your FC queue depth on the host to achieve the maximum values for ITNs per node and FC port fan-in. The maximum number of LUNs and the number of HBAs that can connect to an FC port are limited by the available queue depth on the FC target ports."
+---
+= Calculating queue depth overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You might need to tune your FC queue depth on the host to achieve the maximum values for ITNs per node and FC port fan-in. The maximum number of LUNs and the number of HBAs that can connect to an FC port are limited by the available queue depth on the FC target ports.
+
+.About this task
+
+Queue depth is the number of I/O requests (SCSI commands) that can be queued at one time on a storage controller. Each I/O request from the host's initiator HBA to the storage controller's target adapter consumes a queue entry. Typically, a higher queue depth equates to better performance. However, if the storage controller's maximum queue depth is reached, that storage controller rejects incoming commands by returning a QFULL response to them. If a large number of hosts are accessing a storage controller, you should plan carefully to avoid QFULL conditions, which significantly degrade system performance and can lead to errors on some systems.
+
+In a configuration with multiple initiators (hosts), all hosts should have similar queue depths. Because of the inequality in queue depth between hosts connected to the storage controller through the same target port, hosts with smaller queue depths are being deprived of access to resources by hosts with larger queue depths.
+
+The following general recommendations can be made about "`tuning`" queue depths:
+
+* For small to mid-size systems, use an HBA queue depth of 32.
+* For large systems, use an HBA queue depth of 128.
+* For exception cases or performance testing, use a queue depth of 256 to avoid possible queuing problems.
+* All hosts should have the queue depths set to similar values to give equal access to all hosts.
+* To avoid performance penalties or errors, the storage controller target FC port queue depth must not be exceeded.
+
+.Steps
+
+. Count the total number of FC initiators in all of the hosts that connect to one FC target port.
+. Multiply by 128.
+ ** If the result is less than 2,048, set the queue depth for all initiators to 128.
+You have 15 hosts with one initiator connected to each of two target ports on the storage controller. 15 × 128 = 1,920. Because 1,920 is less than the total queue depth limit of 2,048, you can set the queue depth for all of your initiators to 128.
+ ** If the result is greater than 2,048, go to step 3.
+You have 30 hosts with one initiator connected to each of two target ports on the storage controller. 30 × 128 = 3,840. Because 3,840 is greater than the total queue depth limit of 2,048, you should choose one of the options under step 3 for remediation.
+. Choose one of the following options to add more hosts to the storage controller.
+ ** Option 1:
+  ... Add more FC target ports.
+  ... Redistribute your FC initiators.
+  ... Repeat steps 1 and 2.
+   +
+  The desired queue depth of 3,840 exceeds the available queue depth per port. To remedy this, you can add a two-port FC target adapter to each controller, then rezone your FC switches so that 15 of your 30 hosts connect to one set of ports, and the remaining 15 hosts connect to a second set of ports. The queue depth per port is then reduced to 15 × 128 = 1,920.
+ ** Option 2:
+  ... Designate each host as "`large`" or "`small`" based on its expected I/O need.
+  ... Multiply the number of large initiators by 128.
+  ... Multiply the number of small initiators by 32.
+  ... Add the two results together.
+  ... If the result is less than 2,048, set the queue depth for large hosts to 128 and the queue depth for small hosts to 32.
+  ... If the result is still greater than 2,048 per port, reduce the queue depth per initiator until the total queue depth is less than or equal to 2,048.
++
+[NOTE]
+====
+To estimate the queue depth needed to achieve a certain I/O per second throughput, use this formula:
+
+Needed queue depth = (Number of I/O per second) × (Response time)
+
+For example, if you need 40,000 I/O per second with a response time of 3 milliseconds, the needed queue depth = 40,000 × (.003) = 120.
+====
+
+The maximum number of hosts that you can connect to a target port is 64, if you decide to limit the queue depth to the basic recommendation of 32. However, if you decide to have a queue depth of 128, then you can have a maximum of 16 hosts connected to one target port. The larger the queue depth, the fewer hosts that a single target port can support. If your requirement is such that you cannot compromise on the queue depth, then you should get more target ports.
+
+The desired queue depth of 3,840 exceeds the available queue depth per port. You have 10 "`large`" hosts that have high storage I/O needs, and 20 "`small`" hosts that have low I/O needs. Set the initiator queue depth on the large hosts to 128 and the initiator queue depth on the small hosts to 32.
+
+Your resulting total queue depth is (10 × 128) + (20 × 32) = 1,920.
+
+You can spread the available queue depth equally across each initiator.
+
+Your resulting queue depth per initiator is 2,048 ÷ 30 = 68.

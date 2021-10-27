@@ -1,0 +1,59 @@
+---
+permalink: smb-admin/grant-null-users-access-file-system-shares-task.html
+sidebar: sidebar
+keywords: access, storage, system, resource, null, session, client, assign, group, ip, adress, null, session, grant, grant null users access to file system shares
+summary: "You can allow access to your storage system resources by null session clients by assigning a group to be used by null session clients and recording the IP addresses of null session clients to add to the storage system’s list of clients allowed to access data using null sessions."
+---
+= Grant null users access to file system shares
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can allow access to your storage system resources by null session clients by assigning a group to be used by null session clients and recording the IP addresses of null session clients to add to the storage system's list of clients allowed to access data using null sessions.
+
+.Steps
+
+. Use the `vserver name-mapping create` command to map the null user to any valid windows user, with an IP qualifier.
++
+The following command maps the null user to user1 with a valid host name google.com:
++
+----
+vserver name-mapping create –direction win-unix  -position 1 –pattern “ANONYMOUS LOGON” –replacement user1 – hostname google.com
+----
++
+The following command maps the null user to user1 with a valid IP address 10.238.2.54/32:
++
+----
+vserver name-mapping create –direction win-unix  -position 2 –pattern “ANONYMOUS LOGON” –replacement user1 –address 10.238.2.54/32
+----
+
+. Use the `vserver name-mapping show` command to confirm the name mapping.
++
+----
+vserver name-mapping show
+
+Vserver:   vs1
+Direction: win-unix
+Position Hostname         IP Address/Mask
+-------- --------         ----------------
+1       -                 10.72.40.83/32      Pattern: anonymous logon
+                                          Replacement: user1
+----
+
+. Use the `vserver cifs options modify –win-name-for-null-user` command to assign Windows membership to the null user.
++
+This option is applicable only when there is a valid name mapping for the null user.
++
+----
+vserver cifs options modify -win-name-for-null-user user1
+----
+
+. Use the `vserver cifs options show` command to confirm the mapping of the null user to the Windows user or group.
++
+----
+vserver cifs options show
+
+Vserver :vs1
+
+Map Null User to Windows User of Group: user1
+----

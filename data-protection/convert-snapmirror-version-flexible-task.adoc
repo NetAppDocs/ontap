@@ -1,0 +1,123 @@
+---
+permalink: data-protection/convert-snapmirror-version-flexible-task.html
+sidebar: sidebar
+keywords: convert, exist, dp-type, relationship, xdp
+summary: "You can easily convert an existing DP-type relationship to XDP to take advantage of version-flexible SnapMirror."
+---
+= Convert an existing DP-type relationship to XDP
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can easily convert an existing DP-type relationship to XDP to take advantage of version-flexible SnapMirror.
+
+.About this task
+
+SnapMirror does not automatically convert existing DP-type relationships to XDP. To convert the relationship, you need to break and delete the existing relationship, create a new XDP relationship, and resync the relationship. For background information, see link:version-flexible-snapmirror-default-concept.html[XDP replaces DP as the SnapMirror default].
+
+[NOTE]
+====
+After you convert a SnapMirror relationship type from DP to XDP, space-related settings, such as autosize and space guarantee are no longer replicated to the destination.
+====
+
+.Steps
+
+. Quiesce the existing DP-type relationship:
++
+`snapmirror quiesce -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+You must run this command from the destination SVM or the destination cluster.
+====
++
+The following example quiesces the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
++
+----
+cluster_dst::> snapmirror quiesce -source-path svm1:volA -destination-path svm_backup:volA_dst
+----
+
+. Break the existing DP-type relationship:
++
+`snapmirror break -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+You must run this command from the destination SVM or the destination cluster.
+====
++
+The following example breaks the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
++
+----
+cluster_dst::> snapmirror break -source-path svm1:volA -destination-path svm_backup:volA_dst
+----
+
+. Disable automatic deletion of Snapshot copies on the destination volume:
++
+`volume snapshot autodelete modify -vserver _SVM_ -volume _volume_ -enabled false`
++
+The following example disables Snapshot copy autodelete on the destination volume `volA_dst`:
++
+----
+cluster_dst::> volume snapshot autodelete modify -vserver svm_backup -volume volA_dst -enabled false
+----
+
+. Delete the existing DP-type relationship:
++
+`snapmirror delete -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+You must run this command from the destination SVM or the destination cluster.
+====
++
+The following example deletes the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
++
+----
+cluster_dst::> snapmirror delete -source-path svm1:volA -destination-path svm_backup:volA_dst
+----
+
+. Create the new XDP-type relationship:
++
+`snapmirror create -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ... -type XDP -schedule _schedule_ -policy _policy_`
++
+The new relationship must use the same source and destination volume. For complete command syntax, see the man page.
++
+[NOTE]
+====
+You must run this command from the destination SVM or the destination cluster.
+====
++
+The following example creates a SnapMirror DR relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup` using the default `MirrorAllSnapshots` policy:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst
+-type XDP -schedule my_daily -policy MirrorAllSnapshots
+----
+
+. Resync the source and destination volumes:
++
+`snapmirror resync -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+You must run this command from the destination SVM or the destination cluster. Although resync does not require a baseline transfer, it can be time-consuming. You might want to run the resync in off-peak hours.
+====
++
+The following example resyncs the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
++
+----
+cluster_dst::> snapmirror resync -source-path svm1:volA -destination-path svm_backup:volA_dst
+----
+
+.After you finish
+
+Use the `snapmirror show` command to verify that the SnapMirror relationship was created. For complete command syntax, see the man page.

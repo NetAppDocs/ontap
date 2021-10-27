@@ -1,0 +1,66 @@
+---
+permalink: peering/prerequisites-cluster-peering-reference.html
+sidebar: sidebar
+keywords: prerequisites, cluster, peering. connectivity, requirements, port, firewall
+summary: "Before you set up cluster peering, you should confirm that the connectivity, port, IP address, subnet, firewall, and cluster-naming requirements are met."
+---
+= Prerequisites for cluster peering
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you set up cluster peering, you should confirm that the connectivity, port, IP address, subnet, firewall, and cluster-naming requirements are met.
+
+== Connectivity requirements
+
+Every intercluster LIF on the local cluster must be able to communicate with every intercluster LIF on the remote cluster.
+
+Although it is not required, it is typically simpler to configure the IP addresses used for intercluster LIFs in the same subnet. The IP addresses can reside in the same subnet as data LIFs, or in a different subnet. The subnet used in each cluster must meet the following requirements:
+
+* The subnet must belong to the broadcast domain that contains the ports that are used for intercluster communication.
+* The subnet must have enough IP addresses available to allocate to one intercluster LIF per node.
++
+For example, in a six-node cluster, the subnet used for intercluster communication must have six available IP addresses.
+
+Each node must have an intercluster LIF with an IP address on the intercluster network.
+
+Intercluster LIFs can have an IPv4 address or an IPv6 address.
+
+[NOTE]
+====
+ONTAP 9 enables you to migrate your peering networks from IPv4 to IPv6 by optionally allowing both protocols to be present simultaneously on the intercluster LIFs. In earlier releases, all intercluster relationships for an entire cluster were either IPv4 or IPv6. This meant that changing protocols was a potentially disruptive event.
+====
+
+== Port requirements
+
+You can use dedicated ports for intercluster communication, or share ports used by the data network. Ports must meet the following requirements:
+
+* All ports that are used to communicate with a given remote cluster must be in the same IPspace.
++
+You can use multiple IPspaces to peer with multiple clusters. Pair-wise full-mesh connectivity is required only within an IPspace.
+
+* The broadcast domain that is used for intercluster communication must include at least two ports per node so that intercluster communication can fail over from one port to another port.
++
+Ports added to a broadcast domain can be physical network ports, VLANs, or interface groups (ifgrps).
+
+* All ports must be cabled.
+* All ports must be in a healthy state.
+* The MTU settings of the ports must be consistent.
+
+== Firewall requirements
+
+Firewalls and the intercluster firewall policy must allow the following protocols:
+
+* ICMP service
+* TCP to the IP addresses of all the intercluster LIFs over the ports 10000, 11104, and 11105
+* Bidirectional HTTPS between the intercluster LIFs
++
+Although HTTPS is not required when you set up cluster peering using the CLI, HTTPS is required later if you use ONTAP System Manager to configure data protection.
+
+The default `intercluster` firewall policy allows access through the HTTPS protocol and from all IP addresses (0.0.0.0/0). You can modify or replace the policy if necessary.
+
+== Cluster requirement
+
+Clusters must meet the following requirement:
+
+* A cluster cannot be in a peer relationship with more than 255 clusters.

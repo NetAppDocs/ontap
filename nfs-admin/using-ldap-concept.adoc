@@ -1,0 +1,64 @@
+---
+permalink: nfs-admin/using-ldap-concept.html
+sidebar: sidebar
+keywords: use, ldap
+summary: "An LDAP (Lightweight Directory Access Protocol) server enables you to centrally maintain user information. If you store your user database on an LDAP server in your environment, you can configure your storage system to look up user information in your existing LDAP database."
+---
+= LDAP Overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+An LDAP (Lightweight Directory Access Protocol) server enables you to centrally maintain user information. If you store your user database on an LDAP server in your environment, you can configure your storage system to look up user information in your existing LDAP database.
+
+* Before configuring LDAP for ONTAP, you should verify that your site deployment meets best practices for LDAP server and client configuration. In particular, the following conditions must be met:
+ ** The domain name of the LDAP server must match the entry on the LDAP client.
+ ** The LDAP user password hash types supported by the LDAP server must include those supported by ONTAP:
+  *** CRYPT (all types) and SHA-1 (SHA, SSHA).
+  *** Beginning with ONTAP 9.8, SHA-2 hashes (SHA-256, SSH-384, SHA-512, SSHA-256, SSHA-384, and SSHA-512) are also supported.
+ ** If the LDAP server requires session security measures, you must configure them in the LDAP client.
++
+The following session security options are available:
+
+  *** LDAP signing (provides data integrity checking) and LDAP signing and sealing (provides data integrity checking and encryption)
+  *** START TLS
+  *** LDAPS (LDAP over TLS or SSL)
+
+ ** To enable signed and sealed LDAP queries, the following services must be configured:
+  *** LDAP servers must support the GSSAPI (Kerberos) SASL mechanism.
+  *** LDAP servers must have DNS A/AAAA records as well as PTR records set up on the DNS server.
+  *** Kerberos servers must have SRV records present on the DNS server.
+ ** To enable START TLS or LDAPS, the following points should be considered.
+  *** It is a NetApp best practice to use Start TLS rather than LDAPS.
+  *** If LDAPS is used, the LDAP server must be enabled for TLS or for SSL in ONTAP 9.5 and later. SSL is not supported in ONTAP 9.0-9.4.
+  *** A certificate server must already be configured in the domain.
+ ** To enable LDAP referral chasing (in ONTAP 9.5 and later), the following conditions must be satisfied:
+  *** Both domains should be configured with one of the following trust relationships:
+   **** Two-way
+   **** One-way, where the primary trusts the referral domain
+   **** Parent-child
+  *** DNS must be configured to resolve all referred server names.
+  *** Domain passwords should be same to authenticate when `--bind-as-cifs-server` set to true.
+
++
+[NOTE]
+====
+The following configurations are not supported with LDAP referral chasing.
+
+        -   For all ONTAP versions:
+
+        -   LDAP clients on an admin SVM
+
+    -   For ONTAP 9.8 and earlier (they are supported in 9.9.1 and later):
+
+        -   LDAP signing and sealing (the `-session-security` option)
+        -   Encrypted TLS connections (the `-use-start-tls` option)
+        -   Communications over LDAPS port 636 (the `-use-ldaps-for-ad-ldap` option)
+====
+* You must enter an LDAP schema when configuring the LDAP client on the SVM.
++
+In most cases, one of the default ONTAP schemas will be appropriate. However, if the LDAP schema in your environment differs from these, you must create a new LDAP client schema for ONTAP before creating the LDAP client. Consult with your LDAP administrator about requirements for your environment.
+
+* Using LDAP for host name resolution is not supported.
+
+For additional information, see https://www.netapp.com/pdf.html?item=/media/19423-tr-4835.pdf[NetApp Technical Report 4835: How to Configure LDAP in ONTAP].

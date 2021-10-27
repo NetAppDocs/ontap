@@ -1,0 +1,86 @@
+---
+permalink: ndmp/prepare-ndmp-config-task.html
+sidebar: sidebar
+keywords: prepare, ndmp, configuration
+summary: "Before you configure tape backup access over Network Data Management Protocol (NDMP), you must verify that the planned configuration is supported, verify that your tape drives are listed as qualified drives on each node, verify that all nodes have intercluster LIFs, and identify whether the backup application supports the Cluster Aware Backup (CAB) extension."
+---
+= Prepare for NDMP configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you configure tape backup access over Network Data Management Protocol (NDMP), you must verify that the planned configuration is supported, verify that your tape drives are listed as qualified drives on each node, verify that all nodes have intercluster LIFs, and identify whether the backup application supports the Cluster Aware Backup (CAB) extension.
+
+.Steps
+
+. Verify that the planned configuration is supported by using the Interoperability Matrix (IMT).
++
+https://mysupport.netapp.com/matrix[NetApp Interoperability Matrix Tool]
++
+You should verify that the following components are compatible:
+
+ ** The version of ONTAP 9 that is running on the cluster.
+ ** The backup application vendor and application version: for example, Symantec NetBackup 7.6 or CommVault Simpana 10 SP8.
+ ** The tape devices details, such as the manufacturer, model, and interface of the tape drives: for example, IBM Ultrium-TD4 FC or HP Ultrium-5 SAS.
+ ** The platforms of the nodes in the cluster: for example, FAS3260 or FAS6280.
+
+. Verify that your tape drives are listed as qualified drives in each node's built-in tape configuration file:
+ .. On the command line-interface, view the built-in tape configuration file by using the `storage tape show-supported-status` command.
++
+----
+cluster1::> storage tape show-supported-status
+
+Node: cluster1-1
+                                Is
+Tape Drives                     Supported  Support Status
+------------------------------  ---------  -------------------------------
+Certance Ultrium 2              true       Dynamically Qualified
+Certance Ultrium 3              true       Dynamically Qualified
+Digital DLT2000                 true       Qualified
+....
+----
+
+ .. Compare your tape drives to the list of qualified drives in the output.
++
+[NOTE]
+====
+The names of the tape devices in the output might vary slightly from the names on the device label or in the Interoperability Matrix. For example, Digital DLT2000 can also be known as DLT2k. You can ignore these minor naming differences.
+====
+
+ .. If a device is not listed as qualified in the output even though the device is qualified according to the Interoperability Matrix, download and install an updated configuration file for the device using the instructions on the NetApp Support Site.
++
+http://mysupport.netapp.com/NOW/download/tools/tape_config[NetApp Downloads: Tape Device Configuration Files]
++
+A qualified device might not be listed in the built-in tape configuration file if the tape device was qualified after the node was shipped.
+. Verify that every node in the cluster has an intercluster LIF:
+ .. View the intercluster LIFs on the nodes by using the `network interface show -role intercluster` command.
++
+----
+cluster1::> network interface show -role intercluster
+
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+cluster1    IC1        up/up      192.0.2.65/24      cluster1-1    e0a     true
+----
+
+ .. If an intercluster LIF does not exist on any node, create an intercluster LIF by using the `network interface create` command.
++
+----
+cluster1::> network interface create -vserver cluster1 -lif IC2 -role intercluster
+-home-node cluster1-2 -home-port e0b -address 192.0.2.68 -netmask 255.255.255.0
+-status-admin up -failover-policy local-only -firewall-policy intercluster
+
+cluster1::> network interface show -role intercluster
+
+            Logical    Status     Network            Current       Current Is
+Vserver     Interface  Admin/Oper Address/Mask       Node          Port    Home
+----------- ---------- ---------- ------------------ ------------- ------- ----
+cluster1    IC1        up/up      192.0.2.65/24      cluster1-1    e0a     true
+cluster1    IC2        up/up      192.0.2.68/24      cluster1-2    e0b     true
+----
++
+link:../networking/index.html[Network management]
+. Identify whether the backup application supports Cluster Aware Backup (CAB) by using the documentation provided with the backup application.
++
+CAB support is a key factor in determining the type of backup you can perform.

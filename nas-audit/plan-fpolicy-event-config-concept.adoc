@@ -1,0 +1,195 @@
+---
+permalink: nas-audit/plan-fpolicy-event-config-concept.html
+sidebar: sidebar
+keywords: plan, fpolicy event configuration
+summary: "Before you configure FPolicy events, you must understand what it means to create an FPolicy event. You must determine which protocols you want the event to monitor, which events to monitor, and which event filters to use. This information helps you plan the values that you want to set."
+---
+= Plan the FPolicy event configuration overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you configure FPolicy events, you must understand what it means to create an FPolicy event. You must determine which protocols you want the event to monitor, which events to monitor, and which event filters to use. This information helps you plan the values that you want to set.
+
+== What it means to create an FPolicy event
+
+Creating the FPolicy event means defining information that the FPolicy process needs to determine what file access operations to monitor and for which of the monitored events notifications should be sent to the external FPolicy server. The FPolicy event configuration defines the following configuration information:
+
+* storage virtual machine (SVM) name
+* Event name
+* Which protocols to monitor
++
+FPolicy can monitor SMB, NFSv3, and NFSv4 file access operations.
+
+* Which file operations to monitor
++
+Not all file operations are valid for each protocol.
+
+* Which file filters to configure
++
+Only certain combinations of file operations and filters are valid. Each protocol has its own set of supported combinations.
+
+* Whether to monitor volume mount and unmount operations
+
+[NOTE]
+====
+There is a dependency with three of the parameters (`-protocol`, `-file-operations`, `-filters`). The following combinations are valid for the three parameters:
+
+* You can specify the `-protocol` and `-file-operations` parameters.
+* You can specify all three of the parameters.
+* You can specify none of the parameters.
+
+====
+
+== What the FPolicy event configuration contains
+
+You can use the following list of available FPolicy event configuration parameters to help you plan your configuration:
+
+[cols="70,30",options="header"]
+|===
+| Type of information| Option
+a|
+_SVM_
+
+Specifies the SVM name that you want to associate with this FPolicy event.
+
+Each FPolicy configuration is defined within a single SVM. The external engine, policy event, policy scope, and policy that combine together to create an FPolicy policy configuration must all be associated with the same SVM.
+
+a|
+`-vserver` `vserver_name`
+a|
+_Event name_
+
+Specifies the name to assign to the FPolicy event. When you create the FPolicy policy you associate the FPolicy event with the policy using the event name.
+
+The name can be up to 256 characters long.
+
+[NOTE]
+====
+The name should be up to 200 characters long if configuring the event in a MetroCluster or SVM disaster recovery configuration.
+====
+
+The name can contain any combination of the following ASCII-range characters:
+
+* `a` through `z`
+* `A` through `Z`
+* `0` through `9`
+* " `_` ", "`-`", and "`.`"
+
+a|
+`-event-name` `event_name`
+a|
+_Protocol_
+
+Specifies which protocol to configure for the FPolicy event. The list for `-protocol` can include one of the following values:
+
+* `cifs`
+* `nfsv3`
+* `nfsv4`
+
+[NOTE]
+====
+If you specify `-protocol`, then you must specify a valid value in the `-file-operations` parameter. As the protocol version changes, the valid values might change.
+====
+
+a|
+`-protocol` `protocol`
+a|
+_File operations_
+
+Specifies the list of file operations for the FPolicy event.
+
+The event checks the operations specified in this list from all client requests using the protocol specified in the `-protocol` parameter. You can list one or more file operations by using a comma-delimited list. The list for `-file-operations` can include one or more of the following values:
+
+* `close` for file close operations
+* `create` for file create operations
+* `create-dir` for directory create operations
+* `delete` for file delete operations
+* `delete_dir` for directory delete operations
+* `getattr` for get attribute operations
+* `link` for link operations
+* `lookup` for lookup operations
+* `open` for file open operations
+* `read` for file read operations
+* `write` for file write operations
+* `rename` for file rename operations
+* `rename_dir` for directory rename operations
+* `setattr` for set attribute operations
+* `symlink` for symbolic link operations
+
+[NOTE]
+====
+If you specify `-file-operations`, then you must specify a valid protocol in the `-protocol` parameter.
+====
+
+a|
+`-file-operations` `file_operations`,...
+a|
+_Filters_
+
+Specifies the list of filters for a given file operation for the specified protocol. The values in the `-filters` parameter are used to filter client requests. The list can include one or more of the following:
+
+[NOTE]
+====
+If you specify the `-filters` parameter, then you must also specify valid values for the `-file-operations` and `-protocol` parameters.
+====
+
+* `monitor-ads` option to filter the client request for alternate data stream.
+* `close-with-modification` option to filter the client request for close with modification.
+* `close-without-modification` option to filter the client request for close without modification.
+* `first-read` option to filter the client request for first read.
+* `first-write` option to filter the client request for first write.
+* `offline-bit` option to filter the client request for offline bit set.
++
+Setting this filter results in the FPolicy server receiving notification only when offline files are accessed.
+
+* `open-with-delete-intent` option to filter the client request for open with delete intent.
++
+Setting this filter results in the FPolicy server receiving notification only when an attempt is made to open a file with the intent to delete it. This is used by file systems when the `FILE_DELETE_ON_CLOSE` flag is specified.
+
+* `open-with-write-intent` option to filter client request for open with write intent.
++
+Setting this filter results in the FPolicy server receiving notification only when an attempt is made to open a file with the intent to write something in it.
+
+* `write-with-size-change` option to filter the client request for write with size change.
+a|
+`-filters` `filter`, ...
+a|
+_Filters_ continued
+
+* `setattr-with-owner-change` option to filter the client setattr requests for changing owner of a file or a directory.
+* `setattr-with-group-change` option to filter the client setattr requests for changing the group of a file or a directory.
+* `setattr-with-sacl-change` option to filter the client setattr requests for changing the SACL on a file or a directory.
++
+This filter is available only for the CIFS and NFSv4 protocols.
+
+* `setattr-with-dacl-change` option to filter the client setattr requests for changing the DACL on a file or a directory.
++
+This filter is available only for the CIFS and NFSv4 protocols.
+
+* `setattr-with-modify-time-change` option to filter the client setattr requests for changing the modification time of a file or a directory.
+* `setattr-with-access-time-change` option to filter the client setattr requests for changing the access time of a file or a directory.
+* `setattr-with-creation-time-change` option to filter the client setattr requests for changing the creation time of a file or a directory.
++
+This option is available only for the CIFS protocol.
+
+* `setattr-with-mode-change` option to filter the client setattr requests for changing the mode bits on a file or a directory.
+* `setattr-with-size-change` option to filter the client setattr requests for changing the size of a file.
+* `setattr-with-allocation-size-change` option to filter the client setattr requests for changing the allocation size of a file.
++
+This option is available only for the CIFS protocol.
+
+* `exclude-directory` option to filter the client requests for directory operations.
++
+When this filter is specified, the directory operations are not monitored.
+
+a|
+`-filters` `filter`, ...
+a|
+_Is volume operation required_
+
+Specifies whether monitoring is required for volume mount and unmount operations. The default is `false`.
+
+a|
+`-volume-operation` {`true`\|`false`}
+|===

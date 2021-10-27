@@ -1,0 +1,52 @@
+---
+permalink: nfs-config/create-nis-domain-config-task.html
+sidebar: sidebar
+keywords: create, nis, domain, configuration
+summary: "If a Network Information Service (NIS) is used in your environment for name services, you must create an NIS domain configuration for the SVM by using the vserver services name-service nis-domain create command."
+---
+= Create an NIS domain configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If a Network Information Service (NIS) is used in your environment for name services, you must create an NIS domain configuration for the SVM by using the `vserver services name-service nis-domain create` command.
+
+.What you'll need
+
+All configured NIS servers must be available and reachable before you configure the NIS domain on the SVM.
+
+If you plan to use NIS for directory searches, the maps in your NIS servers cannot have more than 1,024 characters for each entry. Do not specify the NIS server that does not comply with this limit. Otherwise, client access dependent on NIS entries might fail.
+
+.About this task
+
+You can create multiple NIS domains. However, you can only use one that is set to `active`.
+
+If your NIS database contains a `netgroup.byhost` map, ONTAP can use it for quicker searches. The `netgroup.byhost` and `netgroup` maps in the directory must be kept in sync at all times to avoid client access issues. Beginning with ONTAP 9.7, NIS `netgroup.byhost` entries can be cached using the `vserver services name-service nis-domain netgroup-database` commands.
+
+Using NIS for host name resolution is not supported.
+
+.Steps
+
+. Create an NIS domain configuration:
++
+`vserver services name-service nis-domain create -vserver vs1 -domain _domain_name_ -active true _-servers IP_addresses_`
++
+You can specify up to 10 NIS servers.
++
+[NOTE]
+====
+Starting in ONTAP 9.2, the field `-nis-servers` replaces the field `-servers`. This new field can take either a hostname or an IP address for the NIS server.
+====
+
+. Verify that the domain is created:
++
+`vserver services name-service nis-domain show`
+
+.Example
+
+The following command creates and makes an active NIS domain configuration for an NIS domain called nisdomain on the SVM named vs1 with an NIS server at IP address 192.0.2.180:
+
+----
+vs1::> vserver services name-service nis-domain create -vserver vs1
+-domain nisdomain -active true -nis-servers 192.0.2.180
+----

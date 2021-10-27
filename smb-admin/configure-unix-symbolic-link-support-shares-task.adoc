@@ -1,0 +1,114 @@
+---
+permalink: smb-admin/configure-unix-symbolic-link-support-shares-task.html
+sidebar: sidebar
+keywords: configure, unix, symbol, link, support, smb, share, share-property, setting, create, modify, exist, configure unix symbolic link support, on smb shares
+summary: "You can configure UNIX symbolic link support on SMB shares by specifying a symbolic link share-property setting when you create SMB shares or at any time by modifying existing SMB shares. UNIX symbolic link support is enabled by default. You can also disable UNIX symbolic link support on a share."
+---
+= Configure UNIX symbolic link support on SMB shares
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can configure UNIX symbolic link support on SMB shares by specifying a symbolic link share-property setting when you create SMB shares or at any time by modifying existing SMB shares. UNIX symbolic link support is enabled by default. You can also disable UNIX symbolic link support on a share.
+
+.About this task
+
+When configuring UNIX symbolic link support for SMB shares, you can choose one of the following settings:
+
+[options="header"]
+|===
+| Setting| Description
+a|
+`enable` (DEPRECATED*)
+a|
+Specifies that symbolic links are enabled for read-write access.
+a|
+`read_only` (DEPRECATED*)
+a|
+Specifies that symlinks are enabled for read-only access. This setting does not apply to widelinks. Widelink access is always read-write.
+a|
+`hide` (DEPRECATED*)
+a|
+Specifies that SMB clients are prevented from seeing symlinks.
+a|
+`no-strict-security`
+a|
+Specifies that clients follow symlinks outside of share boundaries.
+a|
+`symlinks`
+a|
+Specifies that symlinks are enabled locally for read-write access. The DFS advertisements are not generated even if the CIFS option `is-advertise-dfs-enabled` is set to `true`. This is the default setting.
+a|
+`symlinks-and-widelinks`
+a|
+Specifies that both local symlinks and widelinks for read-write access. The DFS advertisements are generated for both local symlink and widelinks even if the CIFS option `is-advertise-dfs-enabled` is set to `false`.
+a|
+`disable`
+a|
+Specifies that symlinks and widelinks are disabled. The DFS advertisements are not generated even if the CIFS option `is-advertise-dfs-enabled` is set to `true`.
+a|
+`""` (null, not set)
+a|
+Disables symbolic links on the share.
+a|
+`-` (not set)
+a|
+Disables symbolic links on the share.
+|===
+
+[NOTE]
+====
+*The _enable_, _hide_, and _read-only_ parameters are deprecated and may be removed in a future release of ONTAP.
+====
+
+.Steps
+
+. Configure or disable symbolic link support:
++
+[options="header"]
+|===
+| If it is...| Enter...
+a|
+A new SMB share
+a|
+`+vserver cifs share create -vserver vserver_name -share-name share_name -path path -symlink-properties {enable\|hide\|read-only\|""\|-\|symlinks\|symlinks-and-widelinks\|disable},...]+`
+a|
+An existing SMB share
+a|
+`+vserver cifs share modify -vserver vserver_name -share-name share_name -symlink-properties {enable\|hide\|read-only\|""\|-\|symlinks\|symlinks-and-widelinks\|disable},...]+`
+|===
+
+. Verify that the SMB share configuration is correct: `vserver cifs share show -vserver vserver_name -share-name share_name -instance`
+
+.Example
+
+The following command creates an SMB share named "`data1`" with the UNIX symbolic link configuration set to `enable`:
+
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name data1 -path /data1 -symlink-properties enable
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data1 -instance
+
+                          Vserver: vs1
+                            Share: data1
+         CIFS Server NetBIOS Name: VS1
+                             Path: /data1
+                 Share Properties: oplocks
+                                   browsable
+                                   changenotify
+               Symlink Properties: enable
+          File Mode Creation Mask: -
+     Directory Mode Creation Mask: -
+                    Share Comment: -
+                        Share ACL: Everyone / Full Control
+    File Attribute Cache Lifetime: -
+                      Volume Name: -
+                    Offline Files: manual
+    Vscan File-Operations Profile: standard
+Maximum Tree Connections on Share: 4294967295
+       UNIX Group for File Create: -
+----
+
+*Related information*
+
+xref:create-symbolic-link-mappings-task.adoc[Creating symbolic link mappings for SMB shares]

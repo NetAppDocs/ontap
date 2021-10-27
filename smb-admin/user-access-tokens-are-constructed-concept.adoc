@@ -1,0 +1,31 @@
+---
+permalink: smb-admin/user-access-tokens-are-constructed-concept.html
+sidebar: sidebar
+keywords: user, map, share, authenticate, smb, session, establish, user, access, token, construct, contain, information, cumulative, privilege, map, unix, user, how user access tokens are constructed
+summary: "When a user maps a share, an authenticated SMB session is established and a user access token is constructed that contains information about the user, the user’s group membership and cumulative privileges, and the mapped UNIX user."
+---
+= How user access tokens are constructed
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When a user maps a share, an authenticated SMB session is established and a user access token is constructed that contains information about the user, the user's group membership and cumulative privileges, and the mapped UNIX user.
+
+Unless the functionality is disabled, local user and group information is also added to the user access token. The way access tokens are constructed depends on whether the login is for a local user or an Active Directory domain user:
+
+* Local user login
++
+Although local users can be members of different local groups, local groups cannot be members of other local groups. The local user access token is composed of a union of all privileges assigned to groups to which a particular local user is a member.
+
+* Domain user login
++
+When a domain user logs in, ONTAP obtains a user access token that contains the user SID and SIDs for all the domain groups to which the user is a member. ONTAP uses the union of the domain user access token with the access token provided by local memberships of the user's domain groups (if any), as well as any direct privileges assigned to the domain user or any of its domain group memberships.
+
+For both local and domain user login, the Primary Group RID is also set for the user access token. The default RID is `Domain Users` (RID 513). You cannot change the default.
+
+The Windows-to-UNIX and UNIX-to-Windows name mapping process follows the same rules for both local and domain accounts.
+
+[NOTE]
+====
+There is no implied, automatic mapping from a UNIX user to a local account. If this is required, an explicit mapping rule must be specified using the existing name mapping commands.
+====

@@ -1,0 +1,179 @@
+---
+permalink: smb-hyper-v-sql/display-session-task.html
+sidebar: sidebar
+keywords: display, smb, session, information, nondisruptive, is, ip, address, protocol, operation
+summary: "You can display information about established SMB sessions, including the SMB connection and session ID and the IP address of the workstation using the session. You can display information about the session’s SMB protocol version and continuously available protection level, which helps you to identify whether the session supports nondisruptive operations."
+---
+= Display SMB session information
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can display information about established SMB sessions, including the SMB connection and session ID and the IP address of the workstation using the session. You can display information about the session's SMB protocol version and continuously available protection level, which helps you to identify whether the session supports nondisruptive operations.
+
+.About this task
+
+You can display information for all of the sessions on your SVM in summary form. However, in many cases, the amount of output that is returned is large. You can customize what information is displayed in the output by specifying optional parameters:
+
+* You can use the optional `-fields` parameter to display output about the fields you choose.
++
+You can enter `-fields ?` to determine what fields you can use.
+
+* You can use the `-instance` parameter to display detailed information about established SMB sessions.
+* You can use the `-fields` parameter or the `-instance` parameter either alone or in combination with other optional parameters.
+
+.Steps
+
+. Perform one of the following actions:
++
+[options="header"]
+[cols="1,3"]
+|===
+| If you want to display SMB session information...| Enter the following command...
+a|
+For all sessions on the SVM in summary form
+a|
+`*vserver cifs session show -vserver _vserver_name_*`
+a|
+On a specified connection ID
+a|
+`*vserver cifs session show -vserver _vserver_name_ -connection-id integer*`
+a|
+From a specified workstation IP address
+a|
+`*vserver cifs session show -vserver _vserver_name_ -address _workstation_IP_address_*`
+a|
+On a specified LIF IP address
+a|
+`*vserver cifs session show -vserver _vserver_name_ -lif-address _LIF_IP_address_*`
+a|
+On a specified node
+a|
+`*vserver cifs session show -vserver _vserver_name_ -node {node_name\|local}*`
+a|
+From a specified Windows user
+a|
+`*vserver cifs session show -vserver _vserver_name_ -windows-user _user_name_*`
+
+The format for `user_name` is `[domain]\user`.
+a|
+With a specified authentication mechanism
+a|
+`*vserver cifs session show -vserver _vserver_name_ -auth-mechanism authentication_mechanism*`
+
+The value for `-auth-mechanism` can be one of the following:
+
+ ** `NTLMv1`
+ ** `NTLMv2`
+ ** `Kerberos`
+ ** `Anonymous`
+
+a|
+With a specified protocol version
+a|
+`*vserver cifs session show -vserver _vserver_name_ -protocol-version protocol_version*`
+
+The value for `-protocol-version` can be one of the following:
+
+ ** `SMB1`
+ ** `SMB2`
+ ** `SMB2_1`
+ ** `SMB3`
+ ** `SMB3_1`
++
+[NOTE]
+====
+Continuously available protection and SMB Multichannel are available only on SMB 3.0 and later sessions. To view their status on all qualifying sessions, you should specify this parameter with the value set to `SMB3` or later.
+====
+a|
+With a specified level of continuously available protection
+a|
+`*vserver cifs session show -vserver _vserver_name_ -continuously-available _continuously_available_protection_level_*`
+
+The value for `-continuously-available` can be one of the following:
+
+ ** `No`
+ ** `Yes`
+ ** `Partial`
+
+[NOTE]
+====
+If the continuously available status is `Partial`, this means that the session contains at least one open continuously available file, but the session has some files that are not open with continuously available protection. You can use the `vserver cifs sessions file show` command to determine which files on the established session are not open with continuously available protection.
+====
+a|
+With a specified SMB signing session status
+a|
+`*vserver cifs session show -vserver _vserver_name_ -is-session-signed {true{vbar}false}*` 
+|===
+
+.Examples
+
+The following command displays session information for the sessions on SVM vs1 established from a workstation with IP address 10.1.1.1:
+
+----
+cluster1::> vserver cifs session show -address 10.1.1.1
+Node:    node1
+Vserver: vs1
+Connection Session                                    Open         Idle
+ID          ID      Workstation      Windows User    Files         Time
+----------  ------- ---------------- ------------- ------- ------------
+3151272279,
+3151272280,
+3151272281  1       10.1.1.1         DOMAIN\joe          2          23s
+----
+
+The following command displays detailed session information for sessions with continuously available protection on SVM vs1. The connection was made by using the domain account.
+
+----
+cluster1::> vserver cifs session show -instance -continuously-available Yes
+
+                        Node: node1
+                     Vserver: vs1
+                  Session ID: 1
+               Connection ID: 3151274158
+Incoming Data LIF IP Address: 10.2.1.1
+      Workstation IP address: 10.1.1.2
+    Authentication Mechanism: Kerberos
+                Windows User: DOMAIN\SERVER1$
+                   UNIX User: pcuser
+                 Open Shares: 1
+                  Open Files: 1
+                  Open Other: 0
+              Connected Time: 10m 43s
+                   Idle Time: 1m 19s
+            Protocol Version: SMB3
+      Continuously Available: Yes
+           Is Session Signed: false
+       User Authenticated as: domain-user
+                NetBIOS Name: -
+       SMB Encryption Status: Unencrypted
+----
+
+The following command displays session information on a session using SMB 3.0 and SMB Multichannel on SVM vs1. In the example, the user connected to this share from an SMB 3.0 capable client by using the LIF IP address; therefore, the authentication mechanism defaulted to NTLMv2. The connection must be made by using Kerberos authentication to connect with continuously available protection.
+
+----
+cluster1::> vserver cifs session show -instance -protocol-version SMB3
+
+                        Node: node1
+                     Vserver: vs1
+                  Session ID: 1
+              **Connection IDs: 3151272607,31512726078,3151272609
+            Connection Count: 3**
+Incoming Data LIF IP Address: 10.2.1.2
+      Workstation IP address: 10.1.1.3
+    Authentication Mechanism: NTLMv2
+                Windows User: DOMAIN\administrator
+                   UNIX User: pcuser
+                 Open Shares: 1
+                  Open Files: 0
+                  Open Other: 0
+              Connected Time: 6m 22s
+                   Idle Time: 5m 42s
+            Protocol Version: SMB3
+      Continuously Available: No
+           Is Session Signed: false
+       User Authenticated as: domain-user
+                NetBIOS Name: -
+       SMB Encryption Status: Unencrypted
+----
+

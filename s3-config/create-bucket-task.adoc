@@ -1,0 +1,94 @@
+---
+permalink: s3-config/create-bucket-task.html
+sidebar: sidebar
+keywords: create, bucket
+summary: "S3 objects are kept in buckets—they are not nested as files inside a directory inside other directories."
+---
+= Create a bucket
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+S3 objects are kept in _buckets_--they are not nested as files inside a directory inside other directories.
+
+.What you'll need
+
+An SVM containing an S3 server must already exist.
+
+.About this task
+
+When you create a bucket, you have two provisioning options:
+
+* Let ONTAP select the underlying aggregates and FlexGroup components (default)
+ ** ONTAP creates and configures a FlexGroup volume for the first bucket by automatically selecting the aggregates. It will automatically select the highest service level available for your platform, or you can specify the storage service level. Any additional buckets you add later in the SVM will have the same underlying FlexGroup volume.
+ ** Alternatively, you can specify whether the bucket will be used for tiering, in which case ONTAP tries to select low-cost media with optimal performance for the tiered data.
+* You select the underlying aggregates and FlexGroup components (requires advanced privilege command options)
+ ** You have the option to manually select the aggregates on which the bucket and containing FlexGroup volume must be created, and then specifying the number of constituents on each aggregate. When adding additional buckets:
+  *** If you specify aggregates and constituents for a new bucket, a new FlexGroup will be created for the new bucket.
+  *** If you do not specify aggregates and constituents for a new bucket, the new bucket will be added to an existing FlexGroup.
+See the FlexGroup documentation for more information.
+
++
+link:../flexgroup/index.html[FlexGroup volumes management]
+
++
+When you specify aggregates and constituents when creating a bucket, no QoS policy groups, default or custom, are applied. You can do so later with the `vserver object-store-server bucket modify` command.
+
+Storage service levels are predefined adaptive Quality of Service (QoS) policy groups, with _value_, _performance_, and _extreme_ default levels. Instead of one of the default storage service levels, you can also define a custom QoS policy group and apply it to a bucket.
+
+link:storage-service-definitions-reference.html[Storage service definitions]
+
+If you are configuring local capacity tiering, you create buckets and users in a data SVM, not in the system SVM where the S3 server is located.
+
+link:../performance-admin/index.html[Performance management]
+
+See the `vserver object-store-server bucket` man pages for additional configuration and display options.
+
+.Steps
+
+. If you plan to select aggregates and FlexGroup components yourself, set the privilege level to advanced (otherwise, admin privilege level is sufficient): `set -privilege advanced`
+. Create a bucket:
++
+`vserver object-store-server bucket create -vserver svm_name -bucket bucket_name [-size integer[KB|MB|GB|TB|PB]] [-comment text] [additional_options]`
++
+The SVM name can be either a data SVM or `Cluster` (the system SVM name) if you are configuring local tiering.
++
+If you specify no options, ONTAP creates a 5GB bucket with the service level set to the highest level available for your system.
++
+If you want ONTAP to create a bucket based on performance or usage, use one of the following options:
+
+ ** service level
++
+Include the `-storage-service-level` option with one of the following values: `value`, `performance`, or `extreme`.
+
+ ** tiering
++
+Include the `-used-as-capacity-tier true` option.
+
++
+If you want to specify the aggregates on which to create the underlying FlexGroup volume, use the following options:
+
+ ** The `-aggr-list` parameter specifies the list of aggregates to be used for FlexGroup volume constituents.
++
+Each entry in the list creates a constituent on the specified aggregate. You can specify an aggregate multiple times to have multiple constituents created on the aggregate.
++
+For consistent performance across the FlexGroup volume, all of the aggregates must use the same disk type and RAID group configurations.
+
+ ** The `-aggr-list-multiplier` parameter specifies the number of times to iterate over the aggregates that are listed with the `-aggr-list` parameter when creating a FlexGroup volume.
++
+The default value of the `-aggr-list-multiplier` parameter is 4.
+
+. Add a QoS policy group if needed:
++
+`vserver object-store-server bucket modify -bucket bucket_name -qos-policy-group qos_policy_group`
+. Verify bucket creation:
++
+`vserver object-store-server bucket show [-instance]`
+
+.Example
+
+The following example creates a bucket for SVM vs1 of size 1TB and specifying the aggregate:
+
+----
+cluster-1::*> vserver object-store-server bucket create -vserver svm1.example.com -bucket testbucket -aggr-list aggr1 -size 1TB
+----

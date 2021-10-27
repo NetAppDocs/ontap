@@ -1,0 +1,70 @@
+---
+permalink: san-admin/create-luns-mapping-igroups-task.html
+sidebar: sidebar
+keywords: create, luns, mapping, igroups
+summary: "As part of configuring your SAN environment, you must create LUNs, create your initiator groups (igroups), and map your LUNs to your igroups."
+---
+= Create LUNs and mapping to igroups
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+As part of configuring your SAN environment, you must create LUNs, create your initiator groups (igroups), and map your LUNs to your igroups.
+
+.What you'll need
+
+* You must have created your aggregates, volumes, and storage virtual machines (SVMs).
+* You must have enabled block access with FC or iSCSI.
+* You must have created SAN LIFs on all of the nodes in the cluster.
+
+.About this task
+
+When you create a LUN, you must specify the LUN OS type. The actual size of the LUN might vary slightly based on the OS type of the LUN. The LUN OS type cannot be modified after the LUN is created.
+
+The metadata for each LUN requires approximately 64 KB of space in the containing aggregate. When you create a LUN, you must ensure that the containing aggregate has enough space for the LUN's metadata. If the aggregate does not contain enough space for the LUN's metadata, some hosts might not be able to access the LUN.
+
+If necessary, you can grow your LUN up to 10 times its original size. For example, if you create a 100 GB LUN, you can grow that LUN to 1,000 GB. You cannot exceed 16 TB, which is the maximum LUN size.
+
+[NOTE]
+====
+The actual maximum size of the LUN might not be exactly 16 TB. ONTAP rounds down the limit to be slightly less.
+====
+
+Asymmetric logical unit access (ALUA) is always enabled during LUN creation. You cannot change the ALUA setting.
+
+.Steps
+
+. Create your LUNs:
++
+`lun create -vserver vserver_name -volume _volume_name_ -lun _lun_name_ -size _lun_size_ -ostype _lun_ostype_ -space-reserve enabled|disabled`
++
+Your LUN name cannot exceed 255 characters and cannot contain spaces.
++
+If your host operating system is Windows 2008 or later, use the `windows_2008` ostype. The `space-reserve` option is enabled by default. If you want a non-space-reserved LUN, you must set the `space-reserve` option to `disabled`.
++
+[NOTE]
+====
+The NVFAIL option is automatically enabled when a LUN is created in a volume.
+====
+
+. Create your igroups:
++
+`igroup create -vserver _vserver_name_ -igroup _igroup_name_ -protocol fcp|iscsi|mixed -ostype _lun_ostype_ -initiator _initiator_name_`
++
+If your host operating system is Windows 2008 or later, use the `windows_2008` ostype.
+
+. Map your LUNs to igroups:
++
+`lun mapping create -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -igroup _igroup_name_`
+. Verify that your LUNs are configured correctly:
++
+`lun show -vserver _vserver_name_`
+
+*Related information*
+
+link:../disks-aggregates/index.html[Disk and aggregate management]
+
+link:../volumes/index.html[Logical storage management]
+
+link:../networking/index.html[Network management]
+

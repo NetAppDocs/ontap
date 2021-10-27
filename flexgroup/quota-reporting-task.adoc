@@ -1,0 +1,422 @@
+---
+permalink: flexgroup/quota-reporting-task.html
+sidebar: sidebar
+keywords: quota, flexgroup, volume
+summary: "In ONTAP 9.4 and earlier, you can apply quotas rules to FlexGroup volumes only for reporting purposes, but not for enforcing quota limits. Starting with ONTAP 9.5, you can enforce limits on quota rules that are applied to FlexGroup volumes."
+---
+= Use quotas for FlexGroup volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+In ONTAP 9.4 and earlier, you can apply quotas rules to FlexGroup volumes only for reporting purposes, but not for enforcing quota limits. Starting with ONTAP 9.5, you can enforce limits on quota rules that are applied to FlexGroup volumes.
+
+.About this task
+
+* Starting with ONTAP 9.5, you can specify hard, soft, and threshold limit quotas for FlexGroup volumes.
++
+You can specify these limits to constrain the amount of space, the number of files that a specific user, group, or qtree can create, or both. Quota limits generate warning messages in the following scenarios:
+
+ ** When usage exceeds a configured soft limit, ONTAP issues a warning message, but further traffic is still allowed.
++
+If usage later drops below the configured soft limit again, an all-clear message is issued.
+
+ ** When usage exceeds a configured threshold limit, ONTAP issues a second warning message.
++
+No all-clear administrative message is issued when usage later drops below a configured threshold limit.
+
+ ** If usage reaches a configured hard limit, ONTAP prevents further resource consumption by rejecting traffic.
+
+* In ONTAP 9.5, quota rules cannot be created or activated on the destination FlexGroup volume of a SnapMirror relationship.
+
+== Quota targets and types
+
+Quotas have a type: they can be either user, group, or tree. Quota targets specify the user, group, or qtree for which the quota limits are applied.
+
+The following table lists the kinds of quota targets, what types of quotas each quota target is associated with, and how each quota target is represented:
+[cols="4*",options="header"]
+|===
+| Quota target| Quota type| How target is represented| Notes
+a|
+user
+a|
+user quota
+a|
+UNIX user name UNIX UID
+
+Windows user name in pre-Windows 2000 format
+
+Windows SID
+
+a|
+User quotas can be applied for a specific volume or qtree.
+a|
+group
+a|
+group quota
+a|
+UNIX group name UNIX GID
+
+a|
+Group quotas can be applied for a specific volume or qtree.
+[NOTE]
+====
+ONTAP does not apply group quotas based on Windows IDs.
+====
+
+a|
+qtree
+a|
+tree quota
+a|
+qtree name
+a|
+Tree quotas are applied to a particular volume and do not affect qtrees in other volumes.
+a|
+
+a|
+user quotagroup quota
+
+tree quota
+
+a|
+Double quotation marks ("")
+a|
+A quota target of "" denotes a _default quota_. For default quotas, the quota type is determined by the value of the type field.
+|===
+
+== Behavior of FlexGroup volumes when quota limits are exceeded
+
+Starting with ONTAP 9.5, quota limits are supported on FlexGroup volumes. There are some differences in the way quota limits are enforced on a FlexGroup volume when compared to a FlexVol volume.
+
+FlexGroup volumes might show the following behaviors when the quota limits are exceeded:
+
+* The space and file usage in a FlexGroup volume might reach up to 5 percent higher than the configured hard limit before the quota limit is enforced by rejecting further traffic.
++
+To provide the best performance, ONTAP might allow the space consumption to exceed the configured hard limit by a small margin before the quota enforcement begins. This additional space consumption does not exceed 5 percent of the configured hard limits, 1 GB, or 65536 files, whichever is lower.
+
+* After the quota limit is reached, if a user or administrator deletes some files or directories such that the quota usage is now below the limit, the subsequent quota-consuming file operation might resume with a delay (might take up to 5 seconds to resume).
+* When the total space and file usage of a FlexGroup volume exceed the configured quota limits, there might be a slight delay in logging an event log message.
+* You might get "`no space`" errors if some constituents of the FlexGroup volume get full, but the quota limits are not reached.
+* Operations, such as renaming a file or directory or moving files between qtrees, on quota targets, for which quota hard limits are configured, might take longer when compared to similar operations on FlexVol volumes.
+
+.Examples of quota enforcement for FlexGroup volumes
+
+[.lead]
+You can use the examples to understand how to configure quotas with limits in ONTAP 9.5 and later.
+
+.Example 1: Enforcing a quota rule with disk limits
+
+. You should create a quota policy rule of type `user` with both an achievable soft disk limit and hard disk limit.
++
+----
+cluster1::> volume quota policy rule create -vserver vs0 -policy-name default -volume FG -type user -target "" -qtree "" -disk-limit 1T -soft-disk-limit 800G
+----
+
+. You can view the quota policy rule:
++
+----
+cluster1::> volume quota policy rule show -vserver vs0 -policy-name default -volume FG
+
+Vserver: vs0               Policy: default           Volume: FG
+
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   ""        ""      off           1TB    800GB       -        -          -
+----
+
+. To activate the new quota rule, you initialize quotas on the volume:
++
+----
+cluster1::> volume quota on -vserver vs0 -volume FG -foreground true
+[Job 49] Job succeeded: Successful
+----
+
+. You can view the disk usage and file usage information of the FlexGroup volume by using the quota report.
++
+----
+cluster1::> volume quota report -vserver vs0 -volume FG
+Vserver: vs0
+
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+FG                 user    root      50GB      -       1       -
+FG                 user    *         800GB    1TB      0       -   *
+2 entries were displayed.
+----
+
+After the hard disk limit is reached, the quota policy rule target (user, in this case) is blocked from writing more data to the files.
+
+.Example 2: Enforcing a quota rule for multiple users
+
+. You should create a quota policy rule of type `user`, where multiple users are specified in the quota target (UNIX users, CIFS users, or a combination of both) and where the rule has both an achievable soft disk limit and hard disk limit.
++
+----
+cluster1::> quota policy rule create -vserver vs0 -policy-name default -volume FG -type user -target "rdavis,ABCCORP\RobertDavis" -qtree "" -disk-limit 1TB -soft-disk-limit  800GB
+----
+
+. You can view the quota policy rule:
++
+----
+cluster1::> quota policy rule show -vserver vs0 -policy-name default -volume FG
+
+Vserver: vs0               Policy: default           Volume: FG
+
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   "rdavis,ABCCORP\RobertDavis"  "" off  1TB  800GB  -  -
+----
+
+. To activate the new quota rule, you initialize quotas on the volume:
++
+----
+cluster1::> volume quota on -vserver vs0 -volume FG -foreground true
+[Job 49] Job succeeded: Successful
+----
+
+. You can verify that the quota state is active:
++
+----
+cluster1::> volume quota show -vserver vs0 -volume FG
+              Vserver Name: vs0
+               Volume Name: FG
+               Quota State: on
+               Scan Status: -
+          Logging Messages: on
+          Logging Interval: 1h
+          Sub Quota Status: none
+  Last Quota Error Message: -
+Collection of Quota Errors: -
+----
+
+. You can view the disk usage and file usage information of the FlexGroup volume by using the quota report.
++
+----
+cluster1::> quota report -vserver vs0 -volume FG
+Vserver: vs0
+
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+FG                 user    rdavis,ABCCORP\RobertDavis  0B  1TB  0  -   rdavis,ABCCORP\RobertDavis
+----
++
+The quota limit is shared among all users listed in the quota target.
+
+After the hard disk limit is reached, users listed in the quota target are blocked from writing more data to the files.
+
+.Example 3: Enforcing quota with user mapping enabled
+
+. You should create a quota policy rule of type `user`, specify a UNIX user or a Windows user as the quota target with `user-mapping` set to `on`, and create the rule with both an achievable soft disk limit and hard disk limit.
++
+The mapping between UNIX and Windows users must be configured earlier by using the `vserver name-mapping create` command.
++
+----
+cluster1::> quota policy rule create -vserver vs0 -policy-name default -volume FG -type user -target rdavis -qtree "" -disk-limit 1TB -soft-disk-limit  800GB -user-mapping on
+----
+
+. You can view the quota policy rule:
++
+----
+cluster1::> quota policy rule show -vserver vs0 -policy-name default -volume FG
+
+Vserver: vs0               Policy: default           Volume: FG
+
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   rdavis    ""      on           1TB    800GB       -        -          -
+----
+
+. To activate the new quota rule, you initialize quotas on the volume:
++
+----
+cluster1::> volume quota on -vserver vs0 -volume FG -foreground true
+[Job 49] Job succeeded: Successful
+----
+
+. You can verify that the quota state is active:
++
+----
+cluster1::> volume quota show -vserver vs0 -volume FG
+              Vserver Name: vs0
+               Volume Name: FG
+               Quota State: on
+               Scan Status: -
+          Logging Messages: on
+          Logging Interval: 1h
+          Sub Quota Status: none
+  Last Quota Error Message: -
+Collection of Quota Errors: -
+----
+
+. You can view the disk usage and file usage information of the FlexGroup volume by using the quota report.
++
+----
+cluster1::> quota report -vserver vs0 -volume FG
+Vserver: vs0
+
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+FG                 user    rdavis,ABCCORP\RobertDavis  0B  1TB  0  -   rdavis
+----
++
+The quota limit is shared between the user listed in the quota target and its corresponding Windows or UNIX user.
+
+After the hard disk limit is reached, both the user listed in the quota target and its corresponding Windows or UNIX user is blocked from writing more data to the files.
+
+.Example 4: Verifying the qtree size when quota is enabled
+
+. You should create a quota policy rule of type `tree` and where the rule has both an achievable soft disk limit and hard disk limit.
++
+----
+cluster1::> quota policy rule create -vserver vs0 -policy-name default -volume FG -type tree -target tree_4118314302 -qtree "" -disk-limit 48GB -soft-disk-limit 30GB
+----
+
+. You can view the quota policy rule:
++
+----
+cluster1::> quota policy rule show -vserver vs0
+
+Vserver: vs0               Policy: default           Volume: FG
+
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+tree   tree_4118314302  "" -          48GB        -      20        -
+----
+
+. To activate the new quota rule, you initialize quotas on the volume:
++
+----
+cluster1::> volume quota on -vserver vs0 -volume FG -foreground true
+[Job 49] Job succeeded: Successful
+----
+
+ .. You can view the disk usage and file usage information of the FlexGroup volume by using the quota report.
++
+----
+cluster1::> quota report -vserver vs0
+Vserver: vs0
+----Disk---- ----Files----- Quota
+Volume Tree Type ID Used Limit Used Limit Specifier
+------- -------- ------ ------- ----- ----- ------ ------ ---------
+FG tree_4118314302 tree 1 30.35GB 48GB 14 20 tree_4118314302
+----
++
+The quota limit is shared between the user listed in the quota target and its corresponding Windows or UNIX user.
+
+. From an NFS client, use the `df` command to view the total space usage, available space, and the used space.
++
+----
+scsps0472342001# df -m /t/10.53.2.189/FG-3/tree_4118314302
+Filesystem 1M-blocks Used Available Use% Mounted on
+10.53.2.189/FG-3 49152 31078 18074 63% /t/10.53.2.189/FG-3
+----
++
+With hard limit, the space usage is calculated from an NFS client as follows:
+
+ ** Total space usage = hard limit for tree
+ ** Free space = Hard limit minus qtree space usage
+Without hard limit, the space usage is calculated from an NFS client as follows:
+ ** Space usage = quota usage
+ ** Total space = Sum of quota usage and physical free space in the volume
+
+. From the SMB share, use Windows Explorer to view the total space usage, available space, and the used space.
++
+From an SMB share, you should be aware of the following considerations for calculating the space usage:
+
+ ** The user quota hard limit for the user and group is taken into consideration for calculating the total available space.
+ ** The minimum value among the free space of the tree quota rule, the user quota rule, and the group quota rule is considered as the free space for the SMB share.
+ ** The total space usage is variable for SMB and depends on the hard limit that corresponds to the minimum free space among the tree, user, and group.
+
+== Apply rules and limits on the FlexGroups volume
+
+.Steps
+
+. Create quota rules for targets : `volume quota policy rule create -vserver vs0 -policy-name quota_policy_of_the_rule -volume flexgroup_vol -type {tree|user|group} -target target_for_rule -qtree qtree_name [-disk-limit hard_disk_limit_size] [-file-limit hard_limit_number_of_files] [-threshold threshold_disk_limit_size] [-soft-disk-limit soft_disk_limit_size] [-soft-file-limit soft_limit_number_of_files]`
+ ** In ONTAP 9.2 and ONTAP 9.1, the quota target type can be only `user` or `group` for FlexGroup volumes.
++
+Tree quota type is not supported for FlexGroup volumes in ONTAP 9.2 and ONTAP 9.1.
+
+ ** In ONTAP 9.3 and later, the quota target type can be `user`, `group`, or `tree` for FlexGroup volumes.
+ ** A path is not supported as the target when creating quota rules for FlexGroup volumes.
+ ** Starting with ONTAP 9.5, you can specify hard disk limit, hard file limit, soft disk limit, soft file limit, and threshold limit quotas for FlexGroup volumes.
++
+In ONTAP 9.4 and earlier, you cannot specify the disk limit, file limit, threshold for disk limit, soft disk limit, or soft file limit when you create quota rules for FlexGroup volumes.
+
+The following example shows a default quota rule being created for the user target type:
+
+----
+cluster1::> volume quota policy rule create -vserver vs0 -policy-name quota_policy_vs0_1 -volume fg1 -type user -target "" -qtree ""
+----
+The following example shows a tree quota rule being created for the qtree named qtree1:
+----
+cluster1::> volume quota policy rule create -policy-name default -vserver vs0 -volume fg1 -type tree -target "qtree1"
+----
+. Activate the quotas for the specified FlexGroup volume: `volume quota on -vserver svm_name -volume flexgroup_vol -foreground true`
+----
+cluster1::> volume quota on -vserver vs0 -volume fg1 -foreground true
+----
+
+. Monitor the state of quota initialization: `volume quota show -vserver svm_name`
+
+FlexGroup volumes might show the `mixed` state, which indicates that all of the constituent volumes are not in the same state yet.
+----
+cluster1::> volume quota show -vserver vs0
+                                          Scan
+Vserver    Volume        State            Status
+---------  ------------  ---------------  ------
+vs0        fg1           initializing         95%
+vs0        vol1          off                   -
+2 entries were displayed.
+----
+
+. View the quota report for the FlexGroup volume with active quotas: `volume quota report -vserver svm_name -volume flexgroup_vol`
++
+You cannot specify a path with the `volume quota report` command for FlexGroup volumes.
++
+The following example shows the user quota for the FlexGroup volume fg1:
++
+----
+cluster1::> volume quota report -vserver vs0 -volume fg1
+  Vserver: vs0
+                                      ----Disk----  ----Files-----   Quota
+  Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+  -------  --------  ------  -------  -----  -----  ------  ------   ---------
+  fg1                user    *           0B      -       0       -   *
+  fg1                user    root       1GB      -       1       -   *
+  2 entries were displayed.
+----
++
+The following example shows the tree quota for the FlexGroup volume fg1:
++
+----
+cluster1::> volume quota report -vserver vs0 -volume fg1
+Vserver: vs0
+
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+fg1      qtree1  tree      1         68KB      -      18       -   qtree1
+fg1              tree      *           0B      -       0       -   *
+2 entries were displayed.
+----
+
+.Results
+
+The quota rules and limits are applied on the FlexGroups volume.
+
+The usage might reach up to 5 percent higher than a configured hard limit before ONTAP enforces the quota by rejecting further traffic.
+
+*Related information*
+
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html[ONTAP 9 commands]

@@ -1,0 +1,74 @@
+---
+permalink: flexgroup/convert-flexvol-volume-task.html
+sidebar: sidebar
+keywords: convert, flexvol, volume, flexgroup
+summary: "Starting with ONTAP 9.7, you can perform an in-place conversion of a FlexVol volume to a FlexGroup volume without requiring a data copy or additional disk space."
+---
+= Convert a FlexVol volume to a FlexGroup volume
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Starting with ONTAP 9.7, you can perform an in-place conversion of a FlexVol volume to a FlexGroup volume without requiring a data copy or additional disk space.
+
+.What you'll need
+
+* Transitioned volumes can be converted to FlexGroup volumes.
++
+Converting transitioned volumes to FlexGroup volumes requires diag mode and should be performed only under NetApp Support supervision. It is highly recommended that you contact NetApp Support before you proceed with the conversion process.
+
+* The FlexVol volume that is being converted must be online.
+* The operations and configurations on the FlexVol volume must be compatible with the conversion process.
++
+An error message is generated if the FlexVol volume has any incompatibility and the volume conversion is aborted. You can take corrective actions and retry the conversion.
+
+.Steps
+
+. Verify that the FlexVol volume is online: `volume show vol_name -volume-style-extended,state`
++
+----
+cluster-1::> volume show my_volume -fields volume-style-extended,state
+vserver volume    state  volume-style-extended
+------- --------- ------ ---------------------
+vs0     my_volume online flexvol
+----
+
+. Verify whether the FlexVol volume can be converted without issues:
+ .. Log in to the advance privilege mode: `set -privilege advanced`
+ .. Verify the conversion process: `volume conversion start -vserver vs1 -volume flexvol -check-only true`
++
+You must rectify all errors before converting the volume.
++
+[NOTE]
+====
+You cannot convert a FlexGroup volume back to a FlexVol volume. If you want to do so, you should contact support.
+====
+. Start the conversion: `volume conversion start -vserver svm_name -volume vol_name`
++
+----
+cluster-1::*> volume conversion start -vserver vs0 -volume my_volume
+
+Warning: Converting flexible volume "my_volume" in Vserver "vs0" to a FlexGroup
+         will cause the state of all Snapshot copies from the volume to be set
+         to "pre-conversion". Pre-conversion Snapshot copies cannot be
+         restored.
+Do you want to continue? {y|n}: y
+[Job 57] Job succeeded: success
+----
+
+. Verify that the conversion is successful: `volume show vol_name -fields -volume-style-extended,state`
++
+----
+cluster-1::*> volume show my_volume -fields volume-style-extended,state
+vserver volume    state  volume-style-extended
+------- --------- ------ ---------------------
+vs0     my_volume online flexgroup
+----
+
+.Results
+
+The FlexVol volume is converted to a single-member FlexGroup volume.
+
+.After you finish
+
+You can expand the FlexGroup volume, as required.

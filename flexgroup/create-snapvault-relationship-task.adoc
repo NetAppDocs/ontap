@@ -1,0 +1,93 @@
+---
+permalink: flexgroup/create-snapvault-relationship-task.html
+sidebar: sidebar
+keywords: create, snapvault, relationship, flexgroup, volumes
+summary: "You can configure a SnapVault relationship and assign a SnapVault policy to the relationship to create a SnapVault backup."
+---
+= Create a SnapVault relationship for FlexGroup volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can configure a SnapVault relationship and assign a SnapVault policy to the relationship to create a SnapVault backup.
+
+.What you'll need
+
+You must be aware of the considerations for creating a SnapVault relationship for FlexGroup volumes.
+
+.Steps
+
+. Create a destination FlexGroup volume of type `DP` that has the same number of constituents as that of the source FlexGroup volume:
+ .. From the source cluster, determine the number of constituents in the source FlexGroup volume: `volume show -volume volume_name* -is-constituent true`
++
+----
+cluster1::> volume show  -volume src* -is-constituent true
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+--------- ------------ ------------ ---------- ---- ---------- ---------- -----
+vss       src          -            online     RW         400TB   172.86GB  56%
+vss       src__0001    Aggr_cmode   online     RW         25GB    10.86TB   56%
+vss       src__0002    aggr1        online     RW         25TB    10.86TB   56%
+vss       src__0003    Aggr_cmode   online     RW         25TB    10.72TB   57%
+vss       src__0004    aggr1        online     RW         25TB    10.73TB   57%
+vss       src__0005    Aggr_cmode   online     RW         25TB    10.67TB   57%
+vss       src__0006    aggr1        online     RW         25TB    10.64TB   57%
+vss       src__0007    Aggr_cmode   online     RW         25TB    10.63TB   57%
+...
+----
+
+ .. From the destination cluster, create a destination FlexGroup volume of type `DP` with the same number of constituents as that of the source FlexGroup volume.
++
+----
+cluster2::> volume create -vserver vsd -aggr-list aggr1,aggr2 -aggr-list-multiplier 8 -size 400TB -type DP dst
+
+Warning: The FlexGroup volume "dst" will be created with the following number of constituents of size 25TB: 16.
+Do you want to continue? {y|n}: y
+[Job 766] Job succeeded: Successful
+----
+
+ .. From the destination cluster, verify the number of constituents in the destination FlexGroup volume: `volume show -volume volume_name* -is-constituent true`
++
+----
+cluster2::> volume show  -volume dst* -is-constituent true
+Vserver   Volume       Aggregate    State      Type       Size  Available Used%
+--------- ------------ ------------ ---------- ---- ---------- ---------- -----
+vsd       dst          -            online     RW         400TB   172.86GB  56%
+vsd       dst__0001    Aggr_cmode   online     RW         25GB    10.86TB   56%
+vsd       dst__0002    aggr1        online     RW         25TB    10.86TB   56%
+vsd       dst__0003    Aggr_cmode   online     RW         25TB    10.72TB   57%
+vsd       dst__0004    aggr1        online     RW         25TB    10.73TB   57%
+vsd       dst__0005    Aggr_cmode   online     RW         25TB    10.67TB   57%
+vsd       dst__0006    aggr1        online     RW         25TB    10.64TB   57%
+vsd       dst__0007    Aggr_cmode   online     RW         25TB    10.63TB   57%
+...
+----
+. Create a job schedule: `job schedule cron create -name job_name -month month -dayofweek day_of_week -day day_of_month -hour hour -minute minute`
++
+For `-month`, `-dayofweek`, and `-hour`, you can specify `all` to run the job every month, day of the week, and hour, respectively.
++
+The following example creates a job schedule named `my_weekly` that runs on Saturdays at 3:00 a.m.:
++
+----
+cluster1::> job schedule cron create -name my_weekly -dayofweek "Saturday" -hour 3 -minute 0
+----
+
+. Create a SnapVault policy, and then define a rule for the SnapVault policy:
+ .. Create a custom policy of type `vault` for the SnapVault relationship: `snapmirror policy create -vserver svm_name -policy policy_name -type vault`
+ .. Define a rule for the SnapVault policy that determines which Snapshot copies are transferred during initialization and update operations: `snapmirror policy add-rule -vserver svm_name -policy policy_for_rule - snapmirror-label snapmirror-label -keep retention_count -schedule schedule`
+
++
+If you do not create a custom policy, you should specify the `XDPDefault` policy for SnapVault relationships.
+. Create a SnapVault relationship: `snapmirror create -source-path src_svm:src_flexgroup -destination-path dest_svm:dest_flexgroup -type XDP -schedule schedule_name -policy XDPDefault`
++
+In ONTAP 9.4 and earlier, if the policy is not specified with the `snapmirror create` command, the `MirrorAllSnapshots` policy is used by default. In ONTAP 9.5, if the policy is not specified with the `snapmirror create` command, the `MirrorAndVault` policy is used by default.
++
+----
+cluster2::> snapmirror create -source-path vss:srcFG -destination-path vsd:dstFG -type XDP -schedule Daily -policy XDPDefault
+----
+
+. From the destination cluster, initialize the SnapVault relationship by performing a baseline transfer: `snapmirror initialize -destination-path dest_svm:dest_flexgroup`
++
+----
+cluster2::> snapmirror initialize -destination-path vsd:dst
+Operation is queued: snapmirror initialize of destination "vsd:dst".
+----

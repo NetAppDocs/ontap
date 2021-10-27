@@ -1,0 +1,19 @@
+---
+permalink: smb-hyper-v-sql/smb-30-supports-nondisruptive-operations-concept.html
+sidebar: sidebar
+keywords: smb, functionality, support, nondisruptive, operations, shares, clients, hyper, v, sql, server
+summary: "SMB 3.0 provides crucial functionality that enables support for nondisruptive operations for Hyper-V and SQL Server over SMB shares. This includes the continuously-available share property and a type of file handle known as a persistent handle that allow SMB clients to reclaim file open state and transparently reestablish SMB connections."
+---
+= How SMB 3.0 functionality supports nondisruptive operations over SMB shares
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+SMB 3.0 provides crucial functionality that enables support for nondisruptive operations for Hyper-V and SQL Server over SMB shares. This includes the `continuously-available` share property and a type of file handle known as a _persistent handle_ that allow SMB clients to reclaim file open state and transparently reestablish SMB connections.
+
+Persistent handles can be granted to SMB 3.0 capable clients that connect to a share with the continuously available share property set. If the SMB session is disconnected, the CIFS server retains information about persistent handle state. The CIFS server blocks other client requests during the 60-second period in which the client is allowed to reconnect, thus allowing the client with the persistent handle to reclaim the handle after a network disconnection. Clients with persistent handles can reconnect by using one of the data LIFs on the storage virtual machine (SVM), either by reconnecting through the same LIF or through a different LIF.
+
+Aggregate relocation, takeover, and giveback all occur between SFO pairs. To seamlessly manage the disconnection and reconnection of sessions with files that have persistent handles, the partner node maintains a copy of all persistent handle lock information. Whether the event is planned or unplanned, the SFO partner can nondisruptively manage the persistent handle reconnects. With this new functionality, SMB 3.0 connections to the CIFS server can transparently and nondisruptively fail over to another data LIF assigned to the SVM in what traditionally has been disruptive events.
+
+Although the use of persistent handles allows the CIFS server to transparently fail over SMB 3.0 connections, if a failure causes the Hyper-V application to fail over to another node in the Windows Server cluster, the client has no way to reclaim the file handles of these disconnected handles. In this scenario, file handles in the disconnected state can potentially block access of the Hyper-V application if it is restarted on a different node. "`Failover Clustering`" is a part of SMB 3.0 that addresses this scenario by providing a mechanism to invalidate stale, conflicting handles. Using this mechanism, a Hyper-V cluster can recover quickly when Hyper-V cluster nodes fail.
+

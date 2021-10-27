@@ -1,0 +1,54 @@
+---
+permalink: nas-audit/requirements-considerations-concept.html
+sidebar: sidebar
+keywords: audit, requirements, considerations
+summary: "Before you configure and enable auditing on your storage virtual machine (SVM), you need to be aware of certain requirements and considerations."
+---
+= Auditing requirements and considerations
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you configure and enable auditing on your storage virtual machine (SVM), you need to be aware of certain requirements and considerations.
+
+* The maximum number of auditing-enabled SVMs supported in a cluster is 50.
+* Auditing is not tied to CIFS or NFS licensing.
++
+You can configure and enable auditing even if CIFS and NFS licenses are not installed on the cluster.
+
+* NFS auditing supports security ACEs (type U).
+* For NFS auditing, there is no mapping between mode bits and auditing ACEs.
++
+When converting ACLs to mode bits, auditing ACEs are skipped. When converting mode bits to ACLs, auditing ACEs are not generated.
+
+* The directory specified in the auditing configuration must exist.
++
+If it does not exist, the command to create the auditing configuration fails.
+
+* The directory specified in the auditing configuration must meet the following requirements:
+ ** The directory must not contain symbolic links.
++
+If the directory specified in the auditing configuration contains symbolic links, the command to create the auditing configuration fails.
+
+ ** You must specify the directory by using an absolute path.
++
+You should not specify a relative path, for example, `/vs1/../`.
+* Auditing is dependent on having available space in the staging volumes.
++
+You must be aware of and have a plan for ensuring that there is sufficient space for the staging volumes in aggregates that contain audited volumes.
+
+* Auditing is dependent on having available space in the volume containing the directory where converted event logs are stored.
++
+You must be aware of and have a plan for ensuring that there is sufficient space in the volumes used to store event logs. You can specify the number of event logs to retain in the auditing directory by using the `-rotate-limit` parameter when creating an auditing configuration, which can help to ensure that there is enough available space for the event logs in the volume.
+
+* Although you can enable central access policy staging in the auditing configuration without enabling Dynamic Access Control on the CIFS server, Dynamic Access Control must be enabled to generate central access policy staging events.
++
+Dynamic Access Control is not enabled by default.
+
+== Aggregate space considerations when enabling auditing
+
+When an auditing configuration is created and auditing is enabled on at least one storage virtual machine (SVM) in the cluster, the auditing subsystem creates staging volumes on all existing aggregates and on all new aggregates that are created. You need to be aware of certain aggregate space considerations when you enable auditing on the cluster.
+
+Staging volume creation might fail due to non-availability of space in an aggregate. This might happen if you create an auditing configuration and existing aggregates do not have enough space to contain the staging volume.
+
+You should ensure that there is enough space on existing aggregates for the staging volumes before enabling auditing on an SVM.

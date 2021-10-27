@@ -1,0 +1,118 @@
+---
+permalink: smb-hyper-v-sql/configure-shares-continuous-availability-task.html
+sidebar: sidebar
+keywords: configure, shares, continuous, availability, hyper, v, sql, server, virutal, machine, database, file
+summary: "You can modify existing shares to become continuously available shares that the Hyper-V and SQL Server application servers use to nondisruptively access Hyper-V virtual machine and configuration files and SQL Server database files."
+---
+= Configure existing shares for continuous availability
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can modify existing shares to become continuously available shares that the Hyper-V and SQL Server application servers use to nondisruptively access Hyper-V virtual machine and configuration files and SQL Server database files.
+
+.About this task
+
+You cannot use an existing share as a continuously available share for nondisruptive operations with application servers over SMB if the share has the following characteristics:
+
+* If the `homedirectory` share property is set on that share
+* If the share contains enabled symlinks or widelinks
+* If the share contains junctioned volumes below the root of the share
+
+You must verify that the two following share parameters are set correctly:
+
+* The `-offline-files` parameter is set to either `manual` (the default) or `none`.
+* Symlinks must be disabled.
+
+The following share properties must be configured:
+
+* `continuously-available`
+* `oplocks`
+
+The following share properties must not be set. If they are present in the list of current share properties, they need to be removed from the continuously available share:
+
+* `attributecache`
+* `branchcache`
+* `access-based-enumeration`
+
+.Steps
+
+. Display the current share parameter settings and the current list of configured share properties:
++
+`*vserver cifs share show -vserver _vserver_name_ -share-name _share_name_*`
+. If necessary, modify the share parameters to disable symlinks and set offline files to manual by using the `vserver cifs share properties modify` command.
++
+You can disable symlinks by setting the value of the `-symlink` parameter to `""`.
+
+ ** You can disable symlinks by setting the value of the `-symlink` parameter to `""`.
+ ** You can set the `-offline-files` parameter to the correct setting by specifying `manual`.
+
+. Add the `continuously-available` share property, and, if needed, the `oplocks` share property:
++
+`*vserver cifs share properties add -vserver _vserver_name_ -share-name _share_name_ -share-properties continuously-available[,oplock]*`
++
+If the `oplocks` share property is not already set, you must add it along with the `continuously-available` share property.
+
+. Remove any share properties that are not supported on continuously available shares:
++
+`*vserver cifs share properties remove -vserver _vserver_name_ -share-name _share_name_ -share-properties properties[,...]*`
++
+You can remove one or more share properties by specifying the share properties with a comma-delimited list.
+
+. Verify that the `-symlink` and `-offline-files` parameters are set correctly:
++
+`*vserver cifs share show -vserver _vserver_name_ -share-name _share_name_ -fields symlink-properties,offline-files*`
+. Verify that the list of configured share properties is correct:
++
+`*vserver cifs shares properties show -vserver _vserver_name_ -share-name share_name*`
+
+.Examples
+
+The following example shows how to configure an existing share named "`share1`" on storage virtual machine (SVM) vs1 for NDOs with an application server over SMB:
+
+* Symlinks are disabled on the share by setting the `-symlink` parameter to "".
+* The `-offline-file` parameter is modified and set to `manual`.
+* The `continuously-available` share property is added to the share.
+* The `oplocks` share property is already in the list of share properties; therefore, it does not need to be added.
+* The `attributecache` share property is removed from the share.
+* The `browsable` share property is optional for a continuously available share used for NDOs with application servers over SMB and is retained as one of the share properties.
+
+----
+cluster1::> vserver cifs share show -vserver vs1 -share-name share1
+
+                      Vserver: vs1
+                        Share: share1
+     CIFS Server NetBIOS Name: vs1
+                         Path: /data
+             Share Properties: oplocks
+                               browsable
+                               attributecache
+           Symlink Properties: enable
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: 10s
+                  Volume Name: data
+                Offline Files: documents
+Vscan File-Operations Profile: standard
+
+cluster1::> vserver cifs share modify -vserver vs1 -share-name share1 -offline-file manual -symlink ""
+
+cluster1::> vserver cifs share properties add -vserver vs1 -share-name share1 -share-properties continuously-available
+
+cluster1::> vserver cifs share properties remove -vserver vs1 -share-name share1 -share-properties attributecache
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name share1 -fields symlink-properties,offline-files
+vserver  share-name symlink-properties offline-files
+-------- ---------- ------------------ -------------
+vs1      share1    -                  manual
+
+cluster1::> vserver cifs share properties show -vserver vs1 -share-name share1
+
+         Vserver: vs1
+           Share: share1
+Share Properties: oplocks
+                  browsable
+                  continuously-available
+----

@@ -1,0 +1,68 @@
+---
+permalink: encryption-at-rest/key-management-servers-not-reachable-boot-concept.html
+sidebar: sidebar
+keywords: what, happens, key management servers, not reachable, boot, process
+summary: "ONTAP takes certain precautions to avoid undesired behavior in the event that a storage system configured for NSE cannot reach any of the specified key management servers during the boot process."
+---
+= What happens when key management servers are not reachable during the boot process
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP takes certain precautions to avoid undesired behavior in the event that a storage system configured for NSE cannot reach any of the specified key management servers during the boot process.
+
+If the storage system is configured for NSE, the SEDs are rekeyed and locked, and the SEDs are powered on, the storage system must retrieve the required authentication keys from the key management servers to authenticate itself to the SEDs before it can access the data.
+
+The storage system attempts to contact the specified key management servers for up to three hours. If the storage system cannot reach any of them after that time, the boot process stops and the storage system halts.
+
+If the storage system successfully contacts any specified key management server, it then attempts to establish an SSL connection for up to 15 minutes. If the storage system cannot establish an SSL connection with any specified key management server, the boot process stops and the storage system halts.
+
+While the storage system attempts to contact and connect to key management servers, it displays detailed information about the failed contact attempts at the CLI. You can interrupt the contact attempts at any time by pressing Ctrl-C.
+
+As a security measure, SEDs allow only a limited number of unauthorized access attempts, after which they disable access to the existing data. If the storage system cannot contact any specified key management servers to obtain the proper authentication keys, it can only attempt to authenticate with the default key which leads to a failed attempt and a panic. If the storage system is configured to automatically reboot in case of a panic, it enters a boot loop which results in continuous failed authentication attempts on the SEDs.
+
+Halting the storage system in these scenarios is by design to prevent the storage system from entering a boot loop and possible unintended data loss as a result of the SEDs locked permanently due to exceeding the safety limit of a certain number of consecutive failed authentication attempts. The limit and the type of lockout protection depends on the manufacturing specifications and type of SED:
+[options="header"]
+|===
+| SED type| Number of consecutive failed authentication attempts resulting in lockout| Lockout protection type when safety limit is reached
+
+a|
+HDD
+a|
+1024
+a|
+Permanent. Data cannot be recovered, even when the proper authentication key becomes available again.
+a|
+X440_PHM2800MCTO 800GB NSE SSDs with firmware revisions NA00 or NA01
+a|
+5
+a|
+Temporary. Lockout is only in effect until disk is power-cycled.
+a|
+X577_PHM2800MCTO 800GB NSE SSDs with firmware revisions NA00 or NA01
+a|
+5
+a|
+Temporary. Lockout is only in effect until disk is power-cycled.
+a|
+X440_PHM2800MCTO 800GB NSE SSDs with higher firmware revisions
+a|
+1024
+a|
+Permanent. Data cannot be recovered, even when the proper authentication key becomes available again.
+a|
+X577_PHM2800MCTO 800GB NSE SSDs with higher firmware revisions
+a|
+1024
+a|
+Permanent. Data cannot be recovered, even when the proper authentication key becomes available again.
+a|
+All other SSD models
+a|
+1024
+a|
+Permanent. Data cannot be recovered, even when the proper authentication key becomes available again.
+|===
+For all SED types, a successful authentication resets the try count to zero.
+
+If you encounter this scenario where the storage system is halted due to failure to reach any specified key management servers, you must first identify and correct the cause for the communication failure before you attempt to continue booting the storage system.

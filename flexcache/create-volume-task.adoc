@@ -1,0 +1,116 @@
+---
+permalink: flexcache/create-volume-task.html
+sidebar: sidebar
+keywords: creating, flexcache, volume
+summary: "You can create a FlexCache volume in the same cluster for improving performance when accessing a hot object. If you have data centers in different locations, you can create FlexCache volumes on remote clusters for accelerating data access."
+---
+= Create a FlexCache volume
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create a FlexCache volume in the same cluster for improving performance when accessing a hot object. If you have data centers in different locations, you can create FlexCache volumes on remote clusters for accelerating data access.
+
+.About this task
+
+The FlexCache volume is always a FlexGroup volume, and not a FlexVol volume.
+
+Starting with ONTAP 9.7, FlexGroup volumes are also supported at the origin of the FlexCache relationship.
+
+.Steps
+
+. If the FlexCache volume to be created is in a different cluster, create a cluster peer relationship:
+ .. On the destination cluster, create a peer relationship with the data protection source cluster:
+ +
+`cluster peer create -generate-passphrase -offer-expiration MM/DD/YYYY HH:MM:SS|1...7days|1...168hours -peer-addrs peer_LIF_IPs -initial-allowed-vserver-peers svm_name,..|* -ipspace ipspace_name`
++
+Starting with ONTAP 9.6, TLS encryption is enabled by default when creating a cluster peer relationship. TLS encryption is supported for the intercluster communication between the origin and FlexCache volumes. You can also disable TLS encryption for the cluster peer relationship, if required.
++
+----
+cluster02::> cluster peer create -generate-passphrase -offer-expiration 2days -initial-allowed-vserver-peers *
+
+                     Passphrase: UCa+6lRVICXeL/gq1WrK7ShR
+                Expiration Time: 6/7/2017 08:16:10 EST
+  Initial Allowed Vserver Peers: *
+            Intercluster LIF IP: 192.140.112.101
+              Peer Cluster Name: Clus_7ShR (temporary generated)
+
+Warning: make a note of the passphrase - it cannot be displayed again.
+----
+
+ .. On the source cluster, authenticate the source cluster to the destination cluster:
+ +
+`cluster peer create -peer-addrs peer_LIF_IPs -ipspace ipspace`
++
+----
+cluster01::> cluster peer create -peer-addrs 192.140.112.101,192.140.112.102
+
+Notice: Use a generated passphrase or choose a passphrase of 8 or more characters.
+        To ensure the authenticity of the peering relationship, use a phrase or sequence of characters that would be hard to guess.
+
+Enter the passphrase:
+Confirm the passphrase:
+
+Clusters cluster02 and cluster01 are peered.
+----
+. If the FlexCache volume is in a different SVM than that of the origin volume, create an SVM peer relationship with `flexcache` as the application:
+ .. If the SVM is in a different cluster, create an SVM permission for the peering SVMs:
+ +
+`vserver peer permission create -peer-cluster cluster_name -vserver svm-name -applications flexcache`
++
+The following example illustrates how to create an SVM peer permission that applies for all of the local SVMs:
++
+----
+cluster1::> vserver peer permission create -peer-cluster cluster2 -vserver "*" -applications flexcache
+
+Warning: This Vserver peer permission applies to all local Vservers. After that no explict
+"vserver peer accept" command required for Vserver peer relationship creation request
+from peer cluster "cluster2" with any of the local Vservers. Do you want to continue? {y|n}: y
+----
+
+ .. Create the SVM peer relationship:
+ +
+`vserver peer create -vserver local_SVM -peer-vserver remote_SVM -peer cluster cluster_name -applications flexcache`
+. Create a FlexCache volume:
++
+`volume flexcache create -vserver cache_svm -volume cache_vol_name -auto-provision-as flexgroup -size vol_size -origin-vserver origin_svm -origin-volume origin_vol_name`
++
+----
+cluster1::> volume flexcache create -vserver vs_1 -volume fc1 -auto-provision-as flexgroup -origin-volume vol_1 -size 160MB -origin-vserver vs_1
+[Job 443] Job succeeded: Successful
+----
+
+. Verify the FlexCache relationship from the FlexCache volume and the origin volume.
+ .. View the FlexCache relationship in the cluster:
+ +
+`volume flexcache show`
++
+----
+cluster1::> volume flexcache show
+Vserver Volume      Size       Origin-Vserver Origin-Volume Origin-Cluster
+------- ----------- ---------- -------------- ------------- --------------
+vs_1    fc1         160MB      vs_1           vol_1           cluster1
+----
+
+ .. View all of the FlexCache relationships in the origin cluster:
+ +
+`volume flexcache origin show-caches`
++
+----
+cluster::> volume flexcache origin show-caches
+Origin-Vserver Origin-Volume   Cache-Vserver    Cache-Volume   Cache-Cluster
+-------------- --------------- ---------------  -------------- ---------------
+vs0            ovol1           vs1              cfg1           clusA
+vs0            ovol1           vs2              cfg2           clusB
+vs_1           vol_1           vs_1             fc1            cluster1
+----
+
+== Result
+
+The FlexCache volume is successfully created. Clients can mount the volume by using the junction path of the FlexCache volume.
+
+*Related information*
+
+link:../peering/index.html[Cluster and SVM peering]
+
+http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html[ONTAP 9 commands]

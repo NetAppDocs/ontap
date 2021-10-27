@@ -1,0 +1,56 @@
+---
+permalink: data-protection/vault-archive-snapmirror-technology-concept.html
+sidebar: sidebar
+keywords: vault, archiving, snapmirror, technology
+summary: "SnapMirror vault policies replace SnapVault technology in ONTAP 9.3 and later. You use a SnapMirror vault policy for disk-to-disk Snapshot copy replication for standards compliance and other governance-related purposes. In contrast to a SnapMirror relationship, in which the destination usually contains only the Snapshot copies currently in the source volume, a vault destination typically retains point-in-time Snapshot copies created over a much longer period."
+---
+= Vault archiving using SnapMirror technology
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+SnapMirror vault policies replace SnapVault technology in ONTAP 9.3 and later. You use a SnapMirror vault policy for disk-to-disk Snapshot copy replication for standards compliance and other governance-related purposes. In contrast to a SnapMirror relationship, in which the destination usually contains only the Snapshot copies currently in the source volume, a vault destination typically retains point-in-time Snapshot copies created over a much longer period.
+
+You might want to keep monthly Snapshot copies of your data over a 20-year span, for example, to comply with government accounting regulations for your business. Since there is no requirement to serve data from vault storage, you can use slower, less expensive disks on the destination system.
+
+The figure below illustrates SnapMirror vault data protection relationships.
+
+image::../media/snapvault-data-protection.gif[]
+
+== How vault data protection relationships are initialized
+
+The SnapMirror policy for the relationship defines the contents of the baseline and any updates.
+
+A baseline transfer under the default vault policy `XDPDefault` makes a Snapshot copy of the source volume, then transfers that copy and the data blocks it references to the destination volume. Unlike SnapMirror relationships, a vault backup does not include older Snapshot copies in the baseline.
+
+== How vault data protection relationships are updated
+
+Updates are asynchronous, following the schedule you configure. The rules you define in the policy for the relationship identify which new Snapshot copies to include in updates and how many copies to retain. The labels defined in the policy ("`monthly,`" for example) must match one or more labels defined in the Snapshot policy on the source. Otherwise, replication fails.
+
+At each update under the `XDPDefault` policy, SnapMirror transfers Snapshot copies that have been made since the last update, provided they have labels matching the labels defined in the policy rules. In the following output from the `snapmirror policy show` command for the `XDPDefault` policy, note the following:
+
+* `Create Snapshot` is "`false`", indicating that `XDPDefault` does not create a Snapshot copy when SnapMirror updates the relationship.
+* `XDPDefault` has rules "`daily`" and "`weekly`", indicating that all Snapshot copies with matching labels on the source are transferred when SnapMirror updates the relationship.
+
+----
+cluster_dst::> snapmirror policy show -policy XDPDefault -instance
+
+                     Vserver: vs0
+      SnapMirror Policy Name: XDPDefault
+      SnapMirror Policy Type: vault
+                Policy Owner: cluster-admin
+                 Tries Limit: 8
+           Transfer Priority: normal
+   Ignore accesstime Enabled: false
+     Transfer Restartability: always
+ Network Compression Enabled: false
+             Create Snapshot: false
+                     Comment: Default policy for XDP relationships with daily and weekly
+                              rules.
+       Total Number of Rules: 2
+                  Total Keep: 59
+                       Rules: SnapMirror Label     Keep  Preserve Warn Schedule Prefix
+                              ----------------     ----  -------- ---- -------- ------
+                              daily                   7  false       0 -        -
+                              weekly                 52  false       0 -        -
+----

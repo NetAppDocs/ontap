@@ -1,0 +1,98 @@
+---
+permalink: disks-aggregates/relocate-aggregate-ownership-task.html
+sidebar: sidebar
+keywords: relocate, aggregate, ownership
+summary: "You can change the ownership of an aggregate only between the nodes within an HA pair."
+---
+= Relocate aggregate ownership
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can change the ownership of aggregates among the nodes in an HA pair without interrupting service from the aggregates.
+
+Both nodes in an HA pair are physically connected to each other's disks or array LUNs. Each disk or array LUN is owned by one of the nodes. Although ownership of disks temporarily changes when a takeover occurs, the aggregate relocation operations either permanently (for example, if done for load balancing) or temporarily (for example, if done as part of takeover) change the ownership of all disks or array LUNs within an aggregate from one node to the other. The ownership changes without any data-copy processes or physical movement of the disks or array LUNs.
+
+
+.About this task
+
+* Because volume count limits are validated programmatically during aggregate relocation operations, it is not necessary to check for this manually.
++
+If the volume count exceeds the supported limit, the aggregate relocation operation fails with a relevant error message.
+
+* You should not initiate aggregate relocation when system-level operations are in progress on either the source or the destination node; likewise, you should not start these operations during the aggregate relocation.
++
+These operations can include the following:
+
+ ** Takeover
+ ** Giveback
+ ** Shutdown
+ ** Another aggregate relocation operation
+ ** Disk ownership changes
+ ** Aggregate or volume configuration operations
+ ** Storage controller replacement
+ ** ONTAP upgrade
+ ** ONTAP revert
+
+* If you have a MetroCluster configuration, you should not initiate aggregate relocation while disaster recovery operations (_switchover_, _healing_, or _switchback_) are in progress.
+* If you have a MetroCluster configuration and initiate aggregate relocation on a switched-over aggregate, the operation might fail because it exceeds the DR partner's volume limit count.
+* You should not initiate aggregate relocation on aggregates that are corrupt or undergoing maintenance.
+* Before initiating the aggregate relocation, you should save any core dumps on the source and destination nodes.
+
+.Steps
+
+. View the aggregates on the node to confirm which aggregates to move and ensure they are online and in good condition:
++
+`storage aggregate show -node _source-node_`
++
+The following command shows six aggregates on the four nodes in the cluster. All aggregates are online. Node1 and Node3 form an HA pair and Node2 and Node4 form an HA pair.
++
+----
+cluster::> storage aggregate show
+Aggregate     Size Available Used% State   #Vols  Nodes  RAID Status
+--------- -------- --------- ----- ------- ------ ------ -----------
+aggr_0     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_1     239.0GB   11.13GB   95% online       1 node1  raid_dp,
+                                                         normal
+aggr_2     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_3     239.0GB   11.13GB   95% online       1 node2  raid_dp,
+                                                         normal
+aggr_4     239.0GB   238.9GB    0% online       5 node3  raid_dp,
+                                                         normal
+aggr_5     239.0GB   239.0GB    0% online       4 node4  raid_dp,
+                                                         normal
+6 entries were displayed.
+----
+
+. Issue the command to start the aggregate relocation:
++
+`storage aggregate relocation start -aggregate-list _aggregate-1_, _aggregate-2_... -node source-node -destination _destination-node_`
++
+The following command moves the aggregates aggr_1 and aggr_2 from Node1 to Node3. Node3 is Node1's HA partner. The aggregates can be moved only within the HA pair.
++
+----
+cluster::> storage aggregate relocation start -aggregate-list aggr_1, aggr_2 -node node1 -destination node3
+Run the storage aggregate relocation show command to check relocation status.
+node1::storage aggregate>
+----
+
+. Monitor the progress of the aggregate relocation with the `storage aggregate relocation show` command:
++
+`storage aggregate relocation show -node _source-node_`
++
+The following command shows the progress of the aggregates that are being moved to Node3:
++
+----
+cluster::> storage aggregate relocation show -node node1
+Source Aggregate   Destination    Relocation Status
+------ ----------- -------------  ------------------------
+node1
+       aggr_1      node3          In progress, module: wafl
+       aggr_2      node3          Not attempted yet
+2 entries were displayed.
+node1::storage aggregate>
+----
++
+When the relocation is complete, the output of this command shows each aggregate with a relocation status of `Done`.

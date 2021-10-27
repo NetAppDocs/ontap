@@ -1,0 +1,89 @@
+---
+permalink: nfs-admin/typical-nas-namespace-architectures-concept.html
+sidebar: sidebar
+keywords: what, typical, nas, namespace, architecture
+summary: "There are several typical NAS namespace architectures that you can use as you create your SVM name space. You can choose the namespace architecture that matches your business and workflow needs."
+---
+= What the typical NAS namespace architectures are
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+There are several typical NAS namespace architectures that you can use as you create your SVM name space. You can choose the namespace architecture that matches your business and workflow needs.
+
+The top of the namespace is always the root volume, which is represented by a slash (/). The namespace architecture under the root falls into three basic categories:
+
+* A single branched tree, with only a single junction to the root of the namespace
+* Multiple branched trees, with multiple junction points to the root of the namespace
+* Multiple stand-alone volumes, each with a separate junction point to the root of the name space
+
+== Namespace with single branched tree
+
+An architecture with a single branched tree has a single insertion point to the root of the SVM namespace. The single insertion point can be either a junctioned volume or a directory beneath the root. All other volumes are mounted at junction points beneath the single insertion point (which can be a volume or a directory).
+
+image::../media/namespace-architecture-with-single-branched-tree.gif[]
+
+For example, a typical volume junction configuration with the above namespace architecture might look like the following configuration, where all volumes are junctioned below the single insertion point, which is a directory named "`data`":
+
+----
+
+                     Junction                       Junction
+Vserver Volume       Active   Junction Path         Path Source
+------- ------------ -------- -------------------   -----------
+vs1     corp1        true     /data/dir1/corp1      RW_volume
+vs1     corp2        true     /data/dir1/corp2      RW_volume
+vs1     data1        true     /data/data1           RW_volume
+vs1     eng1         true     /data/data1/eng1      RW_volume
+vs1     eng2         true     /data/data1/eng2      RW_volume
+vs1     sales        true     /data/data1/sales     RW_volume
+vs1     vol1         true     /data/vol1            RW_volume
+vs1     vol2         true     /data/vol2            RW_volume
+vs1     vol3         true     /data/vol3            RW_volume
+vs1     vs1_root     -        /                     -
+----
+
+== Namespace with multiple branched trees
+
+An architecture with multiple branched trees has multiple insertion points to the root of the SVM namespace. The insertion points can be either junctioned volumes or directories beneath the root. All other volumes are mounted at junction points beneath the insertion points (which can be volumes or directories).
+
+image::../media/namespace-architecture-with-multiple-branched-trees.png[]
+
+For example, a typical volume junction configuration with the above namespace architecture might look like the following configuration, where there are three insertion points to the root volume of the SVM. Two insertion points are directories named "`data`" and "`projects`". One insertion point is a junctioned volume named "`audit`":
+
+----
+
+                     Junction                       Junction
+Vserver Volume       Active   Junction Path         Path Source
+------- ------------ -------- -------------------   -----------
+vs1     audit        true     /audit                RW_volume
+vs1     audit_logs1  true     /audit/logs1          RW_volume
+vs1     audit_logs2  true     /audit/logs2          RW_volume
+vs1     audit_logs3  true     /audit/logs3          RW_volume
+vs1     eng          true     /data/eng             RW_volume
+vs1     mktg1        true     /data/mktg1           RW_volume
+vs1     mktg2        true     /data/mktg2           RW_volume
+vs1     project1     true     /projects/project1    RW_volume
+vs1     project2     true     /projects/project2    RW_volume
+vs1     vs1_root     -        /                     -
+----
+
+== Namespace with multiple stand-alone volumes
+
+In an architecture with stand-alone volumes, every volume has an insertion point to the root of the SVM namespace; however, the volume is not junctioned below another volume. Each volume has a unique path, and is either junctioned directly below the root or is junctioned under a directory below the root.
+
+image::../media/namespace-architecture-with-multiple-standalone-volumes.gif[]
+
+For example, a typical volume junction configuration with the above namespace architecture might look like the following configuration, where there are five insertion points to the root volume of the SVM, with each insertion point representing a path to one volume.
+
+----
+
+                     Junction                       Junction
+Vserver Volume       Active   Junction Path         Path Source
+------- ------------ -------- -------------------   -----------
+vs1     eng          true     /eng                  RW_volume
+vs1     mktg         true     /vol/mktg             RW_volume
+vs1     project1     true     /project1             RW_volume
+vs1     project2     true     /project2             RW_volume
+vs1     sales        true     /sales                RW_volume
+vs1     vs1_root     -        /                     -
+----

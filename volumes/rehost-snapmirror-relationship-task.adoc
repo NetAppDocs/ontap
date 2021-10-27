@@ -1,0 +1,71 @@
+---
+permalink: volumes/rehost-snapmirror-relationship-task.html
+sidebar: sidebar
+keywords: rehost, volumes, snapmirror, relationship
+summary: "You can rehost volumes in a SnapMirror relationship."
+---
+= Rehost volumes in a SnapMirror relationship
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can rehost volumes in a SnapMirror relationship.
+
+.What you'll need
+
+* The volume must be online.
+* Volume management operations, such as volume moves or LUN moves, must not be running.
+* Data access to the volume that is being rehosted must be stopped.
+* The ns-switch and name services configuration of the target SVM must be configured to support data access of the rehosting volume.
+* The user ID and group ID of the volume must be either available in the target SVM or changed on the hosting volume.
+
+.About this task
+
+* Rehosting is a disruptive operation.
+* If the rehosting operation fails, you might need to reconfigure the volume policies and the associated rules on the source volume.
+* After the rehost operation, the following volume policies, policy rules, and configurations are lost from the source volume and must be manually reconfigured on the rehosted volume:
+ ** Volume and qtree export policies
+ ** Antivirus policies
+ ** Volume efficiency policy
+ ** Quality of service (QoS) policies
+ ** Snapshot policies
+ ** Quota rules
+ ** ns-switch and name services configuration export policy and rules
+ ** User and group IDs
+
+.Steps
+
+. Record the SnapMirror relationship type:
++
+`snapmirror show`
++
+This is a precautionary step to avoid losing information about the SnapMirror relationship type in case the volume rehost fails.
+
+. From the destination cluster, delete the SnapMirror relationship:
++
+`snapmirror delete`
++
+You must not break the SnapMirror relationship; otherwise, the data protection capability of the destination volume is lost and the relationship cannot be reestablished after the rehosting operation.
+
+. From the source cluster, remove the SnapMirror relationship information:
++
+`snapmirror release relationship-info-only true`
++
+Setting the `relationship-info-only` parameter to `true` removes the source relationship information without deleting the Snapshot copies.
+
+. Switch to the advanced privilege level:
++
+`set -privilege advanced`
+. Rehost the volume on the destination SVM:
++
+`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+. If the SVM peering relation is not present, create the SVM peer relationship between the source SVM and destination SVM:
++
+`vserver peer create`
+. Create the SnapMirror relationship between the source volume and destination volume:
++
+`snapmirror create`
++
+You must run the `snapmirror create` command from the SVM that is hosting the DP volume. The rehosted volume can be the source or destination of the SnapMirror relationship.
+
+. Resynchronize the SnapMirror relationship.

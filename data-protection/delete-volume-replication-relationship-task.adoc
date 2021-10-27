@@ -1,0 +1,60 @@
+---
+permalink: data-protection/delete-volume-replication-relationship-task.html
+sidebar: sidebar
+keywords: delete, volume, replication, relationship
+summary: "You can use the snapmirror delete and snapmirror release commands to delete a volume replication relationship. You can then delete unneeded destination volumes manually."
+---
+= Delete a volume replication relationship
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `snapmirror delete` and `snapmirror release` commands to delete a volume replication relationship. You can then delete unneeded destination volumes manually.
+
+.About this task
+
+The `snapmirror release` command deletes any SnapMirror-created Snapshot copies from the source. You can use the `-relationship-info-only` option to preserve the Snapshot copies.
+
+.Steps
+
+. If you have SnapMirror Synchronous relationships (supported starting with ONTAP 9.5), quiesce the replication relationship:
++
+`snapmirror quiesce -destination-path _SVM:volume_|_cluster://SVM/volume_`
++
+----
+cluster_src::> snapmirror quiesce -destination-path svm_backup:volA_dst
+----
+
+. Delete the replication relationship:
++
+`snapmirror delete -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+You must run this command from the destination cluster or destination SVM.
+====
++
+The following example deletes the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
++
+----
+cluster_dst::> snapmirror delete -source-path svm1:volA -destination-path svm_backup:volA_dst
+----
+
+. Release replication relationship information from the source SVM:
++
+`snapmirror release -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+You must run this command from the source cluster or source SVM.
+====
++
+The following example releases information for the specified replication relationship from the source SVM `svm1`:
++
+----
+cluster_src::> snapmirror release -source-path svm1:volA -destination-path svm_backup:volA_dst
+----

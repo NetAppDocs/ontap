@@ -1,0 +1,92 @@
+---
+permalink: nfs-admin/security-types-client-access-levels-concept.html
+sidebar: sidebar
+keywords: security, type, determine, client, access, level
+summary: "The security type that the client authenticated with plays a special role in export rules. You must understand how the security type determines the levels of access the client gets to a volume or qtree."
+---
+= How security types determine client access levels
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The security type that the client authenticated with plays a special role in export rules. You must understand how the security type determines the levels of access the client gets to a volume or qtree.
+
+The three possible access levels are as follows:
+
+. Read-only
+. Read-write
+. Superuser (for clients with user ID 0)
+
+Because the access level by security type is evaluated in this order, you must observe the following rules when constructing access level parameters in export rules:
+[cols="2*",options="header"]
+|===
+| For a client to get access level...| These access parameters must match the client's security type...
+a|
+Normal user read-only
+a|
+Read-only (`-rorule`)
+a|
+Normal user read-write
+a|
+Read-only (`-rorule`) and read-write (`-rwrule`)
+a|
+Superuser read-only
+a|
+Read-only (`-rorule`) and `-superuser`
+a|
+Superuser read-write
+a|
+Read-only (`-rorule`) and read-write (`-rwrule`) and `-superuser`
+|===
+The following are valid security types for each of these three access parameters:
+
+* `any`
+* `none`
+* `never`
++
+This security type is not valid for use with the `-superuser` parameter.
+
+* `krb5`
+* `krb5i`
+* `krb5p`
+* `ntlm`
+* `sys`
+
+When matching a client's security type against each of the three access parameters, there are three possible outcomes:
+[cols="2*",options="header"]
+|===
+| If the client's security type...| Then the client...
+a|
+Matches the one specified in the access parameter.
+a|
+Gets access for that level with its own user ID.
+a|
+Does not match the one specified, but the access parameter includes the option `none`.
+a|
+Gets access for that level but as the anonymous user with the user ID specified by the `-anon` parameter.
+a|
+Does not match the one specified and the access parameter does not include the option `none`.
+a|
+Does not get any access for that level.This does not apply to the `-superuser` parameter because it always includes `none` even when not specified.
+
+|===
+
+.Example
+
+The export policy contains an export rule with the following parameters:
+
+* `-protocol` `nfs3`
+* `-clientmatch` `10.1.16.0/255.255.255.0`
+* `-rorule` `any`
+* `-rwrule` `sys,krb5`
+* `-superuser` `krb5`
+
+Client #1 has the IP address 10.1.16.207, has user ID 0, sends an access request using the NFSv3 protocol, and authenticated with Kerberos v5.
+
+Client #2 has the IP address 10.1.16.211, has user ID 0, sends an access request using the NFSv3 protocol, and authenticated with AUTH_SYS.
+
+Client #3 has the IP address 10.1.16.234, has user ID 0, sends an access request using the NFSv3 protocol, and did not authenticate (AUTH_NONE).
+
+The client access protocol and IP address matches all three clients. The read-only parameter allows read-only access to all clients regardless of security type. The read-write parameter allows read-write access to clients with their own user ID that authenticated with AUTH_SYS or Kerberos v5. The superuser parameter allows superuser access to clients with user ID 0 that authenticated with Kerberos v5.
+
+Therefore, client #1 gets superuser read-write access because it matches all three access parameters. Client #2 gets read-write access but not superuser access. Client #3 gets read-only access but not superuser access.

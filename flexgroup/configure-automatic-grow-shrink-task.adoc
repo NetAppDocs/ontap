@@ -1,0 +1,47 @@
+---
+permalink: flexgroup/configure-automatic-grow-shrink-task.html
+sidebar: sidebar
+keywords: configure, flexgroup, volumes, automatic, grow, shrink, size
+summary: "Starting with ONTAP 9.3, you can configure FlexGroup volumes to automatically grow and shrink according to how much space they currently require."
+---
+= Configure FlexGroup volumes to automatically grow and shrink their size
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Starting with ONTAP 9.3, you can configure FlexGroup volumes to automatically grow and shrink according to how much space they currently require.
+
+.What you'll need
+
+The FlexGroup volume must be online.
+
+.About this task
+
+You can autosize FlexGroup volumes in two modes:
+
+* Increase the size of the volume automatically (`grow` mode)
++
+Automatic growing helps prevent a FlexGroup volume from running out of space, if the aggregate can supply more space. You can configure the maximum size for the volume. The increase is automatically triggered based on the amount of data being written to the volume in relation to the current amount of used space and any thresholds set.
++
+By default, the maximum size a volume can grow to is 120% of the size at which autogrow is enabled. If you need to ensure that the volume can grow to be larger than that, you must set the maximum size for the volume accordingly.
+
+* Shrink the size of the volume automatically (`grow_shrink` mode)
++
+Automatic shrinking prevents a volume from being larger than needed, freeing space in the aggregate for use by other volumes.
++
+Autoshrink can only be used in combination with autogrow to meet changing space demands and is not available alone. When autoshrink is enabled, ONTAP automatically manages the shrinking behavior of a volume to prevent an endless loop of autogrow and autoshrink actions.
+
+As a volume grows, the maximum number of files it can contain might be automatically increased. When a volume is shrunk, the maximum number of files it can contain is left unchanged, and a volume cannot be automatically shrunk below the size that corresponds to its current maximum number of files. For this reason, it might not be possible to automatically shrink a volume all the way to its original size.
+
+.Step
+
+. Configure the volume to grow and shrink its size automatically: `volume autosize -vserver vserver_name -volume vol_name -mode [grow | grow_shrink]`
++
+You can also specify the maximum size, minimum size, and thresholds for growing or shrinking the volume.
++
+The following command enables automatic size changes for a volume called fg1. The volume is configured to grow to a maximum size of 5 TB when it is 70% full.
++
+----
+cluster1::> volume autosize -volume fg1 -mode grow -maximum-size 5TB -grow-threshold-percent 70
+vol autosize: volume "vs_src:fg1" autosize settings UPDATED.
+----

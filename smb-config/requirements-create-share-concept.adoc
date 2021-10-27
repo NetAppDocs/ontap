@@ -1,0 +1,49 @@
+---
+permalink: smb-config/requirements-create-share-concept.html
+sidebar: sidebar
+keywords: creating, create, smb, share, requirement, path, properties, property, home, directories, directory, requirements and considerations for creating an smb share
+summary: "Before creating an SMB share, you must understand requirements for share paths and share properties, particularly for home directories."
+---
+= Requirements and considerations for creating an SMB share
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before creating an SMB share, you must understand requirements for share paths and share properties, particularly for home directories.
+
+Creating an SMB share entails specifying a directory path structure (using the `-path` option in the `vserver cifs share create` command) that clients will access. The directory path corresponds to the junction path for a volume or qtree that you created in the SVM namespace. The directory path and corresponding junction path must exist before creating your share.
+
+Share paths have the following requirements:
+
+* A directory path name can be up to 255 characters long.
+* If there is a space in the path name, the entire string must be put in quotes (for example, `"/new volume/mount here"`).
+* If the UNC path (`\\servername\sharename\filepath`) of the share contains more than 256 characters (excluding the initial "`\\`" in the UNC path), then the *Security* tab in the Windows Properties box is unavailable.
++
+This is a Windows client issue rather than an ONTAP issue. To avoid this issue, do not create shares with UNC paths with more than 256 characters.
+
+Share property defaults can be changed:
+
+* The default initial properties for all shares are `oplocks`, `browsable`, `changenotify`, and `show-previous-versions`.
+* It is optional to specify share properties when you create a share.
++
+However, if you do specify share properties when you create the share, the defaults are not used. If you use the `-share-properties` parameter when you create a share, you must specify all of the share properties that you want to apply to the share using a comma-delimited list.
+
+* To designate a home directory share, use the `homedirectory` property.
++
+This feature enables you to configure a share that maps to different directories based on the user that connects to it and a set of variables. Instead of having to create separate shares for each user, you can configure a single share with a few home directory parameters to define a user's relationship between an entry point (the share) and their home directory (a directory on the SVM).
++
+[NOTE]
+====
+You cannot add or remove this property after creating the share.
+====
+
+Home directory shares have the following requirements:
+
+* Before creating SMB home directories, you must add at least one home directory search path by using the `vserver cifs home-directory search-path add` command.
+* Home directory shares specified by the value of `homedirectory` on the `-share-properties` parameter must include the `%w` (Windows user name) dynamic variable in the share name.
++
+The share name can additionally contain the `%d` (domain name) dynamic variable (for example, `%d/%w`) or a static portion in the share name (for example, `home1_%w`).
+
+* If the share is used by administrators or users to connect to other users' home directories (using options to the `vserver cifs home-directory modify` command), the dynamic share name pattern must be preceded by a tilde (`~`).
+
+link:../smb-admin/index.html[SMB management] and `vserver cifs share` man pages have additional information.

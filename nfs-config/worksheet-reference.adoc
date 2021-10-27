@@ -1,0 +1,821 @@
+---
+permalink: nfs-config/worksheet-reference.html
+sidebar: sidebar
+keywords: worksheet, gathering, nfs, configuration, information, access, svm, name, service, information, add, storage, capacity
+summary: "The NFS configuration worksheet enables you to collect the required information to set up NFS access for clients."
+---
+= Worksheet for gathering NFS configuration information
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The NFS configuration worksheet enables you to collect the required information to set up NFS access for clients.
+
+You should complete one or both sections of the worksheet depending on the decision you made about where to provision storage:
+
+* If you are configuring NFS access to an SVM, you should complete both sections.
++
+link:worksheet-reference.html#configuring-nfs-access-to-an-svm[Configuring NFS access to an SVM]
++
+link:worksheet-reference.html#adding-storage-capacity-to-an-nfs-enabled-svm[Adding storage capacity to an NFS-enabled SVM]
+
+* If you are adding storage capacity to an NFS-enabled SVM, you should complete only the second section.
++
+link:worksheet-reference.html#adding-storage-capacity-to-an-nfs-enabled-svm[Adding storage capacity to an NFS-enabled SVM]
+
+See the command man pages for details about the parameters.
+
+== Configure NFS access to an SVM
+
+*Parameters for creating an SVM*
+
+You supply these values with the `vserver create` command if you are creating a new SVM.
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+A name you supply for the new SVM that is either a fully qualified domain name (FQDN) or follows another convention that enforces unique SVM names across a cluster.
+a|
+
+a|
+`-aggregate`
+a|
+The name of an aggregate in the cluster with sufficient space for new NFS storage capacity.
+a|
+
+a|
+`-rootvolume`
+a|
+A unique name you supply for the SVM root volume.
+a|
+
+a|
+`-rootvolume-security-style`
+a|
+Use the UNIX security style for the SVM.
+a|
+`unix`
+a|
+`-language`
+a|
+Use the default language setting in this workflow.
+a|
+`C.UTF-8`
+a|
+`ipspace`
+a|
+IPspaces are distinct IP address spaces in which (storage virtual machines (SVMs)) reside.
+a|
+
+|===
+*Parameters for creating an NFS server*
+
+You supply these values with the `vserver nfs create` command when you create a new NFS server and specify supported NFS versions.
+
+If you are enabling NFSv4 or later, you should use LDAP for improved security.
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-v3`, `-v4.0`, `-v4.1`, `-v4.1-pnfs`
+a|
+Enable NFS versions as needed.
+[NOTE]
+====
+v4.2 is also supported in ONTAP 9.8 and later when `v4.1` is enabled .
+====
+
+a|
+
+a|
+`-v4-id-domain`
+a|
+ID mapping domain name.
+a|
+
+a|
+`-v4-numeric-ids`
+a|
+Support for numeric owner IDs (enabled or disabled).
+a|
+
+|===
+*Parameters for creating a LIF*
+
+You supply these values with the `network interface create` command when you are creating LIFs.
+
+If you are using Kerberos, you should enable Kerberos on multiple LIFs.
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-lif`
+a|
+A name you supply for the new LIF.
+a|
+
+a|
+`-role`
+a|
+Use the data LIF role in this workflow.
+a|
+`data`
+a|
+`-data-protocol`
+a|
+Use only the NFS protocol in this workflow.
+a|
+`nfs`
+a|
+`-home-node`
+a|
+The node to which the LIF returns when the `network interface revert` command is run on the LIF.
+a|
+
+a|
+`-home-port`
+a|
+The port or interface group to which the LIF returns when the `network interface revert` command is run on the LIF.
+a|
+
+a|
+`-address`
+a|
+The IPv4 or IPv6 address on the cluster that will be used for data access by the new LIF.
+a|
+
+a|
+`-netmask`
+a|
+The network mask and gateway for the LIF.
+a|
+
+a|
+`-subnet`
+a|
+A pool of IP addresses. Used instead of `-address` and `-netmask` to assign addresses and netmasks automatically.
+a|
+
+a|
+`-firewall-policy`
+a|
+Use the default data firewall policy in this workflow.
+a|
+`data`
+|===
+*Parameters for DNS host name resolution*
+
+You supply these values with the `vserver services name-service dns create` command when you are configuring DNS.
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-domains`
+a|
+Up to five DNS domain names.
+a|
+
+a|
+`-name-servers`
+a|
+Up to three IP addresses for each DNS name server.
+a|
+
+|===
+
+== Name service information
+
+*Parameters for creating local users*
+
+You supply these values if you are creating local users by using the `vserver services name-service unix-user create` command. If you are configuring local users by loading a file containing UNIX users from a uniform resource identifier (URI), you do not need to specify these values manually.
+[options="header"]
+|===
+|  | User name `(-user)`| User ID `(-id)`| Group ID `(-primary-gid)`| Full name `(-full-name)`
+a|
+Example
+a|
+johnm
+a|
+123
+a|
+100
+a|
+John Miller
+a|
+1
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+2
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+3
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+...
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+n
+a|
+
+a|
+
+a|
+
+a|
+
+|===
+*Parameters for creating local groups*
+
+You supply these values if you are creating local groups by using the `vserver services name-service unix-group create` command. If you are configuring local groups by loading a file containing UNIX groups from a URI, you do not need to specify these values manually.
+[options="header"]
+|===
+|  | Group name (`-name`)| Group ID (`-id`)
+a|
+Example
+a|
+Engineering
+a|
+100
+a|
+1
+a|
+
+a|
+
+a|
+2
+a|
+
+a|
+
+a|
+3
+a|
+
+a|
+
+a|
+...
+a|
+
+a|
+
+a|
+n
+a|
+
+a|
+
+|===
+*Parameters for NIS*
+
+You supply these values with the `vserver services name-service nis-domain create` command.
+
+[NOTE]
+====
+Starting in ONTAP 9.2, the field `-nis-servers` replaces the field `-servers`. This new field can take either a hostname or an IP address for the NIS server.
+====
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-domain`
+a|
+The NIS domain that the SVM will use for name lookups.
+a|
+
+a|
+`-active`
+a|
+The active NIS domain server.
+a|
+`true` or `false`
+a|
+`-servers`
+a|
+ONTAP 9.0, 9.1: One or more IP addresses of NIS servers used by the NIS domain configuration.
+a|
+
+a|
+`-nis-servers`
+a|
+ONTAP 9.2: A comma-separated list of IP addresses and hostnames for the NIS servers used by the domain configuration.
+a|
+
+|===
+*Parameters for LDAP*
+
+You supply these values with the `vserver services name-service ldap client create` command.
+
+You will also need a self-signed root CA certificate `.pem` file.
+
+[NOTE]
+====
+Starting in ONTAP 9.2, the field `-ldap-servers` replaces the field `-servers`. This new field can take either a hostname or an IP address for the LDAP server.
+====
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM for which you want to create an LDAP client configuration.
+a|
+
+a|
+`-client-config`
+a|
+The name you assign for the new LDAP client configuration.
+a|
+
+a|
+`-servers`
+a|
+ONTAP 9.0, 9.1: One or more LDAP servers by IP address in a comma-separated list.
+a|
+
+a|
+`-ldap-servers`
+a|
+ONTAP 9.2: A comma-separated list of IP addresses and hostnames for the LDAP servers.
+a|
+
+a|
+`-query-timeout`
+a|
+Use the default `3` seconds for this workflow.
+a|
+`3`
+a|
+`-min-bind-level`
+a|
+The minimum bind authentication level. The default is `anonymous`. Must be set to `sasl` if signing and sealing is configured.
+a|
+
+a|
+`-preferred-ad-servers`
+a|
+One or more preferred Active Directory servers by IP address in a comma-delimited list.
+a|
+
+a|
+`-ad-domain`
+a|
+The Active Directory domain.
+a|
+
+a|
+`-schema`
+a|
+The schema template to use. You can use a default or custom schema.
+a|
+
+a|
+`-port`
+a|
+Use the default LDAP server port `389` for this workflow.
+a|
+`389`
+a|
+`-bind-dn`
+a|
+The Bind user distinguished name.
+a|
+
+a|
+`-base-dn`
+a|
+The base distinguished name. The default is `""` (root).
+a|
+
+a|
+`-base-scope`
+a|
+Use the default base search scope `subnet` for this workflow.
+a|
+`subnet`
+a|
+`-session-security`
+a|
+Enables LDAP signing or signing and sealing. The default is `none`.
+a|
+
+a|
+`-use-start-tls`
+a|
+Enables LDAP over TLS. The default is `false`.
+a|
+
+|===
+*Parameters for Kerberos authentication*
+
+You supply these values with the `vserver nfs kerberos realm create` command. Some of the values will differ depending on whether you use Microsoft Active Directory as a Key Distribution Center (KDC) server, or MIT or other UNIX KDC server.
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The SVM that will communicate with the KDC.
+a|
+
+a|
+`-realm`
+a|
+The Kerberos realm.
+a|
+
+a|
+`-clock-skew`
+a|
+Permitted clock skew between clients and servers.
+a|
+
+a|
+`-kdc-ip`
+a|
+KDC IP address.
+a|
+
+a|
+`-kdc-port`
+a|
+KDC port number.
+a|
+
+a|
+`-adserver-name`
+a|
+Microsoft KDC only: AD server name.
+a|
+
+a|
+`-adserver-ip`
+a|
+Microsoft KDC only: AD server IP address.
+a|
+
+a|
+`-adminserver-ip`
+a|
+UNIX KDC only: Admin server IP address.
+a|
+
+a|
+`-adminserver-port`
+a|
+UNIX KDC only: Admin server port number.
+a|
+
+a|
+`-passwordserver-ip`
+a|
+UNIX KDC only: Password server IP address.
+a|
+
+a|
+`-passwordserver-port`
+a|
+UNIX KDC only: Password server port.
+a|
+
+a|
+`-kdc-vendor`
+a|
+KDC vendor.
+a|
+{ `Microsoft` \| `Other` }
+a|
+`-comment`
+a|
+Any desired comments.
+a|
+
+|===
+You supply these values with the `vserver nfs kerberos interface enable` command.
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM for which you want to create a Kerberos configuration.
+a|
+
+a|
+`-lif`
+a|
+The data LIF on which you will enable Kerberos. You can enable Kerberos on multiple LIFs.
+a|
+
+a|
+`-spn`
+a|
+The Service Principle Name (SPN)
+a|
+
+a|
+`-permitted-enc-types`
+a|
+The permitted encryption types for Kerberos over NFS; `aes-256` is recommended, depending on client capabilities.
+a|
+
+a|
+`-admin-username`
+a|
+The KDC administrator credentials to retrieve the SPN secret key directly from the KDC. A password is required
+a|
+
+a|
+`-keytab-uri`
+a|
+The keytab file from the KDC containing the SPN key if you do not have KDC administrator credentials.
+a|
+
+a|
+`-ou`
+a|
+The organizational unit (OU) under which the Microsoft Active Directory server account will be created when you enable Kerberos using a realm for Microsoft KDC.
+a|
+
+|===
+
+== Adding storage capacity to an NFS-enabled SVM
+
+*Parameters for creating export policies and rules*
+
+You supply these values with the `vserver export-policy create` command.
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM that will host the new volume.
+a|
+
+a|
+`-policyname`
+a|
+A name you supply for a new export policy.
+a|
+
+|===
+You supply these values for each rule with the `vserver export-policy rule create` command.
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-clientmatch`
+a|
+Client match specification.
+a|
+
+a|
+`-ruleindex`
+a|
+Position of export rule in the list of rules.
+a|
+
+a|
+`-protocol`
+a|
+Use NFS in this workflow.
+a|
+`nfs`
+a|
+`-rorule`
+a|
+Authentication method for read-only access.
+a|
+
+a|
+`-rwrule`
+a|
+Authentication method for read-write access.
+a|
+
+a|
+`-superuser`
+a|
+Authentication method for superuser access.
+a|
+
+a|
+`-anon`
+a|
+User ID to which anonymous users are mapped.
+a|
+
+|===
+You must create one or more rules for each export policy.
+[options="header"]
+|===
+|`*-ruleindex*`| `*-clientmatch*`| `*-rorule*`| `*-rwrule*`| `*-superuser*`| `*-anon*`
+a|
+Examples
+a|
+0.0.0.0/0,@rootaccess_netgroup
+a|
+any
+a|
+krb5
+a|
+sys
+a|
+65534
+a|
+1
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+2
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+3
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+...
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+n
+a|
+
+a|
+
+a|
+
+a|
+
+a|
+
+|===
+*Parameters for creating a volume*
+
+You supply these values with the `volume create` command if you are creating a volume instead of a qtree.
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of a new or existing SVM that will host the new volume.
+a|
+
+a|
+`-volume`
+a|
+A unique descriptive name you supply for the new volume.
+a|
+
+a|
+`-aggregate`
+a|
+The name of an aggregate in the cluster with sufficient space for the new NFS volume.
+a|
+
+a|
+`-size`
+a|
+An integer you supply for the size of the new volume.
+a|
+
+a|
+`-user`
+a|
+Name or ID of the user that is set as the owner of the volume's root.
+a|
+
+a|
+`-group`
+a|
+Name or ID of the group that is set as the owner of the volume's root.
+a|
+
+a|
+`--security-style`
+a|
+Use the UNIX security style for this workflow.
+a|
+`unix`
+a|
+`-junction-path`
+a|
+Location under root (/) where the new volume is to be mounted.
+a|
+
+a|
+`-export-policy`
+a|
+If you are planning to use an existing export policy, you can enter its name when you create the volume.
+a|
+
+|===
+*Parameters for creating a qtree*
+
+You supply these values with the `volume qtree create` command if you are creating a qtree instead of a volume.
+[options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which the volume containing the qtree resides.
+a|
+
+a|
+`-volume`
+a|
+The name of the volume that will contain the new qtree.
+a|
+
+a|
+`-qtree`
+a|
+A unique descriptive name you supply for the new qtree, 64 characters or less.
+a|
+
+a|
+`-qtree-path`
+a|
+The qtree path argument in the format `/vol/_volume_name/qtree_name_\>` can be specified instead of specifying volume and qtree as separate arguments.
+a|
+
+a|
+`-unix-permissions`
+a|
+Optional: The UNIX permissions for the qtree.
+a|
+
+a|
+`-export-policy`
+a|
+If you are planning to use an existing export policy, you can enter its name when you create the qtree.
+a|
+
+|===

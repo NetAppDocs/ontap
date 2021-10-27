@@ -1,0 +1,52 @@
+---
+permalink: smb-admin/create-volumes-specified-junction-task.html
+sidebar: sidebar
+keywords: specify, junction, point, create, data, volume, resultant, automatic, mount, configure, nas, access, create data volumes with specified junction points
+summary: "You can specify the junction point when you create a data volume. The resultant volume is automatically mounted at the junction point and is immediately available to configure for NAS access."
+---
+= Create data volumes with specified junction points
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can specify the junction point when you create a data volume. The resultant volume is automatically mounted at the junction point and is immediately available to configure for NAS access.
+
+.Before you begin
+
+The aggregate in which you want to create the volume must already exist.
+
+[NOTE]
+====
+The following characters cannot be used in the junction path: * # " > < | ? \
+
+In addition, the junction path length cannot be more than 255 characters.
+====
+
+.Steps
+
+. Create the volume with a junction point: `volume create -vserver _vserver_name_ -volume _volume_name_ -aggregate _aggregate_name_ -size {integer[KB|MB|GB|TB|PB]} -security-style {ntfs|unix|mixed} -junction-path _junction_path_`
++
+The junction path must start with the root (/) and can contain both directories and junctioned volumes. The junction path does not need to contain the name of the volume. Junction paths are independent of the volume name.
++
+Specifying a volume security style is optional. If you do not specify a security style, ONTAP creates the volume with the same security style that is applied to the root volume of the storage virtual machine (SVM). However, the root volume's security style might not be the security style you want applied to the data volume you create. The recommendation is to specify the security style when you create the volume to minimize difficult-to-troubleshoot file-access issues.
++
+The junction path is case insensitive; `/ENG` is the same as `/eng`. If you create a CIFS share, Windows treats the junction path as if it is case sensitive. For example, if the junction is `/ENG`, the path of a CIFS share must start with `/ENG`, not `/eng`.
++
+There are many optional parameters that you can use to customize a data volume. To learn more about them, see the man pages for the `volume create` command.
+
+. Verify that the volume was created with the desired junction point: `volume show -vserver _vserver_name_ -volume _volume_name_ -junction`
+
+.Example
+
+The following example creates a volume named "`home4`" located on SVM vs1 that has a junction path `/eng/home`:
+
+----
+cluster1::> volume create -vserver vs1 -volume home4 -aggregate aggr1 -size 1g -junction-path /eng/home
+[Job 1642] Job succeeded: Successful
+
+cluster1::> volume show -vserver vs1 -volume home4 -junction
+                  Junction                 Junction
+Vserver   Volume  Active   Junction Path   Path Source
+--------- ------- -------- --------------- -----------
+vs1       home4   true     /eng/home       RW_volume
+----

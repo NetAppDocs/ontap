@@ -1,0 +1,41 @@
+---
+permalink: smb-hyper-v-sql/continuously-available-share-sql-concept.html
+sidebar: sidebar
+keywords: continuously, share, requirements, considerations, sql, server, smb, nondisuptive
+summary: "You need to be aware of certain requirements and considerations when configuring continuously available shares for SQL Server over SMB configurations that support nondisruptive operations."
+---
+= Continuously available share requirements and considerations for SQL Server over SMB
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You need to be aware of certain requirements and considerations when configuring continuously available shares for SQL Server over SMB configurations that support nondisruptive operations.
+
+== Share requirements
+
+* Volumes used to store virtual machine files must be created as NTFS security-style volumes.
++
+To provide nondisruptive operations for application servers using continuously available SMB connections, the volume containing the share must be an NTFS volume. Moreover, it must always have been an NTFS volume. You cannot change a mixed security-style volume or UNIX security-style volume to an NTFS security-style volume and directly use it for nondisruptive operations over SMB shares. If you change a mixed security-style volume to an NTFS security style volume and intend to use it for nondisruptive operations over SMB shares, you must manually place an ACL at the top of the volume and propagate that ACL to all contained files and folders. Otherwise, virtual machine migrations or database file exports and imports where files are moved to another volume can fail if either the source or the destination volumes were initially created as mixed or UNIX security-style volumes and later changed to NTFS security style.
+
+* Shares used by the application servers must be configured with the continuously available property set.
++
+Application servers that connect to continuously available shares receive persistent handles that allow them to reconnect nondisruptively to SMB shares and reclaim file locks after disruptive events, such as takeover, giveback, and aggregate relocation.
+
+* Although the volume containing the database files can contain junctions, SQL Server does not cross junctions when creating the database directory structure.
+* For SnapManager for Microsoft SQL Server backup operations to succeed, you must have enough available space on the volume.
++
+The volume on which the SQL Server database files reside must be large enough to hold the database directory structure and all contained files residing within the share.
+
+* The following share properties must not be set on continuously available shares used by the application servers:
+ ** Home directory
+ ** Attribute caching
+ ** BranchCache
+ ** Access-based enumerations
+
+== Share considerations
+
+* Quotas are supported on continuously available shares.
+* The following functionality is not supported for SQL Server over SMB configurations:
+ ** Auditing
+ ** FPolicy
+* Virus scanning is not performed on SMB shares with the `continuously-availability` share property set.

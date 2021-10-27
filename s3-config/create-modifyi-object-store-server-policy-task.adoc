@@ -1,0 +1,63 @@
+---
+permalink: s3-config/create-modifyi-object-store-server-policy-task.html
+sidebar: sidebar
+keywords: create, modify, object, store, server, policy
+summary: "You can create policies that can apply to one or more buckets in an object store. Object store server policies can be attached to groups of users, thereby simplifying the management of resource access across multiple buckets."
+---
+= Create or modify an object store server policy
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create policies that can apply to one or more buckets in an object store. Object store server policies can be attached to groups of users, thereby simplifying the management of resource access across multiple buckets.
+
+.What you'll need
+
+An S3-enabled SVM containing an S3 server and a bucket must already exist.
+
+.About this task
+
+You can enable access policies at the SVM level by specifying a default or custom policy in an object storage server group. The policies do not take effect until they are specified in the group definition.
+
+[NOTE]
+====
+When you use object storage server policies, you specify principals (that is, users and groups) in the group definition, not in the policy itself.
+====
+
+There are three read-only default policies for access to ONTAP S3 resources:
+
+* FullAccess
+* NoS3Access
+* ReadOnlyAccess
+
+You can also create new custom policies, then add new statements for new users and groups, or you can modify the attributes of existing statements. For more options, see the `vserver object-store-server policy` man pages.
+
+.Steps
+
+. Create an object storage server policy:
++
+`vserver object-store-server policy create -vserver svm_name -policy policy_name [-comment text]`
+. Create a statement for the policy:
++
+`vserver object-store-server policy statement create -vserver svm_name] -policy policy_name -effect {allow|deny} -action object_store_actions -resource object_store_resources [-sid text]`
++
+The following parameters define access permissions:
++
+[cols="2*"]
+|===
+    a|
+`-effect`
+a|
+The statement may allow or deny access
+a|
+`-action`
+a|
+You can specify `*` to mean all actions, or a list of one or more of the following: `GetObject, PutObject, DeleteObject, ListBucket,GetBucketAcl, GetObjectAcl, ListAllMyBuckets, ListBucketMultipartUploads,` and `ListMultipartUploadParts`.
+a|
+`-resource`
+a|
+The bucket and any object it contains. The wildcard characters `*` and `?` can be used to form a regular expression for specifying a resource.
+|===
+You can optionally specify a text string as comment with the `-sid` option.
++
+By default, new statements are added to the end of the list of statements, which are processed in order. When you add or modify statements later, you have the option to modify the statement's `-index` setting to change the processing order.

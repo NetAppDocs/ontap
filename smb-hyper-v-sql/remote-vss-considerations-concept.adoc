@@ -1,0 +1,50 @@
+---
+permalink: smb-hyper-v-sql/remote-vss-considerations-concept.html
+sidebar: sidebar
+keywords: remote, vss, consideration, hyper, v, smb, configuration, backup, solution, automatic, recovery, shadow, copy
+summary: "You need to be aware of certain considerations when using Remote VSS-enabled backup solutions for Hyper-V over SMB configurations."
+---
+= Remote VSS considerations for Hyper-V over SMB configurations
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You need to be aware of certain considerations when using Remote VSS-enabled backup solutions for Hyper-V over SMB configurations.
+
+== General Remote VSS considerations
+
+* A maximum of 64 shares can be configured per Microsoft application server.
++
+The shadow copy operation fails if there are more than 64 shares in a shadow copy set. This is a Microsoft requirement.
+
+* Only one active shadow copy set per CIFS server is allowed.
++
+A shadow copy operation will fail if there is an ongoing shadow copy operation on the same CIFS server. This is a Microsoft requirement.
+
+* No junctions are allowed within the directory structure on which Remote VSS creates a shadow copy.
+ ** In the automatic recovery case, the shadow copy creation will fail if a junction is encountered while traversing the share.
+ ** In the nonautomatic recovery case, the shadow copy creation does not fail, but the junction does not point to anything.
+
+== Remote VSS considerations that apply only for shadow copies with automatic recovery
+
+Certain limits apply only for shadow copies with automatic recovery.
+
+* A maximum directory depth of five subdirectories is allowed for shadow copy creation.
++
+This is the directory depth over which the shadow copy service creates a shadow copy backup set. Shadow copy creation fails if directories containing virtual machine file are nested deeper than five levels. This is intended to limit the directory traversal when cloning the share. The maximum directory depth can be changed by using a CIFS server option.
+
+* Amount of available space on the volume must be adequate.
++
+The available space must be at least as large as the combined space used by all files, directories, and subdirectories contained within the shares included in the shadow copy backup set.
+
+* No links or non-regular files are allowed within the directory structure on which Remote VSS creates a shadow copy.
++
+The shadow copy creation fails if there are any links or non-regular files in the share to the shadow copy. The clone process does not support them.
+
+* No NFSv4 ACLs are allowed on directories.
++
+Although shadow copy creation retains NFSv4 ACLs on files, the NFSv4 ACLs on directories are lost.
+
+* A maximum of 60 seconds is allowed to create a shadow copy set.
++
+Microsoft specifications allow a maximum of 60 seconds to create the shadow copy set. If the VSS client cannot create the shadow copy set within this time, the shadow copy operation fails; therefore, this limits the number of files in a shadow copy set. The actual number of files or virtual machines that can be included in a backup set varies; that number is dependent on many factors, and must be determined for each customer environment.

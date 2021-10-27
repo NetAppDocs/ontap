@@ -1,0 +1,73 @@
+---
+permalink: fabricpool/determine-data-inactive-reporting-task.html
+sidebar: sidebar
+keywords: determining, how, much, data, volume, inactive, using, data reporting, fabricpool
+summary: "Seeing how much data in a volume is inactive enables you to make good use of storage tiers. Information in inactive data reporting helps you decide which aggregate to use for FabricPool, whether to move a volume in to or out of FabricPool, or whether to modify the tiering policy of a volume."
+---
+= Determine how much data in a volume is inactive by using inactive data reporting
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Seeing how much data in a volume is inactive enables you to make good use of storage tiers. Information in inactive data reporting helps you decide which aggregate to use for FabricPool, whether to move a volume in to or out of FabricPool, or whether to modify the tiering policy of a volume.
+
+.What you'll need
+
+You must be running ONTAP 9.4 or later to use the inactive data reporting functionality.
+
+.About this task
+
+* Inactive data reporting is not supported on some aggregates.
++
+You cannot enable inactive data reporting when FabricPool cannot be enabled, including the following instances:
+
+ ** Root aggregates
+ ** MetroCluster aggregates running ONTAP versions earlier than 9.7
+ ** Flash Pool (hybrid aggregates, or SnapLock aggregates)
+
+* Inactive data reporting is enabled by default on all SSD aggregates in ONTAP 9.6.
+* Inactive data reporting is enabled by default on FabricPool aggregate in ONTAP 9.4 and ONTAP 9.5.
+* You can enable inactive data reporting on non-FabricPool aggregates using the ONTAP CLI, including HDD aggregates, beginning with ONTAP 9.6.
+
+.Steps
+
+. If the aggregate for which you want to see inactive data reporting is not used in FabricPool, enable inactive data reporting for the aggregate by using the `storage aggregate modify` command with the `-is-inactive-data-reporting-enabled` `true` parameter.
++
+----
+cluster1::> storage aggregate modify -aggregate aggr1 -is-inactive-data-reporting-enabled true
+----
++
+You need to explicitly enable the inactive data reporting functionality on an aggregate that is not used for FabricPool.
++
+You cannot and do not need to enable inactive data reporting on a FabricPool-enabled aggregate because the aggregate already comes with inactive data reporting. The `-is-inactive-data-reporting-enabled` parameter does not work on FabricPool-enabled aggregates.
++
+The `-fields is-inactive-data-reporting-enabled` parameter of the `storage aggregate show` command shows whether inactive data reporting is enabled on an aggregate.
+
+. To display how much data is inactive on a volume, use the `volume show` command with the `-fields performance-tier-inactive-user-data,performance-tier-inactive-user-data-percent` parameter.
++
+----
+cluster1::> volume show -fields performance-tier-inactive-user-data,performance-tier-inactive-user-data-percent
+
+vserver volume performance-tier-inactive-user-data performance-tier-inactive-user-data-percent
+------- ------ ----------------------------------- -------------------------------------------
+vsim1   vol0   0B                                  0%
+vs1     vs1rv1 0B                                  0%
+vs1     vv1    10.34MB                             0%
+vs1     vv2    10.38MB                             0%
+4 entries were displayed.
+----
+
+ ** The `performance-tier-inactive-user-data` field displays how much user data stored in the aggregate is inactive.
+ ** The `performance-tier-inactive-user-data-percent` field displays what percent of the data is inactive across the active file system and Snapshot copies.
+ ** For an aggregate that is not used for FabricPool, it takes 31 days after you enable inactive data reporting for ONTAP to display inactive data for the entire volume, regardless of whether a tiering policy has been set or what the tiering policy is.
++
+Until the period is reached, the output shows "`-`" for the amount of inactive data instead of a value.
+
+ ** On a volume that is part of FabricPool, what ONTAP reports as inactive depends on the tiering policy that is set on a volume.
+  *** For the `auto` tiering policy, ONTAP reports the inactive amount of the entire volume for the period specified by the `-tiering-minimum-cooling-days` parameter in the advanced privilege level of the `volume create` or `volume modify` command.
++
+If no value is set for `-tiering-minimum-cooling-days`, then ONTAP uses the default value (31 days).
+
+  *** For the `snapshot-only` tiering policy, ONTAP reports the amount of the active file system that is inactive for at least 31 days.
+  *** For the `none` tiering policy, ONTAP reports the amount of the entire volume that is inactive for at least 31 days.
+  *** For the `all` tiering policy, inactive data reporting is not supported.

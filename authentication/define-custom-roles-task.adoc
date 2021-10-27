@@ -1,0 +1,57 @@
+---
+permalink: authentication/define-custom-roles-task.html
+sidebar: sidebar
+keywords: define, custom roles
+summary: "You can use the security login role create command to define a custom role. You can execute the command as many times as necessary to achieve the exact combination of capabilities that you want to associate with the role."
+---
+= Define custom roles
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `security login role create` command to define a custom role. You can execute the command as many times as necessary to achieve the exact combination of capabilities that you want to associate with the role.
+
+.What you'll need
+
+You must be a cluster administrator to perform this task.
+
+.About this task
+
+* A role, whether predefined or custom, grants or denies access to ONTAP commands or command directories.
++
+A command directory (`volume`, for example) is a group of related commands and command subdirectories. Except as described in this procedure, granting or denying access to a command directory grants or denies access to each command in the directory and its subdirectories.
+
+* Specific command access or subdirectory access overrides parent directory access.
++
+If a role is defined with a command directory, and then is defined again with a different access level for a specific command or for a subdirectory of the parent directory, the access level that is specified for the command or subdirectory overrides that of the parent.
+
+[NOTE]
+====
+You cannot assign an SVM administrator a role that gives access to a command or command directory that is available only to the `admin` cluster administrator--for example, the `security` command directory.
+====
+
+.Step
+
+. Define a custom role:
++
+`security login role create -vserver SVM_name -role role -cmddirname command_or_directory_name -access access_level -query query`
++
+For complete command syntax, see the link:config-worksheets-reference.html[worksheet].
++
+The following commands grant the `vol_role` role full access to the commands in the `volume` command directory and read-only access to the commands in the `volume snapshot` subdirectory.
++
+----
+cluster1::>security login role create -role vol_role -cmddirname "volume" -access all
+
+cluster1::>security login role create -role vol_role -cmddirname "volume snapshot" -access readonly
+----
++
+The following commands grant the `SVM_storage` role read-only access to the commands in the `storage` command directory, no access to the commands in the `storage encryption` subdirectory, and full access to the `storage aggregate plex offline` nonintrinsic command.
++
+----
+cluster1::>security login role create -role SVM_storage -cmddirname "storage" -access readonly
+
+cluster1::>security login role create -role SVM_storage -cmddirname "storage encryption" -access none
+
+cluster1::>security login role create -role SVM_storage -cmddirname "storage aggregate plex offline" -access all
+----

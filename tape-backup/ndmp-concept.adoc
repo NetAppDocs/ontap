@@ -1,0 +1,54 @@
+---
+permalink: tape-backup/ndmp-concept.html
+sidebar: sidebar
+keywords: ncmp, considerations, using, service, storage, system
+summary: "You must take into account a number of considerations when starting the NDMP service on your storage system."
+---
+= Considerations when using NDMP
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You must take into account a number of considerations when starting the NDMP service on your storage system.
+
+* Each node supports a maximum of 16 concurrent backups, restores, or combination of the two using connected tape drives.
+* NDMP services can generate file history data at the request of NDMP backup applications.
++
+File history is used by backup applications to enable optimized recovery of selected subsets of data from a backup image. File history generation and processing might be time-consuming and CPU-intensive for both the storage system and the backup application.
++
+[NOTE]
+====
+SMTape does not support file history.
+====
++
+If your data protection is configured for disaster recovery--where the entire backup image will be recovered--you can disable file history generation to reduce backup time. See your backup application documentation to determine whether it is possible to disable NDMP file history generation.
+
+* Firewall policy for NDMP is enabled by default on all LIF types.
+* In node-scoped NDMP mode, backing up a FlexVol volume requires that you use the backup application to initiate a backup on a node that owns the volume.
++
+However, you cannot back up a node root volume.
+
+* You can perform NDMP backup from any LIF as permitted by the firewall policies.
++
+If you use a data LIF, you must select a LIF that is not configured for failover. If a data LIF fails over during an NDMP operation, the NDMP operation fails and must be run again.
+
+* In node-scoped NDMP mode and storage virtual machine (SVM) scoped NDMP mode with no CAB extension support, the NDMP data connection uses the same LIF as the NDMP control connection.
+* During LIF migration, ongoing backup and restore operations are disrupted.
++
+You must initiate the backup and restore operations after the LIF migration.
+
+* The NDMP backup path is of the format `_/vserver_name/volume_name/path_name_`.
++
+`_path_name_` is optional, and specifies the path of the directory, file, or Snapshot copy.
+
+* When a SnapMirror destination is backed up to tape by using the dump engine, only the data in the volume is backed up.
++
+However, if a SnapMirror destination is backed up to tape using SMTape, then the metadata is also backed up. The SnapMirror relationships and the associated metadata are not backed up to tape. Therefore, during restore, only the data on that volume is restored, but the associated SnapMirror relationships are not restored.
+
+*Related information*
+
+xref:cluster-aware-backup-extension-concept.adoc[What Cluster Aware Backup extension does]
+
+link:../concepts/index.html[ONTAP concepts]
+
+link:../system-admin/index.html[System administration]

@@ -1,0 +1,140 @@
+---
+permalink: smb-admin/monitor-signed-session-statistics-task.html
+sidebar: sidebar
+keywords: monitor, smb, session, statistic, establish, sign, monitor smb signed session statistics
+summary: "You can monitor SMB sessions statistics and determine which established sessions are signed and which are not."
+---
+= Monitor SMB signed session statistics
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can monitor SMB sessions statistics and determine which established sessions are signed and which are not.
+
+.About this task
+
+The `statistics` command at the advanced privilege level provides the `signed_sessions` counter that you can use to monitor the number of signed SMB sessions. The `signed_sessions` counter is available with the following statistics objects:
+
+* `cifs` enables you to monitor SMB signing for all SMB sessions.
+* `smb1` enables you to monitor SMB signing for SMB 1.0 sessions.
+* `smb2` enables you to monitor SMB signing for SMB 2.x and SMB 3.0 sessions.
++
+[NOTE]
+====
+SMB 3.0 statistics are included in the output for the `smb2` object.
+====
+
+If you want to compare the number of signed session to the total number of sessions, you can compare output for the `signed_sessions` counter with the output for the `established_sessions` counter.
+
+You must start a statistics sample collection before you can view the resultant data. You can view data from the sample if you do not stop data collection. Stopping data collection gives you a fixed sample. Not stopping data collection gives you the ability to get updated data that you can use to compare against previous queries. The comparison can help you identify trends.
+
+.Steps
+
+. Set the privilege level to advanced: `set -privilege advanced`
+. Start a data collection: `statistics start -object {cifs|smb1|smb2} -instance instance -sample-id _sample_ID_ [-node _node_name_]`
++
+If you do not specify the `-sample-id` parameter, the command generates a sample identifier for you and defines this sample as the default sample for the CLI session. The value for `-sample-id` is a text string. If you run this command during the same CLI session and do not specify the `-sample-id` parameter, the command overwrites the previous default sample.
++
+You can optionally specify the node on which you want to collect statistics. If you do not specify the node, the sample collects statistics for all nodes in the cluster.
+
+. Use the `statistics stop` command to stop collecting data for the sample.
+. View SMB signing statistics:
++
+[options="header"]
+|===
+| If you want to view information for...| Enter...
+a|
+Signed sessions
+a|
+`show -sample-id sample_ID -counter signed_sessions\|_node_name_ [-node _node_name_]`
+a|
+Signed sessions and established sessions
+a|
+`show -sample-id _sample_ID_ -counter signed_sessions\|established_sessions\|_node_name_ [-node node_name]`
+|===
+If you want to display information for only a single node, specify the optional `-node` parameter.
+
+. Return to the admin privilege level: `set -privilege admin`
+
+.Examples
+
+The following example shows how you can monitor SMB 2.x and SMB 3.0 signing statistics on storage virtual machine (SVM) vs1.
+
+The following command moves to the advanced privilege level:
+
+----
+cluster1::> set -privilege advanced
+
+Warning: These advanced commands are potentially dangerous; use them only when directed to do so by support personnel.
+Do you want to continue? {y|n}: y
+----
+
+The following command starts data collection for a new sample:
+
+----
+cluster1::*> statistics start -object smb2 -sample-id smbsigning_sample -vserver vs1
+Statistics collection is being started for Sample-id: smbsigning_sample
+----
+
+The following command stops the data collection for the sample:
+
+----
+cluster1::*> statistics stop -sample-id smbsigning_sample
+Statistics collection is being stopped for Sample-id: smbsigning_sample
+----
+
+The following command shows signed SMB sessions and established SMB sessions by node from the sample:
+
+----
+cluster1::*> statistics show -sample-id smbsigning_sample -counter signed_sessions|established_sessions|node_name
+
+Object: smb2
+Instance: vs1
+Start-time: 2/6/2013 01:00:00
+End-time: 2/6/2013 01:03:04
+Cluster: cluster1
+
+    Counter                                              Value
+    -------------------------------- -------------------------
+    established_sessions                                     0
+    node_name                                           node1
+    signed_sessions                                          0
+    established_sessions                                     1
+    node_name                                           node2
+    signed_sessions                                          1
+    established_sessions                                     0
+    node_name                                           node3
+    signed_sessions                                          0
+    established_sessions                                     0
+    node_name                                           node4
+    signed_sessions                                          0
+----
+
+The following command shows signed SMB sessions for node2 from the sample:
+
+----
+cluster1::*> statistics show -sample-id smbsigning_sample -counter signed_sessions|node_name -node node2
+
+Object: smb2
+Instance: vs1
+Start-time: 2/6/2013 01:00:00
+End-time: 2/6/2013 01:22:43
+Cluster: cluster1
+
+    Counter                                              Value
+    -------------------------------- -------------------------
+    node_name                                            node2
+    signed_sessions                                          1
+----
+
+The following command moves back to the admin privilege level:
+
+----
+cluster1::*> set -privilege admin
+----
+
+*Related information*
+
+xref:determine-sessions-signed-task.adoc[Determining whether SMB sessions are signed]
+
+link:../performance-config/index.html[Performance monitoring express setup]

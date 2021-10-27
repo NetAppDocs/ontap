@@ -1,0 +1,72 @@
+---
+permalink: fabricpool/replace-mirror-mcc-task.html
+sidebar: sidebar
+keywords: replacing, fabricpool, mirror, metrocluster, configuration
+summary: "If one of the object stores in a FabricPool mirror is destroyed or becomes permanently unavailable on a MetroCluster configuration, you can make the object store the mirror if it is not the mirror already, remove the damaged object store from FabricPool mirror, and then add a new object store mirror to the FabricPool."
+---
+= Replace a FabricPool mirror on a MetroCluster configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If one of the object stores in a FabricPool mirror is destroyed or becomes permanently unavailable on a MetroCluster configuration, you can make the object store the mirror if it is not the mirror already, remove the damaged object store from FabricPool mirror, and then add a new object store mirror to the FabricPool.
+
+.Steps
+
+. If the damaged object store is not already the mirror, make the object store the mirror with the `storage aggregate object-store modify` command.
++
+----
+storage aggregate object-store modify -aggregate -aggregate fp_aggr1_A01 -name mcc1_ostore1 -mirror-type mirror
+----
+
+. Remove the object store mirror from the FabricPool by using the `storage aggregate object-store unmirror` command.
++
+----
+storage aggregate object-store unmirror -aggregate <aggregate name> -name mcc1_ostore1
+----
+
+. You can force tiering to resume on the primary data store after you remove the mirror data store by using the `storage aggregate object-store modify` with the `-force-tiering-on-metrocluster true` option.
++
+The absence of a mirror interferes with the replication requirements of a MetroCluster configuration.
++
+----
+storage aggregate object-store modify -aggregate <aggregate name> -name mcc1_ostore1 -force-tiering-on-metrocluster true
+----
+
+. Create a replacement object store by using the `storage aggregate object-store config create` command.
++
+----
+storage aggregate object-store config create -object-store-name mcc1_ostore3 -cluster clusterA -provider-type SGWS -server <SGWS-server-1> -container-name <SGWS-bucket-1> -access-key <key> -secret-password <password> -encrypt <true|false> -provider <provider-type> -is-ssl-enabled <true|false> ipspace <IPSpace>
+----
+
+. Add the object store mirror to the FabricPool mirror using the `storage aggregate object-store mirror` command.
++
+----
+storage aggregate object-store mirror -aggregate aggr1 -name mcc1_ostore3-mc
+----
+
+. Display the object store information using the `storage aggregate object-store show` command.
++
+----
+storage aggregate object-store show -fields mirror-type,is-mirror-degraded
+----
++
+----
+aggregate      object-store-name mirror-type     is-mirror-degraded
+-------------- ----------------- ------------- ------------------
+aggr1          mcc1_ostore1-mc    primary           -
+               mcc1_ostore3-mc    mirror          true
+----
+
+. Monitor the mirror resync status using the `storage aggregate object-store show-resync-status` command.
++
+----
+storage aggregate object-store show-resync-status -aggregate aggr1
+----
++
+----
+                                                  Complete
+      Aggregate    Primary        Mirror          Percentage
+      ---------    -----------    ----------      ----------
+      aggr1        mcc1_ostore1-mc mcc1_ostore3-mc   40%
+----

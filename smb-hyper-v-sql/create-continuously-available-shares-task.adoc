@@ -1,0 +1,66 @@
+---
+permalink: smb-hyper-v-sql/create-continuously-available-shares-task.html
+sidebar: sidebar
+keywords: create, continuous, smb, available, share, sql, database, file, server, hyper, v, virtual, machine
+summary: "After you create your data volumes, you can create the continuously available shares that the application servers use to access Hyper-V virtual machine and configuration files and SQL Server database files. You should use the share configuration worksheet as you create the SMB shares."
+---
+= Create continuously available SMB shares
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+After you create your data volumes, you can create the continuously available shares that the application servers use to access Hyper-V virtual machine and configuration files and SQL Server database files. You should use the share configuration worksheet as you create the SMB shares.
+
+.Steps
+
+. Display information about the existing data volumes and their junction paths:
++
+`*volume show -vserver _vserver_name_ -junction*`
+. Create a continuously available SMB share:
++
+`*vserver cifs share create -vserver _vserver_name_ -share-name _share_name_ -path _path_ -share-properties oplocks,continuously-available -symlink "" [-comment text]*`
+
+** You can optionally add a comment to the share configuration.
+
+** By default, the offline files share property is configured on the share and is set to `manual`.
+
+** ONTAP creates the share with the Windows default share permission of `Everyone` / `Full Control`.
+
+. Repeat the previous step for all shares in the share configuration worksheet.
+. Verify that your configuration is correct by using the `vserver cifs share show` command.
+. Configure NTFS file permissions on the continuously available shares by mapping a drive to each share, and configuring file permissions by using the *Windows Properties* window.
+
+.Example
+
+The following commands create a continuously available share named "`data2`" on storage virtual machine (SVM, formerly known as Vserver) vs1. Symlinks are disabled by setting the `-symlink` parameter to `""`:
+
+----
+cluster1::> volume show -vserver vs1 -junction
+                      Junction                  Junction
+Vserver   Volume      Active   Junction Path    Path Source
+--------- ----------- -------- ---------------- ------------
+vs1       data        true     /data            RW_volume
+vs1       data1       true     /data/data1      RW_volume
+vs1       data2       true     /data/data2      RW_volume
+vs1       vs1_root    -        /                -
+
+cluster1::> vserver cifs share create -vserver vs1 -share-name data2 -path /data/data2 -share-properties oplocks,continuously-available -symlink ""
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2
+
+                      Vserver: vs1
+                        Share: data2
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data/data2
+             Share Properties: oplocks
+                               continuously-available
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----

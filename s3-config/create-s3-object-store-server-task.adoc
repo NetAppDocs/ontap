@@ -1,0 +1,67 @@
+---
+permalink: s3-config/create-s3-object-store-server-task.html
+sidebar: sidebar
+keywords: create, s3 object, store, server
+summary: "The ONTAP object store server manages data as S3 objects, as opposed to file or block storage provided by ONTAP NAS and SAN servers."
+---
+= Create the S3 object store server
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The ONTAP object store server manages data as S3 objects, as opposed to file or block storage provided by ONTAP NAS and SAN servers.
+
+.What you'll need
+
+You should have a self-signed CA certificate (created in previous steps) or a certificate signed by an external CA vendor. A CA certificate is not necessary for a local tiering use case, where IP traffic is going over cluster LIFs only.
+
+.About this task
+
+When an object store server is created, a root user with UID 0 is created. No access key or secret key is generated for this root user. The ONTAP administrator must run the `object-store-server users regenerate-keys` command to set the access key and secret key for this user.
+
+[NOTE]
+====
+As a NetApp best practice, do not use this root user. Any client application that uses the access key or secret key of the root user has full access to all buckets and objects in the object store.
+====
+
+See the `vserver object-store-server` man pages for additional configuration and display options.
+
+.Steps
+
+. Create the S3 server:
++
+`vserver object-store-server create -vserver svm_name -object-store-server s3_server_name -certificate-name ca_cert_name -comment text [additional_options]`
++
+You can specify additional options when creating the S3 server or at any time later.
+
+ ** The SVM name can be either a data SVM or `Cluster` (the system SVM name) if you are configuring local tiering.
+ ** HTTPS is enabled by default on port 443. You can change the port number with the `-secure-listener-port` option.
++
+When HTTPS is enabled, CA certificates are required for proper integration with SSL/TLS.
+
+ ** HTTP is disabled by default; when enabled, the server listens on port 80. You can enable it with the `-is-http-enabled` option or change the port number with the `-listener-port` option.
++
+When HTTP is enabled, all the request and responses are sent over the network in clear text.
+
+. Verify that S3 is configured as desired:
++
+`vserver object-store-server show`
+
+.Example
+
+The following command verifies the configuration values of all object storage servers:
+
+----
+cluster1::> vserver object-store-server show
+
+            Vserver: vs1
+
+                      Object Store Server Name: s3.example.com
+                          Administrative State: up
+                        Listener Port For HTTP: 80
+                Secure Listener Port For HTTPS: 443
+                                  HTTP Enabled: false
+                                 HTTPS Enabled: true
+             Certificate for HTTPS Connections: svm1_ca
+                                       Comment: Server comment
+----

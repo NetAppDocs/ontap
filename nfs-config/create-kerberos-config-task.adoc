@@ -1,0 +1,65 @@
+---
+permalink: nfs-config/create-kerberos-config-task.html
+sidebar: sidebar
+keywords: enable, kerberos, data, lif
+summary: "You can use the vserver nfs kerberos interface enable command to enable Kerberos on a data LIF. This enables the SVM to use Kerberos security services for NFS."
+---
+= Enable Kerberos on a data LIF
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `vserver nfs kerberos interface enable` command to enable Kerberos on a data LIF. This enables the SVM to use Kerberos security services for NFS.
+
+.About this task
+
+If you are using an Active Directory KDC, the first 15 characters of any SPNs used must be unique across SVMs within a realm or domain.
+
+.Steps
+
+. Create the NFS Kerberos configuration:
++
+`vserver nfs kerberos interface enable -vserver _vserver_name_ -lif _logical_interface_ -spn _service_principal_name_`
++
+ONTAP requires the secret key for the SPN from the KDC to enable the Kerberos interface.
++
+For Microsoft KDCs, the KDC is contacted and a user name and password prompt are issued at the CLI to obtain the secret key. If you need to create the SPN in a different OU of the Kerberos realm, you can specify the optional `-ou` parameter.
++
+For non-Microsoft KDCs, the secret key can be obtained using one of two methods:
++
+[options="header"]
+|===
+| If you...| You must also include the following parameter with the command...
+a|
+Have the KDC administrator credentials to retrieve the key directly from the KDC
+a|
+`-admin-username` `_kdc_admin_username_`
+a|
+Do not have the KDC administrator credentials but have a keytab file from the KDC containing the key
+a|
+`-keytab-uri` {ftp\|http}://`_uri_`
+|===
+
+. Verify that Kerberos was enabled on the LIF:
++
+`vserver nfs kerberos-config show`
+. Repeat steps 1 and 2 to enable Kerberos on multiple LIFs.
+
+.Example
+
+The following command creates and verifies an NFS Kerberos configuration for the SVM named vs1 on the logical interface ves03-d1, with the SPN nfs/ves03-d1.lab.example.com@TEST.LAB.EXAMPLE.COM in the OU lab2ou:
+
+----
+vs1::> vserver nfs kerberos interface enable -lif ves03-d1 -vserver vs2
+-spn nfs/ves03-d1.lab.example.com@TEST.LAB.EXAMPLE.COM -ou "ou=lab2ou"
+
+vs1::>vserver nfs kerberos-config show
+        Logical
+Vserver Interface Address       Kerberos  SPN
+------- --------- -------       --------- -------------------------------
+vs0     ves01-a1
+                  10.10.10.30   disabled  -
+vs2     ves01-d1
+                  10.10.10.40   enabled   nfs/ves03-d1.lab.example.com@TEST.LAB.EXAMPLE.COM
+2 entries were displayed.
+----
