@@ -1,0 +1,48 @@
+---
+permalink: nfs-config/configure-name-service-switch-table-task.html
+sidebar: sidebar
+keywords: configue, name, service, switch, table
+summary: "You must configure the name service switch table correctly to enable ONTAP to consult local or external name services to retrieve host, user, group, netgroup, or name mapping information."
+---
+= Configure the name service switch table
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You must configure the name service switch table correctly to enable ONTAP to consult local or external name services to retrieve host, user, group, netgroup, or name mapping information.
+
+.What you'll need
+
+You must have decided which name services you want to use for host, user, group, netgroup, or name mapping as applicable to your environment.
+
+If you plan to use netgroups, all IPv6 addresses specified in netgroups must be shortened and compressed as specified in RFC 5952.
+
+.About this task
+
+Do not include information sources that are not being used. For example, if NIS is not being used in your environment, do not specify the `-sources nis` option.
+
+.Steps
+
+. Add the necessary entries to the name service switch table:
++
+`vserver services name-service ns-switch create -vserver _vserver_name_ -database _database_name_ -sources _source_names_`
+. Verify that the name service switch table contains the expected entries in the desired order:
++
+`vserver services name-service ns-switch show -vserver _vserver_name_`
++
+If you want to make any corrections, you must use the `vserver services name-service ns-switch modify` or `vserver services name-service ns-switch delete` commands.
+
+.Example
+
+The following example creates a new entry in the name service switch table for the SVM vs1 to use the local netgroup file and an external NIS server to look up netgroup information in that order:
+
+----
+cluster::> vserver services name-service ns-switch create -vserver vs1 -database netgroup -sources files,nis
+----
+
+.After you finish
+
+* You must configure the name services you have specified for the SVM to provide data access.
+* If you delete any name service for the SVM, you must remove it from the name service switch table as well.
++
+The client access to the storage system might not work as expected, if you fail to delete the name service from the name service switch table.

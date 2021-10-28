@@ -1,0 +1,73 @@
+---
+permalink: disks-aggregates/create-flash-pool-aggregate-ssd-storage-task.html
+sidebar: sidebar
+keywords: create, flash pool, aggregate, ssd, storage pool, allocation units
+summary: "You can configure a Flash Pool aggregate by adding one or more allocation units from an SSD storage pool to an existing HDD aggregate."
+---
+= Create a Flash Pool aggregate using SSD storage pool allocation units
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can configure a Flash Pool aggregate by adding one or more allocation units from an SSD storage pool to an existing HDD aggregate.
+
+.What you'll need
+
+* You must have identified a valid aggregate composed of HDDs to convert to a Flash Pool aggregate.
+* You must have determined write-caching eligibility of the volumes associated with the aggregate, and completed any required steps to resolve eligibility issues.
+* You must have created an SSD storage pool to provide the SSD cache to this Flash Pool aggregate.
++
+Any allocation unit from the storage pool that you want to use must be owned by the same node that owns the Flash Pool aggregate.
+
+* You must have determined how much cache you want to add to the aggregate.
++
+You add cache to the aggregate by allocation units. You can increase the size of the allocation units later by adding SSDs to the storage pool if there is room.
+
+* You must have determined the RAID type you want to use for the SSD cache.
++
+After you add a cache to the aggregate from SSD storage pools, you cannot change the RAID type of the cache RAID groups.
+
+* You must have determined the maximum cache size for your system and determined that adding SSD cache to your aggregate will not cause you to exceed it.
++
+You can see the amount of cache that will be added to the total cache size by using the `storage pool show` command.
+
+* You must have familiarized yourself with the configuration requirements for Flash Pool aggregates.
+
+.About this task
+
+If you want the RAID type of the cache to different from that of the HDD RAID groups, you must specify the cache RAID type when you add the SSD capacity. After you add the SSD capacity to the aggregate, you can no longer change the RAID type of the cache.
+
+After you add an SSD cache to an aggregate to create a Flash Pool aggregate, you cannot remove the SSD cache to convert the aggregate back to its original configuration.
+
+.Steps
+
+. Mark the aggregate as eligible to become a Flash Pool aggregate:
++
+`storage aggregate modify -aggregate _aggr_name_ -hybrid-enabled true`
++
+If this step does not succeed, determine write-caching eligibility for the target aggregate.
+
+. Show the available SSD storage pool allocation units:
++
+`storage pool show-available-capacity`
+. Add the SSD capacity to the aggregate:
++
+`storage aggregate add _aggr_name_ -storage-pool _sp_name_ -allocation-units _number_of_units_`
++
+If you want the RAID type of the cache to be different from that of the HDD RAID groups, you must change it when you enter this command by using the `raidtype` parameter.
++
+You do not need to specify a new RAID group; ONTAP automatically puts the SSD cache into separate RAID groups from the HDD RAID groups.
++
+You cannot set the RAID group size of the cache; it is determined by the number of SSDs in the storage pool.
++
+The cache is added to the aggregate and the aggregate is now a Flash Pool aggregate. Each allocation unit added to the aggregate becomes its own RAID group.
+
+. Confirm the presence and size of the SSD cache:
++
+`storage aggregate show _aggr_name_`
++
+The size of the cache is listed under `Total Hybrid Cache Size`.
+
+*Related information*
+
+http://www.netapp.com/us/media/tr-4070.pdf[NetApp Technical Report 4070: Flash Pool Design and Implementation Guide]

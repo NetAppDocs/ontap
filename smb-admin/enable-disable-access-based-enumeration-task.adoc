@@ -1,0 +1,82 @@
+---
+permalink: smb-admin/enable-disable-access-based-enumeration-task.html
+sidebar: sidebar
+keywords: enable, disable, access-based, enumeration, abe, smb, allow, prevent, user, permission, access, enable or disable access-based enumeration on smb shares
+summary: "You can enable or disable access-based enumeration (ABE) on SMB shares to allow or prevent users from seeing shared resources that they do not have permission to access."
+---
+= Enable or disable access-based enumeration on SMB shares
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can enable or disable access-based enumeration (ABE) on SMB shares to allow or prevent users from seeing shared resources that they do not have permission to access.
+
+.About this task
+
+By default, ABE is disabled.
+
+.Steps
+
+. Perform one of the following actions:
++
+[options="header"]
+|===
+| If you want to...| Enter the command...
+a|
+Enable ABE on a new share
+a|
+`vserver cifs share create -vserver vserver_name -share-name share_name -path path -share-properties access-based-enumeration`     You can specify additional optional share settings and additional share properties when you create an SMB share. For more information, see the man page for the `vserver cifs share create` command.
+a|
+Enable ABE on an existing share
+a|
+`vserver cifs share properties add -vserver vserver_name -share-name share_name -share-properties access-based-enumeration`     Existing share properties are preserved. The ABE share property is added to the existing list of share properties.
+a|
+Disable ABE on an existing share
+a|
+`vserver cifs share properties remove -vserver vserver_name -share-name share_name -share-properties access-based-enumeration`     Other share properties are preserved. Only the ABE share property is removed from the list of share properties.
+|===
+
+. Verify that the share configuration is correct by using the `vserver cifs share show` command.
+
+.Examples
+
+The following example creates an ABE SMB share named "`sales`" with a path of `/sales` on SVM vs1. The share is created with `access-based-enumeration` as a share property:
+
+----
+cluster1::> vserver cifs share create -vserver vs1 -share-name sales -path /sales  -share-properties access-based-enumeration,oplocks,browsable,changenotify
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name sales
+
+                      Vserver: vs1
+                        Share: sales
+     CIFS Server NetBIOS Name: VS1
+                         Path: /sales
+             Share Properties: access-based-enumeration
+                               oplocks
+                               browsable
+                               changenotify
+           Symlink Properties: enable
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: -
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----
+
+The following example adds the `access-based-enumeration` share property to an SMB share named "`data2`":
+
+----
+cluster1::> vserver cifs share properties add -vserver vs1 -share-name data2 -share-properties access-based-enumeration
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2 -fields share-name,share-properties
+server  share-name share-properties
+------- ---------- -------------------------------------------------------
+vs1     data2      oplocks,browsable,changenotify,access-based-enumeration
+----
+
+*Related information*
+
+xref:add-remove-share-properties-eexisting-share-task.adoc[Adding or removing share properties on an existing SMB share]

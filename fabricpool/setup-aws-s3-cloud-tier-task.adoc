@@ -1,0 +1,40 @@
+---
+permalink: fabricpool/setup-aws-s3-cloud-tier-task.html
+sidebar: sidebar
+keywords: setting up, aws, s3, cloud tier
+summary: "If you are running ONTAP 9.2 or later, you can set up AWS S3 as the cloud tier for FabricPool. If you are running ONTAP 9.5 or later, you can set up AWS Commercial Cloud Services (C2S) for FabricPool."
+---
+= Set up AWS S3 as the cloud tier
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you are running ONTAP 9.2 or later, you can set up AWS S3 as the cloud tier for FabricPool. If you are running ONTAP 9.5 or later, you can set up AWS Commercial Cloud Services (C2S) for FabricPool.
+
+.Steps
+
+. Specify the AWS S3 configuration information by using the `storage aggregate object-store config create` command with the `-provider-type` `AWS_S3` parameter.
+ ** You use the `-auth-type` `CAP` parameter to obtain credentials for C2S access.
++
+When you use the `-auth-type` `CAP` parameter, you must use the `-cap-url` parameter to specify the full URL to request temporary credentials for C2S access.
+
+ ** The `storage aggregate object-store config create` command fails if ONTAP cannot access AWS S3 with the provided information.
+ ** You use the `-access-key` parameter to specify the access key for authorizing requests to the AWS S3 object store.
+ ** You use the `-secret-password` parameter to specify the password (secret access key) for authenticating requests to the AWS S3 object store.
+ ** If the AWS S3 password is changed, you should update the corresponding password stored in ONTAP immediately.
++
+Doing so enables ONTAP to access the data in AWS S3 without interruption.
++
+----
+cluster1::> storage aggregate object-store config create
+-object-store-name my_aws_store -provider-type AWS_S3
+-server s3.amazonaws.com -container-name my-aws-bucket
+-access-key DXJRXHPXHYXA9X31X3JX
+----
++
+----
+cluster1::> storage aggregate object-store config create -object-store-name my_c2s_store -provider-type AWS_S3 -auth-type CAP -cap-url https://123.45.67.89/api/v1/credentials?agency=XYZ&mission=TESTACCT&role=S3FULLACCESS -server my-c2s-s3server-fqdn -container my-c2s-s3-bucket
+----
+. Display and verify the AWS S3 configuration information by using the `storage aggregate object-store config show` command.
++
+The `storage aggregate object-store config modify` command enables you to modify the AWS S3 configuration information for FabricPool.

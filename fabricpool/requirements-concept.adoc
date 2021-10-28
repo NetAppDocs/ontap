@@ -1,0 +1,224 @@
+---
+permalink: fabricpool/requirements-concept.html
+sidebar: sidebar
+keywords: considerations, requirements, using, fabricpool
+summary: "You should familiarize yourself with a few considerations and requirements about using FabricPool."
+---
+= Considerations and requirements for using FabricPool
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You should familiarize yourself with a few considerations and requirements about using FabricPool.
+
+== General considerations and requirements
+
+* You must be running ONTAP 9.2 at the minimum to use FabricPool.
+* You must be running ONTAP 9.4 or later releases for the following FabricPool functionality:
+ ** The `auto` tiering policy
++
+link:tiering-policies-concept.html#types-of-fabricpool-tiering-policies[Types of FabricPool tiering policies]
+
+ ** Specifying the tiering minimum cooling period
+ ** Inactive data reporting
+ ** Using Microsoft Azure Blob Storage for the cloud as the cloud tier for FabricPool
+ ** Using FabricPool with ONTAP Select
+* You must be running ONTAP 9.5 or later releases for the following FabricPool functionality:
+ ** Specifying the tiering fullness threshold
+ ** Using IBM Cloud Object Storage as the cloud tier for FabricPool
+ ** NetApp Volume Encryption (NVE) of the cloud tier, enabled by default.
+* You must be running ONTAP 9.6 or later releases for the following FabricPool functionality:
+ ** The `all` tiering policy
+ ** Inactive data reporting enabled manually on HDD aggregates
+ ** Inactive data reporting enabled automatically for SSD aggregates when you upgrade to ONTAP 9.6 and at time aggregate is created, except on low end systems with less than 4 CPU, less than 6 GB of RAM, or when WAFL-buffer-cache size is less than 3 GB.
++
+ONTAP monitors system load, and if the load remains high for 4 continuous minutes, IDR is disabled, and is not automatically enabled. You can reenable IDR manually, however, manually enabled IDR is not automatically disabled.
+
+ ** Using Alibaba Cloud Object Storage as the cloud tier for FabricPool
+ ** Using Google Cloud Platform as the cloud tier for FabricPool
+ ** Volume move without cloud tier data copy
+* You must be running ONTAP 9.7 or later releases for the following FabricPool functionality:
+ ** Non transparent HTTP and HTTPS proxy to provide access to only whitelisted access points, and to provide auditing and reporting capabilities.
+ ** FabricPool mirroring to tier cold data to two object stores simultaneously
+ ** FabricPool mirrors on MetroCluster configurations
+ ** NDMP dump and restore enabled by default on FabricPool attached aggregates.
++
+[NOTE]
+====
+If the backup application uses a protocol other than NDMP, such as NFS or CIFS, all data being backed up in the performance tier becomes hot and can affect tiering of that data to the cloud tier. Non-NDMP reads can cause data migration from the cloud tier back to the performance tier.
+====
++
+https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/NDMP_Backup_and_Restore_supported_for_FabricPool%3F[NDMP Backup and Restore Support for FabricPool]
+* You must be running ONTAP 9.8 or later for the following FabricPool functionality:
+ ** Cloud migration control to enable you to override the default tiering policy
+ ** Promoting data to the performance tier
+ ** FabricPool with SnapLock Enterprise
+ ** Minimum cooling period maximum of 183 days
+ ** Object tagging using user-created custom tags
+ ** FabricPools on HDD platforms and aggregates
++
+HDD FabricPools are supported with SAS, FSAS, BSAS and MSATA disks only on systems with 6 or more CPU cores, including the following models:
+
+  *** FAS9000
+  *** FAS8700
+  *** FAS8300
+  *** FAS8200
+  *** FAS8080
+  *** FAS8060
+  *** FAS8040
+  *** FAS8020
+  *** FAS2750
+  *** FAS2720
+  *** FAS2650
+  *** FAS2620
++
+Check https://hwu.netapp.com/Home/Index[Hardware Universe] for the latest supported models.
+* FabricPool is supported on all platforms capable of running ONTAP 9.2 except for the following:
+ ** FAS2554
+ ** FAS2552
+ ** FAS2520
+* FabricPool supports the following aggregate types:
+ ** On AFF systems, you can use only all flash (all SSD) aggregates for FabricPool.
++
+You cannot use Flash Pool aggregates (which contain both SSDs and HDDs).
+
+ ** On FAS systems, you can use either all flash (all SSD) or HDD aggregates for FabricPool.
+ ** On Cloud Volumes ONTAP and ONTAP Select, you can use either SSD or HDD aggregates for FabricPool.
++
+However, using SSD aggregates is recommended.
+* FabricPool supports using the following object stores as the cloud tier:
+ ** NetApp StorageGRID 10.3 or later
+ ** NetApp ONTAP S3 (ONTAP 9.8 and later)
+ ** Alibaba Cloud Object Storage
+ ** Amazon Web Services Simple Storage Service (AWS S3)
+ ** Google Cloud Storage
+ ** IBM Cloud Object Storage
+ ** Microsoft Azure Blob Storage for the cloud
+* The object store "`bucket`" (container) you plan to use must have already been set up, must have at least 10 GB of storage space, and must not be renamed.
+* HA pairs that use FabricPool require intercluster LIFs to communicate with the object store.
+* You cannot detach an object store bucket from the FabricPool configuration after it is attached.
+* If you use throughput floors (QoS Min), the tiering policy on the volumes must be set to `none` before the aggregate can be attached to FabricPool.
++
+Other tiering policies prevent the aggregate from being attached to FabricPool.
+
+* You should follow the best practice guidelines for using FabricPool in specific scenarios.
++
+http://www.netapp.com/us/media/tr-4598.pdf[NetApp Technical Report 4598: FabricPool Best Practices in ONTAP 9]
+
+== Additional considerations when using Cloud Volumes ONTAP
+
+Cloud Volumes ONTAP does not require a FabricPool license, regardless of the object store provider you are using.
+
+== Additional considerations for using StorageGRID with FabricPool
+
+* You need to install a CA certificate for StorageGRID, unless you explicitly disable certificate checking.
+* You must not enable StorageGRID object versioning on the object store bucket.
+* A FabricPool license is not required.
+* If a StorageGRID node is deployed in a virtual machine with storage assigned from a NetApp AFF system, confirm that the volume does not have a FabricPool tiering policy enabled.
++
+Disabling FabricPool tiering for volumes used with StorageGRID nodes simplifies troubleshooting and storage operations.
++
+[NOTE]
+====
+Never use FabricPool to tier any data related to StorageGRID back to StorageGRID itself. Tiering StorageGRID data back to StorageGRID increases troubleshooting and operational complexity.
+====
+
+== Additional considerations for using Alibaba Cloud Object Storage with FabricPool
+
+* You might need a FabricPool license.
++
+Newly ordered AFF systems come with 10 TB of free capacity for using FabricPool. If you need additional capacity on an AFF system, if you use Alibaba Cloud Object Storage on a non-AFF system, or if you upgrade from an existing cluster, you need a FabricPool license.
+
+* On AFF and FAS systems and ONTAP Select, FabricPool supports the following Alibaba Object Storage Service classes:
+ ** Alibaba Object Storage Service Standard
+ ** Alibaba Object Storage Service Infrequent Access
++
+https://www.alibabacloud.com/help/doc-detail/51374.htm[Alibaba Cloud: Introduction to storage classes]
+
+Contact your NetApp sales representative for information about storage classes not listed.
+
+== Additional considerations for using AWS S3 with FabricPool
+
+* You might need a FabricPool license.
+ ** Newly ordered AFF systems come with 10 TB of free capacity for using FabricPool.
++
+If you need additional capacity on an AFF system, if you use AWS S3 on a non-AFF system, or if you upgrade from an existing cluster, you need a FabricPool license.
++
+If you order FabricPool for the first time for an existing cluster, a FabricPool license with 10 TB of free capacity is available.
+* The LIF that ONTAP uses to connect with the AWS S3 object server must be on a 10 Gbps port.
+* On AFF and FAS systems and ONTAP Select, FabricPool supports the following Amazon S3 storage classes:
+ ** Amazon S3 Standard
+ ** Amazon S3 Standard - Infrequent Access (Standard - IA)
+ ** Amazon S3 One Zone - Infrequent Access (One Zone - IA)
+ ** Amazon S3 Intelligent-Tiering
+ ** Amazon Commercial Cloud Services
++
+https://aws.amazon.com/s3/storage-classes/[Amazon Web Services (AWS) Documentation: Amazon S3 Storage Classes]
+
++
+Contact your sales representative for information about storage classes not listed.
+* On Cloud Volumes ONTAP, FabricPool supports tiering from General Purpose SSD (gp2) and Throughput Optimized HDD (st1) volumes of Amazon Elastic Block Store (EBS).
+
+== Additional considerations for using Google Cloud Storage with FabricPool
+
+* You might need a FabricPool license.
++
+Newly ordered AFF systems come with 10 TB of free capacity for using FabricPool. If you need additional capacity on an AFF system, if you use Google Cloud Storage on a non-AFF system, or if you upgrade from an existing cluster, you need a FabricPool license.
+
+* The LIF that ONTAP uses to connect with the Google Cloud Storage object server must be on a 10 Gbps port.
+* On AFF and FAS systems and ONTAP Select, FabricPool supports the following Google Cloud Object storage classes:
+ ** Google Cloud Multi-Regional
+ ** Google Cloud Regional
+ ** Google Cloud Nearline
+ ** Google Cloud Coldline
++
+https://cloud.google.com/storage/docs/storage-classes[Google Cloud: Storage Classes]
+
+== Additional considerations for using IBM Cloud Object Storage with FabricPool
+
+* You might need a FabricPool license.
++
+Newly ordered AFF systems come with 10 TB of free capacity for using FabricPool. If you need additional capacity on an AFF system, if you use IBM Cloud Object Storage on a non-AFF system, or if you upgrade from an existing cluster, you need a FabricPool license.
++
+If you order FabricPool for the first time for an existing cluster, a FabricPool license with 10 TB of free capacity is available.
+
+* The LIF that ONTAP uses to connect with the IBM Cloud object server must be on a 10 Gbps port.
+
+== Additional considerations for using Microsoft Azure Blob Storage with FabricPool
+
+* You might need a FabricPool license.
++
+Newly ordered AFF systems come with 10 TB of free capacity for using FabricPool. If you need additional capacity on an AFF system, if you use Azure Blob Storage on a non-AFF system, or if you upgrade from an existing cluster, you need a FabricPool license.
++
+If you order FabricPool for the first time for an existing cluster, a FabricPool license with 10 TB of free capacity is available.
+
+* A FabricPool license is not required if you are using Azure Blob Storage with Cloud Volumes ONTAP.
+* The LIF that ONTAP uses to connect with the Azure Blob Storage object server must be on a 10 Gbps port.
+* FabricPool currently does not support Azure Stack, which is on-premises Azure services.
+* At the account level in Microsoft Azure Blob Storage, FabricPool supports only hot and cool storage tiers.
++
+FabricPool does not support blob-level tiering. It also does not support tiering to Azure's archive storage tier.
+
+== Additional considerations for tiering data accessed by SAN protocols
+
+When tiering data that is accessed by SAN protocols, NetApp recommends using private clouds, like StorageGRID, due to connectivity considerations.
+
+== Functionality or features not supported by FabricPool
+
+* Object stores with WORM enabled and object versioning enabled.
+* Information lifecycle management (ILM) policies that are applied to object store buckets
++
+ILM typically includes various movement and deletion policies. These policies can be disruptive to the data in the cloud tier of FabricPool. Using FabricPool with ILM policies that are configured on object stores can result in data loss.
+
+* 7-Mode data transition using the ONTAP CLI commands or the 7-Mode Transition Tool
+* FlexArray Virtualization
+* RAID SyncMirror, except in a MetroCluster configuration
+* SnapLock volumes when using ONTAP 9.7 and earlier releases
+* Tape backup using SMTape for FabricPool-enabled aggregates
+* The Auto Balance functionality
+* Volumes using a space guarantee other than `none`
++
+FabricPool does not support attaching a cloud tier to an aggregate that contains volumes using a space guarantee other than `none`. For example, a volume using a space guarantee of `volume` (`-space-guarantee` `volume`) is not supported.
+
+* Clusters with DP_Optimized license
+* Flash Pool aggregates

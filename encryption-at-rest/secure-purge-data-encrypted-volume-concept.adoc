@@ -1,0 +1,36 @@
+---
+permalink: encryption-at-rest/secure-purge-data-encrypted-volume-concept.html
+sidebar: sidebar
+keywords: secure, purge, scrub, data, encrypted, volume, nve, netapp
+summary: "Beginning in ONTAP 9.4, you can use secure purge to non-disruptively scrub data on NVE-enabled volumes. Scrubbing data on an encrypted volume ensures that it cannot be recovered from the physical media, for example, in cases of `spillage,` where data traces may have been left behind when blocks were overwritten, or for securely deleting a vacating tenant’s data."
+---
+= Securely purge data on an encrypted volume overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning in ONTAP 9.4, you can use secure purge to non-disruptively scrub data on NVE-enabled volumes. Scrubbing data on an encrypted volume ensures that it cannot be recovered from the physical media, for example, in cases of "`spillage,`" where data traces may have been left behind when blocks were overwritten, or for securely deleting a vacating tenant's data.
+
+Secure purge works only for previously deleted files on NVE-enabled volumes. You cannot scrub an unencrypted volume. You must use KMIP servers to serve keys, not the onboard key manager.
+
+Secure purge functions differently depending upon your version of ONTAP.
+
+* In ONTAP 9.8 and later:
+ ** Secure purge is supported by MetroCluster and FlexGroup.
+ ** If the volume being purged is the source of a SnapMirror relationship, you do not have to break the SnapMirror relationship to perform a secure purge.
+ ** The re-encryption method is different for volumes using SnapMirror data protection versus volumes not using SnapMirror data protection (DP) or those using SnapMirror extended data protection..
+  *** By default, volumes using SnapMirror data protection (DP) mode re-encrypt data using the volume move re-encryption method.
+  *** By default, volumes not using SnapMirror data protection or volumes using SnapMirror extended data protection (XDP) mode use the in-place re-encryption method.
+  *** These defaults can be changed using the `secure purge re-encryption-method [volume-move|in-place-rekey]` command.
+ ** By default, all Snapshot copies in FlexVol volumes are automatically deleted during the secure purge operation. By default, Snapshots in FlexGroup volumes and volumes using SnapMirror data protection are not automatically deleted during the secure purge operation. These defaults can be changed using the `secure purge delete-all-snapshots [true|false]`. command.
+* In ONTAP 9.8 and earlier:
+ ** Secure purge does not support the following:
+  *** FlexClone
+  *** SnapVault
+  *** FabricPool
+ ** If the volume being purged is the source of a SnapMirror relationship, you must break the SnapMirror relationship before you can purge the volume.
++
+If there are busy Snapshot copies in the volume, you must release the Snapshot copies before you can purge the volume. For example, you may need to split a FlexClone volume from its parent.
+* Successfully invoking the secure-purge feature triggers a volume move that re-encrypts the remaining, unpurged data with a new key.
++
+The moved volume remains on the current aggregate. The old key is automatically destroyed, ensuring that purged data cannot be recovered from the storage media.

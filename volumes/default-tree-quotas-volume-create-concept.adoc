@@ -1,0 +1,45 @@
+---
+permalink: volumes/default-tree-quotas-volume-create-concept.html
+sidebar: sidebar
+keywords: how, default, tree quotas, flexvol volume, create, derived tree quotas
+summary: "When you create a default tree quota on a FlexVol volume, corresponding derived tree quotas are automatically created for every qtree in that volume."
+---
+= How default tree quotas on a FlexVol volume create derived tree quotas
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When you create a default tree quota on a FlexVol volume, corresponding derived tree quotas are automatically created for every qtree in that volume.
+
+These derived tree quotas have the same limits as the default tree quota. If no additional quotas exist, the limits have the following effects:
+
+* Users can use as much space in a qtree as they are allotted for the entire volume (provided they did not exceed the limit for the volume by using space in the root or another qtree).
+* Each of the qtrees can grow to consume the entire volume.
+
+The existence of a default tree quota on a volume continues to affect all new qtrees that are added to the volume. Each time a new qtree is created, a derived tree quota is also created.
+
+Like all derived quotas, derived tree quotas display the following behaviors:
+
+* Are created only if the target does not already have an explicit quota.
+* Appear in quota reports but do not appear when you show quota rules with the `volume quota policy rule show` command.
+
+.Example of derived tree quotas
+
+You have a volume with three qtrees (proj1, proj2, and proj3) and the only tree quota is an explicit quota on the proj1 qtree limiting its disk size to 10 GB. If you create a default tree quota on the volume and reinitialize quotas on the volume, the quota report now contains four tree quotas:
+
+----
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1     proj1     tree    1           0B   10GB       1       -   proj1
+vol1               tree    *           0B   20GB       0       -   *
+vol1     proj2     tree    2           0B   20GB       1       -   proj2
+vol1     proj3     tree    3           0B   20GB       1       -   proj3
+...
+----
+
+The first line shows the original explicit quota on the proj1 qtree. This quota remains unchanged.
+
+The second line shows the new default tree quota on the volume. The asterisk (*) Quota Specifier indicates it is a default quota. This quota is a result of the quota rule that you created.
+
+The last two lines show new derived tree quotas for the proj2 and proj3 qtrees. ONTAP automatically created these quotas as a result of the default tree quota on the volume. These derived tree quotas have the same 20-GB disk limit as the default tree quota on the volume. ONTAP did not create a derived tree quota for the proj1 qtree because the proj1 qtree already had an explicit quota.

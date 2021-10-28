@@ -1,0 +1,39 @@
+---
+permalink: fabricpool/setup-storagegrid-cloud-tier-task.html
+sidebar: sidebar
+keywords: setting up, storagegrid, cloud tier
+summary: "If you are running ONTAP 9.2 or later, you can set up StorageGRID as the cloud tier for FabricPool."
+---
+= Specify the StorageGRID configuration information
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you are running ONTAP 9.2 or later, you can set up StorageGRID as the cloud tier for FabricPool. When tiering data that is accessed by SAN protocols, NetApp recommends using private clouds, like StorageGRID, due to connectivity considerations.
+
+.About this task
+
+Load balancing is enabled for ONTAP S3 servers in ONTAP 9.8 and later. When the server's hostname resolves to more than one IP address, ONTAP establishes client connections with all the IP addresses returned (up to a maximum of 16 IP addresses). The IP addresses are picked up in a round-robin method when connections are established.
+
+.Steps
+
+. Specify the StorageGRID configuration information by using the `storage aggregate object-store config create` command with the `-provider-type` `SGWS` parameter.
+ ** The `storage aggregate object-store config create` command fails if ONTAP cannot access StorageGRID with the provided information.
+ ** You use the `-access-key` parameter to specify the access key for authorizing requests to the StorageGRID object store.
+ ** You use the `-secret-password` parameter to specify the password (secret access key) for authenticating requests to the StorageGRID object store.
+ ** If the StorageGRID password is changed, you should update the corresponding password stored in ONTAP immediately.
++
+Doing so enables ONTAP to access the data in StorageGRID without interruption.
+
+ ** Setting the `-is-certificate-validation-enabled` parameter to `false` disables certificate checking for StorageGRID.
+
++
+----
+cluster1::> storage aggregate object-store config create
+-object-store-name mySGWS -provider-type SGWS -server mySGWSserver
+-container-name mySGWScontainer -access-key mySGWSkey
+-secret-password mySGWSpass
+----
+. Display and verify the StorageGRID configuration information by using the `storage aggregate object-store config show` command.
++
+The `storage aggregate object-store config modify` command enables you to modify the StorageGRID configuration information for FabricPool.

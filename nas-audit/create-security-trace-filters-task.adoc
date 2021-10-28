@@ -1,0 +1,119 @@
+---
+permalink: nas-audit/create-security-trace-filters-task.html
+sidebar: sidebar
+keywords: create, security trace filters
+summary: "You can create security trace filters that detect SMB and NFS client operations on storage virtual machines (SVMs)and trace all access checks matching the filter. You can use the results from security traces to validate your configuration or to troubleshoot access issues."
+---
+= Create security trace filters
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create security trace filters that detect SMB and NFS client operations on storage virtual machines (SVMs)and trace all access checks matching the filter. You can use the results from security traces to validate your configuration or to troubleshoot access issues.
+
+.About this task
+
+There are two required parameters for the vserver security trace filter create command:
+
+[cols="2*",options="header"]
+|===
+| Required parameters| Description
+a|
+`-vserver` `vserver_name`
+a|
+_SVM name_
+
+The name of the SVM that contains the files or folders on which you want to apply the security trace filter.
+
+a|
+`-index` `index_number`
+a|
+_Filter index number_
+
+The index number you want to apply to the filter. You are limited to a maximum of 10 trace filters per SVM. The allowed values for this parameter are 1 through 10.
+
+|===
+A number of optional filter parameters enable you to customize the security trace filter so that you can narrow down the results produced by the security trace:
+
+[cols="2*",options="header"]
+|===
+| Filter parameter| Description
+a|
+`-client-ip` `IP_Address`
+a|
+This filter specifies the IP address from which the user is accessing the SVM.
+a|
+`-path` `path`
+a|
+This filter specifies the path on which to apply the permission trace filter. The value for `-path` can use either of the following formats:
+
+* The complete path, starting from the root of the share or export
+* A partial path, relative to the root of the share
+
+You must use NFS style directory UNIX-style directory separators in the path value.
+
+a|
+`-windows-name` `win_user_name` or `-unix-name``unix_user_name`
+a|
+You can specify either the Windows user name or UNIX user name whose access requests you want to trace. The user name variable is case insensitive. You cannot specify both a Windows user name and a UNIX user name in the same filter.
+[NOTE]
+====
+Even though you can trace SMB and NFS access events, the mapped UNIX user and the mapped UNIX users' groups might be used when performing access checks on mixed or UNIX security-style data.
+====
+
+a|
+`-trace-allow` {`yes`\|`no`}
+a|
+Tracing for deny events is always enabled for a security trace filter. You can optionally trace allow events. To trace allow events, you set this parameter to `yes`.
+a|
+`-enabled` {`enabled`\|`disabled`}
+a|
+You can enable or disable the security trace filter. By default, the security trace filter is enabled.
+a|
+`-time-enabled` `integer`
+a|
+You can specify a timeout for the filter, after which it is disabled.
+|===
+
+.Steps
+
+. Create a security trace filter:
++
+`vserver security trace filter create -vserver vserver_name -index index_numberfilter_parameters`
++
+`filter_parameters` is a list of optional filter parameters.
++
+For more information, see the man pages for the command.
+
+. Verify the security trace filter entry:
++
+`vserver security trace filter show -vserver vserver_name -index index_number`
+
+.Examples
+
+The following command creates a security trace filter for any user accessing a file with a share path `\\server\share1\dir1\dir2\file.txt` from the IP address 10.10.10.7. The filter uses a complete path for the `-path` option. The client's IP address used to access data is 10.10.10.7. The filter times out after 30 minutes:
+
+----
+cluster1::> vserver security trace filter create -vserver vs1 -index 1 -path /dir1/dir2/file.txt -time-enabled 30 -client-ip 10.10.10.7
+cluster1::> vserver security trace filter show -index 1
+Vserver  Index   Client-IP            Path            Trace-Allow  Windows-Name
+-------- -----  -----------  ----------------------   -----------  -------------
+vs1        1    10.10.10.7   /dir1/dir2/file.txt          no       -
+----
+
+The following command creates a security trace filter using a relative path for the `-path` option. The filter traces access for a Windows user named "`joe`". Joe is accessing a file with a share path `\\server\share1\dir1\dir2\file.txt`. The filter traces allow and deny events:
+
+----
+cluster1::> vserver security trace filter create -vserver vs1 -index 2 -path /dir1/dir2/file.txt -trace-allow yes -windows-name mydomain\joe
+
+cluster1::> vserver security trace filter show -vserver vs1 -index 2
+                                 Vserver: vs1
+                            Filter Index: 2
+              Client IP Address to Match: -
+                                    Path: /dir1/dir2/file.txt
+                       Windows User Name: mydomain\joe
+                          UNIX User Name: -
+                      Trace Allow Events: yes
+                          Filter Enabled: enabled
+               Minutes Filter is Enabled: 60
+----

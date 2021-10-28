@@ -1,0 +1,67 @@
+---
+permalink: authentication/grant-access-nis-ldap-user-accounts-task.html
+sidebar: sidebar
+keywords: enable, ldap, nis, account access
+summary: "You can use the security login create command to enable LDAP or NIS user accounts to access an admin or data SVM. If you have not configured LDAP or NIS server access to the SVM, you must do so before the account can access the SVM."
+---
+= Enable LDAP or NIS account access
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `security login create` command to enable LDAP or NIS user accounts to access an admin or data SVM. If you have not configured LDAP or NIS server access to the SVM, you must do so before the account can access the SVM.
+
+.What you'll need
+
+You must be a cluster administrator to perform this task.
+
+.About this task
+
+* Group accounts are not supported.
+* You must configure LDAP or NIS server access to the SVM before the account can access the SVM.
++
+xref:enable-nis-ldap-users-access-cluster-task.adoc[Configuring LDAP or NIS server access]
++
+You can perform this task before or after you enable account access.
+
+* If you are unsure of the access control role that you want to assign to the login account, you can use the `security login modify` command to add the role later.
++
+xref:modify-role-assigned-administrator-task.adoc[Modifying the role assigned to an administrator]
+
+* Beginning with ONTAP 9.4, multifactor authentication (MFA) is supported for remote users over LDAP or NIS servers.
+* Because of a known LDAP issue, you should not use the `':'` (colon) character in any field of LDAP user account information (for example, `gecos`, `userPassword`, and so on). Otherwise, the lookup operation will fail for that user.
+
+.Steps
+
+. Enable LDAP or NIS user or group accounts to access an SVM:
++
+`security login create -vserver SVM_name -user-or-group-name user_name -application application -authmethod nsswitch -role role -comment comment -is-ns-switch-group yes|no`
++
+For complete command syntax, see the link:config-worksheets-reference.html[worksheet].
++
+link:config-worksheets-reference.html[Creating or modifying login accounts]
++
+The following command enables the LDAP or NIS cluster administrator account `guest2` with the predefined `backup` role to access the admin SVM``engCluster``.
++
+----
+cluster1::>security login create -vserver engCluster -user-or-group-name guest2 -application ssh -authmethod nsswitch -role backup
+----
+
+. Enable MFA login for LDAP or NIS users:
++
+``security login modify -user-or-group-name rem_usr1 -application ssh -authentication-method nsswitch -role admin -is-ns-switch-group no -second-authentication-method publickey``
++
+The authentication method can be specified as `publickey` and second authentication method as `nsswitch`.
++
+The following example shows the MFA authentication being enabled:
++
+----
+cluster-1::*> security login modify -user-or-group-name rem_usr2 -application ssh -authentication-method nsswitch -vserver
+cluster-1 -second-authentication-method publickey"
+----
+
+.After you finish
+
+If you have not configured LDAP or NIS server access to the SVM, you must do so before the account can access the SVM.
+
+xref:enable-nis-ldap-users-access-cluster-task.adoc[Configuring LDAP or NIS server access]

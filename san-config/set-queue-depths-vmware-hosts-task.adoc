@@ -1,0 +1,65 @@
+---
+permalink: san-config/set-queue-depths-vmware-hosts-task.html
+sidebar: sidebar
+keywords: set, queue, depths, vmware, hosts
+summary: "Use the esxcfg-module command to change the HBA timeout settings. Manually updating the esx.conf file is not recommended."
+---
+= Set queue depths on VMware hosts
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Use the `esxcfg-module` command to change the HBA timeout settings. Manually updating the `esx.conf` file is not recommended.
+
+== To set maximum queue depth for a QLogic HBA
+
+.Steps
+
+. Log on to the service console as the root user.
+. Use the `#vmkload_mod -l` command to verify which Qlogic HBA module is currently loaded.
+. For a single instance of a Qlogic HBA, run the following command:
++
+`#esxcfg-module -s ql2xmaxqdepth=64 qla2300_707`
++
+[NOTE]
+====
+This example uses qla2300_707 module. Use the appropriate module based on the output of `vmkload_mod -l`.
+====
+
+. Save your changes using the following command:
++
+`#/usr/sbin/esxcfg-boot -b`
+. Reboot the server using the following command:
++
+`#reboot`
+. Confirm the changes using the following commands:
+ .. `#esxcfg-module -g qla2300_707`
+ .. `qla2300_707 enabled = 1 options = 'ql2xmaxqdepth=64'`
+
+== To change the queue depth of an Emulex HBA
+
+.Steps
+
+. Log on to the service console as the root user.
+. Use the `#vmkload_mod -l grep lpfcdd` command to verify which Emulex HBA is currently loaded.
+. For a single instance of an Emulex HBA, enter the following command:
++
+`#esxcfg-module -s lpfc0_lun_queue_depth=16 lpfcdd_7xx`
++
+[NOTE]
+====
+Depending on the model of the HBA, the module can be either lpfcdd_7xx or lpfcdd_732. The above command uses the lpfcdd_7xx module. You should use the appropriate module based on the outcome of `vmkload_mod -l`.
+====
++
+Running this command will set the LUN queue depth to 16 for the HBA represented by lpfc0.
+
+. For multiple instances of an Emulex HBA, run the following command:
++
+`a esxcfg-module -s "lpfc0_lun_queue_depth=16 lpfc1_lun_queue_depth=16" lpfcdd_7xx`
++
+The LUN queue depth for lpfc0 and the LUN queue depth for lpfc1 is set to 16.
+
+. Enter the following command:
++
+`#esxcfg-boot -b`
+. Reboot using `#reboot`.

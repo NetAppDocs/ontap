@@ -1,0 +1,90 @@
+---
+permalink: volumes/flexvol-fullness-overallocation-alerts-concept.html
+sidebar: sidebar
+keywords: how to, address, flexvol, volume, fullness, overallocation, alerts
+summary: "ONTAP issues EMS messages when FlexVol volumes are running out of space so that you can take corrective action by providing more space for the full volume. Knowing the types of alerts and how to address them helps you ensure your data availability."
+---
+= Address FlexVol volume fullness and overallocation alerts
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP issues EMS messages when FlexVol volumes are running out of space so that you can take corrective action by providing more space for the full volume. Knowing the types of alerts and how to address them helps you ensure your data availability.
+
+When a volume is described as _full_, it means that the percentage of the space in the volume available for use by the active file system (user data) has fallen below a (configurable) threshold. When a volume becomes _overallocated_, the space used by ONTAP for metadata and to support basic data access has been exhausted. Sometimes space normally reserved for other purposes can be used to keep the volume functioning, but space reservation or data availability can be at risk.
+
+Overallocation can be either logical or physical. _Logical overallocation_ means that space reserved to honor future space commitments, such as space reservation, has been used for another purpose. _Physical overallocation_ means that the volume is running out of physical blocks to use. Volumes in this state are at risk for refusing writes, going offline, or potentially causing a controller disruption.
+
+A volume can be more than 100% full due to space used or reserved by metadata. However, a volume that is more than 100% full might or might not be overallocated. If qtree-level and volume-level shares exist on the same FlexVol or SCVMM pool, the qtrees appear as directories on the FlexVol share. Therefore, you need to be careful not to delete them accidentally.
+
+The following table describes the volume fullness and overallocation alerts, the actions you can take to address the issue, and the risks of not taking action:
+[cols="6*",options="header"]
+|===
+| Alert type| EMS level| Configurable?| Definition| Ways to address| Risk if no action taken
+a|
+Nearly full
+a|
+Debug
+a|
+Y
+a|
+The file system has exceeded the threshold set for this alert (the default is 95%). The percentage is the `Used` total minus the size of the Snapshot reserve.
+
+a|
+
+* Increasing volume size
+* Reducing user data
+
+a|
+No risk to write operations or data availability yet.
+a|
+Full
+a|
+Debug
+a|
+Y
+a|
+The file system has exceeded the threshold set for this alert (the default is 98%). The percentage is the `Used` total minus the size of the Snapshot reserve.
+
+a|
+
+* Increasing volume size
+* Reducing user data
+
+a|
+No risk to write operations or data availability yet, but the volume is approaching the stage where write operations could be at risk.
+a|
+Logically overallocated
+a|
+SVC Error
+a|
+N
+a|
+In addition to the file system being full, the space in the volume used for metadata has been exhausted.
+a|
+
+* Increasing volume size
+* Deleting Snapshot copies
+* Reducing user data
+* Disabling space reservation for files or LUNs
+
+a|
+Write operations to unreserved files could fail.
+a|
+Physically overallocated
+a|
+Node Error
+a|
+N
+a|
+The volume is running out of physical blocks it can write to.
+a|
+
+* Increasing volume size
+* Deleting Snapshot copies
+* Reducing user data
+
+a|
+Write operations are at risk, as well as data availability; the volume could go offline.
+|===
+Every time a threshold is crossed for a volume, whether the fullness percentage is rising or falling, an EMS message is generated. When the fullness level of the volume falls below a threshold, a `volume ok` EMS message is generated.

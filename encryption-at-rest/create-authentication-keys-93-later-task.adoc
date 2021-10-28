@@ -1,0 +1,94 @@
+---
+permalink: encryption-at-rest/create-authentication-keys-93-later-task.html
+sidebar: sidebar
+keywords: creating, authentication keys, ontap 9.5, earlier
+summary: "You can use the security key-manager create-key command to create the authentication keys for a node and store them on the configured KMIP servers."
+---
+= Create authentication keys in ONTAP 9.5 and earlier
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `security key-manager create-key` command to create the authentication keys for a node and store them on the configured KMIP servers.
+
+.What you'll need
+
+You must be a cluster administrator to perform this task.
+
+.About this task
+
+If your security setup requires you to use different keys for data authentication and FIPS 140-2 authentication, you should create a separate key for each. If that is not the case, you can use the same authentication key for FIPS compliance that you use for data access.
+
+ONTAP creates authentication keys for all nodes in the cluster.
+
+* This command is not supported when onboard key management is enabled.
+* You receive a warning if the configured key management servers are already storing more than 128 authentication keys.
++
+You can use the key management server software to delete any unused keys, then run the command again.
+
+.Steps
+
+. Create the authentication keys for cluster nodes:
++
+`security key-manager create-key`
++
+For complete command syntax, see the man page for the command.
++
+[NOTE]
+====
+The key ID displayed in the output is an identifier used to refer to the authentication key. It is not the actual authentication key or the data encryption key.
+====
++
+The following example creates the authentication keys for `cluster1`:
++
+----
+cluster1::> security key-manager create-key
+   (security key-manager create-key)
+Verifying requirements...
+
+Node: cluster1-01
+Creating authentication key...
+Authentication key creation successful.
+Key ID: F1CB30AFF1CB30B00101000000000000A68B167F92DD54196297159B5968923C
+
+Node: cluster1-01
+Key manager restore operation initialized.
+Successfully restored key information.
+
+Node: cluster1-02
+Key manager restore operation initialized.
+Successfully restored key information.
+----
+
+. Verify that the authentication keys have been created:
++
+`security key-manager query`
++
+For complete command syntax, see the man page.
++
+The following example verifies that authentication keys have been created for `cluster1`:
++
+----
+cluster1::> security key-manager query
+
+  (security key-manager query)
+
+          Node: cluster1-01
+   Key Manager: 20.1.1.1
+ Server Status: available
+
+Key Tag        Key Type  Restored
+-------------  --------  --------
+cluster1-01    NSE-AK    yes
+       Key ID: F1CB30AFF1CB30B00101000000000000A68B167F92DD54196297159B5968923C
+
+
+          Node: cluster1-02
+   Key Manager: 20.1.1.1
+ Server Status: available
+
+Key Tag        Key Type  Restored
+-------------  --------  --------
+cluster1-02    NSE-AK    yes
+       Key ID: F1CB30AFF1CB30B00101000000000000A68B167F92DD54196297159B5968923C
+----

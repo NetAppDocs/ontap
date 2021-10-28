@@ -1,0 +1,77 @@
+---
+permalink: nfs-admin/config-options-ldap-directory-searches-concept.html
+sidebar: sidebar
+keywords: LDAP referral chasing
+summary: "You can optimize LDAP directory searches, including user, group, and netgroup information, by configuring the ONTAP LDAP client to connect to LDAP servers in the most appropriate way for your environment. You need to understand when the default LDAP base and scope search values suffice and which parameters to specify when custom values are more appropriate."
+---
+= Configuration options for LDAP directory searches
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can optimize LDAP directory searches, including user, group, and netgroup information, by configuring the ONTAP LDAP client to connect to LDAP servers in the most appropriate way for your environment. You need to understand when the default LDAP base and scope search values suffice and which parameters to specify when custom values are more appropriate.
+
+LDAP client search options for user, group, and netgroup information can help avoid failed LDAP queries, and therefore failed client access to storage systems. They also help ensure that the searches are as efficient as possible to avoid client performance issues.
+
+== Default base and scope search values
+
+The LDAP base is the default base DN that the LDAP client uses to perform LDAP queries. All searches, including user, group, and netgroup searches, are done using the base DN. This option is appropriate when your LDAP directory is relatively small and all relevant entries are located in the same DN.
+
+If you do not specify a custom base DN, the default is `root`. This means that each query searches the entire directory. Although this maximizes the chances of success of the LDAP query, it can be inefficient and result in significantly decreased performance with large LDAP directories.
+
+The LDAP base scope is the default search scope that the LDAP client uses to perform LDAP queries. All searches, including user, group, and netgroup searches, are done using the base scope. It determines whether the LDAP query searches only the named entry, entries one level below the DN, or the entire subtree below the DN.
+
+If you do not specify a custom base scope, the default is `subtree`. This means that each query searches the entire subtree below the DN. Although this maximizes the chances of success of the LDAP query, it can be inefficient and result in significantly decreased performance with large LDAP directories.
+
+== Custom base and scope search values
+
+Optionally, you can specify separate base and scope values for user, group, and netgroup searches. Limiting the search base and scope of queries this way can significantly improve performance because it limits the search to a smaller subsection of the LDAP directory.
+
+If you specify custom base and scope values, they override the general default search base and scope for user, group, and netgroup searches. The parameters to specify custom base and scope values are available at the advanced privilege level.
+[cols="2*",options="header"]
+|===
+| LDAP client parameter...| Specifies custom...
+a|
+`-base-dn`
+a|
+Base DN for all LDAP searchesMultiple values can be entered if needed (for example, if LDAP referral chasing is enabled in ONTAP 9.5 and later releases).
+
+a|
+`-base-scope`
+a|
+Base scope for all LDAP searches
+a|
+`-user-dn`
+a|
+Base DNs for all LDAP user searchesThis parameter also applies to user name-mapping searches.
+
+a|
+`-user-scope`
+a|
+Base scope for all LDAP user searches This parameter also applies to user name-mapping searches.
+
+a|
+`-group-dn`
+a|
+Base DNs for all LDAP group searches
+a|
+`-group-scope`
+a|
+Base scope for all LDAP group searches
+a|
+`-netgroup-dn`
+a|
+Base DNs for all LDAP netgroup searches
+a|
+`-netgroup-scope`
+a|
+Base scope for all LDAP netgroup searches
+|===
+
+== Multiple custom base DN values
+
+If your LDAP directory structure is more complex, it might be necessary for you to specify multiple base DNs to search multiple parts of your LDAP directory for certain information. You can specify multiple DNs for the user, group, and netgroup DN parameters by separating them with a semicolon (;) and enclosing the entire DN search list with double quotes ("). If a DN contains a semicolon, you must add an escape character (\) immediately before the semicolon in the DN.
+
+Note that the scope applies to the entire list of DNs specified for the corresponding parameter. For example, if you specify a list of three different user DNs and subtree for the user scope, then LDAP user searches search the entire subtree for each of the three specified DNs.
+
+Beginning with ONTAP 9.5, you can also specify LDAP _referral chasing_, which allows the ONTAP LDAP client to refer look-up requests to other LDAP servers if an LDAP referral response is not returned by the primary LDAP server. The client uses that referral data to retrieve the target object from the server described in the referral data. To search for objects present in the referred LDAP servers, the base-dn of the referred objects can be added to the base-dn as part of LDAP client configuration. However, referred objects are only looked up when referral chasing is enabled (using the `-referral-enabled true` option) during LDAP client creation or modification.

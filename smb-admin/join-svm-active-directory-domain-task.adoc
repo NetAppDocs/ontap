@@ -1,0 +1,53 @@
+---
+permalink: smb-admin/join-svm-active-directory-domain-task.html
+sidebar: sidebar
+keywords: join, storage, virtual, machine, svm, active, directory, domain, delete, deleting, exist, smb, cifs, server, modify, domain, vserver, cifs, rejoin, join a svm to an active directory domain
+summary: "You can join a storage virtual machine (SVM) to an Active Directory domain without deleting the existing SMB server by modifying the domain using the vserver cifs modify command. You can rejoin the current domain or join a new one."
+---
+= Join a SVM to an Active Directory domain
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can join a storage virtual machine (SVM) to an Active Directory domain without deleting the existing SMB server by modifying the domain using the `vserver cifs modify` command. You can rejoin the current domain or join a new one.
+
+.Before you begin
+
+* The SVM must already have a DNS configuration.
+* The DNS configuration for the SVM must be able to serve the target domain.
++
+The DNS servers must contain the service location records (SRV) for the domain LDAP and domain controller servers.
+
+.About this task
+
+* The administrative status of the CIFS server must be set to "`down`" to proceed with Active Directory domain modification.
+* If the command completes successfully, the administrative status is automatically set to "`up`".
+* When joining a domain, this command might take several minutes to complete.
+
+.Steps
+
+. Join the SVM to the CIFS server domain: `vserver cifs modify -vserver _vserver_name_ -domain _domain_name_ -status-admin down`
++
+For more information, see the man page for the `vserver cifs modify` command. If you need to reconfigure DNS for the new domain, see the man page for the `vserver dns modify` command.
++
+In order to create an Active Directory machine account for the SMB server, you must supply the name and password of a Windows account with sufficient privileges to add computers to the `ou= _example_ ou` container within the `_example_`.com domain.
++
+Beginning with ONTAP 9.7, your AD administrator can provide you with a URI to a keytab file as an alternative to providing you with a name and password to a privileged Windows account. When you receive the URI, include it in the `-keytab-uri` parameter with the `vserver cifs` commands.
+
+. Verify that the CIFS server is in the desired Active Directory domain: `vserver cifs show`
+
+.Example
+
+In the following example, the SMB server "`CIFSSERVER1`" on SVM vs1 joins the example.com domain using keytab authentication:
+
+----
+
+cluster1::> vserver cifs modify -vserver vs1 -domain example.com -status-admin down -keytab-uri http://admin.example.com/ontap1.keytab
+
+cluster1::> vserver cifs show
+
+          Server       Status       Domain/Workgroup  Authentication
+Vserver   Name         Admin        Name              Style
+--------- -----------  ---------    ----------------  --------------
+vs1       CIFSSERVER1  up           EXAMPLE          domain
+----

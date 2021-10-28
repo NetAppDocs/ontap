@@ -1,0 +1,216 @@
+---
+permalink: nas-audit/smb-events-audit-concept.html
+sidebar: sidebar
+keywords: smb events, audited
+summary: "ONTAP can audit certain SMB events, including certain file and folder access events, certain logon and logoff events, and central access policy staging events. Knowing which access events can be audited is helpful when interpreting results from the event logs."
+---
+= SMB events that can be audited overview 
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP can audit certain SMB events, including certain file and folder access events, certain logon and logoff events, and central access policy staging events. Knowing which access events can be audited is helpful when interpreting results from the event logs.
+
+The following additional SMB events can be audited in ONTAP 9.2 and later:
+
+[cols="4*",options="header"]
+|===
+| Event ID (EVT/EVTX)| Event| Description| Category
+a|
+4670
+a|
+Object permissions were changed
+a|
+OBJECT ACCESS: Permissions changed.
+a|
+File Access
+a|
+4907
+a|
+Object auditing settings were changed
+a|
+OBJECT ACCESS: Audit settings changed.
+a|
+File Access
+a|
+4913
+a|
+Object Central Access Policy was changed
+a|
+OBJECT ACCESS: CAP changed.
+a|
+File Access
+|===
+The following SMB events can be audited in ONTAP 9.0 and later:
+
+[cols="4*",options="header"]
+|===
+| Event ID (EVT/EVTX)| Event| Description| Category
+a|
+540/4624
+a|
+An account was successfully logged on
+a|
+LOGON/LOGOFF: Network (CIFS) logon.
+a|
+Logon and Logoff
+a|
+529/4625
+a|
+An account failed to log on
+a|
+LOGON/LOGOFF: Unknown user name or bad password.
+a|
+Logon and Logoff
+a|
+530/4625
+a|
+An account failed to log on
+a|
+LOGON/LOGOFF: Account logon time restriction.
+a|
+Logon and Logoff
+a|
+531/4625
+a|
+An account failed to log on
+a|
+LOGON/LOGOFF: Account currently disabled.
+a|
+Logon and Logoff
+a|
+532/4625
+a|
+An account failed to log on
+a|
+LOGON/LOGOFF: User account has expired.
+a|
+Logon and Logoff
+a|
+533/4625
+a|
+An account failed to log on
+a|
+LOGON/LOGOFF: User cannot log on to this computer.
+a|
+Logon and Logoff
+a|
+534/4625
+a|
+An account failed to log on
+a|
+LOGON/LOGOFF: User not granted logon type here.
+a|
+Logon and Logoff
+a|
+535/4625
+a|
+An account failed to log on
+a|
+LOGON/LOGOFF: User's password has expired.
+a|
+Logon and Logoff
+a|
+537/4625
+a|
+An account failed to log on
+a|
+LOGON/LOGOFF: Logon failed for reasons other than above.
+a|
+Logon and Logoff
+a|
+539/4625
+a|
+An account failed to log on
+a|
+LOGON/LOGOFF: Account locked out.
+a|
+Logon and Logoff
+a|
+538/4634
+a|
+An account was logged off
+a|
+LOGON/LOGOFF: Local or network user logoff.
+a|
+Logon and Logoff
+a|
+560/4656
+a|
+Open Object/Create Object
+a|
+OBJECT ACCESS: Object (file or directory) open.
+a|
+File Access
+a|
+563/4659
+a|
+Open Object with the Intent to Delete
+a|
+OBJECT ACCESS: A handle to an object (file or directory) was requested with the Intent to Delete.
+a|
+File Access
+a|
+564/4660
+a|
+Delete Object
+a|
+OBJECT ACCESS: Delete Object (file or directory). ONTAP generates this event when a Windows client attempts to delete the object (file or directory).
+a|
+File Access
+a|
+567/4663
+a|
+Read Object/Write Object/Get Object Attributes/Set Object Attributes
+a|
+OBJECT ACCESS: Object access attempt (read, write, get attribute, set attribute).
+[NOTE]
+====
+For this event, ONTAP audits only the first SMB read and first SMB write operation (success or failure) on an object. This prevents ONTAP from creating excessive log entries when a single client opens an object and performs many successive read or write operations to the same object.
+====
+
+a|
+File Access
+a|
+NA/4664
+a|
+Hard link
+a|
+OBJECT ACCESS: An attempt was made to create a hard link.
+a|
+File Access
+a|
+NA/4818
+a|
+Proposed central access policy does not grant the same access permissions as the current central access policy
+a|
+OBJECT ACCESS: Central Access Policy Staging.
+a|
+File Access
+a|
+NA/NA Data ONTAP Event ID 9999
+a|
+Rename Object
+a|
+OBJECT ACCESS: Object renamed. This is an ONTAP event. It is not currently supported by Windows as a single event.
+a|
+File Access
+a|
+NA/NA Data ONTAP Event ID 9998
+a|
+Unlink Object
+a|
+OBJECT ACCESS: Object unlinked. This is an ONTAP event. It is not currently supported by Windows as a single event.
+a|
+File Access
+|===
+
+== Additional information about Event 4656
+
+The `HandleID` tag in the audit `XML` event contains the handle of the object (file or directory) accessed. The `HandleID` tag for the EVTX 4656 event contains different information depending on whether the open event is for creating a new object or for opening an existing object:
+
+* If the open event is an open request to create a new object (file or directory), the `HandleID` tag in the audit XML event shows an empty `HandleID` (for example: `<Data Name="HandleID">00000000000000;00;00000000;00000000</Data>` ).
++
+The `HandleID` is empty because the OPEN (for creating a new object) request gets audited before the actual object creation happens and before a handle exists. Subsequent audited events for the same object have the right object handle in the `HandleID` tag.
+
+* If the open event is an open request to open an existing object, the audit event will have the assigned handle of that object in the `HandleID` tag (for example: `<Data Name="HandleID">00000000000401;00;000000ea;00123ed4</Data>` ).

@@ -1,0 +1,107 @@
+---
+permalink: s3-config/create-data-lifs-task.html
+sidebar: sidebar
+keywords: create, data, lifs
+summary: "If you created a new SVM, the dedicated LIFs you create for S3 access should be data LIFs."
+---
+= Create data LIFs
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you created a new SVM, the dedicated LIFs you create for S3 access should be data LIFs.
+
+.What you'll need
+
+* The underlying physical or logical network port must have been configured to the administrative `up` status.
+* If you are planning to use a subnet name to allocate the IP address and network mask value for a LIF, the subnet must already exist.
++
+Subnets contain a pool of IP addresses that belong to the same layer 3 subnet. They are created using the `network subnet create` command.
+
+* The LIF service policy must already exist.
+
+.About this task
+
+* You can create both IPv4 and IPv6 LIFs on the same network port.
+* If you have a large number of LIFs in your cluster, you can verify the LIF capacity supported on the cluster by using the `network interface capacity show` command and the LIF capacity supported on each node by using the `network interface capacity details show` command (at the advanced privilege level).
+* If you are enabling remote FabricPool capacity (cloud) tiering, you must also configure intercluster LIFs.
+
+.Steps
+
+. Create a LIF:
++
+`network interface create -vserver svm_name -lif lif_name -service-policy service_policy_names -home-node node_name -home-port port_name {-address IP_address -netmask IP_address | -subnet-name subnet_name} -firewall-policy data -auto-revert {true|false}`
++
+** `-home-node` is the node to which the LIF returns when the `network interface revert` command is run on the LIF.
++
+You can also specify whether the LIF should automatically revert to the home-node and home-port with the `-auto-revert` option.
++
+** `-home-port` is the physical or logical port to which the LIF returns when the `network interface revert` command is run on the LIF.
+** You can specify an IP address with the `-address` and `-netmask` options, or you enable allocation from a subnet with the `-subnet_name` option.
+** When using a subnet to supply the IP address and network mask, if the subnet was defined with a gateway, a default route to that gateway is added automatically to the SVM when a LIF is created using that subnet.
+** If you assign IP addresses manually (without using a subnet), you might need to configure a default route to a gateway if there are clients or domain controllers on a different IP subnet. The `network route create` man page contains information about creating a static route within an SVM.
+** For the `-firewall-policy` option, use the same default `data` as the LIF role.
++
+You can create and add a custom firewall policy later if desired.
+
+ ** `-auto-revert` allows you to specify whether a data LIF is automatically reverted to its home node under circumstances such as startup, changes to the status of the management database, or when the network connection is made. The default setting is `false`, but you can set it to `false` depending on network management policies in your environment.
+ ** The `-service-policy` option specifies the data and management services policy you created and any other policies you need.
+. If you want to assign an IPv6 address in the `-address` option:
+ .. Use the `network ndp prefix show` command to view the list of RA prefixes learned on various interfaces.
++
+The `network ndp prefix show` command is available at the advanced privilege level.
+
+ .. Use the format `prefix:id` to construct the IPv6 address manually.
++
+`prefix` is the prefix learned on various interfaces.
++
+For deriving the `id`, choose a random 64-bit hexadecimal number.
+. Verify that the LIF was created successfully by using the `network interface show` command.
+. Verify that the configured IP address is reachable:
++
+[cols="2*",options="header"]
+|===
+| To verify an...| Use...
+a|
+IPv4 address
+a|
+`network ping`
+a|
+IPv6 address
+a|
+`network ping6`
+|===
+
+.Examples
+
+The following command shows how to create an S3 data LIF that is assigned with the `my-S3-policy` service policy:
+
+----
+network interface create -vserver svm1.example.com -lif lif2 -home-node node2 -homeport e0d -service-policy my-S3-policy -subnet-name ipspace1
+----
+
+The following command shows all the LIFs in cluster-1. Data LIFs datalif1 and datalif3 are configured with IPv4 addresses, and datalif4 is configured with an IPv6 address:
+
+----
+cluster-1::> network interface show
+
+            Logical    Status     Network          Current      Current Is
+Vserver     Interface  Admin/Oper Address/Mask     Node         Port    Home
+----------- ---------- ---------- ---------------- ------------ ------- ----
+cluster-1
+            cluster_mgmt up/up    192.0.2.3/24     node-1       e1a     true
+node-1
+            clus1        up/up    192.0.2.12/24    node-1       e0a     true
+            clus2        up/up    192.0.2.13/24    node-1       e0b     true
+            mgmt1        up/up    192.0.2.68/24    node-1       e1a     true
+node-2
+            clus1        up/up    192.0.2.14/24    node-2       e0a     true
+            clus2        up/up    192.0.2.15/24    node-2       e0b     true
+            mgmt1        up/up    192.0.2.69/24    node-2       e1a     true
+vs1.example.com
+            datalif1     up/down  192.0.2.145/30   node-1       e1c     true
+vs3.example.com
+            datalif3     up/up    192.0.2.146/30   node-2       e0c     true
+            datalif4     up/up    2001::2/64       node-2       e0c     true
+5 entries were displayed.
+----

@@ -1,0 +1,88 @@
+---
+permalink: performance-admin/measure-latency-throughput-nodes-task.html
+sidebar: sidebar
+keywords: check, throughput, latency, between, nodes
+summary: "You can use the network test-path command to identify network bottlenecks, or to prequalify network paths between nodes. You can run the command between intercluster nodes or intracluster nodes."
+---
+= Check throughput and latency between nodes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `network test-path` command to identify network bottlenecks, or to prequalify network paths between nodes. You can run the command between intercluster nodes or intracluster nodes.
+
+.What you'll need
+
+* You must be a cluster administrator to perform this task.
+* Advanced privilege level commands are required for this task.
+* For an intercluster path, the source and destination clusters must be peered.
+
+.About this task
+
+Occasionally, network performance between nodes may not meet expectations for your path configuration. A 1 Gbps transmission rate for the kind of large data transfers seen in SnapMirror replication operations, for example, would not be consistent with a 10 GbE link between the source and destination clusters.
+
+You can use the `network test-path` command to measure throughput and latency between nodes. You can run the command between intercluster nodes or intracluster nodes.
+
+[NOTE]
+====
+The test saturates the network path with data, so you should run the command when the system is not busy and when network traffic between nodes is not excessive. The test times out after ten seconds. The command can be run only between ONTAP 9 nodes.
+====
+
+The `session-type` option identifies the type of operation you are running over the network path--for example, "AsyncMirrorRemote" for SnapMirror replication to a remote destination. The type dictates the amount of data used in the test. The following table defines the session types:
+[options="header"]
+|===
+| Session Type| Description
+a|
+Default
+a|
+SnapMirror replication between nodes in different clusters
+a|
+AsyncMirrorLocal
+a|
+SnapMirror replication between nodes in the same cluster
+a|
+AsyncMirrorRemote
+a|
+SnapMirror replication between nodes in different clusters
+a|
+SyncMirrorRemote
+a|
+SyncMirror replication between nodes in different clusters
+a|
+RemoteDataTransfer
+a|
+Data transfer between nodes in the same cluster (for example, an NFS request to a node for a file stored in a volume on a different node)
+|===
+
+.Steps
+
+. Change to advanced privilege level:
++
+`set -privilege advanced`
+. Measure throughput and latency between nodes:
++
+`network test-path -source-node _source_nodename_ |local -destination-cluster _destination_clustername_ -destination-node _destination_nodename_ -session-type Default|AsyncMirrorLocal|AsyncMirrorRemote|SyncMirrorRemote|RemoteDataTransfer`
++
+The source node must be in the local cluster. The destination node can be in the local cluster or in a peered cluster. A value of "local" for `-source-node` specifies the node on which you are running the command.
++
+The following command measures throughput and latency for SnapMirror-type replication operations between `node1` on the local cluster and `node3` on `cluster2`:
++
+----
+cluster1::> network test-path -source-node node1 -destination-cluster cluster2 -destination-node node3 -session-type AsyncMirrorRemote
+Test Duration:      10.88 secs
+Send Throughput:    18.23 MB/sec
+Receive Throughput: 18.23 MB/sec
+MB sent:            198.31
+MB received:        198.31
+Avg latency in ms:  2301.47
+Min latency in ms:  61.14
+Max latency in ms:  3056.86
+----
+
+. Return to administrative privilege:
++
+`set -privilege admin`
+
+.After you finish
+
+If performance does not meet expectations for the path configuration, you should check node performance statistics, use available tools to isolate the problem in the network, check switch settings, and so forth.

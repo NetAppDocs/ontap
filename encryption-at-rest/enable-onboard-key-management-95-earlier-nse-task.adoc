@@ -1,0 +1,105 @@
+---
+permalink: encryption-at-rest/enable-onboard-key-management-95-earlier-nse-task.html
+sidebar: sidebar
+keywords: enabling, onboard key management, ontap 9.5, earlier
+summary: "You can use the Onboard Key Manager to secure the keys that the cluster uses to access encrypted data. You must enable Onboard Key Manager on each cluster that accesses an encrypted volume or a self-encrypting disk."
+---
+= Enable onboard key management in ONTAP 9.5 and earlier
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the Onboard Key Manager to authenticate cluster nodes to a FIPS drive or SED. The Onboard Key Manager is a built-in tool that serves authentication keys to nodes from the same storage system as your data. The Onboard Key Manager is FIPS-140-2 level 1 compliant.
+
+You can use the Onboard Key Manager to secure the keys that the cluster uses to access encrypted data. You must enable Onboard Key Manager on each cluster that accesses an encrypted volume or a self-encrypting disk.
+
+.What you'll need
+
+* If you are using NSE with an external key management (KMIP) server, you must have deleted the external key manager database.
++
+xref:delete-key-management-database-task.adoc[Transitioning to onboard key management from external key management]
+
+* You must be a cluster administrator to perform this task.
+* You must configure the MetroCluster environment before you enable encryption.
+
+.About this task
+
+You must run the `security key-manager setup` command each time you add a node to the cluster.
+
+If you have a MetroCluster configuration, review these guidelines:
+
+* In ONTAP 9.5, you must run `security key-manager setup` on the local cluster and `security key-manager setup -sync-metrocluster-config yes` on the remote cluster, using the same passphrase on each.
+* Prior to ONTAP 9.5, you must run `security key-manager setup` on the local cluster, wait approximately 20 seconds, and then run `security key-manager setup` on the remote cluster, using the same passphrase on each.
+
+By default, you are not required to enter the key manager passphrase when a node is rebooted. Starting with ONTAP 9.4, you can use the `-enable-cc-mode yes` option to require that users enter the passphrase after a reboot.
+
+For NVE, if you set `-enable-cc-mode yes`, volumes you create with the `volume create` and `volume move start` commands are automatically encrypted. For `volume create`, you need not specify `-encrypt true`. For `volume move start`, you need not specify `-encrypt-destination true`.
+
+[NOTE]
+====
+After a failed passphrase attempt, you must reboot the node again.
+====
+
+.Steps
+
+. Start the key manager setup wizard:
++
+`security key-manager setup -enable-cc-mode yes|no`
++
+[NOTE]
+====
+Starting with ONTAP 9.4, you can use the `-enable-cc-mode yes` option to require that users enter the key manager passphrase after a reboot. For NVE, if you set `-enable-cc-mode yes`, volumes you create with the `volume create` and `volume move start` commands are automatically encrypted.
+====
++
+The following example starts the key manager setup wizard on cluster1 without requiring that the passphrase be entered after every reboot:
++
+----
+cluster1::> security key-manager setup
+Welcome to the key manager setup wizard, which will lead you through
+the steps to add boot information.
+
+...
+
+Would you like to use onboard key-management? {yes, no} [yes]:
+Enter the cluster-wide passphrase:    <32..256 ASCII characters long text>
+Reenter the cluster-wide passphrase:    <32..256 ASCII characters long text>
+----
+
+. Enter `yes` at the prompt to configure onboard key management.
+. At the passphrase prompt, enter a passphrase between 32 and 256 characters, or for "`cc-mode`", a passphrase between 64 and 256 characters.
++
+[NOTE]
+====
+If the specified "`cc-mode`" passphrase is less than 64 characters, there is a five-second delay before the key manager setup wizard displays the passphrase prompt again.
+====
+
+. At the passphrase confirmation prompt, reenter the passphrase.
+. Verify that keys are configured for all nodes:
++
+`security key-manager key show`
++
+For the complete command syntax, see the man page.
++
+----
+cluster1::> security key-manager key show
+
+Node: node1
+Key Store: onboard
+Key ID                                                           Used By
+---------------------------------------------------------------- --------
+0000000000000000020000000000010059851742AF2703FC91369B7DB47C4722 NSE-AK
+000000000000000002000000000001008C07CC0AF1EF49E0105300EFC83004BF NSE-AK
+
+Node: node2
+Key Store: onboard
+Key ID                                                           Used By
+---------------------------------------------------------------- --------
+0000000000000000020000000000010059851742AF2703FC91369B7DB47C4722 NSE-AK
+000000000000000002000000000001008C07CC0AF1EF49E0105300EFC83004BF NSE-AK
+----
+
+.After you finish
+
+Copy the passphrase to a secure location outside the storage system for future use.
+
+All key management information is automatically backed up to the replicated database (RDB) for the cluster. You should also back up the information manually for use in case of a disaster.

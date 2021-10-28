@@ -1,0 +1,532 @@
+---
+permalink: authentication/config-worksheets-reference.html
+sidebar: sidebar
+keywords: worksheets, administrator authentication, rbac configuration
+summary: "Before creating login accounts and setting up role-based access control (RBAC), you should gather information for each item in the configuration worksheets."
+---
+= Worksheets for administrator authentication and RBAC configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before creating login accounts and setting up role-based access control (RBAC), you should gather information for each item in the configuration worksheets.
+
+== Create or modify login accounts
+
+You provide these values with the `security login create` command when you enable login accounts to access a storage virtual machine (SVM). You provide the same values with the `security login modify` command when you modify how an account accesses an SVM.
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM that the account accesses. The default value is the name of the admin SVM for the cluster.
+a|
+
+a|
+`-user-or-group-name`
+a|
+The user name or group name of the account. Specifying a group name enables access to each user in the group.You can associate a user name or group name with multiple applications.
+
+a|
+
+a|
+`-application`
+a|
+The application that is used to access the SVM:
+
+* `http`
+* `ontapi`
+* `snmp`
+* `ssh`
+
+a|
+
+a|
+`-authmethod`
+a|
+The method that is used to authenticate the account:
+
+* `cert` for SSL certificate authentication
+* `domain` for Active Directory authentication
+* `nsswitch` for LDAP or NIS authentication
+* `password` for user password authentication
+* `publickey` for public key authentication
+* `community` for SNMP community strings
+* `usm` for SNMP user security model
+* `saml` for Security Assertion Markup Language (SAML) authentication
+
+a|
+
+a|
+`-remote-switch-ipaddress`
+a|
+The IP address of the remote switch. The remote switch can be a cluster switch monitored by the cluster switch health monitor (CSHM) or a Fibre Channel (FC) switch monitored by the MetroCluster health monitor (MCC-HM). This option is applicable only when the application is `snmp` and the authentication method is `usm`.
+a|
+
+a|
+`-role`
+a|
+The access control role that is assigned to the account:
+
+* For the cluster (the admin SVM), the default value is `admin`.
+* For a data SVM, the default value is `vsadmin`.
+
+a|
+
+a|
+`-comment`
+a|
+Optional. Descriptive text for the account. You should enclose the text in double quotation marks ("`"`").
+a|
+
+a|
+`-is-ns-switch-group`
+a|
+Whether the account is an LDAP group account or NIS group account (`yes` or `no`).
+a|
+
+a|
+`-second-authentication-method`
+a|
+Second authentication method in case of multifactor authentication in *ONTAP 9.3*:
+
+* `none` if not using multifactor authentication, default value
+* `publickey` for public key authentication when the `authmethod` is password or nsswitch
+* `password` for user password authentication when the `authmethod` is public key
+* `nsswitch` for user password authentication when the authmethod is publickey
++
+[NOTE]
+====
+Support for nsswitch is available from *ONTAP 9.4*
+====
+
+The order of authentication is always public key followed by password.
+
+a|
+
+|===
+
+== Define custom roles
+
+You provide these values with the `security login role create` command when you define a custom role.
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+Optional. The name of the SVM that is associated with the role.
+a|
+
+a|
+`-role`
+a|
+The name of the role.
+a|
+
+a|
+`-cmddirname`
+a|
+The command or command directory to which the role gives access. You should enclose command subdirectory names in double quotation marks ("`"`"). For example, "`volume snapshot`". You must enter `DEFAULT` to specify all command directories.
+
+a|
+
+a|
+`-access`
+a|
+Optional. The access level for the role. For command directories:
+
+* `none` (the default value for custom roles) denies access to commands in the command directory
+* `readonly` grants access to the `show` commands in the command directory and its subdirectories
+* `all` grants access to all of the commands in the command directory and its subdirectories
+
+For _nonintrinsic commands_ (commands that do not end in `create`, `modify`, `delete`, or `show`):
+
+* `none` (the default value for custom roles) denies access to the command
+* `readonly` is not applicable
+* `all` grants access to the command
+
+To grant or deny access to intrinsic commands, you must specify the command directory.
+
+a|
+
+a|
+`-query`
+a|
+Optional. The query object that is used to filter the access level, which is specified in the form of a valid option for the command or for a command in the command directory. You should enclose the query object in double quotation marks ("`"`"). For example, if the command directory is `volume`, the query object "`-aggr aggr0`" would enable access for the `aggr0` aggregate only.
+a|
+
+|===
+
+== Associate a public key with a user account
+
+You provide these values with the `security login publickey create` command when you associate an SSH public key with a user account.
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+Optional. The name of the SVM that the account accesses.
+a|
+
+a|
+`-username`
+a|
+The user name of the account. The default value, `admin`, which is the default name of the cluster administrator.
+a|
+
+a|
+`-index`
+a|
+The index number of the public key. The default value is 0 if the key is the first key that is created for the account; otherwise, the default value is one more than the highest existing index number for the account.
+a|
+
+a|
+`-publickey`
+a|
+The OpenSSH public key. You should enclose the key in double quotation marks ("`"`").
+a|
+
+a|
+`-role`
+a|
+The access control role that is assigned to the account.
+a|
+
+a|
+`-comment`
+a|
+Optional. Descriptive text for the public key. You should enclose the text in double quotation marks ("`"`").
+a|
+
+|===
+
+== Install a CA-signed server digital certificate
+
+You provide these values with the `security certificate generate-csr` command when you generate a digital certificate signing request (CSR) for use in authenticating an SVM as an SSL server.
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-common-name`
+a|
+The name of the certificate, which is either a fully qualified domain name (FQDN) or a custom common name.
+a|
+
+a|
+`-size`
+a|
+The number of bits in the private key. The higher the value, the more secure the key. The default value is `2048`. Possible values are `512`, `1024`, `1536`, and `2048`.
+a|
+
+a|
+`-country`
+a|
+The country of the SVM, in a two-letter code. The default value is `US`. See the man pages for a list of codes.
+a|
+
+a|
+`-state`
+a|
+The state or province of the SVM.
+a|
+
+a|
+`-locality`
+a|
+The locality of the SVM.
+a|
+
+a|
+`-organization`
+a|
+The organization of the SVM.
+a|
+
+a|
+`-unit`
+a|
+The unit in the organization of the SVM.
+a|
+
+a|
+`-email-addr`
+a|
+The email address of the contact administrator for the SVM.
+a|
+
+a|
+`-hash-function`
+a|
+The cryptographic hashing function for signing the certificate. The default value is `SHA256`. Possible values are `SHA1`, `SHA256`, and `MD5`.
+a|
+
+|===
+You provide these values with the `security certificate install` command when you install a CA-signed digital certificate for use in authenticating the cluster or SVM as an SSL server. Only the options that are relevant to this guide are shown in the following table.
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which the certificate is to be installed.
+a|
+
+a|
+`-type`
+a|
+The certificate type:
+
+* `server` for server certificates and intermediate certificates
+* `client-ca` for the public key certificate of the root CA of the SSL client
+* `server-ca` for the public key certificate of the root CA of the SSL server of which ONTAP is a client
+* `client` for a self-signed or CA-signed digital certificate and private key for ONTAP as an SSL client
+
+a|
+
+|===
+
+== Configure Active Directory domain controller access
+
+You provide these values with the `security login domain-tunnel create` command when you have already configured a CIFS server for a data SVM and you want to configure the SVM as a gateway or _tunnel_ for Active Directory domain controller access to the cluster.
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM for which the CIFS server has been configured.
+a|
+
+|===
+You provide these values with the `vserver active-directory create` command when you have not configured a CIFS server and you want to create an SVM computer account on the Active Directory domain.
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM for which you want to create an Active Directory computer account.
+a|
+
+a|
+`-account-name`
+a|
+The NetBIOS name of the computer account.
+a|
+
+a|
+`-domain`
+a|
+The fully qualified domain name (FQDN).
+a|
+
+a|
+`-ou`
+a|
+The organizational unit in the domain. The default value is `CN=Computers`. ONTAP appends this value to the domain name to produce the Active Directory distinguished name.
+a|
+
+|===
+
+== Configure LDAP or NIS server access
+
+You provide these values with the `vserver services name-service ldap client create` command when you create an LDAP client configuration for the SVM.
+
+[NOTE]
+====
+Starting with ONTAP 9.2, the `-ldap-servers` field replaces the `-servers` field. This new field can take either a host name or an IP address as the value for the LDAP server.
+====
+
+Only the options that are relevant to this guide are shown in the following table:
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM for the client configuration.
+a|
+
+a|
+`-client-config`
+a|
+The name of the client configuration.
+a|
+
+a|
+`-servers`
+a|
+*ONTAP 9.0, 9.1*: A comma-separated list of IP addresses for the LDAP servers to which the client connects.
+a|
+
+a|
+`-ldap-servers`
+a|
+*ONTAP 9.2*: A comma-separated list of IP addresses and host names for the LDAP servers to which the client connects.
+a|
+
+a|
+`-schema`
+a|
+The schema that the client uses to make LDAP queries.
+a|
+
+a|
+`-use-start-tls`
+a|
+Whether the client uses Start TLS to encrypt communication with the LDAP server (`true` or `false`).
+[NOTE]
+====
+Start TLS is supported for access to data SVMs only. It is not supported for access to admin SVMs.
+====
+
+a|
+
+|===
+You provide these values with the `vserver services name-service ldap create` command when you associate an LDAP client configuration with the SVM.
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM with which the client configuration is to be associated.
+a|
+
+a|
+`-client-config`
+a|
+The name of the client configuration.
+a|
+
+a|
+`-client-enabled`
+a|
+Whether the SVM can use the LDAP client configuration (`true` or `false`).
+a|
+
+|===
+You provide these values with the `vserver services name-service nis-domain create` command when you create an NIS domain configuration on an SVM.
+
+[NOTE]
+====
+Starting with ONTAP 9.2, the `-nis-servers` field replaces the `-servers` field. This new field can take either a host name or an IP address as the value for the NIS server.
+====
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which the domain configuration is to be created.
+a|
+
+a|
+`-domain`
+a|
+The name of the domain.
+a|
+
+a|
+`-active`
+a|
+Whether the domain is active (`true` or `false`).
+a|
+
+a|
+`-servers`
+a|
+*ONTAP 9.0, 9.1*: A comma-separated list of IP addresses for the NIS servers that are used by the domain configuration.
+a|
+
+a|
+`-nis-servers`
+a|
+*ONTAP 9.2*: A comma-separated list of IP addresses and host names for the NIS servers that are used by the domain configuration.
+a|
+
+|===
+You provide these values with the `vserver services name-service ns-switch create` command when you specify the look-up order for name service sources.
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-vserver`
+a|
+The name of the SVM on which the name service look-up order is to be configured
+a|
+
+a|
+`-database`
+a|
+The name service database:
+
+* `hosts` for files and DNS name services
+* `group` for files, LDAP, and NIS name services
+* `passwd` for files, LDAP, and NIS name services
+* `netgroup` for files, LDAP, and NIS name services
+* `namemap` for files and LDAP name services
+
+a|
+
+a|
+`-sources`
+a|
+The order in which to look up name service sources (in a comma-separated list):
+
+* `files`
+* `dns`
+* `ldap`
+* `nis`
+
+a|
+
+|===
+
+== Configure SAML access
+
+Starting with ONTAP 9.3, you provide these values with the `security saml-sp create` command to configure SAML authentication.
+
+[cols="3*",options="header"]
+|===
+| Field| Description| Your value
+a|
+`-idp-uri`
+a|
+The FTP address or HTTP address of the Identity Provider (IdP) host from where the IdP metadata can be downloaded.
+a|
+
+a|
+`-sp-host`
+a|
+The host name or IP address of the SAML service provider host (ONTAP system). By default, the IP address of the cluster-management LIF is used.
+a|
+
+a|
+{[`-cert-ca`] and `-cert-serial`] or [`-cert-common-name`]
+
+a|
+The server certificate details of the service provider host (ONTAP system).
+a|
+
+a|
+`-verify-metadata-server`
+a|
+Whether the identity of the IdP metadata server must be validated (`true` or `false`). The best practice is to always set this value to `true`.
+a|
+
+|===

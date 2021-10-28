@@ -1,0 +1,49 @@
+---
+permalink: nfs-admin/enable-ldap-rfc2307bis-support-task.html
+sidebar: sidebar
+keywords: enable, ldap, rfc2307bis, support
+summary: "If you want to use LDAP and require the additional capability to use nested group memberships, you can configure ONTAP to enable LDAP RFC2307bis support."
+---
+= Enable LDAP RFC2307bis support
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If you want to use LDAP and require the additional capability to use nested group memberships, you can configure ONTAP to enable LDAP RFC2307bis support.
+
+.What you'll need
+
+You must have created a copy of one of the default LDAP client schemas that you want to use.
+
+.About this task
+
+In LDAP client schemas, group objects use the memberUid attribute. This attribute can contain multiple values and lists the names of the users that belong to that group. In RFC2307bis enabled LDAP client schemas, group objects use the uniqueMember attribute. This attribute can contain the full distinguished name (DN) of another object in the LDAP directory. This enables you to use nested groups because groups can have other groups as members.
+
+The user should not be a member of more than 256 groups including nested groups. ONTAP ignores any groups over the 256 group limit.
+
+By default, RFC2307bis support is disabled.
+
+[NOTE]
+====
+RFC2307bis support is enabled automatically in ONTAP when an LDAP client is created with the MS-AD-BIS schema.
+====
+
+For additional information, see https://www.netapp.com/pdf.html?item=/media/19423-tr-4835.pdf[NetApp Technical Report 4835: How to Configure LDAP in ONTAP].
+
+.Steps
+
+. Set the privilege level to advanced:
++
+`set -privilege advanced`
+. Modify the copied RFC2307 LDAP client schema to enable RFC2307bis support:
++
+`vserver services name-service ldap client schema modify -vserver vserver_name -schema schema-name -enable-rfc2307bis true`
+. Modify the schema to match the object class supported in the LDAP server:
++
+`vserver services name-service ldap client schema modify -vserver vserver-name -schema schema_name -group-of-unique-names-object-class object_class`
+. Modify the schema to match the attribute name supported in the LDAP server:
++
+`vserver services name-service ldap client schema modify -vserver vserver-name -schema schema_name -unique-member-attribute attribute_name`
+. Return to the admin privilege level:
++
+`set -privilege admin`

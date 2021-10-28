@@ -1,0 +1,145 @@
+---
+permalink: smb-admin/client-signing-policies-communication-concept.html
+sidebar: sidebar
+keywords: addition, cifs, server, smb, sign, security, windows, client, control, digital, communication, business, requirement, how smb signing policies affect communication with a cifs server
+summary: "In addition to the CIFS server SMB signing security settings, two SMB signing policies on Windows clients control the digital signing of communications between clients and the CIFS server. You can configure the setting that meets your business requirements."
+---
+= How SMB signing policies affect communication with a CIFS server
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+In addition to the CIFS server SMB signing security settings, two SMB signing policies on Windows clients control the digital signing of communications between clients and the CIFS server. You can configure the setting that meets your business requirements.
+
+Client SMB policies are controlled through Windows local security policy settings, which are configured by using the Microsoft Management Console (MMC) or Active Directory GPOs. For more information about client SMB signing and security issues, see the Microsoft Windows documentation.
+
+Here are descriptions of the two SMB signing policies on Microsoft clients:
+
+* `Microsoft network client: Digitally sign communications (if server agrees)`
++
+This setting controls whether the client's SMB signing capability is enabled. It is enabled by default. When this setting is disabled on the client, the client communications with the CIFS server depends on the SMB signing setting on the CIFS server.
+
+* `Microsoft network client: Digitally sign communications (always)`
++
+This setting controls whether the client requires SMB signing to communicate with a server. It is disabled by default. When this setting is disabled on the client, SMB signing behavior is based on the policy setting for `Microsoft network client: Digitally sign communications (if server agrees)` and the setting on the CIFS server.
++
+[NOTE]
+====
+If your environment includes Windows clients configured to require SMB signing, you must enable SMB signing on the CIFS server. If you do not, the CIFS server cannot serve data to these systems.
+====
+
+The effective results of client and CIFS server SMB signing settings depends on whether the SMB sessions uses SMB 1.0 or SMB 2.x and later.
+
+The following table summarizes the effective SMB signing behavior if the session uses SMB 1.0:
+
+[options="header"]
+|===
+| Client| ONTAP--signing not required| ONTAP--signing required
+a|
+Signing disabled and not required
+a|
+Not signed
+a|
+Signed
+a|
+Signing enabled and not required
+a|
+Not signed
+a|
+Signed
+a|
+Signing disabled and required
+a|
+Signed
+a|
+Signed
+a|
+Signing enabled and required
+a|
+Signed
+a|
+Signed
+|===
+
+[NOTE]
+====
+Older Windows SMB 1 clients and some non-Windows SMB 1 clients might fail to connect if signing is disabled on the client but required on the CIFS server.
+====
+
+The following table summarizes the effective SMB signing behavior if the session uses SMB 2.x or SMB 3.0:
+
+[NOTE]
+====
+For SMB 2.x and SMB 3.0 clients, SMB signing is always enabled. It cannot be disabled.
+====
+
+[options="header"]
+|===
+| Client| ONTAP--signing not required| ONTAP--signing required
+a|
+Signing not required
+a|
+Not signed
+a|
+Signed
+a|
+Signing required
+a|
+Signed
+a|
+Signed
+|===
+The following table summarizes the default Microsoft client and server SMB signing behavior:
+
+[options="header"]
+|===
+| Protocol| Hash algorithm| Can enable/disable| Can require/not require| Client default| Server default| DC default
+a|
+SMB 1.0
+a|
+MD5
+a|
+Yes
+a|
+Yes
+a|
+Enabled (not required)
+a|
+Disabled (not required)
+a|
+Required
+a|
+SMB 2.x
+a|
+HMAC SHA-256
+a|
+No
+a|
+Yes
+a|
+Not required
+a|
+Not required
+a|
+Required
+a|
+SMB 3.0
+a|
+AES-CMAC.
+a|
+No
+a|
+Yes
+a|
+Not required
+a|
+Not required
+a|
+Required
+|===
+
+[NOTE]
+====
+Microsoft no longer recommends using `Digitally sign communications (if client agrees)` or `Digitally sign communications (if server agrees)` Group Policy settings. Microsoft also no longer recommends using the `EnableSecuritySignature` registry settings. These options only affect the SMB 1 behavior and can be replaced by the `Digitally sign communications (always)` Group Policy setting or the `RequireSecuritySignature` registry setting. You can also get more information from the Microsoft Blog.http://blogs.technet.com/b/josebda/archive/2010/12/01/the-basics-of-smb-signing-covering-both-smb1-and-smb2.aspx[The Basics of SMB Signing (covering both SMB1 and SMB2)]
+
+====

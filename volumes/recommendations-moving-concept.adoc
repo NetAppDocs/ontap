@@ -1,0 +1,62 @@
+---
+permalink: volumes/recommendations-moving-concept.html
+sidebar: sidebar
+keywords: considerations, recommendations, when, moving, volumes, flexclone volume, metroCluster configuration
+summary: "Moving a volume has many considerations and recommendations that are influenced by the volume you are moving or by the system configuration, such as a MetroCluster configuration. You should understand the considerations and recommendations associated with moving volumes."
+---
+= Considerations and recommendations when moving volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Moving a volume has many considerations and recommendations that are influenced by the volume you are moving or by the system configuration, such as a MetroCluster configuration. You should understand the considerations and recommendations associated with moving volumes.
+
+== General considerations and recommendations
+
+* If you are upgrading the release family for a cluster, do not move a volume until after you upgrade all of the nodes in the cluster.
++
+This recommendation prevents you from inadvertently attempting to move a volume from a newer release family to an older release family.
+
+* The source volume must be consistent.
+* If you have assigned one or more aggregates to the associated storage virtual machine (SVM), the destination aggregate must be one of the assigned aggregates.
+* You cannot move a volume to or from a taken-over CFO aggregate.
+* If a volume that contains LUNs is not NVFAIL enabled before you move it, the volume will be NVFAIL enabled after you move it.
+* You can move a volume from a Flash Pool aggregate to another Flash Pool aggregate.
+ ** The caching policies of that volume are also moved.
+ ** The move might affect volume performance.
+* You can move volumes between a Flash Pool aggregate and a non-Flash Pool aggregate.
+ ** If you move a volume from a Flash Pool aggregate to a non-Flash Pool aggregate, ONTAP displays a message warning you that the move might affect volume performance and asks whether you want to continue.
+ ** If you move a volume from a non-Flash Pool aggregate to a Flash Pool aggregate, ONTAP assigns the `auto` caching policy.
+* Volumes have the data-at-rest protections of the aggregate they reside on. If you move a volume from an aggregate that consists of NSE drives to one that does not, the volume no longer has NSE data-at-rest protection.
+
+== FlexClone volume considerations and recommendations
+
+* FlexClone volumes cannot be offline when they are being moved.
+* You can move FlexClone volumes from one aggregate to another aggregate on the same node or another node in the same SVM without splitting.
+* FlexClone volume Snapshot copies are not lost after moving a clone.
+* You can move FlexClone parent volumes from one aggregate to another aggregate.
++
+When you move a FlexClone parent volume, a temporary volume is left behind that acts as a parent volume for all FlexClone volumes. No operations are allowed on the temporary volume except to take it offline or to delete it. After all FlexClone volumes are either split or destroyed, the temporary volume is cleaned up automatically.
+
+* After you move a FlexClone child volume, the volume is no longer a FlexClone volume.
+* FlexClone move operations are mutually exclusive from FlexClone copy or split operations.
+* If a clone-splitting operation is in progress, moving a volume might fail.
++
+You should not move a volume until clone-splitting operations are completed.
+
+== MetroCluster configuration considerations
+
+* During a volume move in a MetroCluster configuration, when a temporary volume is created on the destination aggregate on the source cluster a record of the temporary volume corresponding to the volume in the mirrored, but unassimilated, aggregate is also created on the surviving cluster.
+* If a MetroCluster switchover occurs before the cutover, the destination volume has a record and is a temporary volume (a volume of type TMP).
++
+Move job restarts on the surviving (disaster recovery) cluster, reports a failure, and cleans up all move-related items including the temporary volume. In any event where cleanup cannot be done correctly, an EMS is generated alerting the system administrator to do the necessary cleanup.
+
+* If a MetroCluster switchover occurs after the cutover phase has started but before the move job has completed (that is, the move reached a stage where it can update the cluster to point to the destination aggregate), the move job restarts on the surviving (disaster recovery) cluster and runs to completion.
++
+All move-related items are cleaned up including the temporary volume (original source). In any event where cleanup cannot be done correctly, an EMS is generated alerting the system administrator to do the necessary cleanup.
+
+* Neither forced nor unforced MetroCluster switchbacks are allowed if there are any volume move operations in progress for volumes belonging to the switched over site.
++
+Switchbacks are not blocked when volume move operations are in progress for volumes local to the surviving site.
+
+* Unforced MetroCluster switchovers are blocked, but forced MetroCluster switchovers are not blocked if there are any volume move operations in progress.

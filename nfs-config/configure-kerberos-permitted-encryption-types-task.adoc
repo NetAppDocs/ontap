@@ -1,0 +1,74 @@
+---
+permalink: nfs-config/configure-kerberos-permitted-encryption-types-task.html
+sidebar: sidebar
+keywords: configure, nfs, kerberos, permitted, encryption, types
+summary: "By default, ONTAP supports the following encryption types for NFS Kerberos: DES, 3DES, AES-128, and AES-256. You can configure the permitted encryption types for each SVM to suit the security requirements for your particular environment by using the vserver nfs modify command with the -permitted-enc-types parameter."
+---
+= Configure NFS Kerberos permitted encryption types
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+By default, ONTAP supports the following encryption types for NFS Kerberos: DES, 3DES, AES-128, and AES-256. You can configure the permitted encryption types for each SVM to suit the security requirements for your particular environment by using the `vserver nfs modify` command with the `-permitted-enc-types` parameter.
+
+.About this task
+
+For greatest client compatibility, ONTAP supports both weak DES and strong AES encryption by default. This means, for example, that if you want to increase security and your environment supports it, you can use this procedure to disable DES and 3DES and require clients to use only AES encryption.
+
+You should use the strongest encryption available. For ONTAP, that is AES-256. You should confirm with your KDC administrator that this encryption level is supported in your environment.
+
+* Enabling or disabling AES entirely (both AES-128 and AES-256) on SVMs is disruptive because it destroys the original DES principal/keytab file, thereby requiring that the Kerberos configuration be disabled on all LIFs for the SVM.
++
+Before making this change, you should verify that NFS clients do not rely on AES encryption on the SVM.
+
+* Enabling or disabling DES or 3DES does not require any changes to the Kerberos configuration on LIFs.
+
+.Step
+
+. Enable or disable the permitted encryption type you want:
++
+[options="header"]
+|===
+| If you want to enable or disable...| Follow these steps...
+a|
+DES or 3DES
+a|
+
+ .. Configure the NFS Kerberos permitted encryption types of the SVM:
+ +
+`vserver nfs modify -vserver _vserver_name_ -permitted-enc-types _encryption_types_`
++
+Separate multiple encryption types with a comma.
+
+ .. Verify that the change was successful:
+ +
+`vserver nfs show -vserver _vserver_name_ -fields permitted-enc-types`
+
+a|
+AES-128 or AES-256
+a|
+
+ .. Identify on which SVM and LIF Kerberos is enabled:
+ +
+`vserver nfs kerberos interface show`
+ .. Disable Kerberos on all LIFs on the SVM whose NFS Kerberos permitted encryption type you want to modify:
+ +
+`vserver nfs kerberos interface disable -lif _lif_name_`
+ .. Configure the NFS Kerberos permitted encryption types of the SVM:
+ +
+`vserver nfs modify -vserver _vserver_name_ -permitted-enc-types _encryption_types_`
++
+Separate multiple encryption types with a comma.
+
+ .. Verify that the change was successful:
+ +
+`vserver nfs show -vserver _vserver_name_ -fields permitted-enc-types`
+ .. Reenable Kerberos on all LIFs on the SVM:
+ +
+`vserver nfs kerberos interface enable -lif _lif_name_ -spn _service_principal_name_`
+ .. Verify that Kerberos is enabled on all LIFs:
+ +
+`vserver nfs kerberos interface show`
+
++
+|===

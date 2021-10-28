@@ -1,0 +1,159 @@
+---
+permalink: smb-admin/configure-branchcache-task.html
+sidebar: sidebar
+keywords: configure, branchcache, service, per-share, basis, smb, share, configure branchcache on the cifs server
+summary: "You can configure BranchCache to provide BranchCache services on a per-share basis. Alternatively, you can configure BranchCache to automatically enable caching on all SMB shares."
+---
+= Configure BranchCache on the CIFS server
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can configure BranchCache to provide BranchCache services on a per-share basis. Alternatively, you can configure BranchCache to automatically enable caching on all SMB shares.
+
+.About this task
+
+You can configure BranchCache on SVMs.
+
+* You can create an all-shares BranchCache configuration if want to offer caching services for all content contained within all SMB shares on the CIFS server.
+* You can create a per-share BranchCache configuration if you want to offer caching services for content contained within selected SMB shares on the CIFS server.
+
+You must specify the following parameters when configuring BranchCache:
+
+[options="header"]
+|===
+| Required parameters| Description
+a|
+_SVM name_
+a|
+BranchCache is configured on a per SVM basis. You must specify on which CIFS-enabled SVM you want to configure the BranchCache service.
+a|
+_Path to hash store_
+a|
+BranchCache hashes are stored in regular files on the SVM volume. You must specify the path to an existing directory where you want ONTAP to store the hash data.The BranchCache hash path must be read-writable. Read-only paths, such as Snapshot directories are not allowed. You can store hash data in a volume that contains other data or you can create a separate volume to store hash data.
+
+If the SVM is an SVM disaster recovery source, the hash path cannot be on the root volume. This is because the root volume is not replicated to the disaster recovery destination.
+
+The hash path can contain blanks and any valid file name characters.
+
+|===
+You can optionally specify the following parameters:
+
+[options="header"]
+|===
+| Optional parameters| Description
+a|
+_Supported Versions_
+a|
+ONTAP support BranchCache 1 and 2. You can enable version 1, version 2, or both versions. The default is to enable both versions.
+a|
+_Maximum size of hash store_
+a|
+You can specify the size to use for the hash data store. If the hash data exceeds this value, ONTAP deletes older hashes to make room for newer hashes. The default size for the hash store is 1 GB. BranchCache performs more efficiently if hashes are not discarded in an overly aggressive manner. If you determine that hashes are discarded frequently because the hash store is full, you can increase the hash store size by modifying the BranchCache configuration.
+
+a|
+_Server key_
+a|
+You can specify a server key that the BranchCache service uses to prevent clients from impersonating the BranchCache server. If you do not specify a server key, one is randomly generated when you create the BranchCache configuration. You can set the server key to a specific value so that if multiple servers are providing BranchCache data for the same files, clients can use hashes from any server using that same server key. If the server key contains any spaces, you must enclose the server key in quotation marks.
+
+a|
+_Operating mode_
+a|
+The default is to enable BranchCache on a per-share basis.
+
+* To create a BranchCache configuration where you enable BranchCache on a per-share basis, you can either not specify this optional parameter or you can specify `per-share`.
+* To automatically enable BranchCache on all shares, you must set the operating mode to `all-shares`.
+
+|===
+
+.Steps
+
+. Enable SMB 2.1 and 3.0 as needed:
+ .. Set the privilege level to advanced: `set -privilege advanced`
+ .. Check the configured SVM SMB settings to determine whether all needed versions of SMB are enabled: `vserver cifs options show -vserver vserver_name`
+ .. If necessary, enable SMB 2.1: `vserver cifs options modify -vserver vserver_name -smb2-enabled true`
++
+The command enables both SMB 2.0 and SMB 2.1.
+
+ .. If necessary, enable SMB 3.0: `vserver cifs options modify -vserver vserver_name -smb3-enabled true`
+ .. Return to the admin privilege level: `set -privilege admin`
+. Configure BranchCache: `vserver cifs branchcache create -vserver vserver_name -hash-store-path path [-hash-store-max-size {integer[KB|MB|GB|TB|PB]}] [-versions {v1-enable|v2-enable|enable-all] [-server-key text] -operating-mode {per-share|all-shares}`
++
+The specified hash storage path must exist and must reside on a volume managed by the SVM. The path must also be located on a read-writable volume. The command fails if the path is read-only or does not exist.
++
+If you want to use the same server key for additional SVM BranchCache configurations, record the value you enter for the server key. The server key does not appear when you display information about the BranchCache configuration.
+
+. Verify that the BranchCache configuration is correct: `vserver cifs branchcache show -vserver vserver_name`
+
+.Examples
+
+The following commands verify that both SMB 2.1 and 3.0 are enabled and configure BranchCache to automatically enable caching on all SMB shares on SVM vs1:
+
+----
+cluster1::> set -privilege advanced
+Warning: These advanced commands are potentially dangerous; use them
+only when directed to do so by technical support personnel.
+Do you wish to continue? (y or n): y
+
+cluster1::*> vserver cifs options show -vserver vs1 -fields smb2-enabled,smb3-enabled
+vserver smb2-enabled smb3-enabled
+------- ------------ ------------
+vs1     true         true
+
+
+cluster1::*> set -privilege admin
+
+cluster1::> vserver cifs branchcache create -vserver vs1 -hash-store-path /hash_data -hash-store-max-size 20GB -versions enable-all -server-key "my server key" -operating-mode all-shares
+
+cluster1::> vserver cifs branchcache show -vserver vs1
+
+                                 Vserver: vs1
+          Supported BranchCache Versions: enable_all
+                      Path to Hash Store: /hash_data
+          Maximum Size of the Hash Store: 20GB
+Encryption Key Used to Secure the Hashes: -
+        CIFS BranchCache Operating Modes: all_shares
+----
+
+The following commands verify that both SMB 2.1 and 3.0 are enabled, configure BranchCache to enable caching on a per-share basis on SVM vs1, and verify the BranchCache configuration:
+
+----
+cluster1::> set -privilege advanced
+Warning: These advanced commands are potentially dangerous; use them
+only when directed to do so by technical support personnel.
+Do you wish to continue? (y or n): y
+
+cluster1::*> vserver cifs options show -vserver vs1 -fields smb2-enabled,smb3-enabled
+vserver smb2-enabled smb3-enabled
+------- ------------ ------------
+vs1     true         true
+
+cluster1::*> set -privilege admin
+
+cluster1::> vserver cifs branchcache create -vserver vs1 -hash-store-path /hash_data -hash-store-max-size 20GB -versions enable-all -server-key "my server key"
+
+cluster1::> vserver cifs branchcache show -vserver vs1
+
+                                 Vserver: vs1
+          Supported BranchCache Versions: enable_all
+                      Path to Hash Store: /hash_data
+          Maximum Size of the Hash Store: 20GB
+Encryption Key Used to Secure the Hashes: -
+        CIFS BranchCache Operating Modes: per_share
+----
+
+*Related information*
+
+xref:requirements-guidelines-concept.adoc[Requirements and guidelines]
+
+xref:configure-branchcache-remote-office-concept.adoc[Where to find information about configuring BranchCache at the remote office]
+
+xref:create-branchcache-enabled-share-task.adoc[Creating a BranchCache-enabled SMB share]
+
+xref:enable-branchcache-existing-share-task.adoc[Enabling BranchCache on an existing SMB share]
+
+xref:manage-monitor-branchcache-config-concept.adoc[Managing and monitoring the BranchCache configuration]
+
+xref:disable-enable-branchcache-svm-concept.adoc[Disabling or enabling BranchCache on the SVM]
+
+xref:delete-branchcache-config-svms-concept.adoc[Deleting the BranchCache configuration on SVMs]

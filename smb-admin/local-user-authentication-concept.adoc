@@ -1,0 +1,38 @@
+---
+permalink: smb-admin/local-user-authentication-concept.html
+sidebar: sidebar
+keywords: local, user, access, data, cifs, server, create, authenticate, session, how local user authentication works
+summary: "Before a local user can access data on a CIFS server, the user must create an authenticated session."
+---
+= How local user authentication works
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before a local user can access data on a CIFS server, the user must create an authenticated session.
+
+Because SMB is session-based, the identity of the user can be determined just once, when the session is first set up. The CIFS server uses NTLM-based authentication when authenticating local users. Both NTLMv1 and NTLMv2 are supported.
+
+ONTAP uses local authentication under three use cases. Each use case depends on whether the domain portion of the user name (with the DOMAIN\user format) matches the CIFS server's local domain name (the CIFS server name):
+
+* The domain portion matches
++
+Users who provide local user credentials when requesting access to data are authenticated locally on the CIFS server.
+
+* The domain portion does not match
++
+ONTAP attempts to use NTLM authentication with a domain controller in the domain to which the CIFS server belongs. If authentication succeeds, the login is complete. If it does not succeed, what happens next depends on why authentication did not succeed.
++
+For example, if the user exists in Active Directory but the password is invalid or expired, ONTAP does not attempt to use the corresponding local user account on the CIFS server. Instead, authentication fails. There are other cases where ONTAP uses the corresponding local account on the CIFS server, if it exists, for authentication--even though the NetBIOS domain names do not match. For example, if a matching domain account exists but it is disabled, ONTAP uses the corresponding local account on the CIFS server for authentication.
+
+* The domain portion is not specified
++
+ONTAP first attempts authentication as a local user. If authentication as a local user fails, then ONTAP authenticates the user with a domain controller in the domain to which the CIFS server belongs.
+
+After local or domain user authentication is completed successfully, ONTAP constructs a complete user access token, which takes into account local group membership and privileges.
+
+For more information about NTLM authentication for local users, see the Microsoft Windows documentation.
+
+*Related information*
+
+xref:enable-disable-local-user-authentication-task.adoc[Enabling or disabling local user authentication]

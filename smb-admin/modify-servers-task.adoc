@@ -1,0 +1,66 @@
+---
+permalink: smb-admin/modify-servers-task.html
+sidebar: sidebar
+keywords: move, smb, server, workgroup, active, directory, domain, vserver, cifs, modify, command, modify smb servers
+summary: "You can move a SMB server from a workgroup to an Active Directory domain, from a workgroup to another workgroup, or from an Active Directory domain to a workgroup by using the vserver cifs modify command."
+---
+= Modify SMB servers
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can move a SMB server from a workgroup to an Active Directory domain, from a workgroup to another workgroup, or from an Active Directory domain to a workgroup by using the `vserver cifs modify` command.
+
+.About this task
+
+You can also modify other attributes of the SMB server, such as the SMB server name and administrative status. See the man page for details.
+
+.Choices
+
+* Move the SMB server from a workgroup to an Active Directory domain:
+ .. Set the administrative status of the SMB server to `down`.
++
+----
+Cluster1::>vserver cifs modify -vserver vs1 -status-admin down
+----
+
+ .. Move the SMB server from the workgroup to an Active Directory domain: `vsserver cifs modify -vserver _vserver_name_ -domain _domain_name_`
++
+----
+Cluster1::>vserver cifs modify -vserver vs1 -domain example.com
+----
++
+In order to create an Active Directory machine account for the SMB server, you must supply the name and password of a Windows account with sufficient privileges to add computers to the `ou=_example_ ou` container within the `_example_`.com domain.
++
+Beginning with ONTAP 9.7, your AD administrator can provide you with a URI to a keytab file as an alternative to providing you with a name and password to a privileged Windows account. When you receive the URI, include it in the `-keytab-uri` parameter with the `vserver cifs` commands.
+* Move the SMB server from a workgroup to another workgroup:
+ .. Set the administrative status of the SMB server to `down`.
++
+----
+Cluster1::>vserver cifs modify -vserver vs1 -status-admin down
+----
+
+ .. Modify the workgroup for the SMB server: `vserver cifs modify -vserver _vserver_name_ -workgroup _new_workgroup_name_`
++
+----
+Cluster1::>vserver cifs modify -vserver vs1 -workgroup workgroup2
+----
+* Move the SMB server from an Active Directory domain to a workgroup:
+ .. Set the administrative status of the SMB server to `down`.
++
+----
+Cluster1::>vserver cifs modify -vserver vs1 -status-admin down
+----
+
+ .. Move the SMB server from the Active Directory domain to a workgroup: `vserver cifs modify -vserver _vserver_name_ -workgroup _workgroup_name_`
++
+----
+cluster1::> vserver cifs modify -vserver vs1 -workgroup workgroup1
+----
++
+[NOTE]
+====
+To enter workgroup mode, all domain-based features must be disabled and their configuration removed automatically by the system, including continuously-available shares, shadow copies, and AES. However, domain-configured share ACLs such as "EXAMPLE.COM\userName" will not work properly, but cannot be removed by ONTAP. Remove these share ACLs as soon as possible using external tools after the command completes. If AES is enabled, you may be asked to supply the name and password of a Windows account with sufficient privileges to disable it in the "EXAMPLE.COM" domain.
+====
+
+ ** Modify other attributes by using the appropriate parameter of the `vserver cifs modify` command.

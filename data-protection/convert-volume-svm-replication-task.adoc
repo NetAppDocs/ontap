@@ -1,0 +1,70 @@
+---
+permalink: data-protection/convert-volume-svm-replication-task.html
+sidebar: sidebar
+keywords: convert, volume, replication, relationships, svm
+summary: "You can convert replication relationships between volumes to a replication relationship between the storage virtual machines (SVMs) that own the volumes, provided that each volume on the source (except the root volume) is being replicated, and each volume on the source (including the root volume) has the same name as the volume on the destination."
+---
+= Convert volume replication relationships to an SVM replication relationship
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can convert replication relationships between volumes to a replication relationship between the storage virtual machines (SVMs) that own the volumes, provided that each volume on the source (except the root volume) is being replicated, and each volume on the source (including the root volume) has the same name as the volume on the destination.
+
+.About this task
+
+Use the `volume rename` command when the SnapMirror relationship is idle to rename destination volumes if necessary.
+
+.Steps
+
+. From the destination SVM or the destination cluster, run the following command to resync the source and destination volumes:
++
+`snapmirror resync -source-path _SVM:volume_ -destination-path _SVM:volume_ -type DP|XDP -schedule _schedule_ -policy _policy_`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+Although resync does not require a baseline transfer, it can be time-consuming. You might want to run the resync in off-peak hours.
+====
++
+The following example resyncs the relationship between the source volume `volA` on `svm1` and the destination volume `volA` on `svm_backup`:
++
+----
+cluster_dst::> snapmirror resync -source-path svm1:volA -destination-path svm_backup:volA
+----
+
+. Create an SVM replication relationship between the source and destination SVMs, as described in link:replicate-svm-config-task.html[Replicating SVM configurations].
++
+You must use the `-identity-preserve true` option of the `snapmirror create` command when you create your replication relationship.
+
+. Stop the destination SVM:
++
+`vserver stop -vserver _SVM_`
++
+For complete command syntax, see the man page.
++
+The following example stops the destination SVM `svm_backup`:
++
+----
+cluster_dst::> vserver stop svm_backup
+----
+
+. From the destination SVM or the destination cluster, run the following command to resync the source and destination SVMs:
++
+`snapmirror resync -source-path _SVM_: -destination-path _SVM_: -type DP|XDP -schedule _schedule_ -policy _policy_`
++
+For complete command syntax, see the man page.
++
+[NOTE]
+====
+You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options. See the example below.
+
+Although resync does not require a baseline transfer, it can be time-consuming. You might want to run the resync in off-peak hours.
+====
++
+The following example resyncs the relationship between the source SVM `svm1` and the destination SVM `svm_backup`:
++
+----
+cluster_dst::> snapmirror resync -source-path svm1: -destination-path svm_backup:
+----

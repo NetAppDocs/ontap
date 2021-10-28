@@ -1,0 +1,72 @@
+---
+permalink: smb-admin/enable-disable-aes-encryption-kerberos-task.html
+sidebar: sidebar
+keywords: advantage, security, kerberos-based, communication, aes-256, aes-128, aes, encryption, active, directory, ad, kdc, cifs, disable, enable or disable aes encryption for kerberos-based communication
+summary: "To take advantage of the strongest security with Kerberos-based communication, you can enable AES-256 and AES-128 encryption on the CIFS server. If you do not want the CIFS server to select the AES encryption types for Kerberos-based communication with the Active Directory (AD) KDC, you can disable AES encryption. By default, AES encryption is disabled."
+---
+= Enable or disable AES encryption for Kerberos-based communication
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+To take advantage of the strongest security with Kerberos-based communication, you can enable AES-256 and AES-128 encryption on the CIFS server. If you do not want the CIFS server to select the AES encryption types for Kerberos-based communication with the Active Directory (AD) KDC, you can disable AES encryption. By default, AES encryption is disabled.
+
+.About this task
+
+To enhance security, the storage virtual machine (SVM) changes its machine account password in the AD each time the AES security option is modified. Changing the password might require administrative AD credentials for the organizational unit (OU) that contains the machine account.
+
+If anSVM is configured as a disaster recovery destination where the identity is not preserved (the `-identity-preserve` option is set to `false` in the SnapMirror configuration), the non-default CIFS server security settings are not replicated to the destination. If you have enabled AES encryption on the source SVM, you must manually enable it on the destination SVM after the destination becomes read-write (after the SnapMirror relationship is broken).
+
+.Steps
+
+. Perform one of the following actions:
++
+[options="header"]
+|===
+| If you want the AES encryption types for Kerberos communication to be...| Enter the command...
+a|
+Enabled
+a|
+`vserver cifs security modify -vserver vserver_name -is-aes-encryption-enabled true`
+a|
+Disabled
+a|
+`vserver cifs security modify -vserver vserver_name -is-aes-encryption-enabled false`
+|===
+
+. Verify that AES encryption is enabled or disabled as desired: `vserver cifs security show -vserver vserver_name -fields is-aes-encryption-enabled`
++
+The `is-aes-encryption-enabled` field displays `true` if AES encryption is enabled and `false` if it is disabled.
+
+.Example
+
+The following example enables the AES encryption types for the CIFS server on SVM vs1:
+
+----
+cluster1::> vserver cifs security modify -vserver vs1 -is-aes-encryption-enabled true
+
+cluster1::> vserver cifs security show -vserver vs1 -fields is-aes-encryption-enabled
+vserver  is-aes-encryption-enabled
+-------- -------------------------
+vs1      true
+----
+
+The following example enables the AES encryption types for the CIFS server on SVM vs2. The administrator is prompted to enter the administrative AD credentials for the OU containing the CIFS server.
+
+----
+cluster1::> vserver cifs security modify -vserver vs2 -is-aes-encryption-enabled true
+
+Info: In order to enable CIFS AES encryption, the password for the CIFS server
+machine account must be reset. Enter the username and password for the
+CIFS domain "EXAMPLE.COM".
+
+Enter your user ID: administrator
+
+Enter your password:
+
+
+cluster1::> vserver cifs security show -vserver vs2 -fields is-aes-encryption-enabled
+vserver  is-aes-encryption-enabled
+-------- -------------------------
+vs2      true
+----

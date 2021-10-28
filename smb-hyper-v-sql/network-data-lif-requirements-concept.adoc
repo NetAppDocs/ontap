@@ -1,0 +1,44 @@
+---
+permalink: smb-hyper-v-sql/network-data-lif-requirements-concept.html
+sidebar: sidebar
+keywords: network, data, lif, requirements, hyper, v, sql, server, protocol
+summary: "You need to be aware of certain network and data LIF requirements when creating SQL Server or Hyper-V over SMB configurations for nondisruptive operations)."
+---
+= Network and data LIF requirements
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You need to be aware of certain network and data LIF requirements when creating SQL Server or Hyper-V over SMB configurations for nondisruptive operations).
+
+== Network protocol requirements
+
+* IPv4 and IPv6 networks are supported.
+* SMB 3.0 or later is required.
++
+SMB 3.0 provides the functionality needed to create the continuously available SMB connections necessary to offer nondisruptive operations.
+
+* DNS servers must contain entries that map the CIFS server name to the IP addresses assigned to the data LIFs on the storage virtual machine (SVM).
++
+The Hyper-V or SQL Server application servers typically make multiple connections over multiple data LIFs when accessing virtual machine or database files. For proper functionality, the application servers must make these multiple SMB connections by using the CIFS server name instead of making multiple connections to multiple unique IP addresses.
++
+Witness also requires the use of the CIFS server's DNS name instead of individual LIF IP addresses.
++
+Beginning in ONTAP 9.4, you can improve throughput and fault tolerance for Hyper-V and SQL server over SMB configurations by enabling SMB Multichannel. To do so, you must have multiple 1G, 10G, or larger NICs deployed on the cluster and clients.
+
+== Data LIF requirements
+
+* The SVM hosting the application server over SMB solution must have at least one operational data LIF on every node in the cluster.
++
+SVM data LIFs can fail over to other data ports within the cluster, including nodes that are not currently hosting data accessed by the application servers. Additionally, because the Witness node is always the SFO partner of a node to which the application server is connected, every node in the cluster is a potential Witness node.
+
+* Data LIFs must not be configured to automatically revert.
++
+After a takeover or giveback event, you should manually revert the data LIFs to their home ports.
+
+* All data LIF IP addresses must have an entry in DNS and all entries must resolve to the CIFS server name.
++
+The application servers must connect to SMB shares by using the CIFS server name. You must not configure the application servers to make connections by using the LIF IP addresses.
+
+* If the CIFS server name is different from the SVM name, the DNS entries must resolve to the CIFS server name.
+

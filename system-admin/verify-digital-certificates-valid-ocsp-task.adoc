@@ -1,0 +1,99 @@
+---
+permalink: system-admin/verify-digital-certificates-valid-ocsp-task.html
+sidebar: sidebar
+keywords: verfiy, digital, certificate, valid, ocsp, online, status, protocol, transport, layer, security, tls, enable, disable
+summary: "Beginning with ONTAP 9.2, Online Certificate Status Protocol (OCSP) enables ONTAP applications that use Transport Layer Security (TLS) communications to receive digital certificate status when OCSP is enabled. You can enable or disable OCSP certificate status checks for specific applications at any time. By default, OCSP certificate status checking is disabled."
+---
+= Verify digital certificates are valid using OCSP
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.2, Online Certificate Status Protocol (OCSP) enables ONTAP applications that use Transport Layer Security (TLS) communications to receive digital certificate status when OCSP is enabled. You can enable or disable OCSP certificate status checks for specific applications at any time. By default, OCSP certificate status checking is disabled.
+
+.What you'll need
+
+These commands must be performed at the advanced privilege level.
+
+.About this task
+
+OCSP supports the following applications:
+
+* AutoSupport
+* Event Management System (EMS)
+* LDAP over TLS
+* Key Management Interoperability Protocol (KMIP)
+* Audit Logging
+* FabricPool
+
+.Steps
+
+. Set the privilege level to advanced: `set -privilege advanced`.
+. To enable or disable OCSP certificate status checks for specific ONTAP applications, use the appropriate command.
++
+[options="header"]
+|===
+| If you want OCSP certificate status checks for some applications to be...| Use the command...
+a|
+Enabled
+a|
+`security config ocsp enable -app`
+
+`app name`
+a|
+Disabled
+a|
+`security config ocsp disable -app`
+
+`app name`
+|===
+The following command enables OCSP support for AutoSupport and EMS.
++
+----
+cluster::*> security config ocsp enable -app asup,ems
+----
++
+When OCSP is enabled, the application receives one of the following responses:
+
+ ** Good - the certificate is valid and communication proceeds.
+ ** Revoked - the certificate is permanently deemed as not trustworthy by its issuing Certificate Authority and communication fails to proceed.
+ ** Unknown - the server does not have any status information about the certificate and communication fails to proceed.
+ ** OCSP server information is missing in the certificate - the server acts as if OCSP is disabled and continues with TLS communication, but no status check occurs.
+ ** No response from OCSP server - the application fails to proceed.
+
+. To enable or disable OCSP certificate status checks for all applications using TLS communications, use the appropriate command.
++
+[options="header"]
+|===
+| If you want OCSP certificate status checks for all applications to be...| Use the command...
+a|
+Enabled
+a|
+`security config ocsp enable`
+
+`-app all`
+a|
+Disabled
+a|
+`security config ocsp disable`
+
+`-app all`
+|===
+When enabled, all applications receive a signed response signifying that the specified certificate is good, revoked, or unknown. In the case of a revoked certificate, the application will fail to proceed. If the application fails to receive a response from the OCSP server or if the server is unreachable, the application will fail to proceed.
+
+. Use the `security config ocsp show` command to display all the applications that support OCSP and their support status.
++
+----
+cluster::*> security config ocsp show
+         Application                        OCSP Enabled?
+         --------------------               ---------------------
+         autosupport                        false
+         audit_log                          false
+         fabricpool                         false
+         ems                                false
+         kmip                               false
+         ldap_ad                            true
+         ldap_nis_namemap                   true
+
+         7 entries were displayed.
+----

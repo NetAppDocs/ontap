@@ -1,0 +1,66 @@
+---
+permalink: smb-hyper-v-sql/verify-smb-server-options-task.html
+sidebar: sidebar
+keywords: verify, cifs, server, option, configured, hyper, v, sql, server, smb
+summary: "You must verify that the required CIFS server options are enabled and configured according to requirements for nondisruptive operations for Hyper-V and SQL Server over SMB."
+---
+= Verify that required CIFS server options are configured
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You must verify that the required CIFS server options are enabled and configured according to requirements for nondisruptive operations for Hyper-V and SQL Server over SMB.
+
+.About this task
+
+* SMB 2.x and SMB 3.0 must be enabled.
+* ODX copy offload must be enabled to use performance enhancing copy offload.
+* VSS Shadow Copy services must be enabled if the Hyper-V over SMB solution uses Remote VSS-enabled backup services (Hyper-V only).
+
+.Steps
+
+. Verify that the required CIFS server options are enabled on the storage virtual machine (SVM):
+ .. Set the privilege level to advanced:
++
+`*set -privilege advanced*`
+ .. Enter the following command:
++
+`*vserver cifs options show -vserver _vserver_name_*`
++
+The following options should be set to `true`:
+
+  *** `-smb2-enabled`
+  *** `-smb3-enabled`
+  *** `-copy-offload-enabled`
+  *** `-shadowcopy-enabled` (Hyper-V only)
+. If any of the options are not set to `true`, perform the following:
+ .. Set them to `true` by using the `vserver cifs options modify` command.
+ .. Verify that the options are set to `true` by using the `vserver cifs options show` command.
+. Return to the admin privilege level:
++
+`*set -privilege admin*`
+
+.Example
+
+The following commands verify that the required options for the Hyper-V over SMB configuration are enabled on SVM vs1. In the example, ODX copy offload must be enabled to meet the option requirements.
+
+----
+cluster1::> set -privilege advanced
+Warning: These advanced commands are potentially dangerous; use them
+only when directed to do so by technical support personnel.
+Do you wish to continue? (y or n): y
+
+cluster1::*> vserver cifs options show -vserver vs1 -fields smb2-enabled,smb3-enabled,copy-offload-enabled,shadowcopy-enabled
+vserver smb2-enabled smb3-enabled copy-offload-enabled shadowcopy-enabled
+------- ------------ ------------ -------------------- ------------------
+vs1     true         true         false                true
+
+cluster-1::*> vserver cifs options modify -vserver vs1 -copy-offload-enabled true
+
+cluster-1::*> vserver cifs options show -vserver vs1 -fields copy-offload-enabled
+vserver  copy-offload-enabled
+-------- --------------------
+vs1      true
+
+cluster1::*> set -privilege admin
+----

@@ -1,0 +1,66 @@
+---
+permalink: nfs-admin/ldaps-concept.html
+sidebar: sidebar
+keywords: ldaps, concept
+summary: "You must understand certain terms and concepts about how ONTAP secures LDAP communication. ONTAP can use START TLS or LDAPS for setting up authenticated sessions between Active Directory-integrated LDAP servers or UNIX-based LDAP servers."
+---
+= LDAPS concepts
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You must understand certain terms and concepts about how ONTAP secures LDAP communication. ONTAP can use START TLS or LDAPS for setting up authenticated sessions between Active Directory-integrated LDAP servers or UNIX-based LDAP servers.
+
+== Terminology
+
+There are certain terms that you should understand about how ONTAP uses LDAPS to secure LDAP communication.
+
+* *LDAP*
++
+(Lightweight Directory Access Protocol) A protocol for accessing and managing information directories. LDAP is used as an information directory for storing objects such as users, groups, and netgroups. LDAP also provides directory services that manage these objects and fulfill LDAP requests from LDAP clients.
+
+* *SSL*
++
+(Secure Sockets Layer) A protocol developed for sending information securely over the Internet. It has been deprecated in favor of TLS. SSL is not supported in ONTAP 9.0-9.4.
+
+* *TLS*
++
+(Transport Layer Security) An IETF standards track protocol that is based on the earlier SSL specifications. It is the successor to SSL.
+
+* *LDAPS (LDAP over SSL or TLS)*
++
+A protocol that uses TLS or SSL to secure communication between LDAP clients and LDAP servers. The terms _LDAP over SSL_ and _LDAP over TLS_ are sometimes used interchangeably; TLS is supported by ONTAP 9 and later, SSL is supported by ONTAP 9.5 and later.
+
+ ** In ONTAP 9.5-9.8, LDAPS can only be enabled on port 636. To do so, use the `-use-ldaps-for-ad-ldap` parameter with the `vserver cifs security modify` command.
+ ** Beginning in ONTAP 9.9.1, LDAPS can be enabled on any port, although port 636 remains the default. To do so, set the `-ldaps-enabled` parameter to `true` and specify the desired `-port` parameter. For more information, see the `vserver services name-service ldap client create` man page
+
++
+[NOTE]
+====
+It is a NetApp best practice to use Start TLS rather than LDAPS.
+====
+
+* *Start TLS*
++
+(Also known as _start_tls_, _STARTTLS_, and _StartTLS_) A mechanism to provide secure communication by using the TLS protocols.
++
+ONTAP uses STARTTLS for securing LDAP communication, and uses the default LDAP port (389) to communicate with the LDAP server. The LDAP server must be configured to allow connections over LDAP port 389; otherwise, LDAP TLS connections from the SVM to the LDAP server fail.
+
+== How ONTAP uses LDAPS
+
+ONTAP supports TLS server authentication, which enables the SVM LDAP client to confirm the LDAP server's identity during the bind operation. TLS-enabled LDAP clients can use standard techniques of public-key cryptography to check that a server's certificate and public ID are valid and have been issued by a certificate authority (CA) listed in the client's list of trusted CAs.
+
+LDAP supports STARTTLS to encrypt communications using TLS. STARTTLS begins as a plaintext connection over the standard LDAP port (389), and that connection is then upgraded to TLS.
+
+ONTAP supports the following:
+
+* LDAPS for SMB-related traffic between the Active Directory-integrated LDAP servers and the SVM
+* LDAPS for LDAP traffic for name mapping and other UNIX information
++
+Either Active Directory-integrated LDAP servers or UNIX-based LDAP servers can be used to store information for LDAP name mapping and other UNIX information, such as users, groups, and netgroups.
+
+* Self-signed root CA certificates
++
+When using an Active-Directory integrated LDAP, the self-signed root certificate is generated when the Windows Server Certificate Service is installed in the domain. When using an UNIX-based LDAP server for LDAP name mapping, the self-signed root certificate is generated and saved by using means appropriate to that LDAP application.
+
+By default, LDAPS is disabled.

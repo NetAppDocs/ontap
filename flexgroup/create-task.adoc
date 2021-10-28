@@ -1,0 +1,109 @@
+---
+permalink: flexgroup/create-task.html
+sidebar: sidebar
+keywords: create, flexgroup, volume
+summary: "You can create a FlexGroup volume by manually selecting the aggregates on which the FlexGroup volume must be created, and then specifying the number of constituents on each aggregate."
+---
+= Create a FlexGroup volume
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can create a FlexGroup volume by manually selecting the aggregates on which the FlexGroup volume must be created, and then specifying the number of constituents on each aggregate.
+
+.About this task
+
+You must be aware of the space required in the aggregates for creating a FlexGroup volume.
+
+xref:aggregate-space-requirements-concept.adoc[Guidelines for aggregate space when provisioning a FlexGroup volume]
+
+You should also be aware of the considerations and requirements when selecting the aggregates for provisioning a FlexGroup volume.
+
+You must consider the following guidelines when creating a FlexGroup volume for obtaining the best performance results with a FlexGroup volume:
+
+* A FlexGroup volume should span only aggregates that are on identical hardware systems.
++
+The use of identical hardware systems helps in providing predictable performance across the FlexGroup volume.
+
+* A FlexGroup volume should span aggregates with the same disk type and RAID group configurations.
++
+For consistent performance, you must ensure that all of the aggregates are made of all SSDs, all HDDs, or all hybrid aggregates. Additionally, the aggregates should have the same number of drives and RAID groups across the FlexGroup volume.
+
+* A FlexGroup volume can span parts of a cluster.
++
+A FlexGroup volume does not have to be configured to span the entire cluster, but doing so can take greater advantage of the hardware resources that are available.
+
+* When creating a FlexGroup volume, it is best if the aggregates on which the FlexGroup volume is deployed have the following characteristics:
+ ** Approximately the same amount of free space should be available across multiple aggregates, especially when using thin provisioning.
+ ** Approximately 3 percent of the free space should be reserved for aggregate metadata after creation of the FlexGroup volume.
+* For FAS systems, it is best to have two aggregates per node and for AFF systems, you must have one aggregate per node for the FlexGroup volume.
+* For each FlexGroup volume, you should create at least eight constituents that are distributed over two or more aggregates on FAS systems, and over one or more aggregates on AFF systems.
+
+.Steps
+
+. Create the FlexGroup volume: `volume create -vserver svm_name -volume flexgroup_name -aggr-list aggr1,aggr2,.. -aggr-list-multiplier constituents_per_aggr -size fg_size [–encrypt true] [-qos-policy-group qos_policy_group_name]`
+ ** The `-aggr-list` parameter specifies the list of aggregates to be used for FlexGroup volume constituents.
++
+Each entry in the list creates a constituent on the specified aggregate. You can specify an aggregate multiple times to have multiple constituents created on the aggregate.
++
+For consistent performance across the FlexGroup volume, all of the aggregates must use the same disk type and RAID group configurations.
+
+ ** The `-aggr-list-multiplier` parameter specifies the number of times to iterate over the aggregates that are listed with the `-aggr-list` parameter when creating a FlexGroup volume.
++
+The default value of the `-aggr-list-multiplier` parameter is 4.
+
+ ** The `size` parameter specifies the size of the FlexGroup volume in KB, MB, GB, TB, or PB.
+ ** Starting with ONTAP 9.5, you can create FlexGroup volumes for FabricPool, which use only all SSD aggregates.
++
+To create a FlexGroup volume for FabricPool, all the aggregates specified with the `-aggr-list` parameter must be FabricPool. The volume guarantee must be always set to `none` for FabricPool. You can also specify the tiering policy and tiering minimum cooling period for the FlexGroup volume.
++
+xref:../disks-aggregates/index.html[Disk and aggregate management]
+
+ ** Starting with ONTAP 9.4, you can specify throughput floors (QoS Min) and adaptive QoS for FlexGroup volumes.
++
+link:../performance-admin/index.html[Performance management]
+
+ ** Starting with ONTAP 9.3, you can specify a throughput ceiling (QoS Max) for FlexGroup volumes, which limits the performance resources that the FlexGroup volume can consume.
+ ** Starting with ONTAP 9.2, you can set the `-encrypt` parameter to `true` if you want to enable encryption on the FlexGroup volume.
++
+For creating an encrypted volume, you must have installed the volume encryption license and the key manager.
++
+[NOTE]
+====
+You must enable encryption on FlexGroup volumes at the time of creation. You cannot enable encryption on existing FlexGroup volumes.
+====
++
+link:../encryption-at-rest/index.html[Encryption of data at rest]
+
++
+----
+cluster-1::> volume create -vserver vs0 -volume fg2 -aggr-list aggr1,aggr2,aggr3,aggr1 -aggr-list-multiplier 2 -size 500TB
+
+Warning: A FlexGroup "fg2" will be created with the following number of constituents of size 62.50TB: 8.
+Do you want to continue? {y|n}: y
+
+[Job 43] Job succeeded: Successful
+----
+
+In the previous example, if you want to create the FlexGroup volume for FabricPool, all aggregates (aggr1, aggr2, and aggr3) must be aggregates in FabricPool.
+. Mount the FlexGroup volume with a junction path: `volume mount -vserver vserver_name -volume vol_name -junction-path junction_path`
+----
+cluster1::> volume mount -vserver vs0 -volume fg2 -junction-path /fg
+----
+
+.After you finish
+
+You should mount the FlexGroup volume from the client.
+
+If you are running ONTAP 9.6 or earlier and if the storage virtual machine (SVM) has both NFSv3 and NFSv4 configured, mounting the FlexGroup volume from the client might fail. In such cases, you must explicitly specify the NFS version when you are mounting the FlexGroup volume from the client.
+
+----
+# mount -t nfs -o vers=3 192.53.19.64:/fg /mnt/fg2
+# ls /mnt/fg2
+file1  file2
+----
+
+
+*Related information*
+
+http://www.netapp.com/us/media/tr-4571.pdf[NetApp Technical Report 4571: NetApp FlexGroup Best Practices and Implementation Guide]

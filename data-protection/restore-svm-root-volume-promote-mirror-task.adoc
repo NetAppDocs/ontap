@@ -1,0 +1,62 @@
+---
+permalink: data-protection/restore-svm-root-volume-promote-mirror-task.html
+sidebar: sidebar
+keywords: promote, load-sharing, mirror
+summary: "If a root volume is permanently unavailable, you can promote the load-sharing mirror (LSM) volume to provide write access to root volume data."
+---
+= Promote a load-sharing mirror
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If a root volume is permanently unavailable, you can promote the load-sharing mirror (LSM) volume to provide write access to root volume data.
+
+.What you'll need
+
+You must use advanced privilege level commands for this task.
+
+.Steps
+
+. Change to advanced privilege level:
++
+`set -privilege advanced`
+. Promote an LSM volume:
++
+`snapmirror promote -destination-path _SVM:volume_|_cluster://SVM/volume_`
++
+For complete command syntax, see the man page.
++
+The following example promotes the volume `svm1_m2` as the new SVM root volume:
++
+----
+cluster_src::*> snapmirror promote -destination-path svm1:svm1_m2
+
+Warning: Promote will delete the offline read-write volume
+         cluster_src://svm1/svm1_root and replace it with
+         cluster_src://svm1/svm1_m2. Because the volume is offline,
+         it is not possible to determine whether this promote will
+         affect other relationships associated with this source.
+Do you want to continue? {y|n}: y
+----
++
+Enter `y`. ONTAP makes the LSM volume a read/write volume, and deletes the original root volume if it is accessible.
++
+[NOTE]
+====
+The promoted root volume might not have all of the data that was in the original root volume if the last update did not occur recently.
+====
+
+. Return to admin privilege level:
++
+`set -privilege admin`
+. Rename the promoted volume following the naming convention you used for the root volume:
++
+`volume rename -vserver _SVM_ -volume _volume_ -newname _new_name_`
++
+The following example renames the promoted volume `svm1_m2` with the name `svm1_root`:
++
+----
+cluster_src::> volume rename -vserver svm11 -volume svm1_m2 -newname svm1_root
+----
+
+. Protect the renamed root volume, as described in step link:create-load-sharing-mirror-task.html#steps[3] through step link:create-load-sharing-mirror-task.html#steps[4] in link:create-load-sharing-mirror-task.html[Creating and initializing load-sharing mirror relationships].

@@ -1,0 +1,37 @@
+---
+permalink: smb-admin/improve-client-response-node-referrals-concept.html
+sidebar: sidebar
+keywords: auto, location, smb, automatic, node, referral, increase, client, performance, storage, virtual, machine, svm, request, host, response, improve, improve client response time by providing smb automatic node referrals with auto location
+summary: "Auto Location uses SMB automatic node referrals to increase SMB client performance on storage virtual machines (SVMs). Automatic node referrals automatically redirect the requesting client to a LIF on the node SVM that is hosting the volume in which the data resides, which can lead to improved client response times."
+---
+= Improve client response time by providing SMB automatic node referrals with Auto Location overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Auto Location uses SMB automatic node referrals to increase SMB client performance on storage virtual machines (SVMs). Automatic node referrals automatically redirect the requesting client to a LIF on the node SVM that is hosting the volume in which the data resides, which can lead to improved client response times.
+
+When an SMB client connects to an SMB share hosted on the SVM, it might connect using a LIF that is on a node that does not own the requested data. The node to which the client is connected accesses data owned by another node by using the cluster network. The client can experience faster response times if the SMB connection uses a LIF located on the node containing the requested data:
+
+* ONTAP provides this functionality by using Microsoft DFS referrals to inform SMB clients that a requested file or folder in the namespace is hosted somewhere else.
++
+A node makes a referral when it determines that there is anSVM LIF on the node containing the data.
+
+* Automatic node referrals are supported for IPv4 and IPv6 LIF IP addresses.
+* Referrals are made based on the location of the root of the share through which the client is connected.
+* The referral occurs during SMB negotiation.
++
+The referral is made before the connection is established. After ONTAP refers the SMB client to the target node, the connection is made, and the client accesses data through the referred LIF path from that point on. This allows the clients faster access to the data and avoids extra cluster communication.
++
+[NOTE]
+====
+If a share spans multiple junction points and some of the junctions are to volumes contained on other nodes, data within the share is spread across multiple nodes. Because ONTAP provides referrals that are local to the root of the share, ONTAP must use the cluster network to retrieve the data contained within these non-local volumes.     With this type of namespace architecture, automatic node referrals might not provide significant performance benefits.
+====
+
+If the node hosting the data does not have an available LIF, ONTAP establishes the connection using the LIF chosen by the client. After a file is opened by an SMB client, it continues to access the file through the same referred connection.
+
+If, for any reason, the CIFS server cannot make a referral, there is no disruption to SMB service. The SMB connection is established as if automatic node referrals were not enabled.
+
+*Related information*
+
+xref:improve-microsoft-remote-copy-performance-concept.adoc[Improving Microsoft remote copy performance]

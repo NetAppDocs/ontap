@@ -1,0 +1,51 @@
+---
+permalink: nfs-config/load-local-unix-users-uri-task.html
+sidebar: sidebar
+keywords: load, local, unix, users, uri
+summary: "As an alternative to manually creating individual local UNIX users in SVMs, you can simplify the task by loading a list of local UNIX users into SVMs from a uniform resource identifier (URI) (vserver services name-service unix-user load-from-uri)."
+---
+= Load local UNIX users from a URI
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+As an alternative to manually creating individual local UNIX users in SVMs, you can simplify the task by loading a list of local UNIX users into SVMs from a uniform resource identifier (URI) (`vserver services name-service unix-user load-from-uri`).
+
+.Steps
+
+. Create a file containing the list of local UNIX users you want to load.
++
+The file must contain user information in the UNIX `/etc/passwd` format:
++
+`_user_name: password: user_ID: group_ID: full_name_`
++
+The command discards the value of the `_password_` field and the values of the fields after the `_full_name_` field (`_home_directory_` and `_shell_`).
++
+The maximum supported file size is 2.5 MB.
+
+. Verify that the list does not contain any duplicate information.
++
+If the list contains duplicate entries, loading the list fails with an error message.
+
+. Copy the file to a server.
++
+The server must be reachable by the storage system over HTTP, HTTPS, FTP, or FTPS.
+
+. Determine what the URI for the file is.
++
+The URI is the address you provide to the storage system to indicate where the file is located.
+
+. Load the file containing the list of local UNIX users into SVMs from the URI:
++
+`vserver services name-service unix-user load-from-uri -vserver _vserver_name_ -uri {ftp|http|ftps|https}://_uri_ -overwrite {true|false}`
++
+`-overwrite` {`true`|`false`} specifies whether to overwrite entries. The default is `false`.
+
+.Example
+
+The following command loads a list of local UNIX users from the URI `+ftp://ftp.example.com/passwd+` into the SVM named vs1. Existing users on the SVM are not overwritten by information from the URI.
+
+----
+node::> vserver services name-service unix-user load-from-uri -vserver vs1
+-uri ftp://ftp.example.com/passwd -overwrite false
+----

@@ -1,0 +1,84 @@
+---
+permalink: encryption-at-rest/support-storage-encryption-concept.html
+sidebar: sidebar
+keywords: configuring, netapp, hardware-based, encryption
+summary: "NetApp hardware-based encryption supports full-disk encryption (FDE) of data as it is written. The data cannot be read without an encryption key stored on the firmware. The encryption key, in turn, is accessible only to an authenticated node."
+---
+= Configure NetApp hardware-based encryption overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+NetApp hardware-based encryption supports full-disk encryption (FDE) of data as it is written. The data cannot be read without an encryption key stored on the firmware. The encryption key, in turn, is accessible only to an authenticated node.
+
+== Understanding NetApp hardware-based encryption
+
+A node authenticates itself to a self-encrypting drive using an authentication key retrieved from an external key management server or Onboard Key Manager:
+
+* The external key management server is a third-party system in your storage environment that serves keys to nodes using the Key Management Interoperability Protocol (KMIP). It is a best practice to configure external key management servers on a different storage system from your data.
+* The Onboard Key Manager is a built-in tool that serves authentication keys to nodes from the same storage system as your data.
+
+You can use NetApp Volume Encryption with hardware-based encryption to "`double encrypt`" data on self-encrypting drives.
+
+[NOTE]
+====
+AFF A220, AFF A800, FAS2720, FAS2750, and later systems store core dumps on their boot device. When self-encrypting drives are enabled on these systems, the core dump is also encrypted.
+====
+
+== Supported drive types
+
+Two types of self-encrypting drive are supported:
+
+* Self-encrypting FIPS-certified SAS or NVMe drives are supported on all FAS and AFF systems. These drives, called _FIPS drives,_ conform to the requirements of Federal Information Processing Standard Publication 140-2, level 2. The certified capabilities enable protections in addition to encryption, such as preventing denial-of-service attacks on the drive. FIPS drives cannot be mixed with other types of drives on the same node or HA pair.
+* Starting with ONTAP 9.6, self-encrypting NVMe drives that have not undergone FIPS testing are supported on AFF A800 and A320 systems. These drives, called _SEDs,_ offer the same encryption capabilities as FIPS drives, but can be mixed with non-SEDs on the same node or HA pair.
+
+== When to use KMIP servers
+
+Although it is less expensive and typically more convenient to use the onboard key manager, you should set up KMIP servers if any of the following are true:
+
+* Your encryption key management solution must comply with FIPS 140-2 level 2 or higher.
+* You need a multi-cluster solution, with centralized management of encryption keys.
+* Your business requires the added security of storing authentication keys on a system or in a location different from the data.
+
+== Support details
+
+The following table shows important hardware encryption support details. See the Interoperability Matrix for the latest information about supported KMIP servers, storage systems, and disk shelves.
+
+[cols="30,70",options="header"]
+|===
+| Resource or feature| Support details
+
+a|
+Non-homogeneous disk sets
+a|
+
+* FIPS drives cannot be mixed with other types of drives on the same node or HA pair. Conforming HA pairs can coexist with non-conforming HA pairs in the same cluster.
+* SEDs can be mixed with non-SEDs on the same node or HA pair.
+
+a|
+Drive type
+a|
+
+* FIPS drives can be SAS or NVMe drives.
+* SEDs must be NVMe drives.
+
+a|
+10 Gb network interfaces
+a|
+Starting with ONTAP 9.3, KMIP key management configurations support 10 Gb network interfaces for communications with external key management servers.
+a|
+Ports for communication with the key management server
+a|
+Starting with ONTAP 9.3, you can use any storage controller port for communication with the key management server. Otherwise, you should use port e0m for communication with key management servers. Depending on the storage controller model, certain network interfaces might not be available during the boot process for communication with key management servers.
+a|
+MetroCluster (MCC)
+a|
+
+* NVMe drives support MCC.
+* SAS drives do not support MCC.
+
+|===
+
+*Related information*
+
+https://hwu.netapp.com/[NetApp Hardware Universe]

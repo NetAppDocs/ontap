@@ -1,0 +1,105 @@
+---
+permalink: data-protection/replicate-entire-svm-config-task.html
+sidebar: sidebar
+keywords: replicate, entire, svm, configuration
+summary: "You can use the -identity-preserve true option of the snapmirror create command to replicate an entire SVM configuration."
+---
+= Replicate an entire SVM configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `-identity-preserve true` option of the `snapmirror create` command to replicate an entire SVM configuration.
+
+.What you'll need
+
+The source and destination clusters and SVMs must be peered.
+
+For complete command syntax, see the man page.
+
+.About this task
+
+This workflow assumes that you are already using a default policy or a custom replication policy.
+
+Starting with ONTAP 9.9.1, when you use the mirror-vault policy, you can create different Snapshot policies on the source and destination SVM, and the Snapshot copies on the destination are not overwritten by Snapshot copies on the source. For more information, see link:snapmirror-svm-replication-concept.html[Understanding SnapMirror SVM replication].
+
+.Steps
+
+. Create a destination SVM:
++
+`vserver create -vserver _SVM_name_ -subtype dp-destination`
++
+The SVM name must be unique across the source and destination clusters.
++
+The following example creates a destination SVM named `svm_backup`:
++
+----
+cluster_dst:> vserver create -vserver svm_backup -subtype dp-destination
+----
+
+. Create a replication job schedule:
++
+`job schedule cron create -name _job_name_ -month _month_ -dayofweek _day_of_week_ -day _day_of_month_ -hour _hour_ -minute _minute_`
++
+For `-month`, `-dayofweek`, and `-hour`, you can specify `all` to run the job every month, day of the week, and hour, respectively.
++
+The following example creates a job schedule named `my_weekly` that runs on Saturdays at 3:00 a.m.:
++
+----
+cluster_dst::> job schedule cron create -name my_weekly -dayofweek "Saturday" -hour 3 -minute 0
+----
+
+. From the destination SVM or the destination cluster, create a replication relationship:
++
+`snapmirror create -source-path _SVM_name_: -destination-path _SVM_name_: -type DP|XDP -schedule _schedule_ -policy _policy_ -identity-preserve true`
++
+[NOTE]
+====
+You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options.
+====
++
+The following example creates a SnapMirror DR relationship using the default `MirrorAllSnapshots` policy:
++
+----
+cluster_dst::> snapmirror create -source-path svm1: -destination-path svm_backup: -type XDP -schedule my_daily -policy MirrorAllSnapshots -identity-preserve true
+----
++
+The following example creates a unified replication relationship using the default `MirrorAndVault` policy:
++
+----
+cluster_dst:> snapmirror create -source-path svm1: -destination-path svm_backup: -type XDP -schedule my_daily -policy MirrorAndVault -identity-preserve true
+----
++
+Assuming you have created a custom policy with the policy type `async-mirror`, the following example creates a SnapMirror DR relationship:
++
+----
+cluster_dst::> snapmirror create -source-path svm1: -destination-path svm_backup: -type XDP -schedule my_daily -policy my_mirrored -identity-preserve true
+----
++
+Assuming you have created a custom policy with the policy type `mirror-vault`, the following example creates a unified replication relationship:
++
+----
+cluster_dst::> snapmirror create -source-path svm1: -destination-path svm_backup: -type XDP -schedule my_daily -policy my_unified -identity-preserve true
+----
+
+. Stop the destination SVM:
++
+`vserver stop`
++
+`_SVM name_`
++
+The following example stops a destination SVM named dvs1:
++
+----
+cluster_dst::> vserver stop -vserver dvs1
+----
+
+. From the destination SVM or the destination cluster, initialize the SVM replication relationship: +
++
+`snapmirror initialize -source-path _SVM_name_: -destination-path _SVM_name_:`
++
+The following example initializes the relationship between the source SVM, `svm1`, and the destination SVM, `svm_backup`:
++
+----
+cluster_dst::> snapmirror initialize -source-path svm1: -destination-path svm_backup:
+----

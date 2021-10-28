@@ -1,0 +1,70 @@
+---
+permalink: nas-audit/auditing-process-concept.html
+sidebar: sidebar
+keywords: ontap, audit process, works
+summary: "The ONTAP auditing process is different from the Microsoft auditing process. Before you configure auditing, you should understand how the ONTAP auditing process works."
+---
+= How the ONTAP auditing process works
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The ONTAP auditing process is different from the Microsoft auditing process. Before you configure auditing, you should understand how the ONTAP auditing process works.
+
+Audit records are initially stored in binary staging files on individual nodes. If auditing is enabled on an SVM, every member node maintains staging files for that SVM. Periodically, they are consolidated and converted to user-readable event logs, which are stored in the audit event log directory for the SVM.
+
+== Process when auditing is enabled on an SVM
+
+Auditing can only be enabled on SVMs. When the storage administrator enables auditing on the SVM, the auditing subsystem checks whether staging volumes are present. A staging volume must exist for each aggregate that contains data volumes owned by the SVM. The auditing subsystem creates any needed staging volumes if they do not exist.
+
+The auditing subsystem also completes other prerequisite tasks before auditing is enabled:
+
+* The auditing subsystem verifies that the log directory path is available and does not contain symlinks.
++
+The log directory must already exist. The auditing subsystem does not assign a default log file location. If the log directory path specified in the auditing configuration is not a valid path, auditing configuration creation fails with the `The specified path "/path" does not exist in the namespace belonging to Vserver "Vserver_name"` error.
++
+Configuration creation fails if the directory exists but contains symlinks.
+
+* Auditing schedules the consolidation task.
++
+After this task is scheduled, auditing is enabled. The SVM auditing configuration and the log files persist across a reboot or if the NFS or CIFS servers are stopped or restarted.
+
+== Event log consolidation
+
+Log consolidation is a scheduled task that runs on a routine basis until auditing is disabled. When auditing is disabled, the consolidation task verifies that all of the remaining logs are consolidated.
+
+== Guaranteed auditing
+
+By default, auditing is guaranteed. ONTAP guarantees that all auditable file access events (as specified by configured audit policy ACLs) are recorded, even if a node is unavailable. A requested file operation cannot be completed until the audit record for that operation is saved to the staging volume on persistent storage. If audit records cannot be committed to the disk in the staging files, either because of insufficient space or because of other issues, client operations are denied.
+
+[NOTE]
+====
+An administrator, or account user with privilege level access, can bypass the file audit logging operation by using NetApp Manageability SDK or REST APIs. You can determine if any file actions have been taken using NetApp Manageability SDK or REST APIs by reviewing the command history logs stored in the `audit.log` file.
+
+For more information about command history audit logs, see the "Managing audit logging for management activities" section in link:../system-admin/index.html[System administration].
+
+====
+
+== Consolidation process when a node is unavailable
+
+If a node containing volumes belonging to an SVM with auditing enabled is unavailable, the behavior of the auditing consolidation task depends on whether the node's storage failover (SFO) partner (or the HA partner in the case of a two-node cluster) is available:
+
+* If the staging volume is available through the SFO partner, the staging volumes last reported from the node are scanned, and consolidation proceeds normally.
+* If the SFO partner is not available, the task creates a partial log file.
++
+When a node is not reachable, the consolidation task consolidates the audit records from the other available nodes of that SVM. To identify that it is not complete, the task adds the suffix `.partial` to the consolidated file name.
+
+* After the unavailable node is available, the audit records in that node are consolidated with the audit records from the other nodes at that time.
+* All audit records are preserved.
+
+== Event log rotation
+
+Audit event log files are rotated when they reach a configured threshold log size or on a configured schedule. When an event log file is rotated, the scheduled consolidation task first renames the active converted file to a time-stamped archive file, and then creates a new active converted event log file.
+
+== Process when auditing is disabled on the SVM
+
+When auditing is disabled on the SVM, the consolidation task is triggered one final time. All outstanding, recorded audit records are logged in a user-readable format. Existing event logs stored in the event log directory are not deleted when auditing is disabled on the SVM and are available for viewing.
+
+After all existing staging files for that SVM are consolidated, the consolidation task is removed from the schedule. Disabling the auditing configuration for the SVM does not remove the auditing configuration. A storage administrator can reenable auditing at any time.
+
+The auditing consolidation job, which gets created when auditing is enabled, monitors the consolidation task and re-creates it if the consolidation task exits because of an error. Previously, users could delete the auditing consolidation job by using job manager commands such as `job delete`. Users are no longer allowed to delete the auditing consolidation job.

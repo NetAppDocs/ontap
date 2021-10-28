@@ -1,0 +1,134 @@
+---
+permalink: nfs-admin/configure-character-mappings-smb-file-translation-task.html
+sidebar: sidebar
+keywords: configure, character, mapping, smb, file, name, translation, volume
+summary: "NFS clients can create file names that contain characters that are not valid for SMB clients and certain Windows applications. You can configure character mapping for file name translation on volumes to allow SMB clients to access files with NFS names that would otherwise not be valid."
+---
+= Configure character mapping for SMB file name translation on volumes
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+NFS clients can create file names that contain characters that are not valid for SMB clients and certain Windows applications. You can configure character mapping for file name translation on volumes to allow SMB clients to access files with NFS names that would otherwise not be valid.
+
+.About this task
+
+When files created by NFS clients are accessed by SMB clients, ONTAP looks at the name of the file. If the name is not a valid SMB file name (for example, if it has an embedded colon "`:`" character), ONTAP returns the 8.3 file name that is maintained for each file. However, this causes problems for applications that encode important information into long file names.
+
+Therefore, if you are sharing a file between clients on different operating systems, you should use characters in the file names that are valid in both operating systems.
+
+However, if you have NFS clients that create file names containing characters that are not valid file names for SMB clients, you can define a map that converts the invalid NFS characters into Unicode characters that both SMB and certain Windows applications accept. For example, this functionality supports the CATIA MCAD and Mathematica applications as well as other applications that have this requirement.
+
+You can configure character mapping on a volume-by-volume basis.
+
+You must keep the following in mind when configuring character mapping on a volume:
+
+* Character mapping is not applied across junction points.
++
+You must explicitly configure character mapping for each junction volume.
+
+* You must make sure that the Unicode characters that are used to represent invalid or illegal characters are characters that do not normally appear in file names; otherwise, unwanted mappings occur.
++
+For example, if you try to map a colon (:) to a hyphen (-) but the hyphen (-) was used in the file name correctly, a Windows client trying to access a file named "`a-b`" would have its request mapped to the NFS name of "`a:b`" (not the desired outcome).
+
+* After applying character mapping, if the mapping still contains an invalid Windows character, ONTAP falls back to Windows 8.3 file names.
+* In FPolicy notifications, NAS audit logs, and security trace messages, the mapped file names are shown.
+* When a SnapMirror relation of type DP is created, the source volume's character mapping is not replicated on the destination DP volume.
+* Case sensitivity: Because the mapped Windows names turn into NFS names, the lookup of the names follows NFS semantics. That includes the fact that NFS lookups are case-sensitive. This means that the applications accessing mapped shares must not rely on Windows case-insensitive behavior. However, the 8.3 name is available, and that is case-insensitive.
+* Partial or invalid mappings: After mapping a name to return to clients doing directory enumeration ("dir"), the resulting Unicode name is checked for Windows validity. If that name still has invalid characters in it, or if it is otherwise invalid for Windows (e.g. it ends in "." or blank) the 8.3 name is returned instead of the invalid name.
+
+.Step
+
+. Configure character mapping:
++
+`+vserver cifs character-mapping create -vserver vserver_name -volume volume_name -mapping mapping_text, ...+`
++
+The mapping consists of a list of source-target character pairs separated by "`:`". The characters are Unicode characters entered using hexadecimal digits. For example: 3C:E03C.
++
+The first value of each `mapping_text` pair that is separated by a colon is the hexadecimal value of the NFS character you want to translate, and the second value is the Unicode value that SMB uses. The mapping pairs must be unique (a one-to-one mapping should exist).
+
+ ** Source mapping
++
+The following table shows the permissible Unicode character set for source mapping:
++
+[cols="3*",options="header"]
+|===
+| Unicode character| Printed character| Description
+a|
+0x01-0x19
+a|
+Not applicable
+a|
+Non-printing control characters
+a|
+0x5C
+a|
+\
+ a|
+Backslash
+a|
+0x3A
+a|
+:
+a|
+Colon
+a|
+0x2A
+a|
+*
+a|
+Asterisk
+a|
+0x3F
+a|
+?
+a|
+Question mark
+a|
+0x22
+a|
+"
+a|
+Quotation mark
+a|
+0x3C
+a|
+<
+a|
+Less than
+a|
+0x3E
+a|
+>
+a|
+Greater than
+a|
+0x7C
+a|
+\|
+a|
+Vertical line
+a|
+0xB1
+a|
+±
+a|
+Plus-minus sign
+|===
+
+ ** Target mapping
++
+You can specify target characters in the "`Private Use Area`" of Unicode in the following range: U+E0000...U+F8FF.
+
+.Example
+
+The following command creates a character mapping for a volume named "`data`" on storage virtual machine (SVM) vs1:
+
+----
+cluster1::> vserver cifs character-mapping create -volume data -mapping 3c:e17c,3e:f17d,2a:f745
+cluster1::> vserver cifs character-mapping show
+
+Vserver         Volume Name  Character Mapping
+--------------  -----------  ------------------------------------------
+vs1             data         3c:e17c, 3e:f17d, 2a:f745
+----

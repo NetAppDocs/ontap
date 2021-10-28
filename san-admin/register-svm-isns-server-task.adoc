@@ -1,0 +1,49 @@
+---
+permalink: san-admin/register-svm-isns-server-task.html
+sidebar: sidebar
+keywords: register, svm, isns, server
+summary: "You can use the vserver iscsi isns command to configure the storage virtual machine (SVM) to register with an iSNS server."
+---
+= Register the SVM with an iSNS server
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use the `vserver iscsi isns` command to configure the storage virtual machine (SVM) to register with an iSNS server.
+
+.About this task
+
+The `vserver iscsi isns create` command configures the SVM to register with the iSNS server. The SVM does not provide commands that enable you to configure or manage the iSNS server. To manage the iSNS server, you can use the server administration tools or the interface provided by the vendor for the iSNS server.
+
+.Steps
+
+. On your iSNS server, ensure that your iSNS service is up and available for service.
+. Create the SVM management LIF on a data port:
++
+`network interface create -vserver _SVM_name_ -lif _lif_name_ -role data -data-protocol none -home-node _home_node_name_ -home-port _home_port_ -address _IP_address_ -netmask _network_mask_`
+. Create an iSCSI service on your SVM if one does not already exist:
++
+`vserver iscsi create -vserver _SVM_name_`
+. Verify that the iSCSI service was created successfully:
++
+`iscsi show -vserver _SVM_name_`
+. Verify that a default route exists for the SVM:
++
+`network route show -vserver _SVM_name_`
+. If a default route does not exist for the SVM, create a default route:
++
+`network route create -vserver _SVM_name_ -destination _destination_ -gateway _gateway_`
+. Configure the SVM to register with the iSNS service:
++
+`vserver iscsi isns create -vserver _SVM_name_ -address _IP_address_`
++
+Both IPv4 and IPv6 address families are supported. The address family of the iSNS server must be the same as that of the SVM management LIF.
++
+For example, you cannot connect anSVM management LIF with an IPv4 address to an iSNS server with an IPv6 address.
+
+. Verify that the iSNS service is running:
++
+`vserver iscsi isns show -vserver _SVM_name_`
+. If the iSNS service is not running, start it:
++
+`vserver iscsi isns start -vserver _SVM_name_`

@@ -1,0 +1,90 @@
+---
+permalink: nfs-config/verify-permissions-kerberos-config-task.html
+sidebar: sidebar
+keywords: verify, permissions, kerberos, configuration
+summary: "Kerberos requires that certain UNIX permissions be set for the SVM root volume and for local users and groups."
+---
+= Verify permissions for Kerberos configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Kerberos requires that certain UNIX permissions be set for the SVM root volume and for local users and groups.
+
+.Steps
+
+. Display the relevant permissions on the SVM root volume:
++
+`volume show -volume _root_vol_name_-fields user,group,unix-permissions`
++
+The root volume of the SVM must have the following configuration:
++
+[options="header"]
+|===
+| Name...| Setting...
+a|
+UID
+a|
+root or ID 0
+a|
+GID
+a|
+root or ID 0
+a|
+UNIX permissions
+a|
+755
+|===
+If these values are not shown, use the `volume modify` command to update them.
+
+. Display the local UNIX users:
++
+`vserver services name-service unix-user show -vserver _vserver_name_`
++
+The SVM must have the following UNIX users configured:
++
+[options="header"]
+|===
+| User name| User ID| Primary group ID| Comment
+a|
+nfs
+a|
+500
+a|
+0
+a|
+Required for GSS INIT phase.
+
+The first component of the NFS client user SPN is used as the user.
+
+The nfs user is not required if a Kerberos-UNIX name mapping exists for the SPN of the NFS client user.
+a|
+root
+a|
+0
+a|
+0
+a|
+Required for mounting.
+|===
+If these values are not shown, you can use the `vserver services name-service unix-user modify` command to update them.
+
+. Display the local UNIX groups:
++
+`vserver services name-service unix-group show -vserver _vserver_ _name`
++
+The SVM must have the following UNIX groups configured:
++
+[options="header"]
+|===
+| Group name| Group ID
+a|
+daemon
+a|
+1
+a|
+root
+a|
+0
+|===
+If these values are not shown, you can use the `vserver services name-service unix-group modify` command to update them.

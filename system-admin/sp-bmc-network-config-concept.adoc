@@ -1,0 +1,49 @@
+---
+permalink: system-admin/sp-bmc-network-config-concept.html
+sidebar: sidebar
+keywords: consideration, sp, bmc, network, configuration, cluster, level, disable, configuration
+summary: "You can enable cluster-level, automatic network configuration for the SP (recommended). You can also leave the SP automatic network configuration disabled (the default) and manage the SP network configuration manually at the node level. A few considerations exist for each case."
+---
+= Considerations for the SP/BMC network configuration
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can enable cluster-level, automatic network configuration for the SP (recommended). You can also leave the SP automatic network configuration disabled (the default) and manage the SP network configuration manually at the node level. A few considerations exist for each case.
+
+[NOTE]
+====
+This topic applies to both the SP and the BMC.
+====
+
+The SP automatic network configuration enables the SP to use address resources (including the IP address, subnet mask, and gateway address) from the specified subnet to set up its network automatically. With the SP automatic network configuration, you do not need to manually assign IP addresses for the SP of each node. By default, the SP automatic network configuration is disabled; this is because enabling the configuration requires that the subnet to be used for the configuration be defined in the cluster first.
+
+If you enable the SP automatic network configuration, the following scenarios and considerations apply:
+
+* If the SP has never been configured, the SP network is configured automatically based on the subnet specified for the SP automatic network configuration.
+* If the SP was previously configured manually, or if the existing SP network configuration is based on a different subnet, the SP network of all nodes in the cluster are reconfigured based on the subnet that you specify in the SP automatic network configuration.
++
+The reconfiguration could result in the SP being assigned a different address, which might have an impact on your DNS configuration and its ability to resolve SP host names. As a result, you might need to update your DNS configuration.
+
+* A node that joins the cluster uses the specified subnet to configure its SP network automatically.
+* The `system service-processor network modify` command does not enable you to change the SP IP address.
++
+When the SP automatic network configuration is enabled, the command only allows you to enable or disable the SP network interface.
+
+ ** If the SP automatic network configuration was previously enabled, disabling the SP network interface results in the assigned address resource being released and returned to the subnet.
+ ** If you disable the SP network interface and then reenable it, the SP might be reconfigured with a different address.
+
+If the SP automatic network configuration is disabled (the default), the following scenarios and considerations apply:
+
+* If the SP has never been configured, SP IPv4 network configuration defaults to using IPv4 DHCP, and IPv6 is disabled.
++
+A node that joins the cluster also uses IPv4 DHCP for its SP network configuration by default.
+
+* The `system service-processor network modify` command enables you to configure a node's SP IP address.
++
+A warning message appears when you attempt to manually configure the SP network with addresses that are allocated to a subnet. Ignoring the warning and proceeding with the manual address assignment might result in a scenario with duplicate addresses.
+
+If the SP automatic network configuration is disabled after having been enabled previously, the following scenarios and considerations apply:
+
+* If the SP automatic network configuration has the IPv4 address family disabled, the SP IPv4 network defaults to using DHCP, and the `system service-processor network modify` command enables you to modify the SP IPv4 configuration for individual nodes.
+* If the SP automatic network configuration has the IPv6 address family disabled, the SP IPv6 network is also disabled, and the `system service-processor network modify` command enables you to enable and modify the SP IPv6 configuration for individual nodes.

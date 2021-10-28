@@ -1,0 +1,83 @@
+---
+permalink: encryption-at-rest/return-self-encrypting-disks-keys-not-available-task.html
+sidebar: sidebar
+keywords: returning, fips, drive, sed, service, authentication, keys, lost
+summary: "The system treats a FIPS drive or SED as broken if you lose the authentication keys for it permanently and cannot retrieve them from the KMIP server. Although you cannot access or recover the data on the disk, you can take steps to make the SED’s unused space available again for data."
+---
+= Return a FIPS drive or SED to service when authentication keys are lost
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The system treats a FIPS drive or SED as broken if you lose the authentication keys for it permanently and cannot retrieve them from the KMIP server. Although you cannot access or recover the data on the disk, you can take steps to make the SED's unused space available again for data.
+
+.What you'll need
+
+You must be a cluster administrator to perform this task.
+
+.About this task
+
+You should use this process only if you are certain that the authentication keys for the FIPS drive or SED are permanently lost and that you cannot recover them.
+
+.Steps
+
+. Return a FIPS drive or SED to service:
++
+[options="header"]
+|===
+| If the SEDS are...| Use these steps...
+
+a|
+Not in FIPS-compliance mode, or in FIPS-compliance mode and the FIPS key is available
+a|
+
+ .. Sanitize the broken disk:
+ +
+`storage encryption disk sanitize -disk disk_id`
+ .. Set the privilege level to advanced:
+ +
+`set -privilege advanced`
+ .. Unfail the sanitized disk:
+ +
+`storage disk unfail -spare true -disk disk_id`
+ .. Check whether the disk has an owner:
+ +
+`storage disk show -disk disk_id`
+ .. If the disk does not have an owner, assign one, then unfail the disk again:
+ +
+`storage disk assign -owner node -disk disk_id`
++
+`storage disk unfail -spare true -disk disk_id`
+ .. Verify that the disk is now a spare and ready to be reused in an aggregate:
+ +
+`storage disk show -disk disk_id`
+
+a|
+In FIPS-compliance mode, the FIPS key is not available, and the SEDs have a PSID printed on the label
+a|
+
+ .. Obtain the PSID of the disk from the disk label.
+ .. Set the privilege level to advanced:
+ +
+`set -privilege advanced`
+ .. Reset the disk to its factory-configured settings:
+ +
+`storage encryption disk revert-to-original-state -disk disk_id -psid disk_physical_secure_id`
+ .. Unfail the sanitized disk:
+ +
+`storage disk unfail -spare true -disk disk_id`
+ .. Check whether the disk has an owner:
+ +
+`storage disk show -disk disk_id`
+ .. If the disk does not have an owner, assign one, then unfail the disk again:
+ +
+`storage disk assign -owner node -disk disk_id`
++
+`storage disk unfail -spare true -disk disk_id`
+ .. Verify that the disk is now a spare and ready to be reused in an aggregate:
+ +
+`storage disk show -disk disk_id`
+
++
+|===
+For complete command syntax, see the man pages.

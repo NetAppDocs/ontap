@@ -1,0 +1,71 @@
+---
+permalink: data-protection/snapmirror-global-throttling-concept.html
+sidebar: sidebar
+keywords: using snapmirror, global, throttling
+summary: "Global network throttling is available for all SnapMirror and SnapVault transfers at a per-node level."
+---
+= Use SnapMirror global throttling
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Global network throttling is available for all SnapMirror and SnapVault transfers at a per-node level.
+
+.About this task
+
+SnapMirror global throttling restricts the bandwidth used by incoming and/or outgoing SnapMirror and SnapVault transfers. The restriction is enforced cluster wide on all nodes in the cluster.
+
+For example, if the outgoing throttle is set to 100 Mbps, each node in the cluster will have the outgoing bandwidth set to 100 Mbps. If global throttling is disabled, it is disabled on all nodes.
+
+[NOTE]
+====
+The throttle has no effect on `volume move` transfers or load-sharing mirror transfers. Although data transfer rates are often expressed in bits per second (bps), the throttle values must be entered in kilobytes per second (KBps).
+====
+
+Global throttling works with the per-relationship throttle feature for SnapMirror and SnapVault transfers. The per-relationship throttle is enforced until the combined bandwidth of per-relationship transfers exceeds the value of the global throttle, after which the global throttle is enforced. A throttle value `0` implies that global throttling is disabled.
+
+[NOTE]
+====
+SnapMirror global throttling has no effect on SnapMirror Synchronous relationships when they are In-Sync. However, the throttle does effect SnapMirror Synchronous relationships when they perform an asynchronous transfer phase such as an initialization operation or after an Out Of Sync event. For this reason, enabling global throttling with SnapMirror Synchronous relationships is not recommended.
+====
+
+.Steps
+
+. Enable global throttling:
++
+`options -option-name replication.throttle.enable on|off`
++
+The following example shows how to enable SnapMirror global throttling on `cluster_dst`:
++
+----
+cluster_dst::> options -option-name replication.throttle.enable on
+----
+
+. Specify the maximum total bandwidth used by incoming transfers:
++
+`options -option-name replication.throttle.incoming.max_kbs _KBps_`
++
+The recommended minimum throttle bandwidth is 4 KBps and the maximum is up to 2 TBps. The default value for this option is `unlimited`, which means there is no limit on total bandwidth used.
++
+The following example shows how to set the maximum total bandwidth used by incoming transfers to 100 Mbps:
++
+----
+cluster_dst::> options -option-name replication.throttle.incoming.max_kbs 12500
+----
++
+[NOTE]
+====
+100 Mbps = 12500 KBps
+====
+
+. Specify the maximum total bandwidth used by outgoing transfers:
++
+`options -option-name replication.throttle.outgoing.max_kbs _KBps_`
++
+KBps is the maximum transfer rate in kilobytes per second. Valid transfer rate values are 1 to 125000. The default value for this option is `unlimited`, which means there is no limit on total bandwidth used.
++
+The following example shows how to set the maximum total bandwidth used by outgoing transfers to 100 Mbps:
++
+----
+cluster_dst::> options -option-name replication.throttle.outgoing.max_kbs 12500
+----

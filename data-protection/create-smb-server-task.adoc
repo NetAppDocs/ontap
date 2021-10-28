@@ -1,0 +1,74 @@
+---
+permalink: data-protection/create-smb-server-task.html
+sidebar: sidebar
+keywords: cifs, create, server
+summary: "If the source SVM has CIFS configuration, and you chose to set identity-preserve to false, you must create a CIFS server for the destination SVM. CIFS server is required for some CIFS configurations, such as shares during initialization of the SnapMirror relationship."
+---
+= CIFS only: Create a CIFS server
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+If the source SVM has CIFS configuration, and you chose to set `identity-preserve` to `false`, you must create a CIFS server for the destination SVM. CIFS server is required for some CIFS configurations, such as shares during initialization of the SnapMirror relationship.
+
+.Steps
+
+. Start the destination SVM by using the `vserver start` command.
++
+----
+destination_cluster::> vserver start -vserver dvs1
+[Job 30] Job succeeded: DONE
+----
+
+. Verify that the destination SVM is in the `running` state and subtype is `dp-destination` by using the `vserver show` command.
++
+----
+destination_cluster::> vserver show
+                                   Admin      Operational Root
+Vserver  Type    Subtype           State      State       Volume     Aggregate
+-------- ------- ----------       ---------- ----------- ---------- ----------
+dvs1     data    dp-destination    running    running       -         -
+----
+
+. Create a LIF by using the `network interface create` command.
++
+----
+destination_cluster::>network interface create -vserver dvs1 -lif NAS1 -role data -data-protocol cifs -home-node destination_cluster-01 -home-port a0a-101  -address 192.0.2.128 -netmask 255.255.255.128
+----
+
+. Create a route by using the `network route create` command.
++
+----
+destination_cluster::>network route create -vserver dvs1 -destination 0.0.0.0/0
+-gateway 192.0.2.1
+----
++
+link:../networking/index.html[Network management]
+
+. Configure DNS by using the `vserver services dns create` command.
++
+----
+destination_cluster::>vserver services dns create -domains mydomain.example.com -vserver
+dvs1 -name-servers 192.0.2.128 -state enabled
+----
+
+. Add the preferred domain controller by using the `vserver cifs domain preferred-dc add` command.
++
+----
+destination_cluster::>vserver cifs domain preferred-dc add -vserver dvs1 -preferred-dc
+192.0.2.128 -domain mydomain.example.com
+----
+
+. Create the CIFS server by using the `vserver cifs create` command.
++
+----
+destination_cluster::>vserver cifs create -vserver dvs1 -domain mydomain.example.com
+-cifs-server CIFS1
+----
+
+. Stop the destination SVM by using the `vserver stop` command.
++
+----
+destination_cluster::> vserver stop -vserver dvs1
+[Job 46] Job succeeded: DONE
+----

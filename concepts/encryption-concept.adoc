@@ -1,0 +1,81 @@
+---
+permalink: concepts/encryption-concept.html
+sidebar: sidebar
+keywords: encryption
+summary: "ONTAP offers both software- and hardware-based encryption technologies to ensure that data at rest cannot be read if the storage medium is repurposed, returned, misplaced, or stolen."
+---
+= Encryption
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP offers both software- and hardware-based encryption technologies to ensure that data at rest cannot be read if the storage medium is repurposed, returned, misplaced, or stolen.
+
+ONTAP is compliant with the Federal Information Processing Standards (FIPS) 140-2 for all SSL connections. You can use the following encryption solutions:
+
+* Hardware solutions:
+ ** NetApp Storage Encryption (NSE)
++
+NSE is a hardware solution that uses self-encrypting drives (SEDs).
+
+ ** NVMe SEDs
++
+ONTAP provides full disk encryption for NVMe SEDs that do not have FIPS 140-2 certification.
+* Software solutions:
+ ** NetApp Aggregate Encryption (NAE)
++
+NAE is a software solution that enables encryption of any data volume on any drive type where it is enabled with unique keys for each aggregate.
+
+ ** NetApp Volume Encryption (NVE)
++
+NVE is a software solution that enables encryption of any data volume on any drive type where it is enabled with a unique key for each volume.
+
+Use both software (NAE or NVE) and hardware (NSE or NVMe SED) encryption solutions to achieve double encryption at rest. Storage efficiency is not affected by NAE or NVE encryption.
+
+== NetApp Storage Encryption
+
+NetApp Storage Encryption (NSE) supports SEDs that encrypt data as it is written. The data cannot be read without an encryption key stored on the disk. The encryption key, in turn, is accessible only to an authenticated node.
+
+On an I/O request, a node authenticates itself to an SED using an authentication key retrieved from an external key management server or Onboard Key Manager:
+
+* The external key management server is a third-party system in your storage environment that serves authentication keys to nodes using the Key Management Interoperability Protocol (KMIP).
+* The Onboard Key Manager is a built-in tool that serves authentication keys to nodes from the same storage system as your data.
+
+NSE supports self-encrypting HDDs and SSDs. You can use NetApp Volume Encryption with NSE to double encrypt data on NSE drives.
+
+== NVMe self-encrypting drives
+
+NVMe SEDs do not have FIPS 140-2 certification, however, these disks use AES 256-bit transparent disk encryption to protect data at rest.
+
+Data encryption operations, such as generating an authentication key, are performed internally. The authentication key is generated the first time the disk is accessed by the storage system. After that, the disks protect data at rest by requiring storage system authentication each time data operations are requested.
+
+== NetApp Aggregate Encryption
+
+NetApp Aggregate Encryption (NAE) is a software-based technology for encrypting all data on an aggregate. A benefit of NAE is that volumes are included in aggregate level deduplication, whereas NVE volumes are excluded.
+
+With NAE enabled, the volumes within the aggregate can be encrypted with aggregate keys.
+
+Starting with ONTAP 9.7, newly created aggregates and volumes are encrypted by default when you have the NVE license and onboard or external key management.
+
+== NetApp Volume Encryption
+
+NetApp Volume Encryption (NVE) is a software-based technology for encrypting data at rest one volume at a time. An encryption key accessible only to the storage system ensures that volume data cannot be read if the underlying device is separated from the system.
+
+Both data, including Snapshot copies, and metadata are encrypted. Access to the data is given by a unique XTS-AES-256 key, one per volume. A built-in Onboard Key Manager secures the keys on the same system with your data.
+
+You can use NVE on any type of aggregate (HDD, SSD, hybrid, array LUN), with any RAID type, and in any supported ONTAP implementation, including ONTAP Select. You can also use NVE with NetApp Storage Encryption (NSE) to double encrypt data on NSE drives.
+
+|===
+a|
+*_When to use KMIP servers_* Although it is less expensive and typically more convenient to use the Onboard Key Manager, you should set up KMIP servers if any of the following are true:
+
+* Your encryption key management solution must comply with Federal Information Processing Standards (FIPS) 140-2 or the OASIS KMIP standard.
+* You need a multi-cluster solution. KMIP servers support multiple clusters with centralized management of encryption keys.
++
+KMIP servers support multiple clusters with centralized management of encryption keys.
+
+* Your business requires the added security of storing authentication keys on a system or in a location different from the data.
++
+KMIP servers stores authentication keys separately from your data.
+
+|===

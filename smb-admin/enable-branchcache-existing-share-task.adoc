@@ -1,0 +1,89 @@
+---
+permalink: smb-admin/enable-branchcache-existing-share-task.html
+sidebar: sidebar
+keywords: enable, branchcache, exist, smb, share, add, share, property, exist, list, enable branchcache on an existing smb share
+summary: "You can enable BranchCache on an existing SMB share by adding the branchcache share property to the existing list of share properties."
+---
+= Enable BranchCache on an existing SMB share
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can enable BranchCache on an existing SMB share by adding the `branchcache` share property to the existing list of share properties.
+
+.About this task
+
+* If BranchCache is enabled on the SMB share, the share must have the offline files configuration set to manual caching.
++
+If the existing share's offline files setting is not set to manual caching, you must configure it by modifying the share.
+
+* You can set the `branchcache` property on a share even if BranchCache is not configured and enabled on the storage virtual machine (SVM).
++
+However, if you want the share to offer cached content, you must configure and enable BranchCache on the SVM.
+
+* When you add the `branchcache` share property to the share, existing share settings and share properties are preserved.
++
+The BranchCache share property is added to the existing list of share properties. For more information about using the `vserver cifs share properties add` command, see the man pages.
+
+.Steps
+
+. If necessary, configure the offline files share setting for manual caching:
+ .. Determine what the offline files share setting is by using the `vserver cifs share show` command.
+ .. If the offline files share setting is not set to manual, change it to the required value: `vserver cifs share modify -vserver vserver_name -share-name share_name -offline-files manual`
+. Enable BranchCache on an existing SMB share: `vserver cifs share properties add -vserver vserver_name -share-name share_name -share-properties branchcache`
+. Verify that the BranchCache share property is set on the SMB share: `vserver cifs share show -vserver vserver_name -share-name share_name`
+
+.Example
+
+The following command enables BranchCache on an existing SMB share named "`data2`" with a path of `/data2` on SVM vs1:
+
+----
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2
+
+                      Vserver: vs1
+                        Share: data2
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data2
+             Share Properties: oplocks
+                               browsable
+                               changenotify
+                               showsnapshot
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: 10s
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+
+cluster1::> vserver cifs share properties add  -vserver vs1 -share-name data2 -share-properties branchcache
+
+cluster1::> vserver cifs share show -vserver vs1 -share-name data2
+
+                      Vserver: vs1
+                        Share: data2
+     CIFS Server NetBIOS Name: VS1
+                         Path: /data2
+             Share Properties: oplocks
+                               browsable
+                               showsnapshot
+                               changenotify
+                               branchcache
+           Symlink Properties: -
+      File Mode Creation Mask: -
+ Directory Mode Creation Mask: -
+                Share Comment: -
+                    Share ACL: Everyone / Full Control
+File Attribute Cache Lifetime: 10s
+                  Volume Name: -
+                Offline Files: manual
+Vscan File-Operations Profile: standard
+----
+
+*Related information*
+
+xref:add-remove-share-properties-eexisting-share-task.adoc[Adding or removing share properties on an existing SMB share]
+
+xref:disable-branchcache-single-share-task.adoc[Disabling BranchCache on a single SMB share]

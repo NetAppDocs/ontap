@@ -1,0 +1,161 @@
+---
+permalink: nas-audit/plan-fpolicy-policy-config-concept.html
+sidebar: sidebar
+keywords: plan, fpolicy, policy, configuration
+summary: "Before you configure the FPolicy policy, you must understand which parameters are required when creating the policy as well as why you might want to configure certain optional parameters. This information helps you to determine which values to set for each parameter."
+---
+= Plan the FPolicy policy configuration overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you configure the FPolicy policy, you must understand which parameters are required when creating the policy as well as why you might want to configure certain optional parameters. This information helps you to determine which values to set for each parameter.
+
+When creating an FPolicy policy you associate the policy with the following:
+
+* The storage virtual machine (SVM)
+* One or more FPolicy events
+* An FPolicy external engine
+
+You can also configure several optional policy settings.
+
+== What the FPolicy policy configuration contains
+
+You can use the following list of available FPolicy policy required and optional parameters to help you plan your configuration:
+
+[cols="4*",options="header"]
+|===
+| Type of information| Option| Required| Default
+a|
+_SVM name_
+
+Specifies the name of the SVM on which you want to create an FPolicy policy.
+
+a|
+`-vserver` `vserver_name`
+a|
+Yes
+a|
+None
+a|
+_Policy name_
+
+Specifies the name of the FPolicy policy.
+
+The name can be up to 256 characters long.
+
+[NOTE]
+====
+The name should be up to 200 characters long if configuring the policy in a MetroCluster or SVM disaster recovery configuration.
+====
+
+The name can contain any combination of the following ASCII-range characters:
+
+* `a` through `z`
+* `A` through `Z`
+* `0` through `9`
+* "`_`", "`-`", and "`.`"
+
+a|
+`-policy-name` `policy_name`
+a|
+Yes
+a|
+None
+a|
+_Event names_
+
+Specifies a comma-delimited list of events to associate with the FPolicy policy.
+
+* You can associate more than one event to a policy.
+* An event is specific to a protocol.
+* You can use a single policy to monitor file access events for more than one protocol by creating an event for each protocol that you want the policy to monitor, and then associating the events to the policy.
+* The events must already exist.
+
+a|
+`-events` `event_name`, ...
+a|
+Yes
+a|
+None
+a|
+_External engine name_
+
+Specifies the name of the external engine to associate with the FPolicy policy.
+
+* An external engine contains information required by the node to send notifications to an FPolicy server.
+* You can configure FPolicy to use the ONTAP native external engine for simple file blocking or to use an external engine that is configured to use external FPolicy servers (FPolicy servers) for more sophisticated file blocking and file management.
+* If you want to use the native external engine, you can either not specify a value for this parameter or you can specify `native` as the value.
+* If you want to use FPolicy servers, the configuration for the external engine must already exist.
+
+a|
+`-engine` `engine_name`
+a|
+Yes (unless the policy uses the internal ONTAP native engine)
+a|
+`native`
+a|
+_Is mandatory screening required_
+
+Specifies whether mandatory file access screening is required.
+
+* The mandatory screening setting determines what action is taken on a file access event in a case when all primary and secondary servers are down or no response is received from the FPolicy servers within a given timeout period.
+* When set to `true`, file access events are denied.
+* When set to `false`, file access events are allowed.
+
+a|
+`-is-mandatory` {`true`\|`false`}
+a|
+No
+a|
+`true`
+a|
+_Allow privileged access_
+
+Specifies whether you want the FPolicy server to have privileged access to the monitored files and folders by using a privileged data connection.
+
+If configured, FPolicy servers can access files from the root of the SVM containing the monitored data using the privileged data connection.
+
+For privileged data access, CIFS must be licensed on the cluster and all the data LIFs used to connect to the FPolicy servers must be configured to have `cifs` as one of the allowed protocols.
+
+If you want to configure the policy to allow privileged access, you must also specify the user name for the account that you want the FPolicy server to use for privileged access.
+
+a|
+`-allow-privileged-access` {`yes`\|`no`}
+a|
+No (unless passthrough-read is enabled)
+a|
+`no`
+a|
+_Privileged user name_
+
+Specifies the user name of the account the FPolicy servers use for privileged data access.
+
+* The value for this parameter should use the "`domain\user name`" format.
+* If `-allow-privileged-access` is set to `no`, any value set for this parameter is ignored.
+
+a|
+`-privileged-user-name` `user_name`
+a|
+No (unless privileged access is enabled)
+a|
+None
+a|
+_Allow passthrough-read_
+
+Specifies whether the FPolicy servers can provide passthrough-read services for files that have been archived to secondary storage (offline files) by the FPolicy servers:
+
+* Passthrough-read is a way to read data for offline files without restoring the data to the primary storage.
++
+Passthrough-read reduces response latencies because there is no need to recall files back to primary storage before responding to the read request. Additionally, passthrough-read optimizes storage efficiency by eliminating the need to consume primary storage space with files that are recalled solely to satisfy read requests.
+
+* When enabled, the FPolicy servers provide the data for the file over a separate privileged data channel opened specifically for passthrough-reads.
+* If you want to configure passthrough-read, the policy must also be configured to allow privileged access.
+
+a|
+`-is-passthrough-read-enabled` {`true`\|`false`}
+a|
+No
+a|
+`false`
+|===

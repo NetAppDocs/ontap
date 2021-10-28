@@ -1,0 +1,71 @@
+---
+permalink: encryption-at-rest/purge-data-encrypted-volume-synchronous-snapmirror-task.html
+sidebar: sidebar
+keywords: secure, purge, scrub, data, encrypted, volume, nve, netapp, volume encryption, snapmirror, synchronous
+summary: "Beginning in ONTAP 9.8, you can use secure-purge to non-disruptively “scrub” data on NVE-enabled volumes with a Synchronous SnapMirror relationship."
+---
+= Scrub data on an encrypted volume with a Synchronous SnapMirror relationship
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning in ONTAP 9.8, you can use secure-purge to non-disruptively "`scrub`" data on NVE-enabled volumes with a Synchronous SnapMirror relationship.
+
+.What you'll need
+
+* You must be a cluster administrator to perform this task.
+* Advanced privileges are required for this task.
+
+.About this task
+
+Secure-purge may take from several minutes to many hours to complete, depending on the amount of data in the deleted files. You can use the `volume encryption secure-purge show` command to view the status of the operation. You can use the `volume encryption secure-purge abort` command to terminate the operation.
+
+[NOTE]
+====
+In order to do a secure purge on a SAN host, you must delete the entire LUN containing the files you want to purge, or you must be able to punch holes in the LUN for the blocks that belong to the files you want purge. If you cannot delete the LUN or your host operating system does not support punching holes in the LUN, you cannot perform a secure purge.
+====
+
+.Steps
+
+. On the storage system, change to advanced privilege level:
++
+`set -privilege advanced`
+. Delete the files or the LUN you want to securely purge.
+ ** On a NAS client, delete the files you want to securely purge.
+ ** On a SAN host, delete the LUN you want to securely purge or punch holes in the LUN for the blocks that belong to the files you want to purge.
+. Prepare vol_A in the Asynchronous relationship be securely purged:
++
+`volume encryption secure-purge start -vserver SVM_name -volume volume_name -prepare true`
++
+Repeat this step for the other volume in your Synchronous SnapMirror relationship.
+
+. If the files you want to securely purge are in snapshots, delete the snapshots:
++
+`snapshot delete -vserver SVM_name -volume vol_A -snapshot snapshot`
+. If the secure purge file is in the base or common snapshots, update the SnapMirror to move the common snapshot forward:
++
+`snapmirror update -source-snapshot snapshot_name -destination-path destination_path`
++
+There are two common snapshots, so this command must be issued twice.
+
+. If the secure purge file is in the application consistent snapshot, delete the snapshot on both volumes in the Synchronous SnapMirror relationship:
++
+`snapshot delete -vserver SVM_name -volume vol_name -snapshot snapshot`
++
+Perform this step on both volumes.
+
+. Securely purge the deleted files:
++
+`volume encryption secure-purge start -vserver SVM_name -volume volume_name`
++
+Repeat this step on each volume in the synchronous SnapMirror relationship.
++
+The following command securely purges the deleted files on `vol1` on SMV `vs1`.
++
+----
+cluster1::> volume encryption secure-purge start -vserver vs1 -volume vol1
+----
+
+. Verify the status of the secure-purge operation:
++
+`volume encryption secure-purge show`

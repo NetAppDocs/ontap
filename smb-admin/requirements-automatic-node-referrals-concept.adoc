@@ -1,0 +1,79 @@
+---
+permalink: smb-admin/requirements-automatic-node-referrals-concept.html
+sidebar: sidebar
+keywords: smb, automatic, node, referral, autolocation, aware, requirement, version, ontap, feature, support, guideline, requirement, requirements and guidelines for using automatic node referrals
+summary: "Before you can use SMB automatic node referrals, also known as autolocation, you need to be aware of certain requirements, including which versions of ONTAP support the feature. You also need to know about supported SMB protocol versions and certain other special guidelines."
+---
+= Requirements and guidelines for using automatic node referrals
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before you can use SMB automatic node referrals, also known as _autolocation_, you need to be aware of certain requirements, including which versions of ONTAP support the feature. You also need to know about supported SMB protocol versions and certain other special guidelines.
+
+== ONTAP version and license requirements
+
+* All nodes in the cluster must be running a version of ONTAP that supports automatic node referrals.
+* Widelinks must be enabled on a SMB share to use autolocation.
+* CIFS must be licensed, and an SMB server must exist on the SVMs.
+
+== SMB protocol version requirements
+
+* For SVMs, ONTAP supports automatic node referrals on all versions of SMB.
+
+== SMB client requirements
+
+All Microsoft clients supported by ONTAP support SMB automatic node referrals.
+
+The Interoperability Matrix contains the latest information about which Windows clients ONTAP supports.
+
+http://mysupport.netapp.com/matrix[mysupport.netapp.com/matrix]
+
+== Data LIF requirements
+
+If you want to use a data LIF as a potential referral for SMB clients, you must create data LIFs with both NFS and CIFS enabled.
+
+Automatic node referrals can fail to work if the target node contains data LIFs that are enabled only for the NFS protocol, or enabled only for the SMB protocol.
+
+If this requirement is not met, data access is not affected. The SMB client maps the share using the original LIF that the client used to connect to the SVM.
+
+== NTLM authentication requirements when making a referred SMB connection
+
+NTLM authentication must be allowed on the domain containing the CIFS server and on the domains containing clients that want to use automatic node referrals.
+
+When making a referral, the SMB server refers an IP address to the Windows client. Because NTLM authentication is used when making a connection using an IP address, Kerberos authentication is not performed for referred connections.
+
+This happens because the Windows client cannot craft the service principal name used by Kerberos (which is of the form `service/NetBIOS name` and `service/FQDN`), which means that the client cannot request a Kerberos ticket to the service.
+
+== Guidelines for using automatic node referrals with the home directory feature
+
+When shares are configured with the home directory share property enabled, there can be one or more home directory search paths configured for a home directory configuration. The search paths can point to volumes contained on each node containing SVM volumes. Clients receive a referral and, if an active, local data LIF is available, connect through a referred LIF that is local to the home user's home directory.
+
+There are guidelines when SMB 1.0 clients access dynamic home directories with automatic node referrals enabled. This is because SMB 1.0 clients require the automatic node referral before they have authenticated, which is before the SMB server has the user's name. However, SMB home directory access works correctly for SMB 1.0 clients if the following statements are true:
+
+* SMB home directories are configured to use simple names, such as "`%w`" (Windows user name) or "`%u`" (mapped UNIX user name), and not domain-name style names, such as "`%d\%w `" (domain-name\user-name).
+* When creating home directory shares, the CIFS home directory shares names are configured with variables ("`%w`" or "`%u`"), and not with static names, such as "`HOME`".
+
+For SMB 2.x and SMB 3.0 clients, there are no special guidelines when accessing home directories using automatic node referrals.
+
+== Guidelines for disabling automatic node referrals on CIFS servers with existing referred connections
+
+If you disable automatic node referrals after the option has been enabled, clients currently connected to a referred LIF keep the referred connection. Because ONTAP uses DFS referrals as the mechanism for SMB automatic node referrals, clients can even reconnect to the referred LIF after you disable the option until the client's cached DFS referral for the referred connection times out. This is true even in the case of a revert to a version of ONTAP that does not support automatic node referrals. Clients continue to use referrals until the DFS referral times out from the client's cache.
+
+Autolocation uses SMB automatic node referrals to increase SMB client performance by referring clients to the LIF on the node that owns the data volume of an SVM. When an SMB client connects to an SMB share hosted on an SVM, it might connect using a LIF on a node that does not own the requested data and uses cluster interconnect network to retrieve data. The client can experience faster response times if the SMB connection uses a LIF located on the node containing the requested data.
+
+ONTAP provides this functionality by using Microsoft Distributed File System (DFS) referrals to inform SMB clients that a requested file or folder in the namespace is hosted somewhere else. A node makes a referral when it determines that there is an SVM LIF on the node containing the data. Referrals are made based on the location of the root of the share through which the client is connected.
+
+The referral occurs during SMB negotiation. The referral is made before the connection is established. After ONTAP refers the SMB client to the target node, the connection is made, and the client accesses data through the referred LIF path from that point on. This allows the clients faster access to the data and avoids extra cluster communication.
+
+== Guidelines for using automatic node referrals with Mac OS clients
+
+Mac OS X clients do not support SMB automatic node referrals, even though the Mac OS supports Microsoft's Distributed File System (DFS). Windows clients make a DFS referral request before connecting to an SMB share. ONTAP provides a referral to a data LIF found on the same node that hosts the requested data, which leads to improved client response times. Although the Mac OS supports DFS, Mac OS clients do not behave exactly like Windows clients in this area.
+
+*Related information*
+
+xref:manage-home-directories-concept.adoc[Managing home directories]
+
+link:../networking/index.html[Network management]
+
+https://mysupport.netapp.com/NOW/products/interoperability[NetApp Interoperability]

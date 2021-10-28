@@ -1,0 +1,47 @@
+---
+permalink: disks-aggregates/determine-modify-caching-policy-flash-pool-task.html
+sidebar: sidebar
+keywords: determine, modify, cache, policy, flash pool, aggregates
+summary: "You can assign cache-retention policies to volumes in Flash Pool aggregates to determine how long the volume data remains in the Flash Pool cache. However, in some cases changing the cache-retention policy might not impact the amount of time the volume’s data remains in the cache."
+---
+= Determine whether to modify the caching policy of Flash Pool aggregates overview 
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can assign cache-retention policies to volumes in Flash Pool aggregates to determine how long the volume data remains in the Flash Pool cache. However, in some cases changing the cache-retention policy might not impact the amount of time the volume's data remains in the cache.
+
+.About this task
+
+If your data meets any of the following conditions, changing your cache-retention policy might not have an impact:
+
+* Your workload is sequential.
+* Your workload does not reread the random blocks cached in the solid state drives (SSDs).
+* The cache size of the volume is too small.
+
+The following steps check for these conditions. The task must be done in advanced privilege mode.
+
+.Steps
+
+. View the workload volume:
++
+`statistics start -object workload_volume`
+. Determine the workload pattern of the volume:
++
+`statistics show -object workload_volume -instance _volume-workload_ -counter sequential_reads`
+. Determine the hit rate of the volume:
++
+`statistics show -object wafl_hya_vvol -instance _volume_ -counter read_ops_replaced_pwercent|wc_write_blks_overwritten_percent`
+. Determine the `Cacheable Read` and `Project Cache Alloc` of the volume:
++
+`system node run -node node_name wafl awa start _aggr_name_`
+. Display the AWA summary:
++
+`system node run -node node_name wafl awa print _aggr_name_`
+. Compare the volume's hit rate to the `Cacheable Read`.
++
+If the hit rate of the volume is greater than the `Cacheable Read`, then your workload does not reread random blocks cached in the SSDs.
+
+. Compare the volume's current cache size to the `Project Cache Alloc`.
++
+If the current cache size of the volume is greater than the `Project Cache Alloc`, then the size of your volume cache is too small.

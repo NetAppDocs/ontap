@@ -1,0 +1,67 @@
+---
+permalink: volumes/resizing-concept.html
+sidebar: sidebar
+keywords: when to, use, resizing
+summary: "Because quota resizing is faster than quota initialization, you should use resizing whenever possible. However, resizing only works for certain types of quota changes."
+---
+= When you can use resizing
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Because quota resizing is faster than quota initialization, you should use resizing whenever possible. However, resizing only works for certain types of quota changes.
+
+You can resize quotas when making the following types of changes to the quota rules:
+
+* Changing an existing quota.
++
+For example, changing the limits of an existing quota.
+
+* Adding a quota for a quota target for which a default quota or a default tracking quota exists.
+* Deleting a quota for which a default quota or default tracking quota entry is specified.
+* Combining separate user quotas into one multi-user quota.
+
+[NOTE]
+====
+After you have made extensive quotas changes, you should perform a full reinitialization to ensure that all of the changes take effect.
+====
+[NOTE]
+====
+If you attempt to resize and not all of your quota changes can be incorporated by using a resize operation, ONTAP issues a warning. You can determine from the quota report whether your storage system is tracking disk usage for a particular user, group, or qtree. If you see a quota in the quota report, it means that the storage system is tracking the disk space and the number of files owned by the quota target.
+====
+
+.Example quotas changes that can be made effective by resizing
+
+Some quota rule changes can be made effective by resizing. Consider the following quotas:
+
+----
+
+#Quota Target type             disk  files thold sdisk sfile
+#------------ ----             ----  ----- ----- ----- -----
+*             user@/vol/vol2    50M   15K
+*             group@/vol/vol2  750M   85K
+*             tree@/vol/vol2      -     -
+jdoe          user@/vol/vol2/  100M   75K
+kbuck         user@/vol/vol2/  100M   75K
+----
+
+Suppose you make the following changes:
+
+* Increase the number of files for the default user target.
+* Add a new user quota for a new user, boris, that needs more disk limit than the default user quota.
+* Delete the kbuck user's explicit quota entry; the new user now needs only the default quota limits.
+
+These changes result in the following quotas:
+
+----
+
+#Quota Target type             disk  files thold sdisk sfile
+#------------ ----             ----  ----- ----- ----- -----
+*             user@/vol/vol2    50M   25K
+*             group@/vol/vol2  750M   85K
+*             tree@/vol/vol2      -     -
+jdoe          user@/vol/vol2/  100M   75K
+boris         user@/vol/vol2/  100M   75K
+----
+
+Resizing activates all of these changes; a full quota reinitialization is not necessary.

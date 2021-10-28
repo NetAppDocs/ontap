@@ -1,0 +1,74 @@
+---
+permalink: encryption-at-rest/replace-self-encrypting-disk-task.html
+sidebar: sidebar
+keywords: replacing, fips drive, sed
+summary: "You can replace a FIPS drive or SED the same way you replace an ordinary disk. Make sure to assign new data authentication keys to the replacement drive. For a FIPS drive, you may also want to assign a new FIPS 140-2 authentication key."
+---
+= Replace a FIPS drive or SED
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can replace a FIPS drive or SED the same way you replace an ordinary disk. Make sure to assign new data authentication keys to the replacement drive. For a FIPS drive, you may also want to assign a new FIPS 140-2 authentication key.
+
+.What you'll need
+
+* You must know the key ID for the authentication key used by the drive.
+* You must be a cluster administrator to perform this task.
+
+.Steps
+
+. Ensure that the disk has been marked as failed:
++
+`storage disk show -broken`
++
+For complete command syntax, see the man page.
++
+----
+cluster1::> storage disk show -broken
+Original Owner: cluster1-01
+  Checksum Compatibility: block
+                                                                 Usable Physical
+    Disk   Outage Reason HA Shelf Bay Chan   Pool  Type    RPM     Size     Size
+    ------ ---- ------------ ---- --- ---- ------ -----  -----  -------  -------
+    0.0.0  admin  failed  0b    1   0    A  Pool0  FCAL  10000  132.8GB  133.9GB
+    0.0.7  admin  removed 0b    2   6    A  Pool1  FCAL  10000  132.8GB  134.2GB
+[...]
+----
+
+. Remove the failed disk and replace it with a new FIPS drive or SED, following the instructions in the hardware guide for your disk shelf model.
+. Assign ownership of the newly replaced disk:
++
+`storage disk assign -disk disk_name -owner node`
++
+For complete command syntax, see the man page.
++
+----
+cluster1::> storage disk assign -disk 2.1.1 -owner cluster1-01
+----
+
+. Confirm that the new disk has been assigned:
++
+`storage encryption disk show`
++
+For complete command syntax, see the man page.
++
+----
+cluster1::> storage encryption disk show
+Disk    Mode Data Key ID
+-----   ---- ----------------------------------------------------------------
+0.0.0   data F1CB30AFF1CB30B00101000000000000A68B167F92DD54196297159B5968923C
+0.0.1   data F1CB30AFF1CB30B00101000000000000A68B167F92DD54196297159B5968923C
+1.10.0  data F1CB30AFF1CB30B00101000000000000CF0EFD81EA9F6324EA97B369351C56AC
+1.10.1  data F1CB30AFF1CB30B00101000000000000CF0EFD81EA9F6324EA97B369351C56AC
+2.1.1   open 0x0
+[...]
+----
+
+. Assign the data authentication keys to the FIPS drive or SED.
++
+xref:assign-authentication-keys-seds-external-task.adoc[Assigning a data authentication key to a FIPS drive or SED (external key management)]
+
+. If necessary, assign a FIPS 140-2 authentication key to the FIPS drive.
++
+xref:assign-fips-140-2-authentication-key-task.adoc[Assigning a FIPS 140-2 authentication key to a FIPS drive]

@@ -1,0 +1,92 @@
+---
+permalink: volumes/aggregate-fullness-overallocation-alerts-concept.html
+sidebar: sidebar
+keywords: how to, address, aggregate, fullness, overallocation, alerts
+summary: "ONTAP issues EMS messages when aggregates are running out of space so that you can take corrective action by providing more space for the full aggregate. Knowing the types of alerts and how you can address them helps you ensure your data availability."
+---
+= Address aggregate fullness and overallocation alerts
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP issues EMS messages when aggregates are running out of space so that you can take corrective action by providing more space for the full aggregate. Knowing the types of alerts and how you can address them helps you ensure your data availability.
+
+When an aggregate is described as _full_, it means that the percentage of the space in the aggregate available for use by volumes has fallen below a predefined threshold. When an aggregate becomes _overallocated_, the space used by ONTAP for metadata and to support basic data access has been exhausted. Sometimes space normally reserved for other purposes can be used to keep the aggregate functioning, but volume guarantees for volumes associated with the aggregate or data availability can be at risk.
+
+Overallocation can be either logical or physical. _Logical overallocation_ means that space reserved to honor future space commitments, such as volume guarantees, has been used for another purpose. _Physical overallocation_ means that the aggregate is running out of physical blocks to use. Aggregates in this state are at risk for refusing writes, going offline, or potentially causing a controller disruption.
+
+The following table describes the aggregate fullness and overallocation alerts, the actions you can take to address the issue, and the risks of not taking action.
+[cols="5%,5%,5%,35%,25%,25%",options="header"]
+|===
+| Alert type| EMS Level| Configurable?| Definition| Ways to address| Risk if no action taken
+a|
+Nearly full
+a|
+Debug
+a|
+N
+a|
+The amount of space allocated for volumes, including their guarantees, has exceeded the threshold set for this alert (95%). The percentage is the `Used` total minus the size of the Snapshot reserve.
+
+a|
+
+* Adding storage to the aggregate
+* Shrinking or deleting volumes
+* Moving volumes to another aggregate with more space
+* Removing volume guarantees (setting them to `none`)
+
+a|
+No risk to write operations or data availability yet.
+a|
+Full
+a|
+Debug
+a|
+N
+a|
+The file system has exceeded the threshold set for this alert (98%). The percentage is the `Used` total minus the size of the Snapshot reserve.
+
+a|
+
+* Adding storage to the aggregate
+* Shrinking or deleting volumes
+* Moving volumes to another aggregate with more space
+* Removing volume guarantees (setting them to `none`)
+
+a|
+Volume guarantees for volumes in the aggregate might be at risk, as well as write operations to those volumes.
+a|
+Logically overallocated
+a|
+SVC Error
+a|
+N
+a|
+In addition to the space reserved for volumes being full, the space in the aggregate used for metadata has been exhausted.
+a|
+
+* Adding storage to the aggregate
+* Shrinking or deleting volumes
+* Moving volumes to another aggregate with more space
+* Removing volume guarantees (setting them to `none`)
+
+a|
+Volume guarantees for volumes in the aggregate are at risk, as well as write operations to those volumes.
+a|
+Physically overallocated
+a|
+Node Error
+a|
+N
+a|
+The aggregate is running out of physical blocks it can write to.
+a|
+
+* Adding storage to the aggregate
+* Shrinking or deleting volumes
+* Moving volumes to another aggregate with more space
+
+a|
+Write operations to volumes in the aggregate are at risk, as well as data availability; the aggregate could go offline. In extreme cases, the node could experience a disruption.
+|===
+Every time a threshold is crossed for an aggregate, whether the fullness percentage is rising or falling, an EMS message is generated. When the fullness level of the aggregate falls below a threshold, an `aggregate ok` EMS message is generated.

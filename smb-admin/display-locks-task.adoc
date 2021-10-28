@@ -1,0 +1,103 @@
+---
+permalink: smb-admin/display-locks-task.html
+sidebar: sidebar
+keywords: display, information, file, lock, detail, byte-range, sharelock, mode, delegation, opportunistic, persistent, handle, durable, diplay information about locks
+summary: "You can display information about the current file locks, including what types of locks are held and what the lock state is, details about byte-range locks, sharelock modes, delegation locks, and opportunistic locks, and whether locks are opened with durable or persistent handles."
+---
+= Display information about locks
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can display information about the current file locks, including what types of locks are held and what the lock state is, details about byte-range locks, sharelock modes, delegation locks, and opportunistic locks, and whether locks are opened with durable or persistent handles.
+
+.About this task
+
+The client IP address cannot be displayed for locks established through NFSv4 or NFSv4.1.
+
+By default, the command displays information about all locks. You can use command parameters to display information about locks for a specific storage virtual machine (SVM) or to filter the command's output by other criteria.
+
+The `vserver locks show` command displays information about four types of locks:
+
+* Byte-range locks, which lock only a portion of a file.
+* Share locks, which lock open files.
+* Opportunistic locks, which control client-side caching over SMB.
+* Delegations, which control client-side caching over NFSv4.x.
+
+By specifying optional parameters, you can determine important information about each lock type. See the man page for the command for more information.
+
+.Step
+
+. Display information about locks by using the `vserver locks show` command.
+
+.Examples
+
+The following example displays summary information for an NFSv4 lock on a file with the path `/vol1/file1`. The sharelock access mode is write-deny_none, and the lock was granted with write delegation:
+
+----
+cluster1::> vserver locks show
+
+Vserver: vs0
+Volume  Object Path               LIF         Protocol  Lock Type   Client
+------- ------------------------- ----------- --------- ----------- -------
+vol1    /vol1/file1               lif1        nfsv4     share-level -
+               Sharelock Mode: write-deny_none
+                                                        delegation  -
+               Delegation Type: write
+----
+
+The following example displays detailed oplock and sharelock information about the SMB lock on a file with the path `/data2/data2_2/intro.pptx`. A durable handle is granted on the file with a share lock access mode of write-deny_none to a client with an IP address of 10.3.1.3. A lease oplock is granted with a batch oplock level:
+
+----
+cluster1::> vserver locks show -instance -path /data2/data2_2/intro.pptx
+
+                   Vserver: vs1
+                    Volume: data2_2
+         Logical Interface: lif2
+               Object Path: /data2/data2_2/intro.pptx
+                 Lock UUID: 553cf484-7030-4998-88d3-1125adbba0b7
+             Lock Protocol: cifs
+                 Lock Type: share-level
+   Node Holding Lock State: node3
+                Lock State: granted
+  Bytelock Starting Offset: -
+    Number of Bytes Locked: -
+     Bytelock is Mandatory: -
+     Bytelock is Exclusive: -
+     Bytelock is Superlock: -
+          Bytelock is Soft: -
+              Oplock Level: -
+   Shared Lock Access Mode: write-deny_none
+       Shared Lock is Soft: false
+           Delegation Type: -
+            Client Address: 10.3.1.3
+             SMB Open Type: durable
+         SMB Connect State: connected
+SMB Expiration Time (Secs): -
+         SMB Open Group ID: 78a90c59d45ae211998100059a3c7a00a007f70da0f8ffffcd445b0300000000
+
+                   Vserver: vs1
+                    Volume: data2_2
+         Logical Interface: lif2
+               Object Path: /data2/data2_2/test.pptx
+                 Lock UUID: 302fd7b1-f7bf-47ae-9981-f0dcb6a224f9
+             Lock Protocol: cifs
+                 Lock Type: op-lock
+   Node Holding Lock State: node3
+                Lock State: granted
+  Bytelock Starting Offset: -
+    Number of Bytes Locked: -
+     Bytelock is Mandatory: -
+     Bytelock is Exclusive: -
+     Bytelock is Superlock: -
+          Bytelock is Soft: -
+              Oplock Level: batch
+   Shared Lock Access Mode: -
+       Shared Lock is Soft: -
+           Delegation Type: -
+            Client Address: 10.3.1.3
+             SMB Open Type: -
+         SMB Connect State: connected
+SMB Expiration Time (Secs): -
+         SMB Open Group ID: 78a90c59d45ae211998100059a3c7a00a007f70da0f8ffffcd445b0300000000
+----
