@@ -1,12 +1,53 @@
 ---
 permalink: s3-audit/index.html
 sidebar: sidebar
-keywords:
-summary: ''
+keywords: S3, audit, management events
+summary: 'This article expalins how to audit data and management events in ONTAP S3 environments.'
 ---
 = s3-audit
 :icons: font
 :imagesdir: ../media/
 
-
 [.lead]
+Beginning with ONTAP 9.10.1, you can audit data and management events in ONTAP S3 environments. S3 audit functionality is similar to existing NAS auditing capabilities, and S3 and NAS auditing can coexist in a cluster.
+
+When you create and enable an S3 auditing configuration on an SVM, S3 events are recorded in a log file. The you can specify the following events to be logged:
+
+* Object access (data) events
++
+GetObject, PutObject, and DeleteObject
++
+* Management events
++
+PutBucket and DeleteBucket
+
+The combined limit for S3 and NFS auditing configurations is 50 SVMs per cluster.
+
+The following license bundle is required:
+Core Bundle, for ONTAP S3 protocol and storage
+
+For more information, see link:http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cifs-nfs-audit/GUID-A3E3170A-6ACB-4655-A37A-3395A099602E.html[How the ONTAP auditing process works].
+
+== Guaranteed auditing
+By default, S3 and NAS auditing is guaranteed. ONTAP guarantees that all auditable bucket access events are recorded, even if a node is unavailable. A requested bucket operation cannot be completed until the audit record for that operation is saved to the staging volume on persistent storage. If audit records cannot be committed in the staging files, either because of insufficient space or because of other issues, client operations are denied.
+
+== Space requirements for auditing
+In the ONTAP auditing system, audit records are initially stored in binary staging files on individual nodes. Periodically, they are consolidated and converted to user-readable event logs, which are stored in the audit event log directory for the SVM.
+
+The staging files are stored in a dedicated staging volume, which is created by ONTAP when the auditing configuration is created. There is one staging volume per aggregate.
+
+You must plan for sufficient available space in the auditing configuration:
+
+* For the staging volumes in aggregates that contain audited buckets.
+* For the volume containing the directory where converted event logs are stored.
+
+You can control the number of event logs, and hence the available space in the volume, using one of two methods when creating the S3 auditing configuration:
+
+* A numerical limit; the `-rotate-limit` parameter controls the minimum number of audit files that must be preserved.
+* A time limit; the `-retention-duration` parameter controls the maximum period that files can be preserved.
+
+In both parameters, once that configured is exceeded, older audit files can be deleted to make room for newer ones. For both parameters, the value is 0, indicating that all files must be maintained. In order to ensure sufficient space, it is therefore a best practice to set one of the parameters to a non-zero value.
+
+Because of guaranteed auditing, if the space available for audit data runs out before the rotation limit, newer audit data cannot be created, resulting in failure to clients accessing data. Therefore, the choice of this value and of the space allocated to auditing must be chosen carefully, and you must respond to warnings about available space from the auditing system.
+
+For more information, see link:http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cifs-nfs-audit/GUID-EA958194-3CE9-4022-B6CD-A66E263FD4F8.html[Basic auditing concepts].

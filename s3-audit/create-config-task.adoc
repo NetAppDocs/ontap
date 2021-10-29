@@ -1,0 +1,55 @@
+---
+permalink: consistency-groups/create-config-task.html
+sidebar: sidebar
+keywords: consistency groups, consistency group, application protection, parent, child, configure
+summary: "Create a single or nested consistency group for application workload management and data protection."
+---
+= Create an S3 auditing configuration
+
+[.lead]
+To implement S3 auditing, you first create a persistent object store auditing configuration on an S3-enabled SVM, then enable the configuration.
+
+.What you'll need
+
+* An S3-enabled SVM.
+* Sufficient space for staging volumes in the aggregate.
+
+.About this task
+A separate auditing configuration is required for each SVM that contains S3 configurations you wish to audit. You can enable S3 auditing on new or existing S3 configurations. Auditing configurations persist in an S3 environment until removed by the *vserver object-store-server audit delete* command.
+
+It is recommended that you configure S3 auditing for automatic log rotation, determined by log size or a schedule. If you don’t configure automatic log rotation, all log files are retained by default. You can also rotate S3 log files manually using the *vserver object-store-server audit rotate-log* command.
+
+If the SVM is an SVM disaster recovery source, the destination path cannot be on the root volume.
+
+If you need to modify the auditing configuration, you must first disable auditing, then run the *vserver object-store-server audit modify* command.
+
+.Procedure
+Create the auditing configuration to rotate audit logs based on log size or a schedule.
+
+[cols="2,4" options="header"]
+|===
+|If you want to rotate audit logs by...
+|Enter...
+|Log size
+|`vserver object-store-server audit create -vserver _svm_name_ -destination _path_ -events [-events] {data{vbar}management}, ...] {[-rotate-limit _integer_] {vbar} [-retention-duration [_integer_d] [_integer_h][_integer_m][_integers_]]} [-rotate-size {_integer_[KB{vbar}MB{vbar}GB{vbar}TB{vbar}PB]}]`
+|A schedule
+a| `vserver object-store-server audit create -vserver _svm_name_ -destination path [-events] {data{vbar}management}, ...] {[-rotate-limit _integer_] {vbar} [-retention-duration [_integerd_][_integerh_] [_integerm_][_integers_]] } [-rotate-schedule-month _chron_month_] [-rotate-schedule-dayofweek _chron_dayofweek_] [-rotate-schedule-day _chron_dayofmonth_] [-rotate-schedule-hour _chron_hour_] -rotate-schedule-minute _chron_minute_`
+
+[Note]
+The `-rotate-schedule-minute` parameter is required if you are configuring time-based audit log rotation.
+|===
+
+.Examples
+The following example creates an auditing configuration that audits all S3 events (the default) using size-based rotation. The logs are stored in the /audit_log directory. The log file size limit is 200 MB. The logs are rotated when they reach 200 MB in size.
+
+`cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-size 200MB`
+
+The following example creates an auditing configuration that audits all S3 events (the default) using size-based rotation. The log file size limit is 100 MB (the default), and the logs are retained for 5 days before being deleted.
+
+`cluster1::> vserver audit create -vserver vs1 -destination /audit_log -retention-duration 5d0h0m`
+
+The following example creates an auditing configuration that audits S3 management events, and central access policy staging events using time-based rotation. The audit logs are rotated monthly, at 12:30 p.m. on all days of the week. The log rotation limit is 5.
+
+`cluster1::> vserver audit create -vserver vs1 -destination /audit_log -events management -rotate-schedule-month all -rotate-schedule-dayofweek all -rotate-schedule-hour 12 -rotate-schedule-minute 30 -rotate-limit 5`
+
+// 2021-10-29, IE-397
