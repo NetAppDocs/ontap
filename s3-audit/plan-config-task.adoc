@@ -1,0 +1,112 @@
+---
+permalink: s3-audit/create-config-task.html
+sidebar: sidebar
+keywords: s3, audit, create, configure s3 audit
+summary: "This task explains parameters used in s3 auditing."
+---
+= Plan an S3 auditing configuration
+
+[.lead]
+You must specify a number of parameters for the S3 auditing configuration or accept the defaults. In particular, you should consider which log rotation parameters will help ensure adequate free space.
+
+See the link:http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr-970/TOC__vserver__object-store-server.html[`vserver object-store-server audit create`] man page for syntax details.
+
+== General parameters
+There are two required parameters that you must specify when you create the auditing configuration. There are also three optional parameters that you can specify.
+
+[cols="4,2,1" options="header"]
+|===
+|Type of information
+|Option
+|Required
+|_SVM name_
+
+Name of the SVM on which to create the auditing configuration.
+
+The SVM must already exist and be enabled for S3.
+|`-verserver _svm_name_`
+|Yes
+|_Log destination path_
+
+Specifies where the converted audit logs are stored. The path must already exist on the SVM.
+
+The path can be up to 864 characters in length and must have read-write permissions.
+
+If the path is not valid, the audit configuration command fails.
+|`-destination _text_`
+|Yes
+|_Categories of events to audit_
+
+The following event categories can be audited:
+
+*	data
+GetObject, PutObject, and DeleteObject events
+
+*	management
+PutBucket and DeleteBucket events
+
+The default is to audit all S3 events.
+|`-events {data{vbar}management}, ...`
+|No
+|===
+
+You can enter one of the following parameters to control the number of audit log files. If no value is entered, all log files are retained.
+
+[cols="4,2,1" options="header"]
+|===
+|Type of information
+|Option
+|Required
+|_Log files rotation limit_
+
+Determines how many audit log files to retain before rotating the oldest log file out. For example, if you enter a value of 5, the last five log files are retained.
+
+A value of 0 indicates that all the log files are retained. The default value is 0.
+|`-rotate-limit _integer_`
+|No
+|_Log files duration limit_
+
+Determines how long a log file can be retained before being deleted. For example, if you enter a value of 5d0h0m, logs more than 5 days old are deleted.
+
+A value of 0 indicates that all the log files are retained. The default value is 0.
+|`-retention duration _integer_time_`
+|No
+|===
+
+== Parameters for audit log rotation
+You can rotate audit logs based on size or schedule. The default is to rotate audit logs based on size.
+
+=== Rotate logs based on log size
+If you want to use the default log rotation method and the default log size, you do not need to configure any specific parameters for log rotation. The default log size is 100 MB.
+
+If you do not want to use the default log size, you can configure the `-rotate-size` parameter to specify a custom log size.
+
+If you want to reset the rotation based on a log size alone, use the following command to unset the `-rotate-schedule-minute` parameter:
+
+`vserver audit modify -vserver vs0 -destination / -rotate-schedule-minute -`
+
+=== Rotate logs based on a schedule
+If you choose to rotate the audit logs based on a schedule, you can schedule log rotation by using the time-based rotation parameters in any combination.
+
+*	If you use time-based rotation, the `-rotate-schedule-minute` parameter is mandatory.
+*	All other time-based rotation parameters are optional.
+**	`-rotate-schedule-month`
+**	`-rotate-schedule-dayofweek`
+**	`-rotate-schedule-day`
+**	`-rotate-schedule-hour`
+*	The rotation schedule is calculated by using all the time-related values.
+For example, if you specify only the `-rotate-schedule-minute` parameter, the audit log files are rotated based on the minutes specified on all days of the week, during all hours on all months of the year.
+*	If you specify only one or two time-based rotation parameters (for example, `-rotate-schedule-month` and `-rotate-schedule-minutes`), the log files are rotated based on the minute values that you specified on all days of the week, during all hours, but only during the specified months.
++
+For example, you can specify that the audit log is to be rotated during the months January, March, and August on all Mondays, Wednesdays, and Saturdays at 10:30 a.m.
+*	If you specify values for both `-rotate-schedule-dayofweek` and `-rotate-schedule-day`, they are considered independently.
++
+For example, if you specify `-rotate-schedule-dayofweek` as Friday and `-rotate-schedule-day` as 13, then the audit logs would be rotated on every Friday and on the 13th day of the specified month, not just on every Friday the 13th.
+*	If you want to reset the rotation based on a schedule alone, use the following command to unset the `-rotate-size parameter`:
++
+`vserver audit modify -vserver vs0 -destination / -rotate-size -`
+
+=== Rotate logs based on log size and schedule
+You can choose to rotate the log files based on log size and a schedule by setting both the -rotate-size parameter and the time-based rotation parameters in any combination. For example: if `-rotate-size` is set to 10 MB and `-rotate-schedule-minute` is set to 15, the log files rotate when the log file size reaches 10 MB or on the 15th minute of every hour (whichever event occurs first).
+
+// 2021-10-29, IE-397
