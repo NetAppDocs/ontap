@@ -1,0 +1,89 @@
+---
+sidebar: sidebar
+permalink: /anti-ransomware/enable-task.html
+keywords: anti-ransomware overview, ransomware, security, introduce, protection, detection, threat, attack, suspect, what ontap anti-ransomware detects, entropy, abnormal volume activity, extension conformity, how to recover data in after a ransomware attack, ransomware protection strategy
+
+summary: Anti-ransomware can be enabled on new or existing volumes. You first enable anti-ransomware in learning mode, in which the system analyzes the workload to characterize normal behavior, then you switch to active mode, in which abnormal activity is flagged for your evaluation.
+
+---
+
+= Enable anti-ransomware
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+// new for ONTAP 9.10.1
+
+[.lead]
+Anti-ransomware can be enabled on new or existing volumes. You first enable anti-ransomware in learning mode, in which the system analyzes the workload to characterize normal behavior, then you switch to active mode, in which abnormal activity is flagged for your evaluation.
+
+.What you'll need
+
+*	A storage VM enabled for NFS or SMB (or both).
+*	The Multi-tenant Encryption Key Management (MT_EK_MGMT) license installed from the security and compliance bundle.
+*	An NAS workload with clients configured.
+*	The volume to be protected must have an active junction-path.
+*	Optional but recommended: The EMS system is configured to send email notifications, which will include notices of anti-ransomware activity.
+
+link:https://docs.netapp.com/us-en/ontap/error-messages/configure-ems-events-send-email-task.html[Configure important EMS events to send email notifications^]
+
+.About this task
+
+The NetApp anti-ransomware feature includes an initial learning period (also known as “dry run”), in which an ONTAP system learns which file extensions are valid and uses the analyzed data to develop alert profiles. After running anti-ransomware in learning mode for enough time to assess workload characteristics, you can switch to active mode and start protecting your data. Anti-ransomware continues to collect and analyze data to refine alert profiles.
+
+During the learning period, the system automatically learns the workload characteristics of a configured volume, performing special observations and pattern analysis.
+
+A learning period of 30 days is recommended. Although you can switch from learning to active mode anytime, switching early may lead to too many false positives.
+
+In the ONTAP CLI, you can use the security anti-ransomware volume workload-behavior show command to show file extensions detected to date. However, it is recommended that you not use this tool to shorten the learning period.
+
+You can enable ransomware protection on an existing volume, or you can create a new volume and enable ransomware protection from the beginning.
+
+[NOTE]
+In existing volumes, learning and active modes only apply to newly-written data, not to already existing data in the volume. The existing data is not scanned and analyzed, because the characteristics of earlier normal data traffic are assumed based on the new data after the volume is enabled for the anti-ransomware feature.
+In the ONTAP CLI, a new command family has been introduced to manage this feature: security anti-ransomware volume. You can also use the volume modify command with the -anti-ransomware parameter to manage the feature.
+
+== System Manager procedure
+
+.	Click *Storage > Volumes* and then select the volume you want to protect.
+.	In the Security tab of the Volumes overview, click *Status* to switch from Disabled to Enabled in learning-mode in the Anti-ransomware box.
+.	When the learning period is over, switch anti-ransomware to active mode.
+..	Click *Storage > Volumes* and then select the volume that is ready for active mode.
+..	In the Security tab of the Volumes overview, click *Switch* to active mode in the Anti-ransomware box.
+.	You can always verify the anti-ransomware state of the volume in the Anti-ransomware box.
+To display anti-ransomware status for all volumes: In the Volumes pane, click *Show/Hide*, then ensure that Anti-ransomware status is checked.
+
+== CLI procedure
+
+.	Modify an existing volume to enable ransomware protection in learning mode:
++
+`security anti-ransomware volume dry-run -volume vol_name -vserver svm_name`
++
+You can also enable ransomware with the `volume modify` command:
++
+`volume modify -volume vol_name -vserver svm_name -anti-ransomware-state dry-run`
++
+At the CLI, you can also create a new volume with anti-ransomware protection enabled before provisioning data.
++
+....
+volume create -volume vol_name -vserver svm_name  -aggregate aggr_name -size nn -anti-ransomware-state dry-run -junction-path /path_name
+....
++
+[NOTE]
+You should always enable ransomware initially in the dry-run state. Beginning in the active state can lead to excessive false positive reports.
+
+.	When the learning period is over, modify the protected volume to switch to active mode:
++
+`security anti-ransomware volume enable -volume vol_name -vserver svm_name`
++
+You can also switch to active mode with the modify volume command:
++
+`volume modify -volume vol_name -vserver svm_name -anti-ransomware-state active`
+
+.	Verify the anti-ransomware state of the volume.
++
+`security anti-ransomware volume show`
