@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar
 permalink: task_cloud_backup_data_using_cbs.html
-keywords: cloud, data, backup, back up, storage, volume, lun, connector, secret key, access key, Cloud Backup Service, CBS, restore data, protect volumes, ipspace
-summary: Starting with ONTAP 9.9.1, you can use System Manager to back up data in the cloud using Cloud Backup Service.
+keywords: cloud, data, backup, back up, storage, volume, lun, connector, secret key, access key, Cloud Backup Service, CBS, restore data, protect volumes, ipspace, storagegrid, storage grid, archive, archival, archiving, cost, calculator, glacier, deep archive
+summary: Beginning with ONTAP 9.9.1, you can use System Manager to back up data in the cloud using Cloud Backup Service.
 ---
 
 = Back up data using the Cloud Backup Service
@@ -15,7 +15,7 @@ summary: Starting with ONTAP 9.9.1, you can use System Manager to back up data i
 :imagesdir: ./media/
 
 [.lead]
-Starting with ONTAP 9.9.1, you can use System Manager to back up data in the cloud using Cloud Backup Service.
+Beginning with ONTAP 9.9.1, you can use System Manager to back up data in the cloud using Cloud Backup Service.
 
 NOTE: Cloud Backup Service supports FlexVol read-write volumes and data-protection (DP) volumes. FlexGroup volumes and SnapLock volumes are not supported.
 
@@ -30,6 +30,9 @@ You should perform the following procedures to establish an account in Cloud Man
 * Microsoft Azure
 * Amazon Web Services (AWS)
 * Google Cloud Platform (GCP)
+* StorageGrid (ONTAP 9.10.1)
++
+NOTE: Beginning with ONTAP 9.10.1, you can select StorageGrid as a cloud backup provider, but only if Cloud Manager is deployed on premises.  The Cloud Manager connector must be installed on premises and available through the Cloud Manager software-as-a-service (SaaS) application.
 
 . link:https://docs.netapp.com/us-en/occm/concept_backup_to_cloud.html[Subscribe to Cloud Backup Service in Cloud Manager] (requires the appropriate license).
 
@@ -51,46 +54,104 @@ You can register the cluster with Cloud Manager by using either Cloud Manager or
 . Select *Register and Continue*.
 
 == Enable the Cloud Backup Service
-After the cluster is registered with Cloud Manager, you can enable the Cloud Backup Service and initiate the first backup to the cloud.
+
+After the cluster is registered with Cloud Manager, you need to enable the Cloud Backup Service and initiate the first backup to the cloud.
 
 .Steps
 
-. On the *Enable Cloud Backup Service* page, provide the following details:
+.	In System Manager, click *Protection > Overview*, then scroll to the *Cloud Backup Service* section.
+
+.	Enter the *Client ID* and *Client Secret*.
 +
-* Protection policy (an existing or new policy)
-* Cluster IPspace
+NOTE:   Beginning with ONTAP 9.10.1, you can learn about the cost of using the cloud by clicking *Learn more about the cost of using the cloud*.
 
-. Select the checkbox if you want to back up all volumes in the cluster.
+.	Click *Connect and Enable Cloud Backup Service*.
 
-. Select *Enable*.
-
-. Depending on which Cloud provider you specified, you need to provide specific information, as follows:
+.	On the *Enable Cloud Backup Service* page, provide the following details, depending on the provider you selected.
 +
-[cols="25,75"]
+[cols="35,65"]
 |===
+
 h| For this cloud provider... h| Enter the following data...
 
-|Azure
-a|* Azure Subscription ID
-* Resource group name (existing or new)
-* Region
-* IPspace
+a| Azure
+a|
+*	Azure Subscription ID
+*	Region
+*	Resource group name (existing or new)
 
-|AWS
-a|* AWS Account ID
-* Access key
-* Secret key
-* Region
-* IPspace
+a| AWS
+a|
+*	AWS Account ID
+*	Access key
+*	Secret key
+*	Region
 
-|Google Cloud Project (GCP)
-a|* Google Cloud Project name
-* Google Cloud Access key
-* Google Cloud Secret key
-* Region
-* IPspace
+a| Google Cloud Project (GCP)
+a|
+*	Google Cloud Project name
+*	Google Cloud Access key
+*	Google Cloud Secret key
+*	Region
+
+a| StorageGrid
+(ONTAP 9.10.1 and later, and only for on-premises deployment of Cloud Manager)
+a|
+*	Server
+*	SG Access Key
+*	SG Secret Key
 
 |===
+
+.	Select a *Protection policy*:
++
+*	*Existing policy*: Choose an existing policy.
+*	*New Policy*: Specify a name and set up a transfer schedule.
++
+NOTE: Beginning with ONTAP 9.10.1, you can specify whether you want to enable archiving with Azure or AWS.
++
+
+IMPORTANT:  If you enable archiving for a volume with Azure or AWS, you cannot disable the archiving.
++
+
+If you enable archiving for Azure or AWS, specify the following:
++
+**	The number of days after which the volume is archived.
+**	The number of backups to retain in the archive.  Specify “0” (zero) to archive up to the latest backup.
+**  For AWS, select the archive storage class.
+
+.	Select the volumes you want to back up.
+
+.	Select *Save*.
+
+== Edit the protection policy used for the Cloud Backup Service
+
+You can change which protection policy is used with the Cloud Backup Service.
+
+.Steps
+
+.	In System Manager, click *Protection > Overview*, then scroll to the *Cloud Backup Service* section.
+
+.	Click  image:../media/icon_kabob.gif[kebab icon], then *Edit*.
+
+.	Select a *Protection policy*:
++
+*	*Existing policy*: Choose an existing policy.
+*	*New Policy*: Specify a name and set up a transfer schedule.
++
+NOTE: Beginning with ONTAP 9.10.1, you can specify whether you want to enable archiving with Azure or AWS.
++
+
+IMPORTANT:  If you enable archiving for a volume with Azure or AWS, you cannot disable the archiving.
++
+
+If you enable archiving for Azure or AWS, specify the following:
++
+**	The number of days after which the volume is archived.
+**	The number of backups to retain in the archive.  Specify “0” (zero) to archive up to the latest backup.
+**  For AWS, select the archive storage class.
+
+.	Select *Save*.
 
 == Protect new volumes or LUNs on the cloud
 
@@ -99,20 +160,24 @@ When you create a new volume or LUN, you can establish a SnapMirror protection r
 .Before you begin
 
 * You should have a SnapMirror license.
-* The WORM feature should be disabled.
 * Intercluster LIFs should be configured.
 * NTP should be configured.
 * Cluster must be running ONTAP 9.9.1.
-* You cannot use the feature for the following cluster configurations:
-** The cluster cannot be in a MetroCluster environment.
-** SVM-DR is not supported.
-** FlexGroups cannot be backed up using the Cloud Backup Service.
+
+.About this task
+You cannot protect new volumes or LUNs on the cloud for the following cluster configurations:
+
+* The cluster cannot be in a MetroCluster environment.
+* SVM-DR is not supported.
+* FlexGroups cannot be backed up using the Cloud Backup Service.
 
 .Steps
 
-. When provisioning a volume or LUN, on the *Protection* page, select the checkbox labeled *Enable SnapMirror (Local or Remote)*.
+. When provisioning a volume or LUN, on the *Protection* page in System Manager, select the checkbox labeled *Enable SnapMirror (Local or Remote)*.
 
-. Select *Enable Cloud Backup Service*.
+. Select the Cloud Backup Service policy type.
+
+. If the Cloud Backup Service is not enabled, select *Enable Cloud Backup Service*.
 
 == Protect existing volumes or LUNs on the cloud
 
@@ -122,7 +187,7 @@ You can establish a SnapMirror protection relationship for existing volumes and 
 
 . Select an existing volume or LUN, and click *Protect*.
 
-. On the *Protect Volumes* page, specify  "Backup using Cloud Backup Service" for the protection policy.
+. On the *Protect Volumes* page, specify *Backup using Cloud Backup Service* for the protection policy.
 
 . Click *Protect*.
 
@@ -131,9 +196,10 @@ You can establish a SnapMirror protection relationship for existing volumes and 
 . Select *Enable Cloud Backup Service*.
 
 == Restore data from backup files
-You can perform backup management operations, such as restoring data, updating relationships, and deleting relationships, only with Cloud Manager.  Refer to link:https://docs.netapp.com/us-en/occm/task_restore_backups.html[Restoring data from backup files] for more information.
+You can perform backup management operations, such as restoring data, updating relationships, and deleting relationships, only when using the Cloud Manager interface. Refer to link:https://docs.netapp.com/us-en/occm/task_restore_backups.html[Restoring data from backup files] for more information.
 
 // 12 APR 2021, JIRA IE-268
 // 30 Apr 2021, updates to match content in CBS documentation
 // 04 MAY 2021, JIRA IE-268 review comments
 // 29 JUL 2021, BURT 1416610 Corrections to a link and a term
+// 02 NOV 2021, JIRA IE-372
