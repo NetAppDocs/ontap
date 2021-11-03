@@ -1,0 +1,45 @@
+---
+permalink: nfs-rdma/configure-nics-task.html
+sidebar: sidebar
+keywords: networking, NICs, NFS over RDMA, NVIDIA, NFS
+summary: "This article explains how both client-system and storage platform configuration processes and requirements for NICs to utilize NFS over RDMA in ONTAP."
+---
+= Configure NICs for NFS over RDMA
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+NFS over RDMA requires NIC configuration for both the client system and storage platform. 
+
+== Storage platform configuration
+
+A CX-5 or CX-6 RDMA adapter needs to be installed on the server. If you are using an HA configuration, you must have a corresponding CX-5 or CX-6 adapter on the failover partner so RDMA service can continue during failover. The NIC must be ROCE capable. 
+
+Beginning in ONTAP 9.10.1, you can view a list of RDMA offload protocols with the command:
+`network port show -rdma-protocols roce`
+
+== Client system configuration
+
+A CX-5 adapter needs to be installed on the client. Although the client and server can be directly connected, the use of switches is recommended due to improved failover performance with a switch.
+
+The client, server, and any switches, and all ports on switches must be configured using Jumbo frames. Also ensure that priority flow-control is in effect on any switches. 
+
+Once this configuration is confirmed, you can mount the NFS. 
+
+.Steps 
+. Check if RDMA access is enabled on the NFS server with the command:
++
+`vserver nfs show-vserver _vserver_name_`
++
+By default, `-rdma` should be enabled. If it is not, enable RDMA access on the NFS server:
++
+`vserver nfs modify -vserver _vserver_name_ -rdma enabled`
+. Mount the client via NFSv4.0 over RDMA:
+.. The input for the proto parameter depends on the server IP protocol version. If it is v4, use `proto=rdma`. If it is v6, use `proto=rdma6`. 
+.. Specify the NFS target port as `port=20049` instead of the standard port of 2049:
++
+`mount -o vers=4,minorversion=0,proto=rdma,port=20049 _Server_IP_address_:/_volume_path_ _mount_point_`
+. *OPTIONAL*: If you need to unmount the client, run the command `unmount _mount_path_`
+
+
+//29 october 2021, BURT 1401394

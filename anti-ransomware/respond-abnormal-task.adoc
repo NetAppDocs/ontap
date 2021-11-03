@@ -1,0 +1,123 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/respond-abnormal-task.html
+keywords: Respond to abnormal activity, anti-ransomware abnormal activity, data entropy, unusual file extensions, potential ransomware attack, false positive, suspected ransomware attack, abnormal activity notification, security, ransomware alert message, detected abnormal volume, suspected file types, attack report, anti-ransomware attack
+summary: When anti-ransomware detects abnormal activity in a protected volume, it issues a warning. You should evaluate the notification to determine whether the activity is expected and acceptable, or whether an attack is under way.
+---
+
+= Respond to abnormal activity.
+:toc: macro
+:toclevels: 1
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+
+
+[.lead]
+When anti-ransomware detects abnormal activity in a protected volume, it issues a warning. You should evaluate the notification to determine whether the activity is expected and acceptable, or whether an attack is under way.
+
+.What you’ll need
+
+* Anti-ransomware is running in active mode.
+
+.About this task
+
+Anti-ransomware displays a list of suspected files when it detects any combination of high data entropy, abnormal volume activity with data encryption, and unusual file extensions.
+
+When the warning is issued, you can respond by marking the file activity in one of two ways:
+
+*	False positive
++
+The identified file type is expected in your workload and can be ignored.
+*	Potential ransomware attack
++
+The identified file type is unexpected in your workload and should be treated as a potential attack.
+
+In both cases, normal monitoring resumes after updating and clearing the notices; anti-ransomware records your evaluation, logs are updated with the new file types and using them for future analysis. However, in the case of a suspected attack, you must determine whether it is an attack, respond to it if it is, and restore protected data before clearing the notices. For more information, see link:overview.html[How to recover from a ransomware attack].
+
+== System Manager procedure
+
+.	When you receive an “abnormal activity” notification, click on the link or navigate to the *Security* tab of the *Volumes* overview.
++
+Warnings are displayed in the Overview pane of the Events window.
+
+.	When a “Detected abnormal volume activity” message is displayed, view the suspect files.
++
+In the *Security* tab, click View *Suspected File Types*.
+
+.	In the *Suspected File Types* dialog box, examine each file type and mark it as either “False Positive” or “Potential Ransomware attack”.
+
+[cols=3*,options="header",cols="25,75"]
+|===
+| If you selected this value…
+| Take this action…
+| False Positive | Click *Update* and *Clear Suspect File Types* to record your decision and resume normal anti-ransomware monitoring.
+| Potential Ransomware Attack | Respond to the attack and restore protected data. Then click *Update* and *Clear Suspect File Types* to record your decision and resume normal anti-ransomware monitoring.
+|===
+
+== CLI procedure
+
+.	When you receive a notification of a suspected ransomware attack, verify the time and severity of the attack:
++
+`security anti-ransomware volume show -vserver svm_name -volume vol_name`
++
+Sample output:
++
+....
+Vserver Name: vs0
+Volume Name: vol1
+State: enabled
+Attack Probability: moderate
+Attack Timeline: 9/14/2021 01:03:23
+Number of Attacks: 1
+....
++
+You can also check EMS messages:
++
+`event log show -message-name callhome.arw.activity.seen`
+
+.	Generate an attack report and note the output location:
++
+`security anti-ransomware volume attack generate-report -volume vol_name -dest-path file_location/`
++
+Sample output:
++
+`Report "report_file_vs0_vol1_14-09-2021_01-21-08" available at path "vs0:vol1/"`
+
+.	View the report on an admin client system. For example:
++
+....
+[root@rhel8 mnt]# cat report_file_vs0_vol1_14-09-2021_01-21-08
+
+19  "9/14/2021 01:03:23"   test_dir_1/test_file_1.jpg.lckd
+20  "9/14/2021 01:03:46"   test_dir_2/test_file_2.jpg.lckd
+21  "9/14/2021 01:03:46"   test_dir_3/test_file_3.png.lckd`
+....
+
+.	Take one of the following actions based on your evaluation of the file extensions:
+
+**	False positive
++
+Enter the following command to record your decision – adding the new extension to the list of those allowed – and resume normal anti-ransomware monitoring:
+`anti-ransomware volume attack clear-suspect -vserver svm_name -volume vol_name [extension identifiers] -false-positive true`
++
+Use one of the following parameters to identify the extensions:
+`[-seq-no integer]` Sequence number of the file in the suspect list.
+`[-extension text, … ]` File extensions
+`[-start-time “date_time” -end-time “date_time”]` Starting and ending times for the range of files to be cleared, in the form "MM/DD/YYYY HH:MM:SS".
+
+** Potential ransomware attack
++
+Respond to the attack and restore data. Then enter the following command to record your decision and resume normal anti-ransomware monitoring:
++
+`anti-ransomware volume attack clear-suspect -vserver svm_name -volume vol_name [extension identifiers] -false-positive false`
++
+Use one of the following parameters to identify the extensions:
+`[-seq-no integer]` Sequence number of the file in the suspect list
+`[-extension text, … ]` File extension
+`[-start-time “date_time” -end-time “date_time”]` Starting and ending times for the range of files to be cleared, in the form "MM/DD/YYYY HH:MM:SS".
+
+// 2021-10-29, Jira IE-353
