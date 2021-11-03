@@ -1,11 +1,11 @@
 ---
 sidebar: sidebar
 permalink: s3-snapmirror/takeover-local-destination-task.html
-keywords:
+keywords: takeover and serve data from the destination bucket, local cluster, s3 snapmirror relationship
 summary: If the data in a source bucket becomes unavailable, you can break the SnapMirror relationship to make the destination bucket writable and begin serving data.
 ---
 
-= Takeover and serve data from the destination bucket (remote cluster)
+= Takeover and serve data from the destination bucket (local cluster)
 :toc: macro
 :hardbreaks:
 :toclevels: 1
@@ -13,8 +13,6 @@ summary: If the data in a source bucket becomes unavailable, you can break the S
 :icons: font
 :linkattrs:
 :imagesdir: ./media/
-
-// new for ONTAP 9.10.1
 
 [.lead]
 If the data in a source bucket becomes unavailable, you can break the SnapMirror relationship to make the destination bucket writable and begin serving data.
@@ -25,14 +23,14 @@ When a takeover operation is performed, source bucket is converted to read-only 
 
 When the disabled source bucket is available again, S3 SnapMirror automatically resynchronizes the contents of the two buckets. It is not necessary to explicitly resynchronize the relationship, as is required for volume SnapMirror deployments.
 
-The takeover operation must be initiated from the remote cluster.
+If the destination bucket is on a remote cluster, the takeover operation must be initiated from the remote cluster.
 
 == System Manager procedure
 
 Failover from the unavailable bucket and begin serving data:
 
 . Click *Protection > Relationships*, then select the bucket.
-. Click icon:ellipsis-v[] , select *Failover*, then click *Failover*.
+. Click image:icon_kabob.gif[more icon], select *Failover*, then click *Failover*.
 
 == CLI procedure
 
@@ -40,7 +38,13 @@ Failover from the unavailable bucket and begin serving data:
 `snapmirror failover start -destination-path _{svm_name:/bucket/bucket_name|cluster_name:// svm_name:/bucket/bucket_name, ...}_`
 .	Verify the status of the failover operation:
 `snapmirror show -fields status`
-+
+
 .Example
-+
+
+SVMs on different clusters:
 `dest_cluster::> snapmirror failover start -destination-path dest_cluster://vs1/bucket/test-bucket-mirror`
+
+SVMs on the same cluster:
+`clusterA::> snapmirror failover start -destination-path vs1:/bucket/test-bucket-mirror`
+
+// 2021-11-02, Jira IE-412
