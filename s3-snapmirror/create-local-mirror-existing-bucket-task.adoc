@@ -14,8 +14,6 @@ summary: You can begin protecting existing S3 buckets on the same cluster at any
 :linkattrs:
 :imagesdir: ./media/
 
-// new for ONTAP 9.10.1
-
 [.lead]
 You can begin protecting existing S3 buckets on the same cluster at any time; for example, if you upgraded an S3 configuration from a release earlier than ONTAP 9.10.1. You can mirror data to a bucket in a different storage VM or the same storage VM as the source.
 
@@ -28,23 +26,23 @@ You can begin protecting existing S3 buckets on the same cluster at any time; fo
 
 . If this is the first S3 SnapMirror relationship for this storage VM, regenerate the root user keys in both the source and destination storage VMs:
 .. Click *Storage > Storage VMs* and then select the storage VM.
-.. In the *Settings* tab, click icon:edit[] in the *S3* tile.
-.. In the *Users* tab, click icon:ellipsis-v[] next to root, then click *Regenerate Key*.
+.. In the *Settings* tab, click image:icon_pencil.gif[edit icon] in the *S3* tile.
+.. In the *Users* tab, click image:icon_kabob.gif[more icon] next to *root*, then click *Regenerate Key*.
 . Verify that user and group access is correct in both the source and destination storage VMs:
-Click *Storage > storage VMs*, click the storage VM, click *Settings* and then click icon:edit[] under S3.
-See link:task_object_provision_add_s3_users_groups.html[Add S3 users and groups] for more information.
+Click *Storage > storage VMs*, click the storage VM, click *Settings* and then click image:icon_pencil.gif[edit icon] under S3.
+See link:../task_object_provision_add_s3_users_groups.html[Add S3 users and groups] for more information.
 . Update the bucket access policy of the existing bucket:
 .. Click *Storage > Buckets* and then select the bucket you want to protect.
-.. In the *Permissions* tab, click icon:edit[] *Edit*, then click *Add* under *Permissions*. Make sure the following values are shown:
+.. In the *Permissions* tab, click image:icon_pencil.gif[edit icon] *Edit*, then click *Add* under *Permissions*. Make sure the following values are shown:
 * *Principal: All users of this storage VM* (default)
 * *Effect: Allow* (default)
 * *Actions*: `GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl,ListBucketMultipartUploads,ListMultipartUploadParts`
 * *Resources: bucketname, bucketname/**  (default)
 +
-See link:task_object_provision_manage_bucket_access.html[Manage user access to buckets] for more information about these fields.
+See link:../task_object_provision_manage_bucket_access.html[Manage user access to buckets] for more information about these fields.
 . Protect an existing bucket with S3 SnapMirror protection:
 .. Click *Storage > Storage VMs* and then select the storage VM that contains the volume you want to protect.
-.. In the *SnapMirror (ONTAP or Cloud)* tab, click icon:ellipsis-v[] *More*, then click *Protect*. Enter the following values:
+.. In the *SnapMirror (ONTAP or Cloud)* tab, click image:icon_kabob.gif[more icon] *More*, then click *Protect*. Enter the following values:
 * Destination
 ** *TARGET*: ONTAP System
 ** *CLUSTER*: Select the local cluster.
@@ -62,16 +60,26 @@ When you click *Save*, the existing bucket is mirrored to a new bucket in the de
 . If this is the first S3 SnapMirror relationship for this storage VM, regenerate the root user keys in both the source and destination SVMs:
 `vserver object-store-server user regenerate-keys -vserver _svm_name_ -user root`
 . Create a bucket on the destination SVM to be the mirror target:
-`vserver object-store-server bucket create -vserver _svm_name_ -bucket _dest_bucket_name_ [-size integer[KB|MB|GB|TB|PB]] [-comment text] [additional_options]`
++
+----
+vserver object-store-server bucket create -vserver _svm_name_ -bucket _dest_bucket_name_ [-size integer[KB|MB|GB|TB|PB]] [-comment text] [additional_options]
+----
 . Add access rules to the default bucket policies in both the source and destination SVMs:
-`vserver object-store-server bucket policy add-statement -vserver _svm_name_ -bucket _bucket_name_ -effect {allow|deny} -action _object_store_actions_ -principal _user_and_group_names_ -resource _object_store_resources_ [-sid text] [-index integer]`
++
+----
+vserver object-store-server bucket policy add-statement -vserver _svm_name_ -bucket _bucket_name_ -effect {allow|deny} -action _object_store_actions_ -principal _user_and_group_names_ -resource _object_store_resources_ [-sid text] [-index integer]
+----
 +
 .Example
++
 ----
 clusterA::> vserver object-store-server bucket policy add-statement -bucket test-bucket -effect allow -action GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl,ListBucketMultipartUploads,ListMultipartUploadParts -principal - -resource test-bucket, test-bucket /*
 ----
 . On the source SVM, create an S3 SnapMirror policy if you don’t have an existing one that addresses this use case:
-`snapmirror policy create -vserver _svm_name_ -policy _policy_name_ -type continuous [-rpo integer] [-throttle throttle_type] [-comment text] [additional_options]`
++
+----
+snapmirror policy create -vserver _svm_name_ -policy _policy_name_ -type continuous [-rpo integer] [-throttle throttle_type] [-comment text] [additional_options]
+----
 +
 Parameters:
 +
@@ -80,7 +88,10 @@ Parameters:
 * `-throttle` – specifies the upper limit on throughput/bandwidth, in kilobytes/seconds (optional).
 +
 .Example
-`clusterA::> snapmirror policy create -vserver vs0 -type continuous -rpo 0 -policy test-policy`
++
+----
+clusterA::> snapmirror policy create -vserver vs0 -type continuous -rpo 0 -policy test-policy
+----
 . On the source SVM, create an S3 SnapMirror relationship:
 +
 ----
@@ -88,6 +99,11 @@ snapmirror create -source-path {svm_name:/bucket/bucket_name|cluster_name:// svm
 ----
 +
 .Example
-`src_cluster::> snapmirror create -source-path vs0:/bucket/test-bucket -destination-path vs1:/bucket/test-bucket-mirror -policy test-policy`
++
+----
+src_cluster::> snapmirror create -source-path vs0:/bucket/test-bucket -destination-path vs1:/bucket/test-bucket-mirror -policy test-policy
+----
 . Verify that mirroring is active:
 `snapmirror show -policy-type continuous -fields status`
+
+// 2021-11-02, Jira IE-412
