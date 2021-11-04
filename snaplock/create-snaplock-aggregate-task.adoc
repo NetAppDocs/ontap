@@ -2,14 +2,14 @@
 permalink: snaplock/create-snaplock-aggregate-task.html
 sidebar: sidebar
 keywords: create, snaplock, aggregate, compliance, enterprise, mode, volumes
-summary: "You must create a SnapLock aggregate before creating a SnapLock volume. The Compliance or Enterprise SnapLock mode for the aggregate is inherited by the volumes in the aggregate."
+summary: "You use the volume `-snaplock-type` option to specify a Compliance or Enterprise SnapLock volume type. For releases earlier than ONTAP 9.10.1, you must create a separate SnapLock aggregate. Beginning with ONTAP 9.10.1, SnapLock and non-SnapLock volumes can exist on the same aggregate; therefore, you are no longer required to create a separate SnapLock aggregate if you are using ONTAP 9.10.1."
 ---
 = Create a SnapLock aggregate
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You must create a SnapLock aggregate before creating a SnapLock volume. The Compliance or Enterprise SnapLock mode for the aggregate is inherited by the volumes in the aggregate.
+You use the volume `-snaplock-type` option to specify a Compliance or Enterprise SnapLock volume type. For releases earlier than ONTAP 9.10.1, you must create a separate SnapLock aggregate. Beginning with ONTAP 9.10.1, SnapLock and non-SnapLock volumes can exist on the same aggregate; therefore, you are no longer required to create a separate SnapLock aggregate if you are using ONTAP 9.10.1.
 
 .What you'll need
 
@@ -18,18 +18,20 @@ You must create a SnapLock aggregate before creating a SnapLock volume. The Comp
 * The ComplianceClock on the node must be initialized.
 * If you have partitioned the disks as "`root`", "`data1`", and "`data2`", you must ensure that spare disks are available.
 
+.Revert considerations
+
+If you need to revert to an ONTAP version earlier than 9.10.1, you must move all SnapLock Compliance, SnapLock Enterprise, and SnapLock volumes to their own SnapLock aggregates.
+
 .About this task
 
-* You cannot create Compliance aggregates for array LUNs.
+* You cannot create Compliance aggregates for FlexArray LUNs, but SnapLock Compliance aggregates are supported with FlexArray LUNs.
 * You cannot create Compliance aggregates with the SyncMirror option.
-* You can create Compliance or Enterprise aggregates in a MetroCluster configuration only if the aggregate is used to host SnapLock audit log volumes.
+* You can create mirrored Compliance aggregates in a MetroCluster configuration only if the aggregate is used to host SnapLock audit log volumes.
 +
 [NOTE]
 ====
 In a MetroCluster configuration, SnapLock Enterprise is supported on mirrored and unmirrored aggregates. SnapLock Compliance is supported only on unmirrored aggregates.
 ====
-
-You can destroy or rename an Enterprise aggregate at any time. You cannot destroy a Compliance aggregate until the retention period has elapsed. Starting in ONTAP 9.8, you can rename a Compliance aggregate.
 
 .Steps
 
@@ -44,3 +46,5 @@ The following command creates a SnapLock `Compliance` aggregate named `aggr1` wi
 ----
 cluster1::> storage aggregate create -aggregate aggr1 -node node1 -diskcount 3 -snaplock-type compliance
 ----
+
+// 2021-10-27, Jira IE-403
