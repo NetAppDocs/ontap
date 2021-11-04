@@ -17,15 +17,23 @@ summary: Assign service policies to LIFs to specify the supported traffic
 // restructured: March 2021
 // enhanced keywords May 2021
 // CSAR 1408595
+// November 2021 IE-386, IE-387, IE-388
 //
 
 [.lead]
-You can assign service policies (instead of LIF roles) to LIFs that determine the kind of traffic that is supported for the LIFs. Serv
-ice policies define a collection of network services supported by a LIF. ONTAP provides a set of built-in service policies that can be associated with a LIF.
+You can assign service policies (instead of LIF roles) to LIFs that determine the kind of traffic that is supported for the LIFs. Service policies define a collection of network services supported by a LIF. ONTAP provides a set of built-in service policies that can be associated with a LIF.
+
+You can display service policies and their details using the following command:
+`network interface service-policy show`
 
 == Service policies for system SVMs
 
-The admin SVM and any system SVM contain service policies that can be used for LIFs in that SVM, including management and intercluster LIFs. These policies are automatically created by the system when an IPspace is created. The following table lists the built-in policies for LIFs in system SVMs:
+The admin SVM and any system SVM contain service policies that can be used for LIFs in that SVM, including management and intercluster LIFs. These policies are automatically created by the system when an IPspace is created.
+
+The following table lists the built-in policies for LIFs in system SVMsas of ONTAP 9.10.1. For other releases, display the service policies and their details using the following command:
+
+`network interface service-policy show`
+
 
 [cols=4*,options="header"]
 |===
@@ -42,12 +50,14 @@ a|-
 a|Used by LIFs carrying BGP peer connections
 Note: Available from ONTAP 9.5 with the name net-route-announce service policy.
 a|default-management
-a|management-core, management-ems, management-ssh, management-https, management-autosupport
+a|management-core, management-https, management-http, management-ssh management-autosupport, management-ems, management-ntp-client, management-snmp-server, management-ntp-server, backup-ndmp-control
 a|node-mgmt, or cluster-mgmt
-a|Used by LIFs handling management requests. Management-ems controls which LIFs can publish EMS content.
+a|Used by LIFs handling system-scoped management requests. Management-ems controls which LIFs can publish EMS content.
+The system-scoped management policy is used to create node-scoped and cluster-scoped management LIFs owned by a system SVM. These LIFs can be used for outbound connections to NTP or DNS servers as well as some additional connections to support applications run on behalf of the entire system.
+
 |===
 
-The following table lists the services that can be used on a system SVM along with any restrictions each service imposes on a LIF's failover policy:
+The following table lists the services that LIFs can use on a system SVM as of ONTAP 9.10.1:
 
 [cols=3*,options="header"]
 |===
@@ -62,6 +72,9 @@ a|Core management services
 a|management-ssh
 a|-
 a|Services for SSH management access
+a|management-http
+a|-
+a|Services for HTTP management access
 a|management-https
 a|-
 a|Services for HTTPS management access
@@ -71,20 +84,49 @@ a|Services related to posting AutoSupport payloads
 a|management-bgp
 a|home-port-only
 a|Services related to BGP peer interactions
+a|backup-ndmp-control
+a|-
+a|Services for NDMP backup controls
+a|management-ems
+a|-
+a|Services for management messaging access
+a|management-ntp-client
+a|-
+a|Services for NTP client access.
+a|management-ntp-server
+a|system-only
+a|Services for NTP server management access
+a|management-portmap
+a|-
+a|Services for portmap management
+a|management-rsh-server
+a|system-only
+a|Services for rsh server management
+a|management-snmp-server
+a|-
+a|Services for SNMP server management
+a|management-telnet-server
+a|system-only
+a|Services for telnet server management
+
 |===
 
 == Service policies for data SVMs
 
-All data SVMs contain service policies that can be used by LIFs in that SVM. The following table lists the built-in policies for LIFs in data SVMs:
+All data SVMs contain service policies that can be used by LIFs in that SVM.
+
+The following table lists the built-in policies for LIFs in data SVMs as of ONTAP 9.10.1. For other releases, display the service policies and their details using the following command:
+
+`network interface service-policy show`
 
 [cols=4*,options="header"]
 |===
 |Policy |Included services |Equivalent data protocol |Description
 
 a|default-management
-a|data-core, management-ssh, management-https
+a|data-core, management-ssh, management-https, data-dns-server, management-http, backup-ndmp-control, management-snmp-server
 a|none
-a|Used by LIFs handling management requests
+a|Used by LIFs handling SVM-scoped management to create SVM management LIFs owned by a data SVM. These LIFs can be used to provide SSH or HTTPS access to SVM administrators.
 a|default-data-blocks
 a|data-core, data-iscsi
 a|iscsi
@@ -92,43 +134,61 @@ a|Used by LIFs carrying block-oriented SAN data traffic
 a|default-data-files
 a|data-core, data-nfs, data-cifs, data-flexcache, data-fpolicy-client
 a|nfs, cifs, fcache
-a|Used by LIFs carrying file-oriented NAS data traffic.
+a|Use default-data-files policy to create NAS LIFs supporting file-based data protocols.
 |===
 
-The following table lists the services that can be used on a data SVM along with any restrictions each service imposes on a LIF's failover policy:
+The following table lists the services that can be used on a data SVM along with any restrictions each service imposes on a LIF's failover policy as of ONTAP 9.10.1:
 
-[cols=4*,options="header"]
+[cols=3*,options="header"]
 |===
-|Policy |Included services |Equivalent data protocol |Description
+|Service |Failover restrictions |Description
 
 a|management-ssh
 a|-
-a|-
 a|Services for SSH management access
+a|management-http
+a|-
+a|Services for HTTP management access
 a|management-https
 a|-
-a|-
 a|Services for HTTPS management access
+a|management-portmap
+a|-
+a|Services for portmap management access
+a|management-snmp-server
+a|-
+a|Services for SNMP server management access
 a|data-core
 a|-
-a|data-only
 a|Core data services
 a|data-nfs
 a|-
-a|data-only
-a|Protocols related to NFS data service
+a|NFS data service
 a|data-cifs
 a|-
-a|data-only
-a|Protocols related to CIFS data service
+a|CIFS data service
 a|data-flexcache
 a|-
-a|data-only
-a|Protocols related to FlexCache data service
+a|FlexCache data service
 a|data-iscsi
 a|home-port-only
-a|data-only
-a|Protocols related to iSCSI data service
+a|iSCSI data service
+a|backup-ndmp-control
+a|-
+a|Backup NDMP controls data service
+a|data-dns-server
+a|-
+a|DNS server data service
+a|data-fpolicy-client
+a|-
+a|File-screening policy data service
+a|data-nvme-tcp
+a|home-port-only
+a|NVMe TCP data service
+a|data-s3-server
+a|-
+a|Simple Storage Service (S3) server data service
+
 |===
 
 You should be aware of how the service policies are assigned to the LIFs in data SVMs:
@@ -154,3 +214,24 @@ Specifying data-core as a service does not open any ports in the firewall, but t
 * data-flexcache
 
 The data-core service should be included in the policy to ensure all applications using the LIF work as expected, but the other three services can be removed, if desired.
+
+== Client-side LIF service
+
+Beginning with ONTAP 9.10.1, ONTAP provides client-side LIF services for multiple applications. These services provide control over which LIFs are used for outbound connections on behalf of each application.
+
+The following new services give administrators control over which LIFs are used as source addresses for certain applications.
+
+[cols=3*,options="header"]
+|===
+|Service |SVM restrictions |Description
+
+a|management-ntp-client
+a|system-only
+a|Beginning with ONTAP 9.10.1, ONTAP provides NTP client service for outbound connections to an external NTP server.
+a|data-fpolicy-client
+a|data-only
+a|Beginning with ONTAP 9.8, ONTAP provides client service for outbound FPolicy connections.
+
+|===
+
+Each of the new services are automatically included in some of the built-in service policies, but administrators can remove them from the built-in policies or add them to custom policies to control which LIFs are used for outbound connections on behalf of each application.
