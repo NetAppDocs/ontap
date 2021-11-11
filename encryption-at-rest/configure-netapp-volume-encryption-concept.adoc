@@ -1,7 +1,7 @@
 ---
 permalink: encryption-at-rest/configure-netapp-volume-encryption-concept.html
 sidebar: sidebar
-keywords: configure, netapp, volume encryption, nve, aggregate-level, support details
+keywords: configure, netapp, volume encryption, nve, aggregate-level, support details, data encryption, encrypt data at rest, storage encryption, key
 summary: "NetApp Volume Encryption (NVE) is a software-based technology for encrypting data at rest one volume at a time. An encryption key accessible only to the storage system ensures that volume data cannot be read if the underlying device is repurposed, returned, misplaced, or stolen."
 ---
 = Configure NetApp Volume Encryption overview
@@ -18,7 +18,7 @@ Both data, including Snapshot copies, and metadata are encrypted. Access to the 
 * The external key management server is a third-party system in your storage environment that serves keys to nodes using the Key Management Interoperability Protocol (KMIP). It is a best practice to configure external key management servers on a different storage system from your data.
 * The Onboard Key Manager is a built-in tool that serves keys to nodes from the same storage system as your data.
 
-Starting with ONTAP 9.7, aggregate and volume encryption is enabled by default if you have a volume encryption (VE) license and use an onboard or external key manager. Whenever an external or onboard key manager is configured there is a change in how data at rest encryption is configured for brand new aggregates and brand new volumes. Brand new aggregates will have NetApp Aggregate Encryption (NAE) enabled by default. Brand new volumes that are not part of an NAE aggregate will have NetApp Volume Encryption (NVE) enabled by default. If a data storage virtual machine (SVM) is configured with its own key-manager using multi-tenant key management in an aggregate with NAE, then the volume created for that SVM is automatically configured with NVE.
+Beginning with ONTAP 9.7, aggregate and volume encryption is enabled by default if you have a volume encryption (VE) license and use an onboard or external key manager. Whenever an external or onboard key manager is configured there is a change in how the encryption of data at rest is configured for brand new aggregates and brand new volumes. Brand new aggregates will have NetApp Aggregate Encryption (NAE) enabled by default. Brand new volumes that are not part of an NAE aggregate will have NetApp Volume Encryption (NVE) enabled by default. If a data storage virtual machine (SVM) is configured with its own key-manager using multi-tenant key management, then the volume created for that SVM is automatically configured with NVE.
 
 You can enable encryption on a new or existing volume. NVE supports the full range of storage efficiency features, including deduplication and compression.
 
@@ -38,11 +38,11 @@ AFF A220, AFF A800, FAS2720, FAS2750, and later systems store core dumps on thei
 
 Ordinarily, every encrypted volume is assigned a unique key. When the volume is deleted, the key is deleted with it.
 
-Starting with ONTAP 9.6, you can use _NetApp Aggregate Encryption (NAE)_ to assign keys to the containing aggregate for the volumes to be encrypted. When an encrypted volume is deleted, the keys for the aggregate are preserved. The keys are deleted only after the last encrypted volume in the aggregate is deleted.
+Beginning with ONTAP 9.6, you can use _NetApp Aggregate Encryption (NAE)_ to assign keys to the containing aggregate for the volumes to be encrypted. When an encrypted volume is deleted, the keys for the aggregate are preserved. The keys are deleted the entire aggregate is deleted.
 
 You must use aggregate-level encryption if you plan to perform inline or background aggregate-level deduplication. Aggregate-level deduplication is otherwise not supported by NVE.
 
-Starting with ONTAP 9.7, aggregate and volume encryption is enabled by default if you have a volume encryption (VE) license and use an onboard or external key manager.
+Beginning with ONTAP 9.7, aggregate and volume encryption is enabled by default if you have a volume encryption (VE) license and use an onboard or external key manager.
 
 NVE and NAE volumes can coexist on the same aggregate. Volumes encrypted under aggregate-level encryption are NAE volumes by default. You can override the default when you encrypt the volume.
 
@@ -61,7 +61,7 @@ Although it is less expensive and typically more convenient to use the onboard k
 The scope of external key management determines whether key management servers secure all the SVMs in the cluster or selected SVMs only:
 
 * You can use a _cluster scope_ to configure external key management for all the SVMs in the cluster. The cluster administrator has access to every key stored on the servers.
-* Starting with ONTAP 9.6, you can use an _SVM scope_ to configure external key management for a named SVM in the cluster. That's best for multitenant environments in which each tenant uses a different SVM (or set of SVMs) to serve data. Only the SVM administrator for a given tenant has access to the keys for that tenant.
+* Beginning with ONTAP 9.6, you can use an _SVM scope_ to configure external key management for a named SVM in the cluster. That's best for multitenant environments in which each tenant uses a different SVM (or set of SVMs) to serve data. Only the SVM administrator for a given tenant has access to the keys for that tenant.
 
 You can use both scopes in the same cluster. If key management servers have been configured for an SVM, ONTAP uses only those servers to secure keys. Otherwise, ONTAP secures keys with the key management servers configured for the cluster.
 
@@ -69,9 +69,10 @@ You can use both scopes in the same cluster. If key management servers have been
 
 The following table shows NVE support details:
 
-[options="header"]
+[cols="25,75"]
 |===
-| Resource or feature| Support details
+
+h| Resource or feature h| Support details
 
 a|
 Platforms
@@ -80,7 +81,7 @@ AES-NI offload capability required. See the Hardware Universe (HWU) to verify th
 a|
 Encryption
 a|
-Starting ONTAP 9.7, newly created aggregates and volumes are encrypted by default when you add a volume encryption (VE) and have an onboard or external key manager configured. If you need to create an unencrypted aggregate, use the following command:
+Beginning with ONTAP 9.7, newly created aggregates and volumes are encrypted by default when you add a volume encryption (VE) license and have an onboard or external key manager configured. If you need to create an unencrypted aggregate, use the following command:
 
 `storage aggregate create -encrypt-with-aggr-key false`
 
@@ -90,10 +91,10 @@ If you need to create a plain text volume, use the following command:
 
 Encryption is not enabled by default when:
 
-* VE is not configured
-* Key manager is not configured
-* Platform or software does not support encryption
-* Hardware encryption is enabled
+* VE license is not installed.
+* Key manager is not configured.
+* Platform or software does not support encryption.
+* Hardware encryption is enabled.
 
 a|
 ONTAP
@@ -110,11 +111,11 @@ RAID0, RAID4, RAID-DP, RAID-TEC.
 a|
 Volumes
 a|
-Data volumes, existing root volumes, and MetroCluster metadata volumes. You cannot encrypt data on an SVM root volume.
+Data volumes and existing root volumes. You cannot encrypt data on an SVM root volume or MetroCluster metadata volumes.
 a|
 Aggregate-level encryption
 a|
-Starting with ONTAP 9.6, NVE supports aggregate-level encryption (NAE):
+Beginning with ONTAP 9.6, NVE supports aggregate-level encryption (NAE):
 
 * You must use aggregate-level encryption if you plan to perform inline or background aggregate-level deduplication.
 * You cannot rekey an aggregate-level encryption volume.
@@ -124,7 +125,7 @@ Starting with ONTAP 9.6, NVE supports aggregate-level encryption (NAE):
 a|
 SVM scope
 a|
-Starting with ONTAP 9.6, NVE supports SVM scope for external key management only, not for Onboard Key Manager. MetroCluster is not supported.
+Beginning with ONTAP 9.6, NVE supports SVM scope for external key management only, not for Onboard Key Manager. MetroCluster is not supported.
 a|
 Storage efficiency
 a|
@@ -140,13 +141,15 @@ a|
 a|
 Compliance
 a|
-Starting with ONTAP 9.2, SnapLock is supported in both Compliance and Enterprise modes, for new volumes only. You cannot enable encryption on an existing SnapLock volume.
+Beginning with ONTAP 9.2, SnapLock is supported in both Compliance and Enterprise modes, for new volumes only. You cannot enable encryption on an existing SnapLock volume.
 a|
 FlexGroups
 a|
-Starting with ONTAP 9.2, FlexGroups are supported. Destination aggregates must be of the same type as source aggregates, either volume-level or aggregate-level. Starting with ONTAP 9.5, in-place rekey of FlexGroup volumes is supported.
+Beginning with ONTAP 9.2, FlexGroups are supported. Destination aggregates must be of the same type as source aggregates, either volume-level or aggregate-level. Beginning with ONTAP 9.5, in-place rekey of FlexGroup volumes is supported.
 a|
 7-Mode transition
 a|
-Starting with 7-Mode Transition Tool 3.3, you can use the 7-Mode Transition Tool CLI to perform copy-based transition to NVE-enabled destination volumes on the clustered system.
+Beginning with 7-Mode Transition Tool 3.3, you can use the 7-Mode Transition Tool CLI to perform copy-based transition to NVE-enabled destination volumes on the clustered system.
 |===
+
+// 08 NOV 2021, BURT 1374208
