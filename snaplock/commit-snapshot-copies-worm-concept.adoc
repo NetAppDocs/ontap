@@ -51,7 +51,9 @@ image::../media/snapvault-steps-clustered.gif[This illustration shows the proced
 .Steps
 
 . Identify the destination cluster.
+
 . On the destination cluster, install the SnapLock license, initialize the ComplianceClock, and create a SnapLock aggregate, as described in xref:configure-snaplock-concept.adoc[Configure SnapLock].
+
 . On the destination cluster, create a SnapLock destination volume of type `DP` that is either the same or greater in size than the source volume:
 +
 `*volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -type DP -size _size_*`
@@ -68,16 +70,41 @@ cluster2::> volume create -vserver SVM2 -volume dstvolB -aggregate node01_aggr -
 ----
 
 . On the destination cluster, set the default retention period, as described in xref:set-default-retention-period-task.adoc[Set the default retention period].
-. On the destination SVM, initialize the SnapVault relationship:
+=
+[NOTE]
+====
+A SnapLock volume that is a vault destination has a default retention period assigned to it. The value for this period is initially set to a minimum of 0 years for SnapLock Enterprise volumes and a maximum of 30 years for SnapLock Compliance volumes. Each NetApp Snapshot copy is committed with this default retention period at first. The retention period can be extended later, if needed. For more information, see xref:set-retention-period-task.adoc[Set retention time overview].
+====
+
+. xref:../data-protection/create-replication-relationship-task.adoc[Create a new replication relationship] between the non-SnapLock source and the new SnapLock destination you created in Step 3.
++
+This example creates a new SnapMirror relationship with destination SnapLock volume `dstvolB` using a policy of `XDPDefault` to vault Snapshot copies labeled daily and weekly on an hourly schedule:
++
+----
+cluster2::> snapmirror create -source-path SVM1:srcvolA -destination-path SVM2:dstvolB -vserver SVM2 -policy XDPDefault -schedule hourly
+----
++
+[NOTE]
+====
+xref:../data-protection/create-custom-replication-policy-concept.adoc[Create a custom replication policy] or a xref:/data-protection/create-replication-job-schedule-task.adoc[custom schedule] if the available defaults are not suitable.
+====
+
+. On the destination SVM, initialize the SnapVault relationship created in Step 5:
 +
 `*snapmirror initialize -destination-path _destination_path_*`
-+
-The initialization process performs a _baseline transfer_ to the destination volume. SnapMirror makes a Snapshot copy of the source volume, then transfers the copy and all of the data blocks it references to the destination volume.
 +
 The following command initializes the relationship between the source volume `srcvolA` on `SVM1` and the destination volume `dstvolB` on `SVM2`:
 +
 ----
-SVM2::> snapmirror initialize -destination-path SVM2:dstvolB
+cluster2::> snapmirror initialize -destination-path SVM2:dstvolB
+----
+
+. After the relationship is initialized and idle, use the `snapshot show` command on the destination to verify verify the SnapLock expiry time applied to the replicated Snapshot copies.
++
+This example lists the Snapshot copies on volume `dstvolB` that have the SnapMirror label and the SnapLock expiration date:
++
+----
+cluster2::> snapshot show -vserver SVM2 -volume dstvolB -fields snapmirror-label, snaplock-expiry-time
 ----
 
 *Related information*
@@ -85,3 +112,5 @@ SVM2::> snapmirror initialize -destination-path SVM2:dstvolB
 https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html[Cluster and SVM peering]
 
 https://docs.netapp.com/us-en/ontap-sm-classic/volume-backup-snapvault/index.html[Volume backup using SnapVault]
+
+// 2021-11-10, BURT 1406421
