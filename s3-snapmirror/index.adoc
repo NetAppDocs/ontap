@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar
 permalink: s3-snapmirror/index.html
-keywords: snapmirror, s3 snapmirror, mirroring and backup, buckets, data protection bundle
+keywords: s3 snapmirror overview, snapmirror, s3 snapmirror, s3 snapmirror mirroring and backup, s3 snapmirror requirments, s3 snapmirror buckets, snapmirror buckets SVM, s3 snapmirror new buckets, s3 snapmirror buckets with data protection, s3 snapmirror data protection bundle, s3 snapmirror data protection bundle and hybrid cloud bundle, s3 snapmirror relationship, VM peering, cluster and storage VM peering, s3 SnapMirror considerations and restrictions, Fan-in deployments, data protection relationships, s3 snapmirror policy, peering
 summary: Beginning with ONTAP 9.10.1, you can protect buckets in ONTAP S3 object stores using familiar SnapMirror mirroring and backup functionality
 ---
 
@@ -12,7 +12,7 @@ summary: Beginning with ONTAP 9.10.1, you can protect buckets in ONTAP S3 object
 :nofooter:
 :icons: font
 :linkattrs:
-:imagesdir: ../media/
+:imagesdir: ./media/
 
 [.lead]
 Beginning with ONTAP 9.10.1, you can protect buckets in ONTAP S3 object stores using familiar SnapMirror mirroring and backup functionality. In addition, unlike standard SnapMirror, S3 SnapMirror can have non-NetApp destinations.
@@ -31,14 +31,14 @@ a| ONTAP S3
 * buckets in SVMs on different clusters
 
 | image:status-enabled-perf-config.gif[checkmark]
-| image:status-enabled-perf-config.gif[checkmark] | StorageGRID Webscale
+| image:status-enabled-perf-config.gif[checkmark] | StorageGRID
 |  | image:status-enabled-perf-config.gif[checkmark]
 | AWS S3 |  | image:status-enabled-perf-config.gif[checkmark]
 |===
 
 You can protect existing buckets on ONTAP S3 servers or you can create new buckets with data protection enabled immediately.
 
-S3 SnapMirror supports fan-out and cascade relationships. For an overview, see link:../data-protection/supported-deployment-config-concept.html[Fan-out and cascade data protection deployments].
+S3 SnapMirror supports fan-out and cascade relationships. For an overview, see link:..data-protection/supported-deployment-config-concept.html[Fan-out and cascade data protection deployments].
 
 == S3 SnapMirror requirements
 
@@ -53,20 +53,23 @@ For S3 SnapMirror to target other NetApp object store targets (ONTAP S3, Storage
 ** Data Protection Bundle and Hybrid Cloud Bundle
 For S3 SnapMirror to target 3rd party object stores (AWS S3).
 * 	ONTAP S3
-** ONTAP S3 servers must be running source and destination SVMs.
-** It is recommended but not required that certificates for TLS access are installed on the S3 servers. You can use system-generated certificates or certificates from an external authority.
+** ONTAP S3 servers with certificates installed for TLS access must be running source and destination SVMs.
+** It is recommended but not required that CA certificates for TLS access are installed on storage VMs that host S3 servers. You can use a self-signed CA certificate or a certificate signed by an external CA vendor.
 * Peering (for ONTAP S3 targets)
 ** Intercluster LIFs must be configured (for remote ONTAP targets).
 ** Source and destination clusters are peered (for remote ONTAP targets).
 ** Source and destination storage VMs are peered (for all ONTAP targets).
 * SnapMirror policy
-An S3-specific SnapMirror policy is required for all S3 SnapMirror relationships, but you can use the same policy for multiple relationships.
+** An S3-specific SnapMirror policy is required for all S3 SnapMirror relationships, but you can use the same policy for multiple relationships.
+** You can create your own policy or accept the default *Continuous* policy, which includes the following values:
+*** Throttle (upper limit on throughput/bandwidth) - unlimited.
+*** Time for recovery point objective: 1 hour (3600 seconds).
 * Root user keys
-Storage VM root user access keys are required for S3 SnapMirror relationships; ONTAP does not assign them by default. The first time you create an S3 SnapMirror relationship, you must verify that the keys exist on source and destination storage VMs and regenerate them if they do not. Once assigned, they should not be regenerated or existing S3 SnapMirror relationships will fail.
+Storage VM root user access keys are required for S3 SnapMirror relationships; ONTAP does not assign them by default. The first time you create an S3 SnapMirror relationship, you must verify that the keys exist on both source and destination storage VMs and regenerate them if they do not. If you need to regenerate them, you must ensure that all clients and all SnapMirror object-store configurations using the access and secret key pair are updated with the new keys.
 
 For information about S3 server configuration, see the following topics:
 
-* link:../task_object_provision_enable_s3_server.html[Enable an S3 server on a storage VM (System Manager)]
+* link:../task_object_provision_enable_s3_server.html[Enable an S3 server on a storage VM]
 * link:../s3-config/index.html[About the S3 configuration process (CLI)]
 
 For information about cluster and storage VM peering, see the following topic:
@@ -75,10 +78,17 @@ For information about cluster and storage VM peering, see the following topic:
 * link:../peering/index.html[Cluster and SVM peering (CLI)]
 
 == S3 SnapMirror considerations and restrictions
+When you create new buckets, you can control access by creating users and groups. For more information, see the following topics:
+
+* link:../task_object_provision_add_s3_users_groups.html[Add S3 users and groups (System Manager)]
+* link:../s3-config/create-s3-user-task.html[Create an S3 user (CLI)]
+* link:../s3-config/create-modify-groups-task.html[Create or modify S3 groups (CLI)]
 
 The following standard SnapMirror functionality is not supported in the current S3 SnapMirror release:
 
 * Fan-in deployments (data protection relationships between multiple source buckets and a single destination bucket)
++
 S3 Snapmirror can support multiple bucket mirrors from multiple clusters to a single secondary cluster, but each source bucket must have its own destination bucket on the secondary cluster.
+
 
 // 2021-11-02, Jira IE-412
