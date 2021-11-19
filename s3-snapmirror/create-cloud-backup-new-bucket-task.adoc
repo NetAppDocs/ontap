@@ -1,0 +1,129 @@
+---
+sidebar: sidebar
+permalink: s3-snapmirror/create-cloud-backup-new-bucket-task.html
+keywords: create a backup relationship for a new bucket
+summary: When you create new S3 buckets, you can back them up immediately to an S3 SnapMirror target bucket on an object store provider, which can be a StorageGRID system or an AWS S3 deployment.
+---
+
+= Create a backup relationship for a new bucket (cloud target)
+:toc: macro
+:hardbreaks:
+:toclevels: 1
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+When you create new S3 buckets, you can back them up immediately to an S3 SnapMirror target bucket on an object store provider, which can be a StorageGRID system or an AWS S3 deployment.
+
+.What you’ll need
+
+* You have valid account credentials and configuration information for the object store provider.
+* Intercluster network interfaces and an IPspace have been configured on the source system.
+* •	The DNS configuration for the source storage VM must be able to resolve the target’s FQDN.
+
+== System Manager procedure
+
+. Edit the storage VM to add users, and to add users to groups:
+.. Click *Storage > storage VMs*, click the storage VM, click *Settings* and then click image:icon_pencil.gif[edit icon] under *S3*.
++
+See link:../task_object_provision_add_s3_users_groups.html[Add S3 users and groups] for more information.
++
+. Add a Cloud Object Store on the source system:
+.. Click *Protection > Overview*, then select *Cloud Object Stores*.
+.. Click *Add*, then select *Amazon S3* or *StorageGRID*.
+.. Enter the following values:
+** Cloud object store name
+** URL style (path or virtual-hosted)
+** storage VM (enabled for S3)
+** Object store server name (FQDN)
+** Object store certificate
+** Access key
+** Secret key
+** Container (bucket) name
+. Create an S3 SnapMirror policy if you don’t have an existing one and you don’t want to use the default policy:
+.. Click *Protection > Overview*, and then click *Local Policy Settings*.
+.. Click image:../media/icon_arrow.gif[right arrow] next to *Protection Policies*, then click *Add*.
+* Enter the policy name and description.
+* Select the policy scope, cluster or SVM
+* Select *Continuous* for S3 SnapMirror relationships.
+* Enter your *Throttle* and *Recovery Point Objective* values.
+. Create a bucket with SnapMirror protection:
+.. Click *Storage > Buckets*, then click *Add*.
+.. Enter a name, select the storage VM, enter a size, then click *More Options*.
+.. Under *Permissions*, click *Add*. Verifying permissions is optional but recommended.
+* *Principal* and *Effect* - select values corresponding to your user group settings or accept the defaults.
+* *Actions* - make sure the following values are shown: `GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl,ListBucketMultipartUploads,ListMultipartUploadParts`
+* *Resources* - use the defaults `_(bucketname, bucketname/*)` or other values you need.
++
+See link:../task_object_provision_manage_bucket_access.html[Manage user access to buckets] for more information about these fields.
+.. Under *Protection*, check *Enable SnapMirror (ONTAP or Cloud)*, select *Cloud Storage*, then select the *Cloud Object Store*.
+
+When you click *Save*, a new bucket is created in the source storage VM, and it is backed up to the cloud object store.
+
+== CLI procedure
+
+. If this is the first S3 SnapMirror relationship for this SVM, verify that root user keys exist for both source and destination SVMs and regenerate them if they do not:
+`vserver object-store-server user show`
+ +
+Verify that there is an access key for the root user. If there is not, enter:
+`vserver object-store-server user regenerate-keys -vserver svm_name -user _root_`
+ +
+Do not regenerate the key if one already exists
+. Create a bucket in the source SVM:
+`vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ [-size _integer_[KB|MB|GB|TB|PB]] [-comment _text_] [_additional_options_]`
+. Add access rules to the default bucket policy:
+`vserver object-store-server bucket policy add-statement -vserver _svm_name_ -bucket _bucket_name_ -effect {allow|deny} -action _object_store_actions_ -principal _user_and_group_names_ -resource _object_store_resources_ [-sid _text_] [-index _integer_]`
++
+.Example
++
+....
+clusterA::> vserver object-store-server bucket policy add-statement -bucket test-bucket -effect allow -action GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl,ListBucketMultipartUploads,ListMultipartUploadParts -principal - -resource test-bucket, test-bucket /*
+....
+
+. Create an S3 SnapMirror policy if you don’t have an existing one and you don’t want to use the default policy:
+`snapmirror policy create -vserver svm_name -policy policy_name -type continuous [-rpo _integer_] [-throttle _throttle_type_] [-comment _text_] [_additional_options_]`
++
+Parameters:
+
+* type `continuous` – the only policy type for S3 SnapMirror relationships (required).
+* `-rpo` – specifies the time for recovery point objective, in seconds (optional).
+* `-throttle` – specifies the upper limit on throughput/bandwidth, in kilobytes/seconds (optional).
++
+.Example
++
+....
+clusterA::> snapmirror policy create -vserver vs0 -type continuous -rpo 0 -policy test-policy
+....
+
+. If the target is a StorageGRID system, install the StorageGRID CA server certificate on the source system:
+`security certificate install -type server-ca -vserver _src_svm_ -cert-name _storage_grid_server_certificate_`
++
+See the `security certificate install` man page for details.
+
+.	Define the S3 SnapMirror destination object store:
+`snapmirror object-store config create -source-path -vserver _svm_name_ -object-store-name _target_store_name_ -usage data -provider-type {AWS_S3|SGWS} -server _target_FQDN_ -container-name _remote_bucket_name_ -is-ssl-enabled true -port _target_FQDN_ -access-key target_access_key -secret-password _target_secret_key_`
++
+.Example
++
+....
+src_cluster::> snapmirror object-store config create -vserver vs0 -object-store-name sgws-store -usage data -provider-type SGWS -server sgws.example.com -container-name target-test-bucket -is-ssl-enabled true -port 443 -access-key abc123 -secret-password xyz890
+....
+.	Create an S3 SnapMirror relationship:
+`snapmirror create -source-path _svm_name_:/bucket/_bucket_name_ -destination-path _server_fqdn_:/_bucket_name_ -policy _policy_name_`
++
+`-destination-path` – fully-qualified domain name and bucket name
++
+You can use a policy you created or accept the default.
++
+.Example
++
+....
+src_cluster::> snapmirror create -source-path vs0:/bucket/buck-evp -destination-path sgws.example.com:/sgws-store -policy test-policy
+....
+
+.	Verify that mirroring is active:
+`snapmirror show -policy-type continuous -fields status`
+
+// 2021-11-02, Jira IE-412
