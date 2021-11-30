@@ -87,13 +87,22 @@ Parameters:
 ....
 clusterA::> snapmirror policy create -vserver vs0 -type continuous -rpo 0 -policy test-policy
 ....
-. If the target is a StorageGRID system, install the StorageGRID CA server certificate on the admin SVM of the source cluster:
+. If the target is a StorageGRID system, install the StorageGRID CA certificate on the admin SVM of the source cluster:
 `security certificate install -type server-ca -vserver _src_admin_svm_ -cert-name _storage_grid_server_certificate_`
 +
 See the `security certificate install` man page for details.
 .	Define the S3 SnapMirror destination object store:
-`snapmirror object-store config create -source-path -vserver _svm_name_ -object-store-name _target_store_name_ -usage data -provider-type {AWS_S3|SGWS} -server _target_FQDN_ -container-name _remote_bucket_name_ -is-ssl-enabled true -port _target_FQDN_ -access-key _target_access_key_ -secret-password _target_secret_key_`
-+
+`snapmirror object-store config create -vserver _svm_name_ -object-store-name _target_store_name_ -usage data -provider-type {AWS_S3|SGWS} -server _target_FQDN_ -container-name _remote_bucket_name_ -is-ssl-enabled true -port _port_number_ -access-key target_access_key -secret-password _target_secret_key_`
+
+Parameters:
+* `-object-store-name` – the name of the object store target on the local ONTAP system.
+* `-usage` – use `data` for this workflow.
+* `-provider-type` – `AWS_S3` and `SGWS` (StorageGRID) targets are supported.
+* `-server` – the target server’s FQDN or IP address.
+* `-is-ssl-enabled` –enabling SSL is optional but recommended.
+
+See the `snapmirror object-store config create` man page for details.
+
 .Example
 +
 ....
@@ -102,7 +111,7 @@ src_cluster::> snapmirror object-store config create -vserver vs0 -object-store-
 .	Create an S3 SnapMirror relationship:
 `snapmirror create -source-path _svm_name_:/bucket/_bucket_name_ -destination-path _object_store_name_:/objstore  -policy _policy_name_`
 +
-`-destination-path` – the object store name you created in the previous step and the fixe value `objstore`.
+`-destination-path` – the object store name you created in the previous step and the fixed value `objstore`.
 +
 You can use a policy you created or accept the default.
 +
