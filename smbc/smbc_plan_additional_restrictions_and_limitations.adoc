@@ -77,8 +77,37 @@ The following SAN object limits are included in the following table and apply re
 |8
 |===
 
-=== NTFS security style
+=== NTFS Security Style
 
 NTFS security style is not supported on SM-BC volumes.
 
+=== Solaris Host setting recommendation for SM-BC configuration
+
+Beginning in ONTAP 9.10.1, SM-BC supports Solaris 11.4. In order to ensure the Solaris client applications are non-disruptive when an unplanned site failover switchover occurs in an SM-BC environment, the following setting needs to be configured on Solaris 11.4 host. This setting will override the failover module – `f_tpgs` in order to prevent the code path that detects the contradiction from being executed.
+
+Follow the instructions to configure the override parameter:
+
+. Create configuration file `/etc/driver/drv/scsi_vhci.conf` with an entry similar to the following for the NetApp storage type connected to the host:
++
+----
+scsi-vhci-failover-override =
+"NETAPP  LUN","f_tpgs"
+----
+. Use `devprop` and `mdb` commands to verify the override has been successfully applied:
++
+----
+root@host-A:~# devprop -v -n /scsi_vhci scsi-vhci-failover-override scsi-vhci-failover-override=NETAPP  LUN + f_tpgs
+root@host-A:~# echo "*scsi_vhci_dip::print -x struct dev_info devi_child | ::list struct dev_info devi_sibling| ::print struct dev_info devi_mdi_client| ::print mdi_client_t ct_vprivate| ::print struct scsi_vhci_lun svl_lun_wwn svl_fops_name"| mdb -k`
+----
++
+----
+svl_lun_wwn = 0xa002a1c8960 "600a098038313477543f524539787938"
+svl_fops_name = 0xa00298d69e0 "conf f_tpgs"
+----
+
+NOTE: `conf` will be added to the `svl_fops_name` when a `scsi-vhci-failover-override` has been applied.
+For additional information and recommended changes to default settings, refer to NetApp KB article https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/Solaris_Host_support_recommended_settings_in_SnapMirror_Business_Continuity_(SM-BC)_configuration[Solaris Host support recommended settings in SnapMirror Business Continuity (SM-BC) configuration].
+
+
 //BURT 1387138
+//BURT 1431859, 1 dec 2021
