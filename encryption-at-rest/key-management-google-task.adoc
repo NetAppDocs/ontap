@@ -1,0 +1,51 @@
+---
+permalink: encryption-at-rest/key-management-google-task.html
+sidebar: sidebar
+keywords: key management, GCP, google cloud
+summary: "Use Google Cloud Platform's Key Manager Service (GCP KMS) to streamline the protection of your ONTAP encryption keys."
+---
+= Manage keys with Google Cloud Platform's Key Manager Service
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use Google Cloud Platform's Key Manager Service (GCP KMS) to streamline the protection of your ONTAP encryption keys in a GCP-deployed application.   
+
+GCP KMS can be used to protect NetApp Volume Encryption (NVE) keys only for data vservers. 
+
+Key management with GCP KMS can be implemented with the CLI or the ONTAP REST API.  
+
+.Prerequisites
+* The ONTAP cluster's nodes must support NVE 
+* Volume Encryption (VE) license installed 
+* Multi-tenant Encryption Key Management (MTEKM) license installed 
+* You must be a cluster or vserver administrator 
+
+.Limitations
+* GCP KMS is not available for MetroCluster configurations 
+* GCP KMS is not available for NSE and NAE. link:enable-external-key-management-96-later-nve-task.html[External KMIPs] can still be used instead 
+* GCP KMS can only be configured on data vserver 
+
+.Enable GCP KMS with the CLI 
+. Before you begin, you should have the private key for the Google Cloud Key Management Service account key file in a JSON format. This can be obtained from your GCP account.  
+. Set privileged level to advanced 
++
+`set -priv advanced`
+. Ensure all nodes in the cluster are healthy 
++
+`cluster show`
+. Enable GCP on the SVM 
++
+`security key-manager external gcp enable -vserver _data_svm_name_ -project-id _project_id_-key-ring-name _key_ring_name_ -key-ring-location _key_ring_location_ -key-name _key_name_` 
++
+When prompted, enter the contents of the JSON file with the Service Account Private Key 
+. Verify the GCP KMS is configured with the correct parameters 
++
+`security key-manager external gcp show vserver _vserver_name_`
++
+kms_wrapped_key_status should shown as “UNKNOWN” 
++
+If the service reachability is not OK, establish the connectivity to the GCP key management service via the cluster's node management LIF.
+. *OPTIONAL:* To migrate existing keys to the GCP KMS, run: 
++
+`security key-manager key migrate -from-Vserver _admin_Vserver_ -to-Vserver _data_Vserver_` 
