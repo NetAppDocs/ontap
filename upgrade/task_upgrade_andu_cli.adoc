@@ -1,11 +1,11 @@
 ---
 sidebar: sidebar
 permalink: upgrade/task_upgrade_andu_cli.html
-keywords: netapp, ontap, upgrade, nondisruptive, nondisruptively, non-disruptive update, nondisruptive upgrade, upgrade a cluster, shift workload between clusters, hardware platform, configuration, software image, update, update ONTAP, update software, ndu
+keywords: netapp, ontap, automate, automatic, automated, upgrade, nondisruptive, nondisruptively, non-disruptive update, nondisruptive upgrade, upgrade a cluster, shift workload between clusters, hardware platform, configuration, software image, update, update ONTAP, update software, ndu
 summary: You can nondisruptively update the version of ONTAP on your cluster.
 ---
 
-= Automated nondisruptive using the CLI
+= Automated nondisruptive upgrade using the CLI
 :toc: macro
 :toclevels: 1
 :hardbreaks:
@@ -17,10 +17,18 @@ summary: You can nondisruptively update the version of ONTAP on your cluster.
 [.lead]
 You can use the command line interface (CLI) to verify that the cluster can be upgraded nondisruptively, install the target ONTAP image on each node, and then, execute an upgrade in the background.
 
-If you do not plan to monitor the progress of the upgrade process, it is a good practice to xref:task_requesting_notification_of_issues_encountered_in_nondisruptive_upgrades.html[request EMS notifications of errors that might require manual intervention].
+If you do not plan to monitor the progress of the upgrade process, it is a good practice to link:task_requesting_notification_of_issues_encountered_in_nondisruptive_upgrades.html[request EMS notifications of errors that might require manual intervention].
 
+.Before you begin
+
+* You should launch Active IQ Digital Advisor.
++
+The Upgrade Advisor component of Active I! Digital Advisor helps you plan for a successful upgrade.
++
+Data-driven insights and recommendations from Active IQ Digital Advisor are provided to all NetApp customers with an active *SupportEdge* contract (features vary by product and support tier).
 
 * You must have met the upgrade preparation requirements.
+
 * For each HA pair, each node should have one or more ports on the same broadcast domain.
 +
 When a set of nodes is upgraded during a batch upgrade, the LIFs are migrated to the HA partner nodes. If the partners do not have any ports in the same broadcast domain, then the LIF migration fails.
@@ -29,14 +37,18 @@ When a set of nodes is upgraded during a batch upgrade, the LIFs are migrated to
 
 * If you are upgrading from ONTAP 9.5 to 9.9.1, you must have obtained the software image for 9.7 and 9.9.1.
 
-The cluster image validate command checks the cluster components to validate that the upgrade can be completed nondisruptively, and then provides the status of each check and any required action you must take before performing the software upgrade.
+.About this task
+
+The cluster image validate command checks the cluster components to validate that the upgrade can be completed nondisruptively, and then it provides the status of each check and any required action you must take before performing the software upgrade.
 
 NOTE: Modifying the setting of the storage failover modify-auto-giveback command option before the start of an automatic nondisruptive upgrade (ANDU) has no impact on the upgrade process. The ANDU process ignores any preset value to this option during the takeover/giveback required for the update. For example, setting -autogiveback to false prior to beginning ANDU does not interrupt the automatic upgrade before giveback.
 
-. Delete the previous ONTAP software package:``cluster image package delete -version previous_ONTAP_Version``
+. Delete the previous ONTAP software package: `cluster image package delete -version previous_ONTAP_Version`
+
 . Download the target ONTAP software package: `cluster image package get -url location`
 +
 NOTE: If you are upgrading from ONTAP 9.3 to 9.7, download the software package for ONTAP 9.5, and then use the same command to download the software package for 9.7.  If you are upgrading from ONTAP 9.5 to 9.9.1, download the software package for ONTAP 9.7, and then use the same command to download the software package for 9.9.1.
+
 +
 ----
 cluster1::> cluster image package get -url http://www.example.com/software/9.7/image.tgz
@@ -75,7 +87,7 @@ The software upgrade estimate displays details about each component to be update
 +
 * If you are upgrading from ONTAP 9.3 to 9.7, use the 9.7 package_version_number in the above command.
 * If you are upgrading from ONTAP 9.5 to 9.9.1, use the 9.9.1 package_version_number in the above command.
-* For any MetroCluster configuration, except a 2-node MetroCluster system, the upgrade process starts simultaneously on both of the clusters (the disaster recovery cluster and the production cluster) after the user provides a confirmation. For a 2-node MetroCluster system, the update is started first on the disaster recovery site, that is, the site where the upgrade is not initiated. After the update is fully completed on the disaster recovery site, the upgrade begins on the production site.
+* For any MetroCluster configuration, except a 2-node MetroCluster system, the ONTAP upgrade process starts simultaneously on the HA pairs at both sites (the local site and the disaster recovery site) after the user initiates and provides confirmation on the command line. For a 2-node MetroCluster system, the update is started first on the disaster recovery site, that is, the site where the upgrade is not initiated. After the update is fully completed on the disaster recovery site, the upgrade begins on the local site.
 * If the cluster consists of 2 through 6 nodes, a rolling upgrade is performed. If the cluster consists of 8 or more nodes, a batch upgrade is performed by default. If desired, you can use the -force-rolling parameter to specify a rolling upgrade instead.
 * After completing each takeover and giveback, the upgrade waits for 8 minutes to enable client applications to recover from the pause in I/O that occurs during the takeover and giveback. If your environment requires more or less time for client stabilization, you can use the -stabilize-minutes parameter to specify a different amount of stabilization time.
 +
@@ -124,6 +136,8 @@ cluster1::>
 +
 If your cluster is not configured to send AutoSupport messages, a copy of the notification is saved locally
 
+// BURT 1361715, 06 DEC 2021
+
 == Resuming an upgrade (using the CLI) after an error in the automated upgrade process
 
 [.lead]
@@ -136,7 +150,7 @@ If you want to manually complete the upgrade, use the cluster image cancel-updat
 . Resume the update: `cluster image resume-update`
 
 
-*Related information*
+.Related information
 
 https://aiq.netapp.com/[Launch Active IQ]
 

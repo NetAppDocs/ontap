@@ -11,7 +11,7 @@ summary: You can begin backing up existing S3 buckets at any time; for example, 
 :nofooter:
 :icons: font
 :linkattrs:
-:imagesdir: ./media/
+:imagesdir: ../media/
 
 [.lead]
 You can begin backing up existing S3 buckets at any time; for example, if you upgraded an S3 configuration from a release earlier than ONTAP 9.10.1.
@@ -69,10 +69,9 @@ When you click *Save*, the existing bucket is backed up to the cloud object stor
 `vserver object-store-server bucket policy add-statement -vserver _svm_name_ -bucket _bucket_name_ -effect {allow|deny} -action _object_store_actions_ -principal _user_and_group_names_ -resource _object_store_resources_ [-sid _text_] [-index _integer_]`
 +
 .Example
-+
-....
+----
 clusterA::> vserver object-store-server bucket policy add-statement -bucket test-bucket -effect allow -action GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl,ListBucketMultipartUploads,ListMultipartUploadParts -principal - -resource test-bucket, test-bucket /*
-....
+----
 .	Create an S3 SnapMirror policy if you don’t have an existing one and you don’t want to use the default policy:
 `snapmirror policy create -vserver svm_name -policy policy_name -type continuous [-rpo _integer_] [-throttle _throttle_type_] [-comment _text_] [_additional_options_]`
 +
@@ -80,16 +79,18 @@ Parameters:
 * `type continuous` – the only policy type for S3 SnapMirror relationships (required).
 * `-rpo` – specifies the time for recovery point objective, in seconds (optional).
 * `-throttle` – specifies the upper limit on throughput/bandwidth, in kilobytes/seconds (optional).
+
 +
 .Example
-+
-....
+----
 clusterA::> snapmirror policy create -vserver vs0 -type continuous -rpo 0 -policy test-policy
-....
+----
+
 . If the target is a StorageGRID system, install the StorageGRID CA certificate on the admin SVM of the source cluster:
 `security certificate install -type server-ca -vserver _src_admin_svm_ -cert-name _storage_grid_server_certificate_`
 +
 See the `security certificate install` man page for details.
+
 .	Define the S3 SnapMirror destination object store:
 `snapmirror object-store config create -vserver _svm_name_ -object-store-name _target_store_name_ -usage data -provider-type {AWS_S3|SGWS} -server _target_FQDN_ -container-name _remote_bucket_name_ -is-ssl-enabled true -port _port_number_ -access-key target_access_key -secret-password _target_secret_key_`
 +
@@ -99,23 +100,25 @@ Parameters:
 * `-provider-type` – `AWS_S3` and `SGWS` (StorageGRID) targets are supported.
 * `-server` – the target server’s FQDN or IP address.
 * `-is-ssl-enabled` –enabling SSL is optional but recommended.
-
+  +
 See the `snapmirror object-store config create` man page for details.
+
 +
 .Example
-+
-....
+----
 src_cluster::> snapmirror object-store config create -vserver vs0 -object-store-name sgws-store -usage data -provider-type SGWS -server sgws.example.com -container-name target-test-bucket -is-ssl-enabled true -port 443 -access-key abc123 -secret-password xyz890
-....
+----
+
 .	Create an S3 SnapMirror relationship:
 `snapmirror create -source-path _svm_name_:/bucket/_bucket_name_ -destination-path _object_store_name_:/objstore  -policy _policy_name_`
 +
-`-destination-path` – the object store name you created in the previous step and the fixed value `objstore`.
-+
+Parameters:
+* `-destination-path` – the object store name you created in the previous step and the fixed value `objstore`.
+  +
 You can use a policy you created or accept the default.
+
 +
 .Example
-+
 ....
 src_cluster::> snapmirror create -source-path vs0:/bucket/buck-evp -destination-path sgws-store:/objstore -policy test-policy
 ....
