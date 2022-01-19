@@ -2,7 +2,7 @@
 permalink: upgrade/task_download_and_install_ontap_software_image.html
 sidebar: sidebar
 keywords: ontap, software, image, download, downloading, install, installing
-summary: 'You must first download the ONTAP software; then you can install it.'
+summary: 'You must first download the ONTAP software from the NetApp Support site; then you can install it using the automatic nondisruptive upgrade (ANDU) or manual upgrade process.'
 ---
 = Download and install the ONTAP software image
 :icons: font
@@ -10,13 +10,11 @@ summary: 'You must first download the ONTAP software; then you can install it.'
 
 [.lead]
 
-You must first download the ONTAP software from the NetApp Support site; then you can install it.
+You must first download the ONTAP software from the NetApp Support site; then you can install it using the automatic nondisruptive upgrade (ANDU) or manual upgrade process.
 
 == Download the software image
 
-For ONTAP 9.4 and later, you can copy the ONTAP software image from the NetApp Support Site to a local folder. For upgrades from ONTAP 9.3 or earlier, you must copy the ONTAP software image to an HTTP server or FTP server on your network.
-
-starting with ONTAP 9.6 the HTTPS option is available given that the correct webserver SSL certificate is installed on the storage side
+Depending on your ONTAP release, you can copy the ONTAP software image from the NetApp Support Site to one of the following locations: an HTTP, HTTPS or FTP server on your network, or a local folder.
 
 You should note the following important information:
 
@@ -33,13 +31,23 @@ If you use the ONTAP software image for restricted countries to upgrade a system
 
 * If you are upgrading from ONTAP 9.3 to 9.7, you must copy the software image for ONTAP 9.5 and 9.7.
 
+.Steps
+
 . Locate the target ONTAP software in the link:http://mysupport.netapp.com/NOW/cgi-bin/software[Software Downloads] area of the NetApp Support Site.
 
-. Copy the software image.
+. Copy the software image (for example, 97_q_image.tgz) to the appropriate location.
++
+Depending on your ONTAP release, the location will be a directory an HTTP, HTTPS or FTP server from which the image will be served to the local system, or to a local folder on the storage system.
++
+[cols=2,options="header"]
+|===
+| You can copy the image to this location... | If you are running these ONTAP releases...
+| An HTTP or FTP server | ONTAP 9.0 and later
+| A local folder | ONTAP 9.4 and later
+| An HTTPS server +
+The server's CA certificate must be installed on the local system. | ONTAP 9.6 and later
 
- ** For ONTAP 9.3 or earlier, copy the software image (for example, 93_q_image.tgz) from the NetApp Support Site to the directory on the HTTP server or FTP server from which the image will be served.
-
- ** For ONTAP 9.4 or later, copy the software image (for example, 97_q_image.tgz) from the NetApp Support Site to the directory on the HTTP server or FTP server from which the image will be served or to a local folder.
+|===
 
 == Install the software image
 
@@ -52,10 +60,6 @@ If you use the ONTAP software image for restricted countries to upgrade a system
 * If you are upgrading from ONTAP 9.5 directly to 9.9.1, you must download the software image for ONTAP 9.7 and 9.9.1.  If you are upgrading from ONTAP 9.3 directly to 9.7, you must download the software image for ONTAP 9.5 and 9.7.
 +
 The automated upgrade process uses both images in the background to complete the upgrade.
-
-. Set the privilege level to advanced, entering *y* when prompted to continue: `set -privilege advanced`
-+
-The advanced prompt (`*>`) appears.
 
 === For automatic nondisruptive upgrade (ANDU)
 
@@ -91,15 +95,19 @@ cluster image package show-repository -fields download-ver\
 
 === For manual upgrades
 
-. Download the image.
+. Set the privilege level to advanced, entering *y* when prompted to continue: `set -privilege advanced`
 +
-Starting with ONTAP 9.6, you can use HTTPS as a option if correct webserver SSL certificate is installed on the storage.
+The advanced prompt (`*>`) appears.
 
-.. If you are upgrading a non-MetroCluster configuration or a two-node MetroCluster configuration use the following command to download the image:
+. Download the image.
+
+.. If you are upgrading a cluster without a MetroCluster configuration or a two-node MetroCluster configuration, use the following command to download the image:
 +
-`system node image update -node * -package location -replace-package true -setdefault true -background true`
+`system node image update -node * -package _location_ -replace-package true -setdefault true -background true`
 +
-NOTE: This command downloads and installs the software image on all of the nodes simultaneously. To download and install the image on each node one at a time, do not specify the -background parameter.
+_location_ can be a web server or a local folder, depending on the ONTAP version. See the `system node image update` man page for details.
++
+This command downloads and installs the software image on all of the nodes simultaneously. To download and install the image on each node one at a time, do not specify the `-background` parameter.
 
 .. If you are upgrading a four or eight-node MetroCluster configuration, you must issue the following command on both clusters:
 +
@@ -134,3 +142,5 @@ Status of most recent operation:
         Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node1.
 2 entries were acted on.
 ----
+
+// 2022-01-17, ontap-issue-189
