@@ -1,0 +1,89 @@
+---
+permalink: error-messages/configure-webhooks-event-notifications-task.html
+sidebar: sidebar
+keywords: configure, important, ems, events, receive, email, notifications, forward, rest, api, webhook
+summary: "To receive event notifications on a REST API server, you must configure REST API webhook support. "
+---
+= Configure important EMS events to forward notifications to a REST API server
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+To receive event notifications on a REST API server, you must configure REST API webhook support.
+
+.Before you begin
+
+* You need a server with REST API/webhook support capable of receiving EMS events.
+* The REST API server can utilize server-side or client-side security certificates.
+* Configuration for certificates is determined by destination. Refer to the following for an overview of certificate configuration based on destination:
+**	*http*: - No certificate involved
+**	*https*: - The server certificate is verified by the ONTAP system. Optionally, a client certificate can be configured that will be sent by the ONTAP system for the server to verify.
+*	Client-side certificates require both the private key and certificate available for installation on the source ONTAP system(s).
+
+NOTE: If you are configuring both a client and server certificate REST API forward, a server-side certificate is required to utilize a client-side certificate. As a result, you must follow the client-side instructions to use both methods of authentication.
+
+== Configuring a HTTP Rest API forward
+
+.About this task
+You can perform this task any time the cluster is running by entering the commands on the ONTAP command line.
+
+.Steps
+.	Create a new destination `restapi-ems` destination for the filter `important-events`:
++
+`event notification destination create -name restapi-ems -rest-api-url \http://<url_to_rest_api_server>`
+
+.	Create the notification that links the `important-events` filter with the new `restapi-ems` destination:
++
+`event notification create -filter-name important-events -destinations restapi-ems`
+
+== Configuring a server certificate HTTPS Rest API forward
+
+.About this task
+
+This procedure assumes you have previously generated a server-side private key and public certificate. It also assumes you have the root certificate available to install in ONTAP.
+
+.Steps
+
+.	Install the appropriate server private key and public certificates in your REST API server.
++
+NOTE: Specific instructions depend on the server.
+
+.	Install the server root certificate in ONTAP.
++
+`security certificate install -type server-ca`
++
+The command will query for the public certificate.
++
+.	Create the `restapi-ems` destination for the filter `important-events`.
++
+You must use the HTTPS scheme for the server-side certificate to be utilized.
++
+`event notification destination create -name restapi-ems -rest-api-url \https://<url_to_rest_api_server>`
++
+.	Create the notificaton that links the `important-events` filter with the new `restapi-ems` destination:
++
+`event notification create -filter-name important-events -destinations restapi-ems`
+
+== Configuring a client certificate HTTPS Rest API forward
+
+.About this task
+The usage of a client certificate is optional and only necessary if client authentication by the server is desired. This procedure assumes you have previously generated a client private key and public certificate.
+
+.Steps
+
+.	Install the appropriate root and intermediate certificates, in the Rest API server, to validate your client certificate.
+.	Install the client certificate in ONTAP.
++
+`security certificate install -type client`
++
+The command will query for the private key and the public certificate.
++
+.	Create the `restapi-ems` destination for the filter `important-events`.
++
+`event notification destination create -name restapi-ems -rest-api-url https://<url_to_rest_api_server> -certificate-authority <issuer of the client certificate> -certificate-serial <serial of the client certificate>`
++
+.	Create the notification that links the `important-events` filter with the new `restapi-ems` destination.
++
+`event notification create -filter-name important-events -destinations restapi-ems`
+
+// 2021-11-30, Created by Aoife
