@@ -11,6 +11,8 @@ summary: "A FIPS drive or SED is protected from unauthorized access only if the 
 [.lead]
 A FIPS drive or SED is protected from unauthorized access only if the authentication key ID for the node is set to a value other than the default. You can return a FIPS drive or SED to unprotected mode by using the `storage encryption disk modify` command to set the key ID to the default.
 
+If an HA pair is using encrypting SAS or NVMe drives (SED, NSE, FIPS), you must follow this process for all drives within the HA pair prior to initializing the system (boot options 4 or 9). Failure to do this may result in future data loss if the drives are repurposed.
+
 .What you'll need
 
 You must be a cluster administrator to perform this task.
@@ -22,7 +24,7 @@ You must be a cluster administrator to perform this task.
 `set -privilege advanced`
 . If a FIPS drive is running in FIPS-compliance mode, set the FIPS authentication key ID for the node back to the default MSID 0x0:
 +
-`storage encryption disk modify -disk disk_id -fips-key-id 0x0`
+`storage encryption disk modify -disk _disk_id_ -fips-key-id 0x0`
 +
 You can use the `security key-manager query` command to view key IDs.
 +
@@ -33,10 +35,25 @@ Info: Starting modify on 14 disks.
       View the status of the operation by using the
       storage encryption disk show-status command.
 ----
++
+Confirm the operation succeeded with the command:
++
+`storage encryption disk show-status`
++
+Repeat the show-status command until the numbers are the same. The operation is complete when the numbers in  “disks begun” and “disks done” are the same. 
++
+----
+cluster1:: storage encryption disk show-status
 
+            FIPS    Latest   Start               Execution   Disks   Disks Disks
+Node        Support Request  Timestamp           Time (sec)  Begun   Done  Successful
+-------     ------- -------- ------------------  ---------- ------ ------  ----------
+cluster1    true    modify   1/18/2022 15:29:38    3           14     5         5 
+1 entry was displayed.
+----
 . Set the data authentication key ID for the node back to the default MSID 0x0:
 +
-`storage encryption disk modify -disk disk_id -data-key-id 0x0`
+`storage encryption disk modify -disk _disk_id_ -data-key-id 0x0`
 +
 The value of `-data-key-id` should be set to 0x0 whether you are returning a SAS or NVMe drive to unprotected mode.
 +
@@ -49,3 +66,11 @@ Info: Starting modify on 14 disks.
       View the status of the operation by using the
       storage encryption disk show-status command.
 ----
++
+Confirm the operation succeeded with the command:
++
+`storage encryption disk show-status`
++
+Repeat the show-status command until the numbers are the same. The operation is complete when the numbers in  “disks begun” and “disks done” are the same. 
+
+// 25 jan 2020, BURT 1452520 
