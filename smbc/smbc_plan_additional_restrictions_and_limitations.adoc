@@ -36,9 +36,7 @@ Limits in SM-BC are calculated based on the number of endpoints, not the number 
 The maximum endpoints per platform are included in the following table.
 
 |===
-
 h| S. No h|Platform 2+h| Endpoints per HA for SM-BC 2+h| Overall sync and SM-BC endpoints per HA
-
 |
 |
 |ONTAP 9.8-9.9.1 |ONTAP 9.10.1 |ONTAP 9.8-9.9.1 |ONTAP 9.10.1
@@ -83,9 +81,10 @@ NTFS security style is not supported on SM-BC volumes.
 
 === Solaris Host setting recommendation for SM-BC configuration
 
-Beginning with ONTAP 9.10.1, SM-BC supports Solaris 11.4. In order to ensure the Solaris client applications are non-disruptive when an unplanned site failover switchover occurs in an SM-BC environment, the following setting needs to be configured on Solaris 11.4 host. This setting will override the failover module `f_tpgs` in order to prevent the code path that detects the contradiction from being executed.
 
-Follow the instructions to configure the override parameter:
+Beginning with ONTAP 9.10.1, SM-BC supports Solaris 11.4. To ensure the Solaris client applications are nondisruptive when an unplanned site failover switchover occurs in an SM-BC environment, the following setting must be configured on Solaris 11.4 Host. This setting overrides failover module – `f_tpgs` to prevent the code path that detects the contradiction from being executed.
+
+Follow these steps to configure the override parameter:
 
 . Create configuration file `/etc/driver/drv/scsi_vhci.conf` with an entry similar to the following for the NetApp storage type connected to the host:
 +
@@ -108,8 +107,15 @@ svl_fops_name = 0xa00298d69e0 "conf f_tpgs"
 NOTE: `conf` will be added to the `svl_fops_name` when a `scsi-vhci-failover-override` has been applied.
 For additional information and recommended changes to default settings, refer to NetApp KB article https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/Solaris_Host_support_recommended_settings_in_SnapMirror_Business_Continuity_(SM-BC)_configuration[Solaris Host support recommended settings in SnapMirror Business Continuity (SM-BC) configuration].
 
+=== HP-UX Known issues and limitations for SM-BC configuration
 
-// BURT 1387138
-// BURT 1431859, 01 DEC 2021
-// issue #326,   19 DEC 2022
+Beginning in ONTAP 9.10.1, SM-BC for HP-UX is supported. If an automatic unplanned failover (AUFO) event occurs on the isolated master cluster in the SM-BC configuration, it might take more than 120 seconds for I/O to resume on the HP-UX host. Depending on the applications that are running, this might not lead to any I/O disruption or error messages. If an AUFO event on the isolated master cluster occurs, you must restart applications on the HP-UX host that have a disruption tolerance of less than 120 seconds.
+
+An AUFO event on the isolated master cluster might cause dual event failure when the connection between the primary and the secondary cluster is lost and the connection between the primary cluster and the mediator is also lost. This is considered a rare event, unlike other AUFO events.
+
+// BURT 1451494, 2022-02-11
+//BURT 1387138
+//BURT 1431859, 1 dec 2021
+//issue #326, 19 dec 2022
 // BURT 1449057, 27 JAN 2022
+
