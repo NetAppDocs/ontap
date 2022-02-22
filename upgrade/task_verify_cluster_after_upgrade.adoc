@@ -10,7 +10,11 @@ summary: 'After you upgrade you should verify your cluster.'
 
 [.lead]
 
-After you upgrade you should verify your cluster version, cluster health, and storage health.
+After you upgrade, you should verify your cluster version, cluster health, and storage health.
+
+.Before you begin
+
+NOTE: If you are using a MetroCluster FC configuration, you also need to verify that the cluster is enabled for automatic unplanned switchover.
 
 == Verify cluster version
 
@@ -18,8 +22,12 @@ After all of the HA pairs have been upgraded, you must use the version command t
 
 The cluster version is the lowest version of ONTAP running on any node in the cluster. If the cluster version is not the target ONTAP release, you can upgrade your cluster.
 
-. Verify that the cluster version is the target ONTAP release: `version`
-. If the cluster version is not the target ONTAP release, you can verify the upgrade status of all nodes``system node upgrade-revert show``
+. Verify that the cluster version is the target ONTAP release:
++
+`version`
+. If the cluster version is not the target ONTAP release, you can verify the upgrade status of all nodes:
++
+`system node upgrade-revert show`
 
 == Verify cluster health
 :icons: font
@@ -28,7 +36,9 @@ The cluster version is the lowest version of ONTAP running on any node in the cl
 [.lead]
 After you upgrade a cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum.
 
-. Verify that the nodes in the cluster are online and are eligible to participate in the cluster: `cluster show`
+. Verify that the nodes in the cluster are online and are eligible to participate in the cluster:
++
+`cluster show`
 +
 ----
 cluster1::> cluster show
@@ -40,8 +50,10 @@ node1                 true    true
 +
 If any node is unhealthy or ineligible, check EMS logs for errors and take corrective action.
 
-. Set the privilege level to advanced: `set -privilege advanced`
-. Enter `y` to continue.
+. Set the privilege level to advanced:
++
+`set -privilege advanced`
+. Enter "`y`" to continue.
 . Verify the configuration details for each RDB process.
  ** The relational database epoch and database epochs should match for each node.
  ** The per-ring quorum master should be the same for all nodes.
@@ -49,9 +61,11 @@ If any node is unhealthy or ineligible, check EMS logs for errors and take corre
 Note that each ring might have a different quorum master.
 
 +
-[col=2*,options="header"]
+
 |===
-| To display this RDB process...| Enter this command...
+
+h| To display this RDB process... h| Enter this command...
+
 a|
 Management application
 a|
@@ -85,7 +99,9 @@ node3     vldb     154      154      14847    node0     secondary
 4 entries were displayed.
 ----
 
-. If you are operating in a SAN environment, verify that each node is in a SAN quorum: `event log show -messagename scsiblade.*`
+. If you are operating in a SAN environment, verify that each node is in a SAN quorum:
++
+`event log show -messagename scsiblade.*`
 +
 The most recent scsiblade event message for each node should indicate that the scsi-blade is in quorum.
 +
@@ -97,11 +113,41 @@ MM/DD/YYYY TIME  node0            INFORMATIONAL scsiblade.in.quorum: The scsi-bl
 MM/DD/YYYY TIME  node1            INFORMATIONAL scsiblade.in.quorum: The scsi-blade ...
 ----
 
-. Return to the admin privilege level: `set -privilege admin`
+. Return to the admin privilege level:
++
+`set -privilege admin`
 
 .Related information
 
 link:../system-admin/index.html[System administration]
+
+== Verify that automatic unplanned switchover is enabled
+
+After you upgrade a cluster, you should verify that automatic unplanned switchover is enabled.
+
+.About this task
+
+NOTE: This procedure is performed only for MetroCluster FC configurations.  If you are using a MetroCluster IP configuration, skip this procedure.
+
+.Steps
+
+. Check whether automatic unplanned switchover is enabled:
++
+`metrocluster show`
++
+If automatic unplanned switchover is enabled, the following statement appears in the command output:
++
+----
+AUSO Failure Domain  auso-on-cluster-disaster
+----
+
+. If the statement does not appear, enable an automatic unplanned switchover:
++
+`metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster`
+
+. Verify that an automatic unplanned switchover has been enabled by repeating Step 1.
+
+// BURT 1387815, 21 FEB 2022
 
 == Verify storage health
 
@@ -109,27 +155,35 @@ After you upgrade a cluster, you should verify the status of your disks, aggrega
 
 . Verify disk status:
 +
-[col=2*,options="header"]
+
 |===
-| To check for...| Do this...
+
+h| To check for... h| Do this...
+
 a|
 Broken disks
 a|
 
- .. Display any broken disks: `storage disk show -state broken`
- .. Remove or replace any broken disks.
+.. Display any broken disks:
++
+`storage disk show -state broken`
+.. Remove or replace any broken disks.
 
 a|
 Disks undergoing maintenance or reconstruction
 a|
 
- .. Display any disks in maintenance, pending, or reconstructing states: `storage disk show -state maintenance\|pending\|reconstructing`
- .. Wait for the maintenance or reconstruction operation to finish before proceeding.
+.. Display any disks in maintenance, pending, or reconstructing states:
++
+`storage disk show -state maintenance\|pending\|reconstructing`
+.. Wait for the maintenance or reconstruction operation to finish before proceeding.
 
 +
 |===
 
-. Verify that all aggregates are online by displaying the state of physical and logical storage, including storage aggregates: `storage aggregate show -state !online`
+. Verify that all aggregates are online by displaying the state of physical and logical storage, including storage aggregates:
++
+`storage aggregate show -state !online`
 +
 This command displays the aggregates that are _not_ online. All aggregates must be online before and after performing a major upgrade or reversion.
 +
@@ -138,7 +192,9 @@ cluster1::> storage aggregate show -state !online
 There are no entries matching your query.
 ----
 
-. Verify that all volumes are online by displaying any volumes that are _not_ online: `volume show -state !online`
+. Verify that all volumes are online by displaying any volumes that are _not_ online:
++
+`volume show -state !online`
 +
 All volumes must be online before and after performing a major upgrade or reversion.
 +
@@ -147,10 +203,14 @@ cluster1::> volume show -state !online
 There are no entries matching your query.
 ----
 
-. Verify that there are no inconsistent volumes: `volume show -is-inconsistent true`
+. Verify that there are no inconsistent volumes:
 +
-If any inconsistent volumes are returned, you must contact NetApp Support before you precede with the upgrade.
+`volume show -is-inconsistent true`
++
+If any inconsistent volumes are returned, you must contact technical support before you precede with the upgrade.
 
 .Related information
 
 link:../disks-aggregates/index.html[Disk and aggregate management]
+
+// BURT 1387815, 21 FEB 2022
