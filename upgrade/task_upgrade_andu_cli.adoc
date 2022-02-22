@@ -5,7 +5,7 @@ keywords: netapp, ontap, automate, automatic, automated, upgrade, nondisruptive,
 summary: You can nondisruptively update the version of ONTAP on your cluster.
 ---
 
-= Automated nondisruptive upgrade using the CLI
+= Automated nondisruptive ONTAP upgrade using the CLI
 :toc: macro
 :toclevels: 1
 :hardbreaks:
@@ -15,7 +15,11 @@ summary: You can nondisruptively update the version of ONTAP on your cluster.
 :imagesdir: ./media/
 
 [.lead]
-You can use the command line interface (CLI) to verify that the cluster can be upgraded nondisruptively, install the target ONTAP image on each node, and then, execute an upgrade in the background.
+You can use the command line interface (CLI) to verify that the cluster can be upgraded nondisruptively, install the target ONTAP image on each node, and then execute an upgrade in the background.
+
+After you upgrade, you should verify your cluster version, cluster health, and storage health.
+
+NOTE: If you are using a MetroCluster FC configuration, you also need to verify that the cluster is enabled for automatic unplanned switchover.
 
 If you do not plan to monitor the progress of the upgrade process, it is a good practice to link:task_requesting_notification_of_issues_encountered_in_nondisruptive_upgrades.html[request EMS notifications of errors that might require manual intervention].
 
@@ -23,7 +27,7 @@ If you do not plan to monitor the progress of the upgrade process, it is a good 
 
 * You should launch Active IQ Digital Advisor.
 +
-The Upgrade Advisor component of Active I! Digital Advisor helps you plan for a successful upgrade.
+The Upgrade Advisor component of Active IQ Digital Advisor helps you plan for a successful upgrade.
 +
 Data-driven insights and recommendations from Active IQ Digital Advisor are provided to all NetApp customers with an active *SupportEdge* contract (features vary by product and support tier).
 
@@ -39,13 +43,17 @@ When a set of nodes is upgraded during a batch upgrade, the LIFs are migrated to
 
 .About this task
 
-The cluster image validate command checks the cluster components to validate that the upgrade can be completed nondisruptively, and then it provides the status of each check and any required action you must take before performing the software upgrade.
+The `cluster image validate` command checks the cluster components to validate that the upgrade can be completed nondisruptively, and then it provides the status of each check and any required action you must take before performing the software upgrade.
 
-NOTE: Modifying the setting of the storage failover modify-auto-giveback command option before the start of an automatic nondisruptive upgrade (ANDU) has no impact on the upgrade process. The ANDU process ignores any preset value to this option during the takeover/giveback required for the update. For example, setting -autogiveback to false prior to beginning ANDU does not interrupt the automatic upgrade before giveback.
+NOTE: Modifying the setting of the `storage failover modify-auto-giveback` command option before the start of an automatic nondisruptive upgrade (ANDU) has no impact on the upgrade process. The ANDU process ignores any preset value to this option during the takeover/giveback required for the update. For example, setting `-autogiveback` to false prior to beginning ANDU does not interrupt the automatic upgrade before giveback.
 
-. Delete the previous ONTAP software package: `cluster image package delete -version previous_ONTAP_Version`
+. Delete the previous ONTAP software package:
++
+`cluster image package delete -version previous_ONTAP_Version`
 
-. Download the target ONTAP software package: `cluster image package get -url location`
+. Download the target ONTAP software package:
++
+`cluster image package get -url location`
 +
 NOTE: If you are upgrading from ONTAP 9.3 to 9.7, download the software package for ONTAP 9.5, and then use the same command to download the software package for 9.7.  If you are upgrading from ONTAP 9.5 to 9.9.1, download the software package for ONTAP 9.7, and then use the same command to download the software package for 9.9.1.
 
@@ -57,7 +65,9 @@ Package download completed.
 Package processing completed.
 ----
 
-. Verify that the software package is available in the cluster package repository: `cluster image package show-repository`
+. Verify that the software package is available in the cluster package repository:
++
+`cluster image package show-repository`
 +
 ----
 cluster1::> cluster image package show-repository
@@ -66,10 +76,13 @@ Package Version  Package Build Time
 9.7              MM/DD/YYYY 10:32:15
 ----
 
-. Verify that the cluster is ready to be upgraded nondisruptively: `cluster image validate -version package_version_number`
- ** If you are upgrading a two-node or four-node MetroCluster configuration, you must run this command on both clusters before proceeding.
- ** If you are upgrading from ONTAP 9.3 to 9.7, use the 9.7 package for verification. You do not need to validate the 9.5 package separately.
- ** If you are upgrading from ONTAP 9.5 to 9.9.1, use the 9.9.1 package for verification. You do not need to validate the 9.7 package separately.
+. Verify that the cluster is ready to be upgraded nondisruptively:
++
+`cluster image validate -version package_version_number`
++
+** If you are upgrading a two-node or four-node MetroCluster configuration, you must run this command on both clusters before proceeding.
+** If you are upgrading from ONTAP 9.3 to 9.7, use the 9.7 package for verification. You do not need to validate the 9.5 package separately.
+** If you are upgrading from ONTAP 9.5 to 9.9.1, use the 9.9.1 package for verification. You do not need to validate the 9.7 package separately.
 
 +
 ----
@@ -77,19 +90,25 @@ cluster1::> cluster image validate -version 9.7
 
 WARNING: There are additional manual upgrade validation checks that must be performed after these automated validation checks have completed...
 ----
-. Monitor the progress of the validation: `cluster image show-update-progress`
+. Monitor the progress of the validation:
++
+`cluster image show-update-progress`
 . Complete all required actions identified by the validation.
-. Generate a software upgrade estimate: `cluster image update -version package_version_number -estimate-only`
+. Generate a software upgrade estimate:
++
+`cluster image update -version package_version_number -estimate-only`
 +
 The software upgrade estimate displays details about each component to be updated, and the estimated duration of the upgrade.
 
-. Perform the software upgrade: `cluster image update -version package_version_number`
+. Perform the software upgrade:
++
+`cluster image update -version package_version_number`
 +
 * If you are upgrading from ONTAP 9.3 to 9.7, use the 9.7 package_version_number in the above command.
 * If you are upgrading from ONTAP 9.5 to 9.9.1, use the 9.9.1 package_version_number in the above command.
 * For any MetroCluster configuration, except a 2-node MetroCluster system, the ONTAP upgrade process starts simultaneously on the HA pairs at both sites (the local site and the disaster recovery site) after the user initiates and provides confirmation on the command line. For a 2-node MetroCluster system, the update is started first on the disaster recovery site, that is, the site where the upgrade is not initiated. After the update is fully completed on the disaster recovery site, the upgrade begins on the local site.
-* If the cluster consists of 2 through 6 nodes, a rolling upgrade is performed. If the cluster consists of 8 or more nodes, a batch upgrade is performed by default. If desired, you can use the -force-rolling parameter to specify a rolling upgrade instead.
-* After completing each takeover and giveback, the upgrade waits for 8 minutes to enable client applications to recover from the pause in I/O that occurs during the takeover and giveback. If your environment requires more or less time for client stabilization, you can use the -stabilize-minutes parameter to specify a different amount of stabilization time.
+* If the cluster consists of 2 to 6 nodes, a rolling upgrade is performed. If the cluster consists of 8 or more nodes, a batch upgrade is performed by default. If desired, you can use the `-force-rolling` parameter to specify a rolling upgrade instead.
+* After completing each takeover and giveback, the upgrade waits for 8 minutes to enable client applications to recover from the pause in I/O that occurs during the takeover and giveback. If your environment requires more or less time for client stabilization, you can use the `-stabilize-minutes` parameter to specify a different amount of stabilization time.
 +
 ----
 cluster1::> cluster image update -version 9.7
@@ -110,7 +129,9 @@ Starting update...
 
 cluster-1::>
 ----
-. Display the cluster update progress: `cluster image show-update-progress`
+. Display the cluster update progress:
++
+`cluster image show-update-progress`
 +
 NOTE: If you are upgrading a 4-node or 8-node MetroCluster configuration, the `cluster image show-update-progress` command only displays the progress for the node on which you run the command. You must run the command on each node to see individual node progress.
 
@@ -132,22 +153,31 @@ Updated nodes: node0, node1.
 cluster1::>
 ----
 
-. Trigger an AutoSupport notification: `autosupport invoke -node * -type all -message "Finishing_NDU"`
+. Trigger an AutoSupport notification:
 +
-If your cluster is not configured to send AutoSupport messages, a copy of the notification is saved locally
+`autosupport invoke -node * -type all -message "Finishing_NDU"`
++
+If your cluster is not configured to send AutoSupport messages, a copy of the notification is saved locally.
 
 // BURT 1361715, 06 DEC 2021
 
 == Resuming an upgrade (using the CLI) after an error in the automated upgrade process
 
-[.lead]
 If an automated upgrade pauses because of an error, you can resolve the error and resume the automated upgrade, or you can cancel the automated upgrade and complete the process manually. If you choose to continue the automated upgrade, do not perform any of the upgrade steps manually.
 
-If you want to manually complete the upgrade, use the cluster image cancel-update command to cancel the automated process and proceed manually. If you want to continue the automated upgrade, complete the following steps.
+.About this task
 
-. View the upgrade error: `cluster image show-update-progress`
+If you want to manually complete the upgrade, use the `cluster image cancel-update` command to cancel the automated process and proceed manually. If you want to continue the automated upgrade, complete the following steps.
+
+.Steps
+
+. View the upgrade error:
++
+`cluster image show-update-progress`
 . Resolve the error.
-. Resume the update: `cluster image resume-update`
+. Resume the update:
++
+`cluster image resume-update`
 
 
 .Related information
@@ -155,3 +185,5 @@ If you want to manually complete the upgrade, use the cluster image cancel-updat
 https://aiq.netapp.com/[Launch Active IQ]
 
 https://docs.netapp.com/us-en/active-iq/[Active IQ documentation]
+
+// BURT 1387815, 21 FEB 2022
