@@ -1,0 +1,76 @@
+name: NetAppDocs Organization CI
+
+on: [push, pull_request]
+
+env:
+  DEPLOY_VERSION: v2
+  FRAMEWORK_BRANCH: main 
+  INTERNAL_FLAG: ${{ endsWith(github.event.repository.name, '-internal') }}
+  ES_API: ${{ endsWith(github.event.repository.name, '-internal') &&  secrets.ES_API_INTERNAL || secrets.ES_API }}
+  ES_AUTH: ${{ endsWith(github.event.repository.name, '-internal') &&  secrets.ES_AUTH_INTERNAL || secrets.ES_AUTH }}
+  DEPLOY_KEY_PREVIEW: ${{ secrets.DEPLOY_KEY_PREVIEW }}
+  DEPLOY_HOST_PREVIEW: ${{ secrets.DEPLOY_HOST_PREVIEW }}
+  GH_API_TOKEN: ${{ secrets.GH_API_TOKEN }}
+  GH_TOKEN: ${{ secrets.NETAPPDOCS_TOKEN }}
+  MT_CLIENT: ${{ secrets.MT_CLIENT }}
+  MT_SECRET: ${{ secrets.MT_SECRET }}
+  MT_USER: ${{ secrets.MT_USER }}
+  MT_PSWD: ${{ secrets.MT_PSWD }}
+
+jobs:
+  build:
+    if: ${{(github.ref == 'refs/heads/main') || (github.event.pull_request.base.ref == 'main') || endsWith(github.event.repository.name, '-internal') }}
+    runs-on: ${{ endsWith(github.event.repository.name, '-internal') && 'netappdocs-runner'  || 'ubuntu-20.04' }}
+    steps:
+      - name: "Repository Checkout"
+        uses: actions/checkout@v2
+
+      - name: "Framework Checkout"
+        uses: actions/checkout@v2
+        with:
+          repository: 'NetAppDocs/jekyll'
+          token: ${{ env.GH_TOKEN }}
+          path: dependencies/jekyll
+          ref: ${{ env.FRAMEWORK_BRANCH }}
+
+      - name: "Copy GH actions"
+        run: mkdir -p $GITHUB_WORKSPACE/.github/actions/ && cp -R $GITHUB_WORKSPACE/dependencies/jekyll/.ci/actions/* $GITHUB_WORKSPACE/.github/actions/
+        shell: bash
+
+      - name: "Configure"
+        uses: ./.github/actions/pre-deploy
+
+      - name: "Generate HTML/PDF"
+        run: source $GITHUB_WORKSPACE/.ci/deploy/post_install.bash
+        shell: bash
+
+      - name: "Deploy"
+        if: ${{ github.event_name == 'push' }}
+        uses: ./.github/actions/deploy
+
+  i18n:
+    if: ${{(github.ref == 'refs/heads/main') && !endsWith( github.event.repository.name, '-internal') }}
+    needs: build
+    runs-on: ${{ endsWith(github.event.repository.name, '-internal') && 'netappdocs-runner'  || 'ubuntu-20.04' }}
+    steps:
+      - name: "Repository Checkout"
+        uses: actions/checkout@v2
+
+      - name: "Jekyll Checkout"
+        uses: actions/checkout@v2
+        with:
+          repository: 'NetAppDocs/jekyll'
+          token: ${{ env.GH_TOKEN }}
+          path: dependencies/jekyll
+          ref: ${{ env.FRAMEWORK_BRANCH }}
+
+      - name: "Copy GH actions"
+        run: mkdir -p $GITHUB_WORKSPACE/.github/actions/ && cp -R $GITHUB_WORKSPACE/dependencies/jekyll/.ci/actions/* $GITHUB_WORKSPACE/.github/actions/
+        shell: bash
+
+      - name: "Configure"
+        uses: ./.github/actions/pre-i18n
+
+      - name: "Translate content"
+        run: source $GITHUB_WORKSPACE/.ci/i18n/post_install.bash
+        shell: bash
