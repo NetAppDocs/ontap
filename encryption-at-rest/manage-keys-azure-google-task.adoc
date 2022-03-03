@@ -1,0 +1,74 @@
+---
+permalink: encryption-at-rest/manage-keys-azure-google-task.html
+sidebar: sidebar
+keywords: key management, Azure, AKV, key vault, NVE keys, third-party, GCP, google cloud, Cloud KMS
+summary: "Use Azure Key Vault (AKV) to streamline the protection of your ONTAP encryption keys."
+---
+= Manage keys with Azure Key Vault or Google Cloud KMS
+:icons: font
+:imagesdir: ../media/
+:hardbreaks:
+
+Beginning in ONTAP 9.10.1, you can use link:https://docs.microsoft.com/en-us/azure/key-vault/general/basic-concepts[Azure Key Vault (AKV)^] and link:https://cloud.google.com/kms/docs[Google Cloud Platform's Key Management Service (Cloud KMS)^] to protect your ONTAP encryption keys in a Azure- or Google Cloud Platform-deployed application.
+
+AKV and Cloud KMS can be used to protect link:configure-netapp-volume-encryption-concept.html[NetApp Volume Encryption (NVE) keys] only for data vservers. 
+
+Key management with AKV or Cloud KMS can be enabled with the CLI or the ONTAP REST API. 
+
+When using AKV or Cloud KMS, be aware that by default a data vserver LIF is used to communicate with the cloud key management endpoint. A node management network is used to communicate with the cloud provider's authentication services (login.microsoftonline.com for Azure; oauth2.googleapis.com for Cloud KMS). If the cluster network is not configured correctly, the cluster will not properly utilize the key management service. 
+
+.Prerequisites
+* The ONTAP cluster's nodes must support NVE 
+* Volume Encryption (VE) license installed 
+* Multi-tenant Encryption Key Management (MTEKM) license installed 
+* You must be a cluster or vserver administrator 
+
+.Limitations
+* AKV and Cloud KMS are not available for NSE and NAE. link:enable-external-key-management-96-later-nve-task.html[External KMIPs] can be used instead 
+* AKV and Cloud KMS are not available for MetroCluster configurations.
+* AKV and Cloud KMS can only be configured on a data vserver 
+
+== Enable external key management with the CLI 
+
+[role="tabbed-block"]
+====
+.Azure
+--
+.Enable AKV with the CLI
+. Before you begin, you need to obtain the appropriate authentication credentials from your Azure account, either a client secret or certificate. 
++
+You must also ensure all nodes in the cluster are healthy. You can check this with the command `cluster show`.
+. Set privileged level to advanced 
+`set -priv advanced`
+. Enable AKV on the SVM
+`security key-manager external azure enable -client-id _client_id_ -tenant-id _tenant_id_ -name -key-id _key_id_ -authentication-method {certificate|client-secret}`
++
+When prompted, enter either the client certificate or client secret from your Azure account. 
+. Verify AKV is enabled correctly: 
+`security key-manager external azure show vserver _vserver_name_`
+If the service reachability is not OK, establish the connectivity to the AKV key management service via data vserver LIF. 
+--
+
+.Google Cloud
+--
+.Enable Cloud KMS with the CLI 
+. Before you begin, you need to obtain the private key for the Google Cloud KMS account key file in a JSON format. This can be found in your GCP account.  
++
+You must also ensure all nodes in the cluster are healthy. You can check this with the command `cluster show`.
+. Set privileged level to advanced 
+`set -priv advanced`
+. Enable Cloud KMS on the SVM 
+`security key-manager external gcp enable -vserver _data_svm_name_ -project-id _project_id_-key-ring-name _key_ring_name_ -key-ring-location _key_ring_location_ -key-name _key_name_` 
++
+When prompted, enter the contents of the JSON file with the Service Account Private Key 
+. Verify that Cloud KMS is configured with the correct parameters: 
+`security key-manager external gcp show vserver _vserver_name_`
+The status of `kms_wrapped_key_status` will be `“UNKNOWN”` if no encrypted volumes have been created.
+If the service reachability is not OK, establish the connectivity to the GCP key management service via data vserver LIF.
+--
+
+====
+
+If one or more encrypted volumes is already configured for a data vserver and the corresponding NVE keys are managed by the admin vserver onboard key manager, those keys should be migrated to the external key management service. To do this with the CLI, run:  
+`security key-manager key migrate -from-Vserver _admin_vserver_ -to-Vserver _data_vserver_`
+New encrypted volumes cannot be created for the tenant's data vserver until all NVE keys of the data vserver are successfully migrated. 

@@ -24,7 +24,7 @@ When you sanitize a self-encrypting drive, the system changes the disk encryptio
 . Migrate any data that needs to be preserved to an aggregate on another disk.
 . Delete the aggregate on the FIPS drive or SED to be sanitized:
 +
-`storage aggregate delete -aggregate aggregate_name`
+`storage aggregate delete -aggregate _aggregate_name_`
 +
 For complete command syntax, see the man page.
 +
@@ -34,7 +34,7 @@ cluster1::> storage aggregate delete -aggregate aggr1
 
 . Identify the disk ID for the FIPS drive or SED to be sanitized:
 +
-`storage encryption disk show`
+`storage encryption disk show -fields data-key-id,fips-key-id,owner`
 +
 For complete command syntax, see the man page.
 +
@@ -47,10 +47,23 @@ Disk    Mode Data Key ID
 1.10.2  data F1CB30AFF1CB30B00101000000000000CF0EFD81EA9F6324EA97B369351C56AC
 [...]
 ----
+. If a FIPS drive is running in FIPS-compliance mode, set the FIPS authentication key ID for the node back to the default MSID 0x0:
++
+`storage encryption disk modify -disk _disk_id_ -fips-key-id 0x0`
++
+You can use the `security key-manager query` command to view key IDs.
++
+----
+cluster1::> storage encryption disk modify -disk 1.10.2 -fips-key-id 0x0
 
+Info: Starting modify on 1 disk.
+      View the status of the operation by using the
+      storage encryption disk show-status command.
+----
++
 . Sanitize the drive:
 +
-`storage encryption disk sanitize -disk disk_id`
+`storage encryption disk sanitize -disk _disk_id_`
 +
 You can use this command to sanitize hot spare or broken disks only. To sanitize all disks regardless of type, use the `-force-all-state` option. For complete command syntax, see the man page.
 +
@@ -69,3 +82,5 @@ Info: Starting sanitize on 1 disk.
       View the status of the operation using the
       storage encryption disk show-status command.
 ----
+
+// 2022 jan 25, BURT 1452520 

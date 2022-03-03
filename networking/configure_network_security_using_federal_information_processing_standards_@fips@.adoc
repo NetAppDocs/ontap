@@ -12,12 +12,6 @@ summary:  Federal Information Processing Standards (FIPS) 140-2 compliant for al
 :linkattrs:
 :imagesdir: ./media/
 
-//
-// Created with NDAC Version 2.0 (August 17, 2020)
-// restructured: March 2021
-// enhanced keywords May 2021
-//
-
 [.lead]
 ONTAP is compliant in the Federal Information Processing Standards (FIPS) 140-2 for all SSL connections. You can turn on and off SSL FIPS mode, set SSL protocols globally, and turn off any weak ciphers such as RC4 within ONTAP.
 
@@ -29,17 +23,20 @@ By default, SSL on ONTAP is set with FIPS compliance disabled and SSL protocol e
 
 When SSL FIPS mode is enabled, SSL communication from ONTAP to external client or server components outside of ONTAP will use FIPS compliant crypto for SSL.
 
+If you want administrator accounts to access SVMs with an SSH public key, you must ensure that the host key algorithm is supported before enabling SSL FIPS mode.
+
+* Supported key types: ecdsa-sha2-nistp256, ssh-ed25519
+* Unsupported key types: ssh-rsa, ssh-dss
+
+Existing SSH public key accounts without the supported key algorithms must be reconfigured with a supported key type before enabling FIPS, or the administrator authentication will fail.
+
+For more information, see link:../authentication/enable-ssh-public-key-accounts-task.html[Enable SSH public key accounts].
+
+For more information about SSL FIPS mode configuration, see the `security config modify` man page.
+
 == Enable FIPS
 
 It is recommended that all secure users adjust their security configuration immediately after system installation or upgrade. When SSL FIPS mode is enabled, SSL communication from ONTAP to external client or server components outside of ONTAP will use FIPS compliant crypto for SSL.
-
-.About this task
-
-The following settings are recommended to enable FIPS:
-
-* `FIPS: on`
-* `SSL protocol = {TLSv1.2}`
-* `SSL ciphers = {ALL:!LOW:!aNULL:!EXP:!eNULL:!RC4}`
 
 .Steps
 
@@ -70,14 +67,6 @@ Do you want to continue? {y|n}: y
 
 If you are still running an older system configuration and want to configure ONTAP with backward compatibility, you can turn on SSLv3 only when FIPS is disabled.
 
-.About this task
-
-The following settings are recommended to disable FIPS:
-
-* `FIPS = false`
-* `SSL protocol = {SSLv3}`
-* `SSL ciphers = {ALL:!LOW:!aNULL:!EXP:!eNULL}`
-
 .Steps
 
 . Change to advanced privilege level:
@@ -86,7 +75,7 @@ The following settings are recommended to disable FIPS:
 
 . Disable FIPS by typing:
 +
-`security config modify -interface SSL -supported-protocols SSLv3`
+`security config modify -interface SSL -is-fips-enabled false`
 
 . When prompted to continue, enter `y`.
 
@@ -112,7 +101,7 @@ You can see whether the entire cluster is running the current security configura
 
 . One by one, reboot each node in the cluster.
 +
-Do not reboot all cluster nodes simultaneously. A reboot is required to make sure that all applications in the cluster are running the new security configuration, and for all changes to FIPS on/off mode, Protocols, and Ciphers.
+Do not reboot all cluster nodes simultaneously. A reboot is required to make sure that all applications in the cluster are running the new security configuration, and for all changes to FIPS on/off mode, protocols, and ciphers.
 
 . View the current compliance status:
 +
@@ -129,3 +118,6 @@ Interface FIPS Mode  Supported Protocols     Supported Ciphers Config Ready
 SSL       false      TLSv1_2, TLSv1_1, TLSv1 ALL:!LOW:!aNULL:  yes
                                              !EXP:!eNULL
 ....
+
+// 2022-01-17, BURT 1448836
+// 2022 Feb 04, BURT 1453350
