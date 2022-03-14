@@ -11,18 +11,37 @@ summary: "You can remove unwanted nodes from a cluster, one node at a time. Afte
 [.lead]
 You can remove unwanted nodes from a cluster, one node at a time. After you remove a node, you must also remove its failover partner. If you are removing a node, then its data becomes inaccessible or erased.
 
-.What you'll need
+.Before you begin
+
+The following conditions must be satisfied before removing nodes from the cluster:
 
 * More than half of the nodes in the cluster must be healthy.
 * All of the data on the node that you want to remove must have been evacuated.
-* All intercluster LIFs must have been removed.
-+
-[NOTE]
-====
-When you remove intercluster LIFs a warning is displayed that can be ignored.
+** This might include link:../encryption-at-rest/secure-purge-data-encrypted-volume-concept.html[purging data from an encrypted volume].
 
-You must not perform operations such as `cluster remove-node`, `cluster unjoin`, and `node rename` when an automated ONTAP upgrade is in progress.
-====
+* All volumes have been link:../volumes/move-volume-task.html[moved] or link:../volumes/delete-flexvol-task.html[deleted] from aggregates owned by the node.
+
+* All aggregates have been link:../disks-aggregates/commands-manage-aggregates-reference.html[deleted] from the node.
+
+* If the node owns self-encrypting disks (SEDs), link:../encryption-at-rest/return-seds-unprotected-mode-task.html[disk encryption has been removed] by returning SEDs.
+** You might also want to link:../encryption-at-rest/sanitize-fips-drive-sed-task.html[sanitize FIPS or SED drives].
+
+* Data LIFs have been link:../networking/delete_a_lif.html[deleted] or link:../networking/migrate_a_lif.html[relocated] from the node.
+
+* Cluster management LIFs have been link:../networking/migrate_a_lif.html[relocated] from the node and the home ports changed.
+
+* All intercluster LIFs have been link:../networking/delete_a_lif.html[removed].
+** When you remove intercluster LIFs a warning is displayed that can be ignored.
+
+* Storage failover has been link:../high-availability/ha_commands_for_enabling_and_disabling_storage_failover.html[disabled] for the node.
+
+* All LIF failover rules have been link:../networking/commands_for_managing_failover_groups_and_policies.html[modified] to remove ports on the node.
+
+* All VLANs on the node have been link:../networking/configure_vlans_over_physical_ports.html#delete-a-vlan[deleted].
+
+It is recommended that you issue an AutoSupport message to notify NetApp technical support that node removal is underway.
+
+*Note:* You must not perform operations such as `cluster remove-node`, `cluster unjoin`, and `node rename` when an automated ONTAP upgrade is in progress.
 
 .About this task
 
@@ -31,34 +50,14 @@ If you are running a mixed-version cluster, you can remove the last low-version 
 * ONTAP 9.3: `cluster unjoin -skip-last-low-version-node-check`
 * ONTAP 9.4 and later: `cluster remove-node -skip-last-low-version-node-check`
 
-[NOTE]
-====
-You must make all of the system and user data from the disks that are connected to the node inaccessible to users before removing a node from the cluster. After removing a node from the cluster, if you need to join the node back to the same cluster, contact technical support for assistance about restoring data.
-====
+*Note:* You must make all of the system and user data from the disks that are connected to the node inaccessible to users before removing a node from the cluster. After removing a node from the cluster, if you need to join the node back to the same cluster, contact technical support for assistance about restoring data.
 
 .Steps
 
 . Change the privilege level to advanced:
 +
 `*set -privilege advanced*`
-. If Storage Encryption is enabled on the cluster and the self-encrypting disks (SEDs) are operating you must set the data-id-key to 0x0.
- .. Set the data-id-key to 0x0:
-+
-`*storage encryption disk modify -disk \[_disk_path_name_\] -data-key-id 0x0*`
 
- .. Optional: If Storage Encryption is enabled and the SEDs are operating in the Federal Information Processing Standard (FIPS) compliance mode, in addition to setting the data-id-key you must also disable the FIPS compliance mode.
-+
-This enables the disks that are attached to the node to be sanitized and repurposed after the node is removed from the cluster.
-
-  *** Display the SEDs that are currently in the FIPS compliance mode:
-+
-`*storage encryption disk show -fips*`
-  *** Disable the FIPS compliance mode:
-+
-`*storage encryption disk modify disk [_disk_path_name_]-fips-key-id 0x0*`
-  *** Verify that the modified SEDs are no longer in the FIPS compliance mode:
-+
-`*storage encryption disk show -fips*`
 . If the node you want to remove is the current master node, then enable another node in the cluster to be elected as the master node by changing the master node's cluster eligibility to `false`:
 +
 `*cluster modify –eligibility false*`
@@ -109,3 +108,5 @@ The node is automatically rebooted after it is successfully removed from the clu
 .After you finish
 
 If you removed nodes to have a single-node cluster, you should modify the cluster ports to serve data traffic by modifying the cluster ports to be data ports, and then creating data LIFs on the data ports.
+
+// 2022-03-10, BURT 1453521
