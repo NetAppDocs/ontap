@@ -1,0 +1,42 @@
+---
+sidebar: sidebar
+permalink: encryption-at-rest/configure-cluster-key-server-task.html
+keywords: KMIP, clustered key server, external key server
+summary: Beginning with ONTAP 9.11.1, you can set up clustered key server, supporting up to four key servers per vserver. 
+---
+= Configure clustered external key servers
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+Beginning in 9.11.1, ONTAP offers clustered key servers, a simplified solution to support multiple external key managers in your up to 4 external key servers per vserver.
+Considerations
+
+== Before you begin
+* External key servers can be used for NSE, NVE, and NAE keys
+* KMIP key management is already enabled for the vserver
+* This process only supports key servers that use KMIP. For a list of support key servers, check the link:http://mysupport.netapp.com/matrix/[NetApp Interoperability Matrix Tool^]. Search ____ to find this list. 
+* All nodes in the cluster must be running ONTAP 9.11.1 or later
+* A max of four primary key serves for the vserver
+* The order of servers list arguments in the `-secondary-key-servers` parameter reflects the access order of the CLI servers
+
+== Procedures
+
+The configuration procedure depends on the existing 
+
+.Add a cluster where no external key servers exist
+. Confirm that no key management has been enabled for the cluster:
+`security key-manager external show -vserver _vserver_name_`
+. Enable the primary key manager: 
+`security key-manager external enable -vserver _vserver_name_ -key-servers _server_ip_`
+. Use the `security key-manager external modify-server` command to add a secondary key servers. The `-secondary-key-servers` parameter accepts a comma-separated list of up to three IP addresses. 
+`security key-manager external modify-server -vserver _vserver_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
+
+
+=== Altering secondary key managers
+
+If you are changing the primary key server, you must first remove all secondary key servers. To remove all keys, set the argument of `secondary-key-servers` to `-`, signifying an empty list.
+The order of the arguments for `secondary-key-servers` determines the order in which the the key managers will be accessed. The order can be changed with the CLI command `security key-manager external modify-server`. If you run this command with an existing key manager omitted from the list, it will be removed as a secondary key manager.
