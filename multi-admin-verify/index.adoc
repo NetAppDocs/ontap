@@ -1,0 +1,106 @@
+---
+sidebar: sidebar
+permalink: /multi-admin-verify/index.html
+keywords:
+summary: "Beginning with ONTAP 9.11.1, you can use multi-admin verification (MAV) functionality to ensure that certain operations can be executed only after approvals from designated administrators. "
+---
+
+= Multi-admin verification overview
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+Beginning with ONTAP 9.11.1, you can use multi-admin verification (MAV) functionality to ensure that certain operations can be executed only after approvals from designated administrators. This helps prevent compromised, malicious, or inexperienced administrators from making undesirable changes or deleting data.
+
+MAV functionality can be configured and used from ONTAP System Manager or from the ONTAP command line interface (CLI).
+
+Configuring multi-admin verification consists of:
+
+* Creating one or more administrator verification groups [link:manage-groups-task.html]
+* Enabling multi-admin verification functionality [link:enable-disable-task.html]
+* Adding or modifying rules [link:manage-rules-task.html]
+
+After initial configuration, these elements can be modified only by MAV administrators; that is, administrators with multi-admin verification credentials.
+
+When multi-admin verification is enabled, the completion of every protected operation requires two steps:
+* when a user initiates the operation, a request is generated. [link:request-operation-task.html]
+* before it can be executed, at least one MAV administrator must approve. [link:manage-requests-task.html]
+
+NOTE: If you need to disable multi-admin verification functionality without MAV administrator approval, contact NetApp Support about the procedure.
+
+== How multi-admin verification works
+
+Multi-admin verification functionality consists of:
+* A group of one or more administrators with approval and veto powers.
+* A set of protected operations in a rules table.
+* A rules engine to identify and control execution of protected operations.
+
+MAV rules are evaluated after role-based access control (RBAC) rules. Therefore, administrators who execute or approve protected operations must already possess the minimum RBAC privileges for those operations. Learn more about RBAC. [link:../authentication/manage-access-control-roles-concept.html]
+
+When multi-admin verification is enabled, system-default rules (also known as guard-rail rules) establish a set of MAV operations to contain the risk of circumventing the MAV process itself. These operations cannot be removed from the rules table. Once MAV is enabled, operations designated by an asterisk (*) require approval by one or more administrators before execution, except for show commands.
+
+* `security multi-admin-verify modify*`
+Controls the configuration of multi-admin verification functionality.
+* `security multi-admin-verify approval-group operations*`
+Control membership in the set of administrators with multi-admin verification credentials.
+* `security multi-admin-verify rule operations*`
+Control the set of commands requiring multi-admin verification.
+•	security multi-admin-verify request operations
+Control the approval process.
+
+In addition to the system-default commands, the following commands are protected by default when multi-admin verification is enabled, but you can modify the rules to remove protection for these commands.
+* security login password
+* security login unlock
+* set
+
+The following commands can be protected in ONTAP 9.11.1.
+
+`cluster peer delete`
+`event config`
+system node run
+system node systemshell
+volume delete
+volume snapshot autodelete
+volume snapshot delete	volume snapshot policy
+volume snapshot policy add-schedule
+volume snapshot policy create
+volume snapshot policy modify-schedule
+volume snapshot policy remove-schedule
+volume snapshot restore
+
+
+== How multi-admin approval works
+
+Any time a protected operation is entered on a MAV-protected cluster, an operation execution request is automatically generated and sent to the designated MAV administrator group.
+
+You can configure:
+* The names, contact information, and number of administrators in the MAV group (one or more).
+A MAV administrator should have an RBAC role with cluster administrator privileges.
+* The number of MAV administrator groups (one or more).
+** A MAV group is assigned for each protected operation rule.
+** For multiple MAV groups, you can configure which MAV group approves a given rule.
+* The number of MAV approvals required to execute a protected operation.
+* An approval expiry period within which a MAV administrator must respond to an approval request.
+* An execution expiry period within which the requesting administrator must complete the operation.
+
+Once these parameters are configured, MAV approval is required to modify them.
+
+MAV administrators cannot approve their own requests to execute protected operations. Therefore:
+
+* MAV should not be enabled on clusters with only one administrator.
+* If there is only one person in the MAV group, that MAV administrator cannot enter protected operations; regular administrators must enter them and the MAV administrator can only approve.
+* If you want MAV administrators to be able to execute protected operations, the number of MAV administrators must be one greater than the number of approvals required.
+For example, if two approvals are required for a protected operation, and you want MAV administrators to execute them, there must be three people in the MAV administrators group.
+
+MAV administrators can receive approval requests in email alerts (using EMS) or they can query the request queue.  When they receive a request, they can take one of three actions:
+* approve
+* reject (veto)
+* ignore (no action)
+
+== How protected operation execution works
+
+If execution is approved for a protected operation, the requesting user continues with the operation when prompted. If the operation is vetoed, the requesting user must delete the request before proceeding.
+
+MAV rules are evaluated after RBAC permissions. A user without sufficient RBAC permissions for operation execution cannot initiate the MAV request process.
