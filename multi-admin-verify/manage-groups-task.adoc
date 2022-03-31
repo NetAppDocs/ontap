@@ -1,0 +1,126 @@
+---
+sidebar: sidebar
+permalink: multi-admin-verify/manage-groups-task.html
+keywords: ontap, mav, overview, multi, admin, administrator,
+summary: "Beginning with ONTAP 9.11.1, you can use multi-admin verification (MAV) functionality to ensure that certain operations can be executed only after approvals from designated administrators. "
+---
+= Manage administrator groups
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Before enabling multi-admin verification (MAV), you must create an admin approval group containing one or more administrators to be granted approve or veto authority. Once you have enabled multi-admin verification, any modifications to approval group membership requires approval from one of the existing qualified administrators.
+
+.About this task
+You can add existing administrators to a MAV group or create new administrators.
+
+MAV functionality honors existing role-based access control (RBAC) settings. Potential MAV administrators must have sufficient privilege to execute protected operations before they are added to MAV administrator groups. link:../authentication/create-svm-user-accounts-task.html[Learn more about RBAC.]
+
+You can configure MAV to alert MAV administrators that approval requests are pending. To do so, you must have already configured EMS to send email notifications; in particular, the Mail From and Mail Server parameters. Without email alerts, MAV administrators must check the approval queue manually.
+
+== System Manager procedure
+
+If you want to create a MAV approval group for the first time, see the System Manager procedure to enable multi-admin verification. [link:enable-disable-task.html#system-manager-procedure]
+
+To modify an existing approval group or create an additional approval group:
+
+. Identify administrators to receive multi-admin verification.
+.. Click *Cluster > Settings.*
+.. Click image:icon_arrow.gif[blue arrow icon] next to Users and Roles.
+.. Click image:icon_add.gif[add icon] under Users.
+.. Modify the roster as needed.
++
+For more information, see link:../task_security_administrator_access.html[Control administrator access.]
++
+.	Create or modify the MAV approval group:
+.. Click *Cluster > Settings.*
+.. Click image:icon_arrow.gif[blue arrow icon] next to *Multi-Admin Approval* in the *Security* section.
++
+*	Name – Enter a group name.
+* Approvers – Select approvers from a list of users.
+* Email address – Enter email address(es).
+* Default group – Select a group.
+
+MAV approval is required to edit an existing configuration once MAV is enabled.
+
+== CLI procedure
+
+. Verify that values have been set for the Mail From and Mail Server parameters. Enter:
++
+`event config show`
++
+The display should be similar to the following:
++
+----
+cluster01::> event config show
+                           Mail From:  admin@localhost
+                         Mail Server:  localhost
+                           Proxy URL:  -
+                          Proxy User:  -
+ Publish/Subscribe Messaging Enabled:  true
+
+To configure these parameters, enter:
+event config modify -mail-from email_address -mail-server server_name
+----
++
+link:../error-messages/configure-ems-events-send-email-task.html[Learn more about configuring EMS to send email events.]
+
+. Identify administrators to receive multi-admin verification
++
+[cols=2*,options="header",cols="50,50"]
+|===
+| If you want to…
+| Enter this command
+| Display current administrators | `security login show`
+| Modify credentials of current administrators | `security login modify _<parameters>_`
+| Create new administrator accounts | `security login create -user-or-group-name _admin_name_ -application ssh -authentication-method password`
+
+|===
+
+.	Create the MAV approval group:
++
+`security multi-admin-verify approval-group create [ -vserver _svm_name_] -name _group_name_ -approvers _approver1_[,_approver2_…] [-email _address1_], _address1_...]`
++
+*	`-vserver`- You can optionally specify the SVM with which the group is associated. By default, the group is associated with the admin SVM.
+* `-name` – The MAV group name, up to 64 characters.
+* `-approvers` – The list of one or more approvers.
+* `-email` – One or more email addresses that are notified when a request is created, approved, vetoed, or executed.
++
+*Example:*
++
+The following command creates a MAV group with two members and associated email addresses.
++
+----
+cluster-1::> security multi-admin-verify approval-group create -name mav-grp1 -approvers pavan,julia -email pavan@myfirm.com,julia@myfirm.com
+----
+
+.	Verify group creation and membership:
++
+`security multi-admin-verify approval-group show [-instance]`
++
+*Example:*
++
+----
+cluster-1::> security multi-admin-verify approval-group show -instance
+Vserver  Name        Approvers        Email
+-------  ---------------- ------------------  ------------------------------------------------------------
+svm-1    mav-grp1   pavan,julia      email pavan@myfirm.com,julia@myfirm.com
+----
+
+Use these commands to modify your initial MAV group configuration.
+
+NOTE: All require MAV administrator approval before execution.
+
+[cols=2*,options="header",cols="50,50"]
+|===
+| If you want to…
+| Enter this command
+| Modify the group characteristics or modify existing member information | `security multi-admin-verify approval-group modify [_parameters_]`
+| Add or remove members | `security multi-admin-verify approval-group replace [-vserver _svm_name_] -name _group_name_ [-approvers-to-add _approver1_[,_approver2_…]][-approvers-to-remove _approver1_[,_approver2_…]]`
+| Delete a group | `security multi-admin-verify approval-group delete [-vserver _svm_name_] -name _group_name_`
+
+|===
+
+
+
+// TBA
