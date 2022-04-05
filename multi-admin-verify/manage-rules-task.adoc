@@ -1,0 +1,115 @@
+---
+sidebar: sidebar
+permalink: multi-admin-verify/manage-rules-task.html
+keywords: ontap, mav, multi, admin, verification, administrator, protected, operation, rules, manage
+summary: "You create multi-admin verification (MAV) rules to designate operations requiring approval. Whenever an operation is initiated, protected operations are intercepted and a request for approval is generated"
+---
+= Manage protected operation rules
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You create multi-admin verification (MAV) rules to designate operations requiring approval. Whenever an operation is initiated, protected operations are intercepted and a request for approval is generated.
+
+Rules can be created before enabling MAV by any administrator with appropriate RBAC capabilities, but once MAV is enabled, any modification to the rule set requires MAV approval.
+
+You can create rules for the following commands ONTAP 9.11.1.
+
+[cols="2*"]
+|===
+
+a|
+`cluster peer delete`
+
+`event config`
+
+`system node run`
+
+`system node systemshell`
+
+`volume delete`
+
+`volume snapshot autodelete`
+
+`volume snapshot delete`
+a|
+`volume snapshot policy`
+
+`volume snapshot policy add-schedule`
+
+`volume snapshot policy create`
+
+`volume snapshot policy modify-schedule`
+
+`volume snapshot policy remove-schedule`
+
+`volume snapshot restore`
+
+|===
+
+
+In addition, the following commands are protected by default when MAV is enabled, but you can modify the rules to remove protection for these commands.
+
+* `security login password`
+* `security login unlock`
+* `set`
+
+The rules for MAV system-default commands – the `security multi-admin-verify` commands – cannot be altered.
+
+When you create a rule, you can optionally specify the `-query` option to limit the request to a subset of the command functionality. For example, in the default set command, `-query` is set to `-privilege diag`, meaning that a request is generated for the set command only when -privilege diag is specified.
+----
+smci-vsim20::> security multi-admin-verify rule show
+                                               Required  Approval
+Vserver Operation                              Approvers Groups
+------- -------------------------------------- --------- -------------
+vs01    set                                    -         -
+          Query: -privilege diagnostic
+----
+By default, rules specify that a corresponding `security multi-admin-verify request create _“protected_operation”_` command is generated automatically when a protected operation is entered. You can modify this default to require that the `request create` command be entered separate.
+
+By default, rules inherit the following global MAV settings, although you can specify rule-specific exceptions:
+
+* Required Number of Approvers
+* Approval Groups
+* Approval Expiry period
+* Execution Expiry period
+
+== System Manager procedure
+
+If you want to add a protected operation rule for the first time, see the System Manager procedure to link:enable-disable-task.html#system-manager-procedure[enable multi-admin verification.]
+
+To modify the existing rule set:
+
+. Click *Cluster > Settings*.
+. Click image:icon_gear.gif[gear icon] next to *Multi-Admin Approval* in the *Security* section.
+. Click image:icon_add.gif[add icon] to add at least one rule; you can also modify or delete existing rules.
++
+* Operation – Select a supported command from the list.
+* Query – Enter any desired command options and values.
+* Optional parameters; leave blank to apply global settings, or assign a different value for specific rules to override the global settings.
+** Required number of approvers
+** Approval groups
+
+== CLI procedure
+
+NOTE: All `security multi-admin-verify rule` commands require MAV administrator approval before execution except `security multi-admin-verify rule show`.
+
+[cols=2*,options="header",cols="50,50"]
+|===
+| If you want to…
+| Enter this command
+| Create a rule a| `security multi-admin-verify rule create -operation _“protected_operation”_ [-query _operation_subset_] [_parameters_]`
+| Modify credentials of current administrators a| `security login modify _<parameters>_`
+
+*Example*: the following rule requires approval to delete the root volume.
+
+`security multi-admin-verify rule create  -operation "volume delete" -query "-vserver vs0`
+| Modify a rule a| `security multi-admin-verify rule modify -operation _“protected_operation”_ [_parameters_]`
+|Delete a rule a| `security multi-admin-verify rule delete -operation _“protected_operation”_`
+| Show rules a| `security multi-admin-verify rule show`
+
+|===
+
+For command syntax details, see the `security multi-admin-verify rule` man pages.
+
+// TBA
