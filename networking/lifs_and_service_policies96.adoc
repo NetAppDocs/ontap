@@ -12,13 +12,6 @@ summary: Assign service policies to LIFs to specify the supported traffic
 :linkattrs:
 :imagesdir: ./media/
 
-//
-// Created with NDAC Version 2.0 (August 17, 2020)
-// restructured: March 2021
-// enhanced keywords May 2021
-// CSAR 1408595
-// November 2021 IE-386, IE-387, IE-388
-//
 
 [.lead]
 You can assign service policies (instead of LIF roles) to LIFs that determine the kind of traffic that is supported for the LIFs. Service policies define a collection of network services supported by a LIF. ONTAP provides a set of built-in service policies that can be associated with a LIF.
@@ -30,7 +23,7 @@ You can display service policies and their details using the following command:
 
 The admin SVM and any system SVM contain service policies that can be used for LIFs in that SVM, including management and intercluster LIFs. These policies are automatically created by the system when an IPspace is created.
 
-The following table lists the built-in policies for LIFs in system SVMs as of ONTAP 9.10.1. For other releases, display the service policies and their details using the following command:
+The following table lists the built-in policies for LIFs in system SVMs as of ONTAP 9.11.1. For other releases, display the service policies and their details using the following command:
 
 `network interface service-policy show`
 
@@ -51,14 +44,13 @@ a|-
 a|Used by LIFs carrying BGP peer connections
 Note: Available from ONTAP 9.5 with the name net-route-announce service policy.
 a|default-management
-a|management-core, management-https, management-http, management-ssh management-autosupport, management-ems, management-ntp-client, management-snmp-server, management-ntp-server, backup-ndmp-control
+a|management-core, management-https, management-http, management-ssh, management-autosupport, management-ems, management-dns-client, management-ad-client, management-ldap-client, management-nis-client, management-ntp-client
 a|node-mgmt, or cluster-mgmt
-a|Used by LIFs handling system-scoped management requests. Management-ems controls which LIFs can publish EMS content.
-The system-scoped management policy is used to create node-scoped and cluster-scoped management LIFs owned by a system SVM. These LIFs can be used for outbound connections to NTP or DNS servers as well as some additional connections to support applications run on behalf of the entire system.
+a|Use this system scoped management policy to create node- and cluster-scoped management LIFs owned by a system SVM. These LIFs can be used for outbound connections to DNS, AD, LDAP, or NIS servers as well as some additional connections to support applications that run on behalf of the entire system.
 
 |===
 
-The following table lists the services that LIFs can use on a system SVM as of ONTAP 9.10.1:
+The following table lists the services that LIFs can use on a system SVM as of ONTAP 9.11.1:
 
 [cols="25,25,50"]
 |===
@@ -94,10 +86,12 @@ a|-
 a|Services for management messaging access
 a|management-ntp-client
 a|-
-a|Services for NTP client access.
+a|Introduced in ONTAP 9.11.1.
+Services for NTP client access.
 a|management-ntp-server
 a|system-only
-a|Services for NTP server management access
+a|Introduced in ONTAP 9.11.1.
+Services for NTP server management access
 a|management-portmap
 a|-
 a|Services for portmap management
@@ -117,7 +111,7 @@ a|Services for telnet server management
 
 All data SVMs contain service policies that can be used by LIFs in that SVM.
 
-The following table lists the built-in policies for LIFs in data SVMs as of ONTAP 9.10.1. For other releases, display the service policies and their details using the following command:
+The following table lists the built-in policies for LIFs in data SVMs as of ONTAP 9.11.1. For other releases, display the service policies and their details using the following command:
 
 `network interface service-policy show`
 
@@ -127,20 +121,20 @@ The following table lists the built-in policies for LIFs in data SVMs as of ONTA
 h|Policy h|Included services h|Equivalent data protocol h|Description
 
 a|default-management
-a|data-core, management-ssh, management-https, data-dns-server, management-http, backup-ndmp-control, management-snmp-server
+a|management-https, management-http, management-ssh, management-dns-client, management-ad-client, management-ldap-client, management-nis-client
 a|none
-a|Used by LIFs handling SVM-scoped management to create SVM management LIFs owned by a data SVM. These LIFs can be used to provide SSH or HTTPS access to SVM administrators.
+a|Use this SVM-scoped management policy to create SVM management LIFs owned by a data SVM. These LIFs can be used to provide SSH or HTTPS access to SVM administrators. When necessary, these LIFs can be used for outbound connections to an external DNS, AD, LDAP, or NIS servers.
 a|default-data-blocks
 a|data-core, data-iscsi
 a|iscsi
 a|Used by LIFs carrying block-oriented SAN data traffic
 a|default-data-files
-a|data-core, data-nfs, data-cifs, data-flexcache, data-fpolicy-client
+a|data-fpolicy-client, data-dns-server, data-flexcache, data-cifs, data-nfs, management-dns-client, management-ad-client, management-ldap-client, management-nis-client
 a|nfs, cifs, fcache
-a|Use default-data-files policy to create NAS LIFs supporting file-based data protocols.
+a|Use the default-data-files policy to create NAS LIFs supporting file-based data protocols. Sometimes there is only one LIF present in the SVM, therefore this policy allows the LIF to be used for outbound connections to an external DNS, AD, LDAP, or NIS server. You can remove these connections to from this policy if you prefer these connections utilize only management LIFs.
 |===
 
-The following table lists the services that can be used on a data SVM along with any restrictions each service imposes on a LIF's failover policy as of ONTAP 9.10.1:
+The following table lists the services that can be used on a data SVM along with any restrictions each service imposes on a LIF's failover policy as of ONTAP 9.11.1:
 
 [cols="25,25,50"]
 |===
@@ -152,7 +146,8 @@ a|-
 a|Services for SSH management access
 a|management-http
 a|-
-a|Services for HTTP management access
+a|Introduced in ONTAP 9.10.1
+Services for HTTP management access
 a|management-https
 a|-
 a|Services for HTTPS management access
@@ -161,7 +156,8 @@ a|-
 a|Services for portmap management access
 a|management-snmp-server
 a|-
-a|Services for SNMP server management access
+a|Introduced in ONTAP 9.10.1
+Services for SNMP server management access
 a|data-core
 a|-
 a|Core data services
@@ -179,16 +175,19 @@ a|home-port-only
 a|iSCSI data service
 a|backup-ndmp-control
 a|-
-a|Backup NDMP controls data service
+a|Introduced in ONTAP 9.10.1
+Backup NDMP controls data service
 a|data-dns-server
 a|-
-a|DNS server data service
+a|Introduced in ONTAP 9.10.1
+DNS server data service
 a|data-fpolicy-client
 a|-
 a|File-screening policy data service
 a|data-nvme-tcp
 a|home-port-only
-a|NVMe TCP data service
+a|Introduced in ONTAP 9.10.1
+NVMe TCP data service
 a|data-s3-server
 a|-
 a|Simple Storage Service (S3) server data service
@@ -202,8 +201,7 @@ You should be aware of how the service policies are assigned to the LIFs in data
 +
 The default data services list includes the iSCSI, NFS, SMB, and FlexCache services.
 * When a LIF is created with a list of data protocols, a service policy equivalent to the specified data protocols is assigned to the LIF.
-+
-If an equivalent service policy does not exist, a custom service policy is created.
+* If an equivalent service policy does not exist, a custom service policy is created.
 * When a LIF is created without a service policy or list of data protocols, the default-data-files service policy is assigned to the LIF by default.
 
 == Data-core service
@@ -230,6 +228,18 @@ The following new services give administrators control over which LIFs are used 
 
 h|Service h|SVM restrictions h|Description
 
+a|management-ad-client
+a|-
+a|Beginning with ONTAP 9.11.1, ONTAP provides Active Directory client service for outbound connections to an external AD server.
+|management-dns-client
+a|-
+a|Beginning with ONTAP 9.11.1, ONTAP provides DNS client service for outbound connections to an external DNS server.
+|management-ldap-client
+a|-
+a|Beginning with ONTAP 9.11.1, ONTAP provides LDAP client service for outbound connections to an external LDAP server.
+|management-nis-client
+a|-
+a|Beginning with ONTAP 9.11.1, ONTAP provides NIS client service for outbound connections to an external NIS server.
 a|management-ntp-client
 a|system-only
 a|Beginning with ONTAP 9.10.1, ONTAP provides NTP client service for outbound connections to an external NTP server.
@@ -241,4 +251,12 @@ a|Beginning with ONTAP 9.8, ONTAP provides client service for outbound FPolicy c
 
 Each of the new services are automatically included in some of the built-in service policies, but administrators can remove them from the built-in policies or add them to custom policies to control which LIFs are used for outbound connections on behalf of each application.
 
-//8 nov 2021, git issue 242 (grammar)
+//
+// Created with NDAC Version 2.0 (August 17, 2020)
+// restructured: March 2021
+// enhanced keywords May 2021
+// CSAR 1408595
+// November 2021 IE-386, IE-387, IE-388
+// 8 nov 2021, git issue 242 (grammar)
+// update for 9.11.1 lif services april 2022
+//
