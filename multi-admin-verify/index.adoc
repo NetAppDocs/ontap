@@ -1,30 +1,31 @@
 ---
 sidebar: sidebar
 permalink: multi-admin-verify/index.html
-keywords: ontap, mav, overview, RBAC, protected, operation, multi, admin, administrator, verification, approval, rules,
-summary: "Beginning with ONTAP 9.11.1, you can use multi-admin verification (MAV) functionality to ensure that certain operations can be executed only after approvals from designated administrators. "
+keywords: ontap, mav, RBAC, protected, operation, multi-admin, administrator, verification, approval, rules
+summary: "Beginning with ONTAP 9.11.1, you can use multi-admin verification (MAV) functionality to ensure that certain operations, such as deleting volumes or Snapshot copies, can be executed only after approvals from designated administrators. "
 ---
 = Multi-admin verification overview
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.11.1, you can use multi-admin verification (MAV) functionality to ensure that certain operations can be executed only after approvals from designated administrators. This helps prevent compromised, malicious, or inexperienced administrators from making undesirable changes or deleting data.
+Beginning with ONTAP 9.11.1, you can use multi-admin verification (MAV) functionality to ensure that certain operations, such as deleting volumes or Snapshot copies, can be executed only after approvals from designated administrators. This prevents compromised, malicious, or inexperienced administrators from making undesirable changes or deleting data.
 
 MAV functionality can be configured and used from ONTAP System Manager or from the ONTAP command line interface (CLI).
 
 Configuring multi-admin verification consists of:
 
-*  link:manage-groups-task.html[Creating one or more administrator verification groups]
-*  link:enable-disable-task.html[Enabling multi-admin verification functionality]
-*  link:manage-rules-task.html[Adding or modifying rules]
+*  link:manage-groups-task.html[creating one or more administrator approval groups]
+*  link:enable-disable-task.html[enabling multi-admin verification functionality]
+*  link:manage-rules-task.html[adding or modifying rules]
 
 After initial configuration, these elements can be modified only by MAV administrators; that is, administrators with multi-admin verification credentials.
 
-When multi-admin verification is enabled, the completion of every protected operation requires two steps:
+When multi-admin verification is enabled, the completion of every protected operation requires three steps:
 
 * when a user initiates the operation, a link:request-operation-task.html[request is generated.]
 * before it can be executed, at least one link:manage-requests-task.html[MAV administrator must approve.]
+* upon approval, the user completes the operation.
 
 NOTE: If you need to disable multi-admin verification functionality without MAV administrator approval, contact NetApp Support about the procedure.
 
@@ -33,12 +34,12 @@ NOTE: If you need to disable multi-admin verification functionality without MAV 
 Multi-admin verification functionality consists of:
 
 * A group of one or more administrators with approval and veto powers.
-* A set of protected operations in a _rules table_.
+* A set of protected operations or commands in a _rules table_.
 * A _rules engine_ to identify and control execution of protected operations.
 
 MAV rules are evaluated after role-based access control (RBAC) rules. Therefore, administrators who execute or approve protected operations must already possess the minimum RBAC privileges for those operations. link:../authentication/manage-access-control-roles-concept.html[Learn more about RBAC.]
 
-When multi-admin verification is enabled, _system-default_ rules (also known as _guard-rail_ rules) establish a set of MAV operations to contain the risk of circumventing the MAV process itself. These operations cannot be removed from the rules table. Once MAV is enabled, operations designated by an asterisk ( * ) require approval by one or more administrators before execution, except for *show* commands.
+When multi-admin verification is enabled, system-defined rules (also known as _guard-rail_ rules) establish a set of MAV operations to contain the risk of circumventing the MAV process itself. These operations cannot be removed from the rules table. Once MAV is enabled, operations designated by an asterisk ( * ) require approval by one or more administrators before execution, except for *show* commands.
 
 * `security multi-admin-verify modify*`
 +
@@ -53,7 +54,7 @@ Control the set of commands requiring multi-admin verification.
 +
 Control the approval process.
 
-In addition to the system-default commands, the following commands are protected by default when multi-admin verification is enabled, but you can modify the rules to remove protection for these commands.
+In addition to the system-defined commands, the following commands are protected by default when multi-admin verification is enabled, but you can modify the rules to remove protection for these commands.
 
 *  `security login password`
 * `security login unlock`
@@ -67,7 +68,13 @@ The following commands can be protected in ONTAP 9.11.1.
 a|
 `cluster peer delete`
 
-`event config`
+`event config modify`
+
+`security login create`
+
+`security login delete`
+
+`security login modify`
 
 `system node run`
 
@@ -75,15 +82,19 @@ a|
 
 `volume delete`
 
-`volume snapshot autodelete`
+`volume flexcache delete`
+a|
+`volume snapshot autodelete modify`
 
 `volume snapshot delete`
-a|
-`volume snapshot policy`
 
 `volume snapshot policy add-schedule`
 
 `volume snapshot policy create`
+
+`volume snapshot policy delete`
+
+`volume snapshot policy modify`
 
 `volume snapshot policy modify-schedule`
 
@@ -91,6 +102,7 @@ a|
 
 `volume snapshot restore`
 
+`vserver peer delete`
 |===
 
 == How multi-admin approval works
@@ -124,10 +136,21 @@ MAV administrators can receive approval requests in email alerts (using EMS) or 
 * reject (veto)
 * ignore (no action)
 
+Email notifications are sent to all approvers associated with a MAV rule when:
+
+* a request is created.
+* a request is approved or vetoed.
+* an approved req.uest is executed.
+
+If the requestor is in the same approval group for the operation, they will receive an email when their request is approved.
+
+*Note:* A requestor can’t approve their own requests, even if they are in the approval group. But they can get the email notifications. Requestors who are not in approval groups (that is, who are not MAV administrators) don't receive email notifications.
+
+
 == How protected operation execution works
 
 If execution is approved for a protected operation, the requesting user continues with the operation when prompted. If the operation is vetoed, the requesting user must delete the request before proceeding.
 
 MAV rules are evaluated after RBAC permissions. A user without sufficient RBAC permissions for operation execution cannot initiate the MAV request process.
 
-// TBA
+// 2022-04-13, jira-467
