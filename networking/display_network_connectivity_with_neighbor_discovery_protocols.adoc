@@ -12,11 +12,6 @@ summary: Use neighbor discovery protocols to view network connectivity between a
 :linkattrs:
 :imagesdir: ./media/
 
-//
-// Created with NDAC Version 2.0 (August 17, 2020)
-// restructured: March 2021
-// enhanced keywords May 2021
-//
 
 [.lead]
 In a data center, you can use neighbor discovery protocols to view network connectivity between a pair of physical or virtual systems and their network interfaces. ONTAP supports two neighbor discovery protocols: Cisco Discovery Protocol (CDP) and Link Layer Discovery Protocol (LLDP).
@@ -41,7 +36,7 @@ Using CDP to detect network connectivity consists of reviewing deployment consid
 
 CDP must also be enabled on any switches and routers before information about neighbor devices can be displayed.
 
-CDP is also used by the cluster switch health monitor to automatically discover your cluster and management network switches.
+CDP is also used by the cluster switch health monitor to automatically discover your cluster, storage, and management network switches.
 
 .Related information
 
@@ -53,8 +48,8 @@ By default, CDP-compliant devices send CDPv2 advertisements. CDP-compliant devic
 
 You should consider the following information before enabling CDP on a node:
 
-* CDP is always enabled on cluster ports.
-* CDP is disabled, by default, on all non-cluster ports.
+* CDP is always enabled on cluster and storage ports.
+* CDP is disabled, by default, on all non-cluster and non-storage ports.
 * CDP is supported for all ports.
 * CDP advertisements are sent and received by ports that are in the up state.
 * CDP must be enabled on both the transmitting and receiving devices for sending and receiving CDP advertisements.
@@ -72,14 +67,14 @@ Sometimes when LIFs are changed on the node, the CDP information is not updated 
 
 === Enable or disable CDP
 
-To discover and send advertisements to CDP-compliant neighboring devices, CDP must be enabled on each node of the cluster. By default, CDP is enabled on all cluster ports of a node and disabled on all non-cluster ports of a node.
+To discover and send advertisements to CDP-compliant neighboring devices, CDP must be enabled on each node of the cluster. By default, CDP is enabled on all cluster and storage ports of a node and disabled on all non-cluster and non-storage ports of a node.
 
 .About this task
 
 The `cdpd.enable` option controls whether CDP is enabled or disabled on the ports of a node:
 
-* on enables CDP on non-cluster ports.
-* off disables CDP on non-cluster ports; you cannot disable CDP on cluster ports.
+* on enables CDP on non-cluster and non-storage ports.
+* off disables CDP on non-cluster and non-storage ports; you cannot disable CDP on cluster ports.
 
 When CDP is disabled on a port that is connected to a CDP-compliant device, network traffic might not be optimized.
 
@@ -117,7 +112,7 @@ You can view information about the neighboring devices that are connected to eac
 
 .About this task
 
-Because CDP is always enabled for cluster ports, CDP neighbor information is always displayed for those ports. CDP must be enabled on non-cluster ports for neighbor information to appear for those ports.
+Because CDP is always enabled for cluster and storage ports, CDP neighbor information is always displayed for those ports. CDP must be enabled on non-cluster and non-storage ports for neighbor information to appear for those ports.
 
 .Step
 
@@ -228,7 +223,7 @@ You can view the CDP statistics for the cluster and non-cluster ports on each no
 
 .About this task
 
-Because CDP is always enabled for cluster ports, CDP statistics are always displayed for traffic on those ports. CDP must be enabled on non-cluster ports for statistics to appear for those ports.
+Because CDP is always enabled for cluster and storage ports, CDP statistics are always displayed for traffic on those ports. CDP must be enabled on non-cluster or non-storage ports for statistics to appear for those ports.
 
 .Step
 
@@ -309,7 +304,17 @@ Certain converged network adapters (CNAs), such as the X1143 adapter and the UTA
 * LLDP offload is used for Data Center Bridging (DCB).
 * Displayed information might differ between the cluster and the switch.
 +
-For example, the Chassis ID and Port ID data displayed by the switch might be different for CNA and non-CNA ports, but the data displayed by the cluster is consistent for these port types.
+The Chassis ID and Port ID data displayed by the switch might be different for SNA and non-CNA ports.
+
+For example:
+
+* For non-CNA ports:
+** Chassis ID is a fixed MAC address of one of the ports on the node
+** Port ID is the port name of the respective port on the node
+* For CNA ports:
+** Chassis ID and Port ID are the MAC addresses of the respective ports on the node.
+
+However, the data displayed by the cluster is consistent for these port types.
 
 [NOTE]
 The LLDP specification defines access to the collected information through an SNMP MIB. However, ONTAP does not currently support the LLDP MIB.
@@ -320,10 +325,10 @@ To discover and send advertisements to LLDP-compliant neighboring devices, LLDP 
 
 .About this task
 
-The `lldp.enable` option controls whether LLDP is enabled or disabled on the ports of a node:
+The `lldp.enable` option controls whether LLDP is enabled or disabled on the non-cluster and non-storage ports of a node:
 
-* `on` enables LLDP on all ports.
-* `off` disables LLDP on all ports.
+* `on` enables LLDP on all non-cluster and non-storage ports.
+* `off` disables LLDP on all non-cluster and non-storage ports.
 
 .Steps
 
@@ -462,4 +467,67 @@ run -node <node_name> options lldp.xmit.hold <hold_value>
 options lldp.xmit.hold <hold_value>
 ....
 
+=== View or clear LLDP statistics
+
+You can view the LLDP statistics for the cluster and non-cluster ports on each node to detect potential network connectivity issues. LLDP statistics are cumulative from the time they were last cleared.
+
+.About this task
+
+Because LLDP is always enabled for cluster and storage ports, LLDP statistics are always displayed for traffic on those ports. LLDP must be enabled on non-cluster and non-storage ports for statistics to appear for those ports.
+
+.Step
+
+Display or clear the current LLDP statistics for all ports on a node:
+
+[cols="40,60"]
+|===
+
+h| If you want to... h| Enter...
+
+a|View the LLDP statistics
+a|`run -node node_name lldp stats`
+a|Clear the LLDP statistics
+a|`run -node node_name lldp stats -z`
+|===
+
+
+==== Show and clear statistics example
+
+The following command shows the LLDP statistics before they are cleared. The output displays the total number of packets that have been sent and received since the last time the statistics were cleared.
+
+....
+cluster-1::> run -node vsim1 lldp stats
+
+RECEIVE
+ Total frames:     190k  | Accepted frames:   190k | Total drops:         0
+TRANSMIT
+ Total frames:     5195  | Total failures:      0
+OTHER
+ Stored entries:      64
+....
+
+The following command clears the LLDP statistics.
+
+....
+cluster-1::> The following command clears the LLDP statistics:
+run -node vsim1 lldp stats -z
+run -node node1 lldp stats
+
+RECEIVE
+ Total frames:        0  | Accepted frames:     0  | Total drops:         0
+TRANSMIT
+ Total frames:        0  | Total failures:      0
+OTHER
+ Stored entries:      64
+....
+
+After the statistics are cleared, they begin to accumulate after the next LLDP advertisement is sent or received.
+
+
+//
+// Created with NDAC Version 2.0 (August 17, 2020)
+// restructured: March 2021
+// enhanced keywords May 2021
 // 08 DEC 2021, BURT 1430515
+// LLDP updates for 9.11.1 April 2022
+//
