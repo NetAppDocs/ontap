@@ -1,0 +1,66 @@
+---
+permalink: /nfs-admin/ldap-fast-bind-nsswitch-authentication-task.html
+sidebar: sidebar
+keywords: use, ldap, fast, bind, authentication, configure
+summary: "Beginning with ONTAP 9.11.1, you can take advantage of LDAP _fast bind_ functionality (also known as _concurrent bind_) for faster and simpler client authentication requests. To use this functionality, the LDAP server must support fast bind functionality"
+---
+= Use LDAP fast bind for nsswitch authentication
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.11.1, you can take advantage of LDAP _fast bind_ functionality (also known as _concurrent bind_) for faster and simpler client authentication requests. To use this functionality, the LDAP server must support fast bind functionality.
+
+.About this task
+
+Without fast bind, ONTAP uses LDAP simple bind to authenticate admin users with the LDAP server. With this authentication method, ONTAP sends a user or group name to the LDAP server, receives an authorized hash passcode, and compare the server hashcode with a hash passcode generated locally from the user password. If they are identical, ONTAP grants login permission.
+
+With fast bind functionality, ONTAP sends only user credentials (user name and password) to the LDAP server through a secure connection. The LDAP server then validates these credentials and instructs ONTAP to grant login permissions.
+
+One advantage of fast bind is that there is no need to configure hashing algorithms in ONTAP, because password hashing is performed by the LDAP server.
+
+link:https://docs.microsoft.com/en-us/openspecs/windows_protocols/ms-adts/dc4eb502-fb94-470c-9ab8-ad09fa720ea6[Learn about using fast bind.^]
+
+You can use existing LDAP client configurations for LDAP fast bind. However, it is strongly recommended that the LDAP client be configured for TLS or LDAPs; otherwise, the password is sent over the wire in plain text.
+
+To enable LDAP fast bind in an ONTAP environment, you must satisfy these requirements:
+
+* ONTAP admin users must be configured on an LDAP server that supports fast bind.
+
+* The ONTAP SVM must be configured for LDAP in the name services switch (nsswitch) database.
+
+* ONTAP admin user and group accounts must be configured for nsswitch authentication using fast bind.
+
+.Steps
+
+. Confirm with your LDAP administrator that LDAP fast bind is supported on the LDAP server.
+
+. Ensure that ONTAP admin user credentials are configured on the LDAP server.
+
+. Verify that the admin or data SVM is configured correctly for LDAP fast bind.
+.. To confirm that the LDAP fast bind server is listed in the LDAP client configuration, enter:
++
+`vserver services name-service ldap client show`
++
+link:https://docs.netapp.com/us-en/ontap/nfs-config/create-ldap-client-config-task.html[Learn about LDAP client configuration.]
+
+.. To confirm that `ldap` is one of the configured sources for the nsswitch `passwd` database, enter:
++
+`vserver services name-service ns-switch show`
++
+link:https://docs.netapp.com/us-en/ontap/nfs-config/configure-name-service-switch-table-task.html[Learn about nsswitch configuration.]
+. Ensure that admin users are authenticating with nsswitch and that LDAP fast bind authentication is enabled in their accounts.
++
+* For existing users, enter `security login modify` and verify the following parameter settings:
++
+`-authentication-method nsswitch`
++
+`-is-ldap-fastbind true`
+
+* For new admin users, see one of the following topics:
++
+link:https://docs.netapp.com/us-en/ontap/authentication/grant-access-nis-ldap-user-accounts-task.html[Enable LDAP or NIS account access.]
++
+link:https://docs.netapp.com/us-en/ontap/authentication/grant-access-active-directory-users-groups-task.html[Enable Active Directory account access.]
+
+// 2022-04-21, BURT 1454130
