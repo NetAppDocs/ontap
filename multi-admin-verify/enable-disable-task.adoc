@@ -1,0 +1,120 @@
+---
+sidebar: sidebar
+permalink: multi-admin-verify/enable-disable-task.html
+keywords: ontap, mav, multi, admin, verification, administrator, enable, disable, approval, groups, cli, system, manager
+summary: "Multi-admin verification (MAV) must be enabled explicitly. Once you have enabled multi-admin verification, approval by MAV administrators is required to delete it."
+---
+= Enable and disable multi-admin verification
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Multi-admin verification (MAV) must be enabled explicitly. Once you have enabled multi-admin verification, approval by MAV administrators is required to delete it.
+
+.About this task
+
+Once MAV functionality is enabled, modifying or disabling MAV requires MAV administrator approval.
+
+NOTE: If you need to disable multi-admin verification functionality without MAV administrator approval, contact NetApp Support about the procedure.
+
+When you enable, you can specify the following parameters globally.
+
+* Approval groups– A list of global approval groups. At least one group is required to enable MAV functionality.
+* Required approvers – The number of approvers required to execute a protected operation. The default and minimum number is 1.
++
+NOTE: The required number of approvers must be less than the total number of unique approvers in the default approval groups.
+
+* Approval expiry (hours, minutes, seconds) – The period within which a MAV administrator must respond to an approval request. The default value is one hour (1h), the minimum supported value is one second (1s), and the maximum supported value is 14 days (14d).
+* Execution expiry (hours, minutes, seconds) – The period within which the requesting administrator must complete the operation. The default value is one hour (1h), the minimum supported value is one second (1s), and the maximum supported value is 14 days (14d).
+
+You can also override any of these parameters for specific link:manage-rules-task.html[operation rules.]
+
+== System Manager procedure
+
+. Identify administrators to receive multi-admin verification.
+.. Click *Cluster > Settings.*
+.. Click image:icon_arrow.gif[blue arrow icon] next to *Users and Roles.*
+.. Click image:icon_add.gif[add icon] under *Users.*
+.. Modify the roster as needed.
++
+For more information, see link:../task_security_administrator_access.html[Control administrator access.]
+. Enable multi-admin verification by creating at least one approval group and adding at least one rule.
+.. Click *Cluster > Settings.*
+.. Click image:icon_gear.gif[gear icon] next to *Multi-Admin Approval* in the *Security* section.
+.. Click image:icon_add.gif[add icon] to add at least one approval group.
++
+* Name – Enter a group name.
+* Approvers – Select approvers from a list of users.
+* Email address – Enter email address(es).
+* Default group – Select a group.
+.. Click  to add at least one rule.
++
+* Operation – Select a supported command from the list.
+* Query – Enter any desired command options and values.
+* Optional parameters; leave blank to apply global settings, or assign a different value for specific rules to override the global settings.
+** Required number of approvers
+** Approval groups
+.. Click *Advanced Settings* to view or modify defaults.
++
+* Required number of approvers (default: 1)
+* Execution request expiry (default: 1 hour)
+* Approval request expiry (default: 1hour)
+* Mail server*
+* From email address*
++
+*These update the email settings managed under "Notification Management". You are prompted to set them if they have not yet been configured.
++
+.. Click *Enable* to complete MAV initial configuration.
+
+After initial configuration, the current MAV status is displayed in the *Multi-Admin Approval* tile.
+
+* Status (enabled or not)
+* Active operations for which approvals are required
+* Number of open requests in pending state
+
+You can display an existing configuration by clicking image:icon_arrow.gif[blue arrow icon]. MAV approval is required to edit an existing configuration.
+
+To disable multi-admin verification:
+
+.	Click *Cluster > Settings.*
+. Click image:icon_gear.gif[gear icon] next to *Multi-Admin Approval* in the *Security* section.
+. Click the Enabled toggle button.
++
+MAV approval is required to complete this operation.
+
+== CLI procedure
+
+Before enabling MAV functionality at the CLI, at least one link:manage-groups-task.html[MAV administrator group] must have been created.
+
+[cols=2a*,options="header", cols="50,50"]
+|===
+
+a| If you want to…
+a| Enter this command
+a| Enable MAV functionality a| `security multi-admin-verify modify -approval-groups _group1_[,_group2_...] [-required-approvers _nn_ ] -enabled true   [ -execution-expiry [__nn__h][__nn__m][__nn__s]]    [ -approval-expiry [__nn__h][__nn__m][__nn__s]]`
+
+*Example* : the following command enables MAV with 1 approval group, 2 required approvers, and default expiry periods.
+----
+cluster-1::> security multi-admin-verify modify -approval-groups mav-grp1 -required-approvers 2 -enabled true
+----
+
+Complete initial configuration by adding at least one link:manage-rules-task.html[operation rule.]
+
+a| Modify a MAV configuration a| `security multi-admin-verify approval-group modify [-approval-groups _group1_[,_group2_...]] [-required-approvers _nn_ ]    [ -execution-expiry [__nn__h][__nn__m][__nn__s]]    [ -approval-expiry [__nn__h][__nn__m][__nn__s]]`
+
+a| Verify MAV functionality a| `security multi-admin-verify show`
+
+*Example:*
+....
+cluster-1::> security multi-admin-verify show
+Is      Required  Execution Approval Approval
+Enabled Approvers Expiry    Expiry   Groups
+------- --------- --------- -------- ----------
+true    2         1h        1h       mav-grp1
+....
+
+a| Disable MAV functionality a| `security multi-admin-verify modify -enabled false`
+
+|===
+
+// TBA
