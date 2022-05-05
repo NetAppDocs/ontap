@@ -7,6 +7,7 @@ summary: "Beginning with ONTAP 9.5, SnapMirror Synchronous (SM-S) technology is 
 = SnapMirror Synchronous disaster recovery basics
 :icons: font
 :imagesdir: ../media/
+:hardbreaks-option:
 
 [.lead]
 Beginning with ONTAP 9.5, SnapMirror Synchronous (SM-S) technology is supported on all FAS and AFF platforms that have at least 16 GB of memory and on all ONTAP Select platforms. SnapMirror Synchronous technology is a per-node, licensed feature that provides synchronous data replication at the volume level.
@@ -17,7 +18,7 @@ The limit on the number of SnapMirror Synchronous replication operations per HA 
 
 |===
 
-h| Platform h| Number of SnapMirror Synchronous operations that are allowed per HA pair in releases earlier than ONTAP 9.9.1 h| Number of SnapMirror Synchronous operations that are allowed per HA pair in ONTAP 9.9.1 h| Number of SnapMirror Synchronous operations that are allowed per HA pair in ONTAP 9.10.1
+h| Platform h| Number of SnapMirror Synchronous operations that are allowed per HA pair in releases earlier than ONTAP 9.9.1 h| Number of SnapMirror Synchronous operations that are allowed per HA pair in ONTAP 9.9.1 h| Number of SnapMirror Synchronous operations that are allowed per HA pair in ONTAP 9.10.1 h| Number of SnapMirror Synchronous operations that are allowed per HA pair in ONTAP 9.11.1
 a|
 AFF
 a|
@@ -27,6 +28,8 @@ a|
 a|
 200
 a|
+400
+a|
 FAS
 a|
 40
@@ -35,9 +38,13 @@ a|
 a|
 80
 a|
+80
+a|
 ONTAP Select
 a|
 20
+a|
+40
 a|
 40
 a|
@@ -55,12 +62,10 @@ In ONTAP 9.5 and later, SnapMirror Synchronous technology supports the NFSv3, FC
 The following features are supported for SnapMirror Synchronous technology in ONTAP 9.7:
 
 * Replication of application-created Snapshot copies
-+
 Only the Snapshot copies with the SnapMirror label that match the rule associated with Sync or Strict Sync policy. Scheduled Snapshot copies created using a Snapshot policy are not replicated.
 
 * FC-NVMe
 * LUN clones and NVMe namespace clones
-+
 LUN clones backed by application-created Snapshot copies are also supported.
 
 The following features are supported for SnapMirror Synchronous technology in ONTAP 9.6; provided all nodes in the source and destination cluster are running ONTAP 9.6:
@@ -68,11 +73,9 @@ The following features are supported for SnapMirror Synchronous technology in ON
 * SVM DR
 ** A SnapMirror Synchronous source can also be a SVM DR source, for example, a fan-out configuration with SM-S as one leg and SVM DR as the other.
 ** A SnapMirror Synchronous source cannot be an SVM DR destination because SM-S does not support cascading a DP source.
-+
 You must release the synchronous relationship before performing an SVM DR flip resync in the destination cluster.
 
 ** A SnapMirror Synchronous destination cannot be an SVM DR source because SVM DR does not support replication of DP volumes.
-+
 A flip resync of the synchronous source would result in the SVM DR excluding the DP volume in the destination cluster.
 
 * NFSv4.0 and NFSv4.1
@@ -80,16 +83,13 @@ A flip resync of the synchronous source would result in the SVM DR excluding the
 * Mixed protocol access(NFSv3 and SMB)
 * Antivirus on the primary volume of the SnapMirror Synchronous relationship
 * Hard or soft quotas on the primary volume of the SnapMirror Synchronous relationship
-+
 The quota rules are not replicated to the destination; therefore, the quota database is not replicated to the destination.
 
 * FPolicy on the primary volume of the SnapMirror Synchronous relationship
 * SnapMirror Synchronous mirror-mirror cascade
-+
 The relationship from the destination volume of the SnapMirror Synchronous relationship must be an asynchronous SnapMirror relationship.
 
 * Timestamp parity between source and destination volumes for NAS
-+
 If you have upgraded from ONTAP 9.5 to ONTAP 9.6, the timestamp is replicated only for any new and modified files in the source volume. The timestamp of existing files in the source volume is not synchronized.
 
 * Removal of high metadata operation frequency limitation
@@ -105,11 +105,9 @@ The following features are not supported with Synchronous SnapMirror relationshi
 * SFCoD
 * VVol
 * Mixed SAN and NAS access
-+
 The primary volume of a SnapMirror Synchronous relationship can either serve NAS data or SAN data. Both SAN and NAS access from the primary volume of a SnapMirror Synchronous relationship is not supported.
 
 * Mixed SAN and NVMe access
-+
 LUNs and NVMe namespaces are not supported on the same volume or SVM.
 
 * SnapLock volumes
@@ -128,15 +126,11 @@ LUNs and NVMe namespaces are not supported on the same volume or SVM.
 SnapMirror Synchronous has two modes of operation based on the type of the SnapMirror policy used:
 
 * *Sync mode*
-+
 In Sync mode, an I/O to primary storage is first replicated to secondary storage. Then the I/O is written to primary storage, and acknowledgment is sent to the application that issued the I/O. If the write to the secondary storage is not completed for any reason, the application is allowed to continue writing to the primary storage. When the error condition is corrected, SnapMirror Synchronous technology automatically resynchronizes with the secondary storage and resumes replicating from primary storage to secondary storage in Synchronous mode.
-+
 In Sync mode, RPO=0 and RTO is very low until a secondary replication failure occurs at which time RPO and RTO become indeterminate, but equal the time to repair the issue that caused secondary replication to fail and for the resync to complete.
 
 * *StrictSync mode*
-+
 SnapMirror Synchronous can optionally operate in StrictSync mode. If the write to the secondary storage is not completed for any reason, the application I/O fails, thereby ensuring that the primary and secondary storage are identical. Application I/O to the primary resumes only after the SnapMirror relationship returns to the `InSync` status. If the primary storage fails, application I/O can be resumed on the secondary storage, after failover, with no loss of data.
-+
 In StrictSync mode RPO is always zero, and RTO is very low.
 
 == Relationship status
@@ -153,4 +147,5 @@ http://www.netapp.com/us/media/tr-4733.pdf[NetApp Technical Report 4733: SnapMir
 
 // 2021-11-18, add new supported and unsupported features for ONTAP 9.10.1
 // 3 Feb 2022, BURT 1436974
+// 2022-31-3. update limits table for ONTAP 9.11.1
 // 25 april 2022, BURT 1419781
