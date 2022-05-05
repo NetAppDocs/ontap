@@ -1,25 +1,26 @@
 ---
 permalink: s3-config/assess-physical-storage-requirements-task.html
 sidebar: sidebar
-keywords: assess, physical, storage, requirements
-summary: "Before provisioning S3 storage for clients, you must ensure that there is sufficient space in existing aggregates for the new object store. If there is not, you can add disks to existing aggregates or create new aggregates of the desired type."
+keywords: s3, assess, physical, storage, requirements, cloud volumes ontap
+summary: "Before provisioning S3 storage for clients, you must ensure that there is sufficient space in existing aggregates for the new object store. If there is not, you can add disks to existing aggregates or create new aggregates of the desired type and location."
 ---
 = Assess physical storage requirements
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Before provisioning S3 storage for clients, you must ensure that there is sufficient space in existing aggregates for the new object store. If there is not, you can add disks to existing aggregates or create new aggregates of the desired type.
+Before provisioning S3 storage for clients, you must ensure that there is sufficient space in existing aggregates for the new object store. If there is not, you can add disks to existing aggregates or create new aggregates of the desired type and location.
 
 .About this task
 
 When you create an S3 bucket in an S3-enabled SVM, a FlexGroup volume is automatically created to support the bucket. You can let ONTAP select the underlying aggregates and FlexGroup components automatically (the default) or you can select the underlying aggregates and FlexGroup components yourself.
 
-If you decide to specify the aggregates and FlexGroup components -- for example, if you have specific performance requirements for the underlying disks -- you should make sure that your aggregate configuration conforms to best practice guidelines for provisioning a FlexGroup volume.
+If you decide to specify the aggregates and FlexGroup components -- for example, if you have specific performance requirements for the underlying disks -- you should make sure that your aggregate configuration conforms to best practice guidelines for provisioning a FlexGroup volume. Learn more:
 
-link:../flexgroup/index.html[FlexGroup volumes management]
+* link:../flexgroup/index.html[FlexGroup volumes management]
+* https://www.netapp.com/pdf.html?item=/media/17251-tr4571apdf.pdf[NetApp Technical Report 4571-a: NetApp ONTAP FlexGroup Volume Top Best Practices^]
 
-https://www.netapp.com/pdf.html?item=/media/17251-tr4571apdf.pdf[NetApp Technical Report 4571-a: NetApp ONTAP FlexGroup Volume Top Best Practices]
+If you are serving buckets from Cloud Volumes ONTAP, it is strongly recommended that you manually select the underlying aggregates to ensure that they are using one node only. Using aggregates from both nodes can impact performance, because the nodes will be in geographically separated availability zones and hence susceptible to latency issues.  Learn about link:create-bucket-task.html[creating buckets for Cloud Volumes ONTAP].
 
 You can use the ONTAP S3 server to create a local FabricPool capacity tier; that is, in the same cluster as the performance tier. This can be useful, for example, if you have SSD disks attached to one HA pair and you want to tier _cold_ data to HDD disks in another HA pair. In this use case, the S3 server and the bucket containing the local capacity tier should therefore be in a different HA pair than the performance tier. Local tiering is not supported on one-node and two-node clusters.
 
@@ -29,7 +30,7 @@ You can use the ONTAP S3 server to create a local FabricPool capacity tier; that
 +
 `storage aggregate show`
 +
-If there is an aggregate with sufficient space, record its name for your S3 configuration.
+If there is an aggregate with sufficient space or requisite node location, record its name for your S3 configuration.
 +
 ----
 cluster-1::> storage aggregate show
@@ -50,4 +51,6 @@ aggr_5     239.0GB   239.0GB   95% online       4 node4  raid_dp,
 6 entries were displayed.
 ----
 
-. If there are no aggregates with sufficient space, add disks to an existing aggregate by using the `storage aggregate add-disks` command, or create a new aggregate by using the `storage aggregate create` command.
+. If there are no aggregates with sufficient space or requisite node location, add disks to an existing aggregate by using the `storage aggregate add-disks` command, or create a new aggregate by using the `storage aggregate create` command.
+
+// 2022-05-04, BURT 1476111

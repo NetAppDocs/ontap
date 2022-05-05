@@ -1,0 +1,145 @@
+---
+sidebar: sidebar
+permalink: multi-admin-verify/manage-requests-task.html
+keywords: ontap, mav, multi, admin, verification, administrator, protected, operation, rules, request, cluster, approve, rbac, manage, cli, system, manager
+summary: "When administrators in a MAV approval group (MAV administrators) are notified of a pending operation execution request, they must respond with an approve or veto message within a fixed time period (approval expiry)."
+---
+= Manage protected operation requests
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When administrators in a MAV approval group (MAV administrators) are notified of a pending operation execution request, they must respond with an approve or veto message within a fixed time period (approval expiry). If a sufficient number of approvals are not received, the requester must delete the request and make another.
+
+.About this task
+
+Approval requests are identified with index numbers, which are included in email messages and displays of the request queue.
+
+The following information from the request queue can be displayed:
+
+Operation:: The protected operation for which the request is created.
+Query:: The object (or objects) upon which the user wants to apply the operation.
+State:: The current state of the request; pending, approved, rejected, expired, executed. If a request is rejected by one approver, no further actions are possible.
+Required approvers:: The number of MAV administrators that are required to approve the request. A user can set the required-approvers parameter for the operation rule. If a user does not set the required-approvers to the rule, then the required-approvers from the global setting is applied.
+Pending approvers:: The number of MAV administrators that are still required to approve the request for the request to be marked as approved.
+Approval expiry:: The period within which a MAV administrator must respond to an approval request. Any authorized user can set the approval-expiry for an operation rule. If approval-expiry is not set for the rule, then the approval-expiry from the global setting is applied.
+Execution expiry:: The period within which the requesting administrator must complete the operation. Any authorized user can set the execution-expiry for an operation rule. If execution-expiry is not set for the rule, then the execution-expiry from the global setting is applied.
+Users approved:: The MAV administrators who have approved the request.
+User vetoed:: The MAV administrators who have vetoed the request.
+Storage VM (vserver):: The SVM with which the request is associated with. Only the admin SVM is supported in this release.
+User requested:: The username of the user who created the request.
+Time created:: The time when the request is created.
+Time approved:: The time when the request state changed to approved.
+Comment:: Any comments that are associated with the request.
+Users permitted:: The list of users permitted to perform the protected operation for which the request is approved. If `users-permitted` is empty, then any user with appropriate permissions can perform the operation.
+
+All expired or executed requests are deleted when a limit of 1000 requests is reached, or when the expired time is greater than 8hrs for expired requests. Vetoed requests are deleted once they are marked as expired.
+
+== System Manager procedure
+
+MAV administrators receive email messages with details of the approval request, request expiry period, and a link to approve or reject the request. They can access an approval dialog by clicking the link in the email or navigate to *Events & Jobs>Requests* in System Manager.
+
+The *Requests* window is available when multi-admin verification is enabled, showing pending requests based on the user’s login ID and MAV role (approver or not).
+
+* Operation
+* Index (number)
+* Status (Pending, Approved, Rejected, Executed, or Expired)
++
+If a request is rejected by one approver, no further actions are possible.
+*	Query (any parameters or values for the requested operation)
+*	Requesting User
+*	Request Expires On
+* (Number of) Pending Approvers
+* (Number of) Potential Approvers
+
+MAV administrators have additional controls in this window; they can approve, reject, or delete individual operations, or selected groups of operations. However, if the MAV administrator is the Requesting User, they cannot approve, reject or delete their own requests.
+
+
+== CLI procedure
+
+.	When notified of pending requests by email, note the request’s index number and approval expiry period. The index number can also be displayed using the *show* or *show-pending* options mentioned below.
+. Approve or veto the request.
++
+[cols=2a*,options="header", cols="50,50"]
+|===
+
+a| If you want to…
+a| Enter this command
+a| Approve a request a| `security multi-admin-verify request approve _nn_`
+a| Veto a request a| `security multi-admin-verify request veto _nn_`
+a| Show all requests, pending requests, or a single request a| `security multi-admin-verify request { show \| show-pending } [_nn_]
+{ -fields _field1_[,_field2_...] \|  [-instance ]  }`
+
+You can show all requests in the queue or only pending requests. If you enter the index number, only information for that is displayed. You can display information about specific fields (by using the `-fields` parameter) or about all fields (by using the `-instance` parameter).
+a| Delete a request a| `security multi-admin-verify request delete _nn_`
+
+|===
+
+.Example:
+
+The following sequence approves a request after the MAV administrator has received the request email with index number 3, which already has one approval.
+
+----
+          cluster1::> security multi-admin-verify request show-pending
+                                   Pending
+Index Operation      Query State   Approvers Requestor
+----- -------------- ----- ------- --------- ---------
+    3 volume delete  -     pending 1         julia
+
+
+cluster-1::> security multi-admin-verify request approve 3
+
+cluster-1::> security multi-admin-verify request show 3
+
+     Request Index: 3
+         Operation: volume delete
+             Query: -
+             State: approved
+Required Approvers: 2
+ Pending Approvers: 0
+   Approval Expiry: 2/25/2022 14:32:03
+  Execution Expiry: 2/25/2022 14:35:36
+         Approvals: mav-admin2
+       User Vetoed: -
+           Vserver: cluster-1
+    User Requested: julia
+      Time Created: 2/25/2022 13:32:03
+     Time Approved: 2/25/2022 13:35:36
+           Comment: -
+   Users Permitted: -
+----
+
+.Example:
+
+The following sequence vetoes a request after the MAV administrator has received the request email with index number 3, which already has one approval.
+----
+      cluster1::> security multi-admin-verify request show-pending
+                                   Pending
+Index Operation      Query State   Approvers Requestor
+----- -------------- ----- ------- --------- ---------
+    3 volume delete  -     pending 1         pavan
+
+
+cluster-1::> security multi-admin-verify request veto 3
+
+cluster-1::> security multi-admin-verify request show 3
+
+     Request Index: 3
+         Operation: volume delete
+             Query: -
+             State: vetoed
+Required Approvers: 2
+ Pending Approvers: 0
+   Approval Expiry: 2/25/2022 14:32:03
+  Execution Expiry: 2/25/2022 14:35:36
+         Approvals: mav-admin1
+       User Vetoed: mav-admin2
+           Vserver: cluster-1
+    User Requested: pavan
+      Time Created: 2/25/2022 13:32:03
+     Time Approved: 2/25/2022 13:35:36
+           Comment: -
+   Users Permitted: -
+----
+
+// 2022-04-13, jira-467
