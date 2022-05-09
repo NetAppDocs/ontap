@@ -14,26 +14,9 @@ To install the ONTAP Mediator service, you must ensure all prerequisites are met
 
 .Before you begin
 
-//ontap-metrocluster/issues/35
 You must meet the following prerequisites.
 
-[cols="30,70"]
-|===
-
-h| Mediator version h| Supported Linux versions
-
-a|
-1.3
-a|
-* Red Hat Enterprise Linux: 7.6, 7.7, 7.8, 7.9, 8.0, 8.1, 8.2, 8.3
-* CentOS: 7.6, 7.7, 7.8, 7.9
-
-a|
-1.2
-a|
-* Red Hat Enterprise Linux: 7.6, 7.7, 7.8, 8.0, 8.1
-* CentOS: 7.6, 7.7, 7.8
-|===
+include::../_include/mediator-linux-support.adoc[]
 
 NOTE: The kernel version must match the operating system version.
 
@@ -52,7 +35,7 @@ The following table provides the upgrade guidelines if you are upgrading from RH
 h| Target Linux version h| Target Mediator version h| Upgrade notes
 
 a|
-* Red Hat Enterprise Linux: 7.6, 7.7, 7.8, 8.0, 8.1
+* Red Hat Enterprise Linux: 7.6, 7.7, 7.8, 8.1
 * CentOS: 7.6, 7.7, 7.8
 a|
 1.2
@@ -69,7 +52,7 @@ a|
  .. cf.mccip.med.auso.stEnabled when automatic unplanned switchover is re-enabled
 
 a|
-* Red Hat Enterprise Linux: 7.6, 7.7, 7.8, 7.9, 8.0, 8.1, 8.2, 8.3
+* Red Hat Enterprise Linux: 7.6, 7.7, 7.8, 7.9, 8.1, 8.2, 8.3
 * CentOS: 7.6, 7.7, 7.8, 7.9
 a|
 1.3
@@ -78,11 +61,21 @@ a|
 .. Reboot the host to apply the kernel module changes.
 .. Upgrade the Mediator from the immediately prior version to the current version.
 
+
+a|
+* Red Hat Enterprise Linux: 7.6, 7.7, 7.8, 7.9, 8.1, 8.2, 8.3, 8.4
+* CentOS: 7.6, 7.7, 7.8, 7.9
+a|
+1.4
+a|
+.. Upgrade the operating system from RHEL/CentOS version.
+.. Reboot the host to apply the kernel module changes.
+.. Upgrade the Mediator from the immediately prior version to the current version.
 |===
 
 The best practices for installing Red Hat Enterprise Linux or CentOS and the associated repositories on your system are listed below. Systems installed or configured differently might require additional steps.
 
-* You must install Red Hat Enterprise Linux or CentOS according to Red Hat best practices. Due to end of life support for CentOS 8.x versions, it is not recommended that you use RHEL or a compatible version of CentOS 7.x.
+* You must install Red Hat Enterprise Linux or CentOS according to Red Hat best practices. Due to end-of-life support for CentOS 8.x versions, compatible versions of CentOS 8.x are not recommended.
 * While installing the ONTAP Mediator service on Red Hat Enterprise Linux or CentOS, the system must have access to the appropriate repository so that the installation program can access and install all the required software dependencies.
 * For the yum installer to find dependent software in the Red Hat Enterprise Linux repositories, you must have registered the system during the Red Hat Enterprise Linux installation or afterwards by using a valid Red Hat subscription.
 +
@@ -91,7 +84,7 @@ See the Red Hat documentation for information about the Red Hat Subscription Man
  ** 31784
  ** 3260
 * If using a third-party firewall: refer to link:https://docs.netapp.com/us-en/ontap-metrocluster/install-ip/concept_mediator_requirements.html#firewall-requirements-for-ontap-mediator[Firewall requirements for ONTAP Mediator^]
-* If the Linux host is in a location without access to the internet, you can either install the packages manually or you must ensure that the required packages are available in a local repository.
+* If the Linux host is in a location without access to the internet, you must ensure that the required packages are available in a local repository.
 +
 You can use the following link for information about setting up a repository.
 +
@@ -134,16 +127,6 @@ a|
 
 +
 |===
-
-* If signature verification is configured, it must be disabled. This can be done in one of two ways:
- ** If the UEFI SecureBoot mechanism is configured, disable it.
- ** Disable the signature verification mechanism by updating and regenerating the grub.cfg file:
-  ... Open the /etc/default/grub file.
-  ... Add the string module.sig_enforce=0 to the end of the GRUB_CMDLINE_LINUX statement.
-  ... Regenerate the grub.cfg file to implement the change:
-+
-`update-bootloader || update-grub || grub2-mkconfig -o /boot/grub2/grub.cfg`
-  ... Reboot the host.
 
 The Mediator installation package is a self-extracting compressed tar file that includes:
 
@@ -248,6 +231,8 @@ The newly subscribed repositories should appear in the list.
 
 If your operating system is *CentOS 7.x*:
 
+NOTE: The following examples are showing a repository for CentOS 7.6 and may not work for other CentOS versions. Use the base repository for your version of CentOS.
+
 .Steps
 
 . Add the C7.6.1810 - Base repository. The C7.6.1810 - Base vault repository contains the kernel-devel package needed for ONTAP Mediator.
@@ -299,7 +284,7 @@ https://mysupport.netapp.com/site/products/all/details/ontap-mediator/downloads-
 +
 ----
 [root@mediator-host ~]#ls
-./ontap-mediator_1.3
+ontap-mediator
 ----
 +
 If you are at a location without access to the internet, you must ensure that the installer has access to the required packages.
@@ -308,84 +293,133 @@ If you are at a location without access to the internet, you must ensure that th
 
 == Install the ONTAP Mediator installation package
 
+.About this task
+
+* Beginning with ONTAP Mediator 1.4, the Secure Boot mechanism is enabled on UEFI systems. When Secure Boot is enabled, you must take additional steps to register the security key after installation:
+         ** Follow instructions in the README file: `/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/README.module-signing`
+         to sign the SCST kernel module.
+         ** Locate the required keys: `/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys`
+
++
+NOTE: After installation, the README files and key location are also provided in the system output.
+
+
 .Step
 
 . Install the Mediator installation package and respond to the prompts as required:
 +
-`./ontap-mediator_1.3`
+`./ontap-mediator`
 +
 The installation process proceeds to create the required accounts and install required packages. If you have a previous version of Mediator installed on the host, you will be prompted to confirm that you want to upgrade.
++
 
-link:../media/console_output_mediator_installation.txt[Example of ONTAP Mediator installation (console output)^]
+
+.Example of ONTAP Mediator 1.4 installation (console output)
+[%collapsible]
+
+====
+----
+[root@scs000065018 ~]# ./ontap-mediator
+ONTAP Mediator: Self Extracting Installer
+ONTAP Mediator requires two user accounts. One for the service (netapp), and one for use by ONTAP to the mediator API (mediatoradmin).
+Would you like to use the default account names: netapp + mediatoradmin? (Y(es)/n(o)): y
+Enter ONTAP Mediator user account (mediatoradmin) password:
+Re-Enter ONTAP Mediator user account (mediatoradmin) password:
+Checking if SELinux is in enforcing mode
+Checking for default Linux firewall
+Linux firewall is running. Open ports 31784 and 3260? y(es)/n(o): y
+success
+success
+
+
+
+Preparing for installation of ONTAP Mediator packages.
+Do you wish to continue? Y(es)/n(o): y
++ Installing required packages.
+Last metadata expiration check: 1:56:17 ago on Thu 07 Apr 2022 11:35:42 AM EDT.
+Package openssl-1:1.1.1k-6.el8_5.x86_64 is already installed.
+Package openssl-devel-1:1.1.1k-6.el8_5.x86_64 is already installed.
+
+.
+.
+.
+.
+
+Dependencies resolved.
+Nothing to do.
+Complete!
+OS package installations finished
++ Installing ONTAP Mediator. (Log: /tmp/ontap_mediator.5gmxnI/ontap-mediator/install_20220407133105.log)
+    This step will take several minutes. Use the log file to view progress.
+Sudo include verified
+ONTAP Mediator logging enabled
++ Install successful. (Moving log to /opt/netapp/lib/ontap_mediator/log/install_20220407133105.log)
++ WARNING: This system supports UEFI
+           Secure Boot (SB) is currently enabled on this system.
+           The following action need be taken:
+           Using the keys in /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys follow
+           instructions in /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/README.module-signing
+           to sign the SCST kernel module. Note that reboot will be needed.
+     SCST will not start automatically when Secure Boot is enabled and not configured properly.
++ Note: ONTAP Mediator uses a kernel module compiled specifically for the current
+        system OS. Using 'yum update' to upgrade the kernel may cause a service
+        interruption.
+    For more information, see /opt/netapp/lib/ontap_mediator/README
+[root@scs000065018 ~]#
+----
+====
+
+// April 22 2022, BURT 1470656
 
 == Verify the installation
 
 .Steps
 
-. Run the following command to view the status of the ONTAP Mediator services:
-+
-`systemctl`
-+
-----
- [root@scspr1915530002 ~]# systemctl status ontap_mediator mediator-scst
+. Run the following commands to view the status of the ONTAP Mediator services:
+.. Run: `systemctl status ontap_mediator`
 
-        ∙ ontap_mediator.service - ONTAP Mediator
-            Loaded: loaded (/opt/netapp/lib/ontap_mediator/systemd/ontap_mediator.service; enabled; vendor preset: disabled)
-
-            Active: active (running) since Thu 2020-06-18 09:55:02 EDT; 3 days ago
-
-         Main PID: 3559 (uwsgi)
-
-            Status: "uWSGI is ready"
-
-            CGroup: /system.slice/ontap_mediator.service
-
-                    \u251c\u25003559 /opt/netapp/lib/ontap_mediator/pyenv/bin/uwsgi --ini /opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini
-
-                    \u251c\u25004510 /opt/netapp/lib/ontap_mediator/pyenv/bin/uwsgi --ini /opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini
-
-                    \u2514\u25004512 /opt/netapp/lib/ontap_mediator/pyenv/bin/uwsgi --ini /opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini
-
-
-
-         Jun 18 09:54:43 scspr1915530002 systemd[1]: Starting ONTAP Mediator...
-
-         Jun 18 09:54:45 scspr1915530002 ontap_mediator[3559]: [uWSGI] getting INI configuration from /opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini
-
-         Jun 18 09:55:02 scspr1915530002 systemd[1]: Started ONTAP Mediator.
-
-
-
-         ∙ mediator-scst.service
-            Loaded: loaded (/opt/netapp/lib/ontap_mediator/systemd/mediator-scst.service; enabled; vendor preset: disabled)
-
-            Active: active (running) since Thu 2020-06-18 09:54:51 EDT; 3 days ago
-
-           Process: 3564 ExecStart=/etc/init.d/scst start (code=exited, status=0/SUCCESS)
-
-         Main PID: 4202 (iscsi-scstd)
-
-            CGroup: /system.slice/mediator-scst.service
-
-                    \u2514\u25004202 /usr/local/sbin/iscsi-scstd
-
-
-
-         Jun 18 09:54:43 scspr1915530002 systemd[1]: Starting mediator-scst.service...
-
-         Jun 18 09:54:48 scspr1915530002 iscsi-scstd[4200]: max_data_seg_len 1048576, max_queued_cmds 2048
-
-         Jun 18 09:54:51 scspr1915530002 scst[3564]: Loading and configuring SCST[  OK  ]
-
-         Jun 18 09:54:51 scspr1915530002 systemd[1]: Started mediator-scst.service.
-
-         [root@scspr1915530002 ~]#
-----
-
-. Confirm the ports the ONTAP Mediator service is using: netstat
 +
 ----
-         [root@scspr1905507001 ~]# netstat -anlt | grep -E '3260|31784'
+[root@scspr1915530002 ~]# systemctl status ontap_mediator
+
+ ontap_mediator.service - ONTAP Mediator
+Loaded: loaded (/etc/systemd/system/ontap_mediator.service; enabled; vendor preset: disabled)
+Active: active (running) since Mon 2022-04-18 10:41:49 EDT; 1 weeks 0 days ago
+Process: 286710 ExecStop=/bin/kill -s INT $MAINPID (code=exited, status=0/SUCCESS)
+Main PID: 286712 (uwsgi)
+Status: "uWSGI is ready"
+Tasks: 3 (limit: 49473)
+Memory: 139.2M
+CGroup: /system.slice/ontap_mediator.service
+      ├─286712 /opt/netapp/lib/ontap_mediator/pyenv/bin/uwsgi --ini /opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini
+      ├─286716 /opt/netapp/lib/ontap_mediator/pyenv/bin/uwsgi --ini /opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini
+      └─286717 /opt/netapp/lib/ontap_mediator/pyenv/bin/uwsgi --ini /opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini
+
+[root@scspr1915530002 ~]#
+----
+
++
+
+.. Run: `systemctl status mediator-scst`
++
+----
+[root@scspr1915530002 ~]# systemctl status mediator-scst
+   Loaded: loaded (/etc/systemd/system/mediator-scst.service; enabled; vendor preset: disabled)
+   Active: active (running) since Mon 2022-04-18 10:41:47 EDT; 1 weeks 0 days ago
+  Process: 286595 ExecStart=/etc/init.d/scst start (code=exited, status=0/SUCCESS)
+ Main PID: 286662 (iscsi-scstd)
+    Tasks: 1 (limit: 49473)
+   Memory: 1.2M
+   CGroup: /system.slice/mediator-scst.service
+           └─286662 /usr/local/sbin/iscsi-scstd
+
+[root@scspr1915530002 ~]#
+----
+
+. Confirm the ports the ONTAP Mediator service is using: `netstat`
++
+----
+[root@scspr1905507001 ~]# netstat -anlt | grep -E '3260|31784'
 
          tcp   0   0 0.0.0.0:31784   0.0.0.0:*      LISTEN
 
@@ -400,7 +434,10 @@ The ONTAP Mediator service is now installed and running. Further configuration m
 
 
 * To use the ONTAP Mediator service in a MetroCluster IP configuration, see link:https://docs.netapp.com/us-en/ontap-metrocluster/install-ip/task_configuring_the_ontap_mediator_service_from_a_metrocluster_ip_configuration.html[Configuring the ONTAP Mediator service from a MetroCluster IP configuration^]
-* To use SnapMirror Business Continuity, see xref:../smbc/smbc_install_confirm_ontap_cluster.html[Install ONTAP Mediator Service and confirm the ONTAP cluster configuration]
+* To use SnapMirror Business Continuity, see link:https://docs.netapp.com/us-en/ontap/smbc/smbc_install_confirm_ontap_cluster.html[Install ONTAP Mediator Service and confirm the ONTAP cluster configuration^]
 
 // 2021-04-21 ONTAPEX-133437
 // 2021-05-05 review comment in IDR-67
+// ontap-metrocluster issue #146, 7 march 2022
+// 2022-04-28, BURT 1470656
+//ontap-metrocluster/issues/35

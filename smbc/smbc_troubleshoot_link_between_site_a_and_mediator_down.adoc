@@ -1,10 +1,9 @@
 ---
 sidebar: sidebar
 permalink: smbc/smbc_troubleshoot_link_between_site_a_and_mediator_down.html
-keywords: SM-BC, SMBC, troubleshooting, link down, Mediator
+keywords: SM-BC, SMBC, troubleshooting, connectivity, consensus
 summary: Troubleshooting link down between Site A and Mediator down and Site B down.
 ---
-
 = Link between Site A and Mediator down and Site B down
 :hardbreaks:
 :nofooter:
@@ -13,10 +12,11 @@ summary: Troubleshooting link down between Site A and Mediator down and Site B d
 :imagesdir: ../media/
 
 [.lead]
+When using SM-BC, you may lose connectivity between the mediator or your peered clusters. You can diagnose the issue by checking the connection, availability, and consensus status of the different parts of the SM-BC relationship and then forcefully resuming connection.
 
 .Determining the cause:
 
-Check the status of Mediator from Site A.
+Check the status of Mediator from Site A with the `snapmirror mediator show` command.
 
 .Example:
 ....
@@ -33,7 +33,7 @@ Path         Type  Path         Status Progress   Updated      Id
 vs0:/cg/src_cg_1  XDP   vs1:/cg/dst_cg_1  OutOfSync  -         -            bba7d354-06f6-11eb-9138-005056acec19
 ....
 
-Check Site B connectivity:
+Check Site B connectivity with the `cluster peer show` command:
 
 ....
 C1_sti78-vsim-ucs188a_cluster::*> cluster peer show
@@ -42,7 +42,7 @@ Peer Cluster Name         Cluster Serial Number Availability   Authentication
 C2_cluster                1-80-000011           Unavailable    ok
 ....
 
-Check the consensus status on SM-BC volume:
+Check the consensus status on the SM-BC volume with the command `volume show _volume_name_ -fields smbc-consensus`:
 
 ....
 C1_cluster::*> volume show zrto_cg_894191_188b_RW1 -fields smbc-consensus
@@ -53,11 +53,14 @@ vs0     zrto_cg_894191_188b_RW1 Awaiting-consensus
 
 .Solution:
 
+
 Complete the following steps to override SM-BC consensus and forcefully resume I/O on Site A:
+
+NOTE: This solution uses `diag` level commands, which requires you to contact NetApp support. 
 
 . Unmap the LUNs on Site A.
 
-. Issue the snapmirror release command using the `-force` and `override-smbc-consensus` option on Site A.
+. Issue the `snapmirror release` command using the `-force` and `override-smbc-consensus` option on Site A.
 
 .	Remap the LUNs.
 
@@ -68,3 +71,5 @@ Complete the following steps to override SM-BC consensus and forcefully resume I
 . After Site B is up, verify that the consistency group relationship is up and is in sync.
 
 . Perform a LUN rescan on the host to restore all paths to the LUNs.
+
+// 1 april 2022, issue #440
