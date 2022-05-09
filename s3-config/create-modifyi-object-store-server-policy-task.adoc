@@ -11,7 +11,7 @@ summary: "You can create policies that can apply to one or more buckets in an ob
 [.lead]
 You can create policies that can apply to one or more buckets in an object store. Object store server policies can be attached to groups of users, thereby simplifying the management of resource access across multiple buckets.
 
-.What you'll need
+.Before you begin
 
 An S3-enabled SVM containing an S3 server and a bucket must already exist.
 
@@ -19,10 +19,7 @@ An S3-enabled SVM containing an S3 server and a bucket must already exist.
 
 You can enable access policies at the SVM level by specifying a default or custom policy in an object storage server group. The policies do not take effect until they are specified in the group definition.
 
-[NOTE]
-====
-When you use object storage server policies, you specify principals (that is, users and groups) in the group definition, not in the policy itself.
-====
+NOTE: When you use object storage server policies, you specify principals (that is, users and groups) in the group definition, not in the policy itself.
 
 There are three read-only default policies for access to ONTAP S3 resources:
 
@@ -30,10 +27,15 @@ There are three read-only default policies for access to ONTAP S3 resources:
 * NoS3Access
 * ReadOnlyAccess
 
-You can also create new custom policies, then add new statements for new users and groups, or you can modify the attributes of existing statements. For more options, see the `vserver object-store-server policy` man pages.
+You can also create new custom policies, then add new statements for new users and groups, or you can modify the attributes of existing statements. For more options, see the `vserver object-store-server policy` link:https://docs.netapp.com/us-en/ontap-cli-9111/index.html[command reference^].
 
+include::_include/s3-aws-condition.adoc[]
+
+[role="tabbed-blocks"]
+====
+.CLI
+--
 .Steps
-
 . Create an object storage server policy:
 +
 `vserver object-store-server policy create -vserver svm_name -policy policy_name [-comment text]`
@@ -61,3 +63,27 @@ The bucket and any object it contains. The wildcard characters `*` and `?` can b
 You can optionally specify a text string as comment with the `-sid` option.
 +
 By default, new statements are added to the end of the list of statements, which are processed in order. When you add or modify statements later, you have the option to modify the statement's `-index` setting to change the processing order.
+--
+
+.System Manager
+--
+.Steps
+.	Edit the storage VM: click *Storage > storage VMs*, click the storage VM, click *Settings* and then click image:icon_pencil.gif[pencil icon] under S3.
+.	Add a user: click *Policies*, then click *Add*.
+..	Enter a policy name and select from a list of groups.
+..	Select an existing default policy or add a new one.
++
+When adding or modifying a group policy, you can specify the following parameters:
+
+*	Group: the groups to whom access is granted.
+*	Effect: allows or denies access to one or more groups.
+*	Actions: permissible actions in one or more buckets for a given group.
+*	Resources: paths and names of objects within one or more buckets for which access is granted or denied.
+For example:
+** *** grants access to all buckets in the storage VM.
+** *bucketname* and *bucketname/** grant access to all objects in a specific bucket.
+** *bucketname/readme.txt* grants access to an object in a specific bucket.
+
+..	If desired, add statements to existing policies.
+--
+==== 
