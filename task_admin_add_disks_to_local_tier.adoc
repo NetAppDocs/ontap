@@ -2,10 +2,10 @@
 sidebar: sidebar
 permalink: task_admin_add_disks_to_local_tier.html
 keywords: add, expand, aggregate, add drives, add disks, add capacity, local tier, add disks to local tier, add disks to aggregate, increase storage, increase aggregate size, local tier, capacity, disk, expand storage, add drives, add disks, add capacity
-summary: You can increase the size of an existing aggregate (local tier) by adding capacity disks
+summary: "You can add disks to an local tier (aggregate) so that it can provide more storage to its associated volumes."
 ---
 
-= Add capacity to a local tier (Add disks to an aggregate)
+= Add capacity to a local tier (add disks to an aggregate)
 :toc: macro
 :toclevels: 1
 :hardbreaks:
@@ -15,8 +15,18 @@ summary: You can increase the size of an existing aggregate (local tier) by addi
 :imagesdir: ./media/
 
 [.lead]
+You can add disks to an local tier (aggregate) so that it can provide more storage to its associated volumes.
 
-You can use System Manager to increase the size of an existing local tier (aggregate) by adding capacity disks.
+The process you follow depends on the interface that you use&mdash;System Manager or the CLI.
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+.Add capacity with System Manager
+
+You can use System Manager to increase the size of an existing local tier by adding capacity disks.
 
 The process you use to increase capacity depends on the version of ONTAP that you have installed:
 
@@ -34,7 +44,7 @@ a| <<increase-cap-98-later,Increase the capacity of a local tier (ONTAP 9.8 or l
 |===
 
 [[increase-cap-97-earlier]]
-== Increase the capacity of an aggregate (ONTAP 9.7 or earlier)
+*Increase the capacity of an aggregate (ONTAP 9.7 or earlier)*
 
 Using System Manager with ONTAP 9.7 or earlier, you can add capacity to an aggregate by adding capacity disks.
 
@@ -57,7 +67,7 @@ NOTE: You should add disks that are of the same size as the other disks in the a
 .	Click *Storage > Tiers* to verify the size of the new aggregate.
 
 [[increase-ca-98-later]]
-== Increase the capacity of a local tier (ONTAP 9.8 or later)
+*Increase the capacity of a local tier (ONTAP 9.8 or later)*
 
 Using System Manager with ONTAP 9.8 or later, you can add capacity to a local tier by adding capacity disks.
 
@@ -87,7 +97,7 @@ a|
 . If the node contains multiple storage tiers, then select the number of disks you want to add to the local tier.  Otherwise, if the node contains only a single storage tier, the added capacity is estimated automatically.
 . Click *Add*.
 
-a| ONTAP 9.11.1
+a| Beginning with ONTAP 9.11.1
 a|
 . Select the disk type and number of disks.
 . If you want to add disks to a new RAID group, check the check box.  The RAID allocation is displayed.
@@ -101,3 +111,150 @@ a|
 
 // 02 DEC 2021, BURT 1396563
 // 07 APR 2022, JIRA IE-529
+--
+
+.CLI
+
+--
+*Add capacity with the CLI*
+
+The procedure for adding partitioned disks to an aggregate is similar to the procedure for adding unpartitioned disks.
+
+.What you'll need
+
+You must know what the RAID group size is for the aggregate you are adding the storage to.
+
+.About this task
+
+When you expand an aggregate, you should be aware of whether you are adding partition or unpartitioned disks to the aggregate. When you add unpartitioned drives to an existing aggregate, the size of the existing RAID groups is inherited by the new RAID group, which can affect the number of parity disks required. If an unpartitioned disk is added to a RAID group composed of partitioned disks, the new disk is partitioned, leaving an unused spare partition.
+
+When you provision partitions, you must ensure that you do not leave the node without a drive with both partitions as spare. If you do, and the node experiences a controller disruption, valuable information about the problem (the core file) might not be available to provide to the technical support.
+
+NOTE: Do not use the `disklist` command to expand your aggregates. This could cause partition misalignment.
+
+.Steps
+
+. Show the available spare storage on the system that owns the aggregate:
++
+`storage aggregate show-spare-disks -original-owner _node_name_`
++
+You can use the `-is-disk-shared` parameter to show only partitioned drives or only unpartitioned drives.
++
+----
+cl1-s2::> storage aggregate show-spare-disks -original-owner cl1-s2 -is-disk-shared true
+
+Original Owner: cl1-s2
+ Pool0
+  Shared HDD Spares
+                                                            Local    Local
+                                                             Data     Root Physical
+ Disk                        Type     RPM Checksum         Usable   Usable     Size Status
+ --------------------------- ----- ------ -------------- -------- -------- -------- --------
+ 1.0.1                       BSAS    7200 block           753.8GB  73.89GB  828.0GB zeroed
+ 1.0.2                       BSAS    7200 block           753.8GB       0B  828.0GB zeroed
+ 1.0.3                       BSAS    7200 block           753.8GB       0B  828.0GB zeroed
+ 1.0.4                       BSAS    7200 block           753.8GB       0B  828.0GB zeroed
+ 1.0.8                       BSAS    7200 block           753.8GB       0B  828.0GB zeroed
+ 1.0.9                       BSAS    7200 block           753.8GB       0B  828.0GB zeroed
+ 1.0.10                      BSAS    7200 block                0B  73.89GB  828.0GB zeroed
+2 entries were displayed.
+----
+
+. Show the current RAID groups for the aggregate:
++
+`storage aggregate show-status _aggr_name_`
++
+----
+cl1-s2::> storage aggregate show-status -aggregate data_1
+
+Owner Node: cl1-s2
+ Aggregate: data_1 (online, raid_dp) (block checksums)
+  Plex: /data_1/plex0 (online, normal, active, pool0)
+   RAID Group /data_1/plex0/rg0 (normal, block checksums)
+                                                              Usable Physical
+     Position Disk                        Pool Type     RPM     Size     Size Status
+     -------- --------------------------- ---- ----- ------ -------- -------- ----------
+     shared   1.0.10                       0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.5                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.6                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.11                       0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.0                        0   BSAS    7200  753.8GB  828.0GB (normal)
+5 entries were displayed.
+----
+
+. Simulate adding the storage to the aggregate:
++
+`storage aggregate add-disks -aggregate _aggr_name_ -diskcount _number_of_disks_or_partitions_ -simulate true`
++
+You can see the result of the storage addition without actually provisioning any storage. If any warnings are displayed from the simulated command, you can adjust the command and repeat the simulation.
++
+----
+cl1-s2::> storage aggregate add-disks data_1 -diskcount 5 -simulate true
+
+Addition of disks would succeed for aggregate "data_1" on node "cl1-s2". The
+following disks would be used to add to the aggregate: 1.0.2, 1.0.3, 1.0.4, 1.0.8, 1.0.9.
+----
+
+. Add the storage to the aggregate:
++
+`storage aggregate add-disks -aggregate _aggr_name_ -raidgroup new -diskcount _number_of_disks_or_partitions_`
++
+When creating a Flash Pool aggregate, if you are adding disks with a different checksum than the aggregate, or if you are adding disks to a mixed checksum aggregate, you must use the `-checksumstyle` parameter.
++
+If you are adding disks to a Flash Pool aggregate, you must use the `-disktype` parameter to specify the disk type.
++
+You can use the `-disksize` parameter to specify a size of the disks to add. Only disks with approximately the specified size are selected for addition to the aggregate.
++
+----
+cl1-s2::> storage aggregate add-disks -aggregate data_1 -raidgroup new -diskcount 5
+----
+
+. Verify that the storage was added successfully:
++
+`storage aggregate show-status -aggregate _aggr_name_`
++
+----
+cl1-s2::> storage aggregate show-status -aggregate data_1
+
+Owner Node: cl1-s2
+ Aggregate: data_1 (online, raid_dp) (block checksums)
+  Plex: /data_1/plex0 (online, normal, active, pool0)
+   RAID Group /data_1/plex0/rg0 (normal, block checksums)
+                                                              Usable Physical
+     Position Disk                        Pool Type     RPM     Size     Size Status
+     -------- --------------------------- ---- ----- ------ -------- -------- ----------
+     shared   1.0.10                       0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.5                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.6                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.11                       0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.0                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.2                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.3                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.4                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.8                        0   BSAS    7200  753.8GB  828.0GB (normal)
+     shared   1.0.9                        0   BSAS    7200  753.8GB  828.0GB (normal)
+10 entries were displayed.
+----
+
+. Verify that the node still has at least one drive with both the root partition and the data partition as spare:
++
+`storage aggregate show-spare-disks -original-owner _node_name_`
++
+----
+cl1-s2::> storage aggregate show-spare-disks -original-owner cl1-s2 -is-disk-shared true
+
+Original Owner: cl1-s2
+ Pool0
+  Shared HDD Spares
+                                                            Local    Local
+                                                             Data     Root Physical
+ Disk                        Type     RPM Checksum         Usable   Usable     Size Status
+ --------------------------- ----- ------ -------------- -------- -------- -------- --------
+ 1.0.1                       BSAS    7200 block           753.8GB  73.89GB  828.0GB zeroed
+ 1.0.10                      BSAS    7200 block                0B  73.89GB  828.0GB zeroed
+2 entries were displayed.
+----
+--
+====
+
+// IE-529, 11 MAY 2022, restructuring
