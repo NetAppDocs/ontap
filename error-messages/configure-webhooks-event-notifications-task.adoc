@@ -2,88 +2,123 @@
 permalink: error-messages/configure-webhooks-event-notifications-task.html
 sidebar: sidebar
 keywords: configure, important, ems, events, receive, email, notifications, forward, rest, api, webhook
-summary: "To receive event notifications on a REST API server, you must configure REST API webhook support. "
+summary: "You can configure ONTAP to forward important event notifications to a webhook application. The configuration steps needed depend on the level of security you choose."
 ---
-= Configure important EMS events to forward notifications to a REST API server
+= Configure important EMS events to forward notifications to a webhook application
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-To receive event notifications on a REST API server, you must configure REST API webhook support.
+You can configure ONTAP to forward important event notifications to a webhook application. The configuration steps needed depend on the level of security you choose.
+
+== Prepare to configure EMS event forwarding
+
+There are several concepts and requirements you should consider before configuring ONTAP to forward event notifications to a webhook application.
+
+=== Webhook application
+
+You need a webhook application capable of receiving the ONTAP event notifications. A webhook is a user-defined callback routine that extends the capability of the remote application or server where it runs. Webhooks are called or activated by the client (in this case ONTAP) by sending an HTTP request to the destination URL. Specifically, ONTAP sends an HTTP POST request to the server hosting the webhook application along with the event notification details formatted in XML.
+
+=== Security options
+
+There are several security options available depending on how the Transport Layer Security (TLS) protocol is used. The option you choose determines the required ONTAP configuration.
+
+[NOTE]
+====
+TLS is a cryptographic protocol that is widely used on the internet. It provides privacy as well as data integrity and authentication using one or more public key certificates. The certificates are issued by trusted certificate authorities.
+====
+
+HTTP::
+You can use HTTP to transport the event notifications. With this configuration, the connection is not secure. The identities of the ONTAP client and webhook application are not verified. Further, the network traffic is not encrypted or protected. See link:configure-webhooks-event-notifications-task.html#configure-a-webhook-destination-to-use-http[Configure a webhook destination to use HTTP] for the configuration details.
+
+HTTPS::
+For additional security, you can install a certificate at the server hosting the webhook routine. The HTTPS protocol is used by ONTAP to verify the identity of the webhook application server as well as by both parties to ensure the privacy and integrity of the network traffic. See link:configure-webhooks-event-notifications-task.html#configure-a-webhook-destination-to-use-https[Configure a webhook destination to use HTTPS] for the configuration details.
+
+HTTPS with mutual authentication::
+You can further enhance the HTTPS security by installing a client certificate at the ONTAP system issuing the webbook requests. In addition to ONTAP verifying the identity of the webhook application server and protecting the network traffic, the webhook application verifies the identity of the ONTAP client. This two-way peer authentication is known as _Mutual TLS_. See link:configure-webhooks-event-notifications-task.html#configure-a-webhook-destination-to-use-https-with-mutual-authentication[Configure a webhook destination to use HTTPS with mutual authentication] for the configuration details.
+
+.Related information
+
+* https://www.rfc-editor.org/info/rfc8446[The Transport Layer Security (TLS) Protocol Version 1.3^]
+
+== Configure a webhook destination to use HTTP
+
+You can configure ONTAP to forward event notifications to a webhook application using HTTP. This is the least secure option but the simplest to set up.
+
+.Steps
+
+.	Create a new destination `restapi-ems` to receive the events:
++
+`event notification destination create -name restapi-ems -rest-api-url \http://<webhook-application>`
++
+In the above command, you must use the *HTTP* scheme for the destination.
+
+.	Create a notification linking the `important-events` filter with the `restapi-ems` destination:
++
+`event notification create -filter-name important-events -destinations restapi-ems`
+
+== Configure a webhook destination to use HTTPS
+
+You can configure ONTAP to forward event notifications to a webhook application using HTTPS. ONTAP uses the server certificate to confirm the identity of the webhook application as well as secure the network traffic.
 
 .Before you begin
 
-* You need a server with REST API/webhook support capable of receiving EMS events.
-* The REST API server can utilize server-side or client-side security certificates.
-* Configuration for certificates is determined by destination. Refer to the following for an overview of certificate configuration based on destination:
-**	*http*: - No certificate involved
-**	*https*: - The server certificate is verified by the ONTAP system. Optionally, a client certificate can be configured that will be sent by the ONTAP system for the server to verify.
-*	Client-side certificates require both the private key and a certificate available for installation on the source ONTAP system(s).
-
-NOTE: If you are configuring both a client and server certificate REST API forward, a server-side certificate is required to utilize a client-side certificate. As a result, you must follow the client-side instructions to use both methods of authentication.
-
-== Configuring an HTTP Rest API forward
-
-.About this task
-You can perform this task any time the cluster is running by entering the commands on the ONTAP command line.
-
-.Steps
-.	Create a new destination `restapi-ems` destination for the filter `important-events`:
-+
-`event notification destination create -name restapi-ems -rest-api-url \http://<url_to_rest_api_server>`
-
-.	Create the notification that links the `important-events` filter with the new `restapi-ems` destination:
-+
-`event notification create -filter-name important-events -destinations restapi-ems`
-
-== Configuring a server certificate HTTPS Rest API forward
-
-.About this task
-
-This procedure assumes you have previously generated a server-side private key and public certificate. It also assumes you have the root certificate available to install in ONTAP.
+* Generate a private key and certificate for the webhook application server
+* Have the root certificate available to install in ONTAP
 
 .Steps
 
-.	Install the appropriate server private key and public certificates in your REST API server.
-+
-NOTE: Specific instructions depend on the server.
+.	Install the appropriate server private key and certificates at the server hosting your webhook application. The specific configuration steps are dependent on the server.
 
-.	Install the server root certificate in ONTAP.
+.	Install the server root certificate in ONTAP:
 +
 `security certificate install -type server-ca`
 +
-The command will query for the public certificate.
+The command will ask for the certificate.
+
+.	Create the `restapi-ems` destination to receive the events:
 +
-.	Create the `restapi-ems` destination for the filter `important-events`.
+`event notification destination create -name restapi-ems -rest-api-url \https://<webhook-application>`
 +
-You must use the HTTPS scheme for the server-side certificate to be utilized.
-+
-`event notification destination create -name restapi-ems -rest-api-url \https://<url_to_rest_api_server>`
-+
+In the above command, you must use the *HTTPS* scheme for the destination.
+
 .	Create the notification that links the `important-events` filter with the new `restapi-ems` destination:
 +
 `event notification create -filter-name important-events -destinations restapi-ems`
 
-== Configuring a client certificate HTTPS Rest API forward
+== Configure a webhook destination to use HTTPS with mutual authentication
 
-.About this task
-The usage of a client certificate is optional and only necessary if client authentication by the server is desired. This procedure assumes you have previously generated a client private key and public certificate.
+You can configure ONTAP to forward event notifications to a webhook application using HTTPS with mutual authentication. With this configuration there are two certificates. ONTAP uses the server certificate to confirm the identity of the webhook application and secure the network traffic. In addition, the application hosting the webhook uses the client certificate to confirm the identity of the ONTAP client.
+
+.Before you begin
+
+You must do the following before configuring ONTAP:
+
+* Generate a private key and certificate for the webhook application server
+* Have the root certificate available to install in ONTAP
+* Generate a private key and certificate for the ONTAP client
 
 .Steps
 
-.	Install the appropriate root and intermediate certificates, in the Rest API server, to validate your client certificate.
-.	Install the client certificate in ONTAP.
+. Perform the first two steps in the task link:configure-webhooks-event-notifications-task.html#configure-a-webhook-destination-to-use-https[Configure a webhook destination to use HTTPS] to install the server certificate so that ONTAP can verify the identity of the server.
+
+.	Install the appropriate root and intermediate certificates at the webhook application to validate the client certificate.
+
+.	Install the client certificate in ONTAP:
 +
 `security certificate install -type client`
 +
-The command will query for the private key and the public certificate.
+The command will ask for the private key and certificate.
+
+.	Create the `restapi-ems` destination to receive the events:
 +
-.	Create the `restapi-ems` destination for the filter `important-events`.
+`event notification destination create -name restapi-ems -rest-api-url \https://<webhook-application> -certificate-authority <issuer of the client certificate> -certificate-serial <serial of the client certificate>`
 +
-`event notification destination create -name restapi-ems -rest-api-url \https://<url_to_rest_api_server> -certificate-authority <issuer of the client certificate> -certificate-serial <serial of the client certificate>`
-+
-.	Create the notification that links the `important-events` filter with the new `restapi-ems` destination.
+In the above command, you must use the *HTTPS* scheme for destination.
+
+.	Create the notification that links the `important-events` filter with the new `restapi-ems` destination:
 +
 `event notification create -filter-name important-events -destinations restapi-ems`
 
+// 2022-05-16: Rewritten by dmp-netapp
 // 2021-11-30, Created by Aoife
