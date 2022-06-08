@@ -11,23 +11,32 @@ summary: "You can add access rules to the default bucket policy. The scope of it
 [.lead]
 You can add access rules to the default bucket policy. The scope of its access control is the containing bucket, so it is most appropriate when there is a single bucket.
 
-.What you'll need
+.Before you begin
 
 An S3-enabled SVM containing an S3 server and a bucket must already exist.
+
+You must have already created users or groups before granting permissions.
 
 .About this task
 
 You can add new statements for new users and groups, or you can modify the attributes of existing statements. For more options, see the `vserver object-store-server bucket policy` man pages.
 
-.Steps
+User and group permissions can be granted when the bucket is created or as needed later. You can also modify the bucket capacity and QoS policy group assignment.
 
+include::_include/s3-aws-condition.adoc[]
+
+[role="tabbed-block"]
+====
+.CLI
+--
+.Steps
 . Add a statement to a bucket policy:
 +
-`vserver object-store-server bucket policy add-statement -vserver svm_name -bucket bucket_name -effect {allow|deny} -action object_store_actions -principal user_and_group_names -resource object_store_resources [-sid text] [-index integer]`
+`vserver object-store-server bucket policy add-statement -vserver _svm_name_ -bucket _bucket_name_ -effect {allow|deny} -action _object_store_actions_ -principal _user_and_group_names_ -resource _object_store_resources_ [-sid text] [-index integer]`
 +
 The following parameters define access permissions:
 +
-[cols="2*"]
+[cols="1,3"]
 |===
     a|
 `-effect`
@@ -67,3 +76,22 @@ The following example creates an object store server bucket policy statement for
 ----
 cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal group/group1 -resource bucket1/* -sid "fullAccessForGroup1"
 ----
+--
+
+.System Manager
+--
+.Steps
+. Edit the bucket: click *Storage > Buckets*, click the desired bucket, and then click *Edit*.
+When adding or modifying permissions, you can specify the following parameters:
+*	Principal: the user or group to whom access is granted.
+*	Effect: allows or denies access to a user or group.
+*	Actions: permissible actions in the bucket for a given user or group.
+*	Resources: paths and names of objects within the bucket for which access is granted or denied.
++
+The defaults *_bucketname_* and *_bucketname/*_* grant access to all objects in the bucket. You can also grant access to single objects; for example, *_bucketname/_*_readme.txt*.
+*	Conditions (optional): expressions that are evaluated when access is attempted. For example, you can specify a list of IP addresses for which access will be allowed or denied.
+--
+====
+
+// 2021-04-14, Jira IE-289
+// 2020-10-09, BURT 1290604
