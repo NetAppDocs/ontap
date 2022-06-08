@@ -15,7 +15,28 @@ summary: In the current release, ransomware protection is most suitable in NAS e
 :imagesdir: ./media/
 
 [.lead]
-In the current release, ransomware protection is most suitable in NAS environments. Support for other environments will be available in future releases.
+// In the current release, ransomware protection is most suitable in NAS environments. Support for other environments will be available in future releases.
+
+ONTAP platform support:
+[cols="2*",options="header"]
+|===
+| Platform| Available beginning...
+a| ONTAP on-premises
+a| ONTAP 9.10.1
+
+a| Cloud Volumes ONTAP
+a| ONTAP 9.11.1
+
+a| Cloud Volume Services for AWS and Google Cloud
+a| not supported
+
+a| Azure NetApp Files
+a| not supported
+
+a| ONTAP Select
+a| not supported
+
+|===
 
 Suitable workloads:
 
@@ -39,11 +60,6 @@ Unsupported system configurations:
 * SAN environments
 * ONTAP S3 environments
 * VMDKs on NFS
-* Cloud Volumes ONTAP
-* Cloud Volume Services for AWS and Google Cloud
-* Azure NetApp Files
-* Amazon FSx for ONTAP
-* ONTAP Select
 
 Volume requirements:
 
@@ -54,7 +70,6 @@ Unsupported volume types:
 
 * offline volumes
 * restricted volumes
-* Snaplock volumes
 * SnapLock volumes
 * FlexGroup volumes
 * FlexCache volumes (the anti-ransomware feature is supported on origin FlexVol volumes but not on cache volumes)
@@ -67,8 +82,23 @@ Unsupported volume types:
 
 The anti-ransomware feature can have a minimal impact on system performance as measured in throughput and peak IOPS. The impact of the anti-ransomware feature is highly dependent on volume workloads. For most typical or common workloads, the following configuration limits are recommended:
 
-* No more than 50 volumes per node if the workload is either read-intensive or the data can be compressed.
-* No more than 20 volumes per node if the workload is write-intensive and the data cannot be compressed.
+
+[cols="30,20,30",options="header"]
+|===
+| Workload characteristics
+| Recommended volume limit per node
+| Performance degradation when per-node volume limit is exceeded pass:[*]
+
+| Read-intensive or the data can be compressed.
+| 150
+| 4% of maximum IOPS
+
+| Write-intensive and the data cannot be compressed.
+| 60
+| 10% of maximum IOPS
+|===
+
+pass:[*] System performance is not degraded beyond these percentages regardless of the number of volumes added in excess of the recommended limits.
 
 Because anti-ransomware analytics are run in a prioritized sequence, as the number of protected volumes increases, analytics are run on each volume less frequently.
 
@@ -76,6 +106,11 @@ Because anti-ransomware analytics are run in a prioritized sequence, as the numb
 
 In order to obtain the best possible recovery point, the anti-ransomware feature creates an automatic Snapshot copy as soon as it detects abnormal file activity. However, the anti-ransomware feature does not immediately flag an alert; rather, analytics need to run and confirm that the suspicious activity matches a ransomware profile before generating an alert. This process could take up to 60 minutes. If the analytics determines the activity is not suspicious, then an alert is not generated, but the automatically created Snapshot copy remains present on the file system for a minimum of two days.
 
+Beginning with ONTAP 9.11.1, you can control the number and retention period for anti-ransomware Snapshot copies that are automatically generated in response to suspected ransomware attacks. Learn how to link:modify-automatic-shapshot-options-task.html[modify options for automatic Snapshot copies].
+
+// 2022-06-07, BURT 1482782
+// 2022-05-04, Jira IE-517
+// 2022-03-30, Jira IE-517
 // 2022-03-22, ontap-issues-419
 // 2022-02-18, ontap-issues-371
 // 2021-11-29, ontap-issues 255 & 257

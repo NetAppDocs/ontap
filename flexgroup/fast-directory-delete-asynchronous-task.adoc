@@ -1,26 +1,28 @@
 ---
 permalink: flexgroup/fast-directory-delete-asynchronous-task.html
 sidebar: sidebar
-keywords: perform, directory, delete, files, asynchronous, share, flexvol, flex vol, flexgroup, flex group
-summary: "You should use the REST API to delete your directory. Beginning with ONTAP 9.8, you can also use the volume file async-delete command to delete files and directories from Linux and Windows client shares in the background. You can perform asynchronous delete on both FlexVol and FlexGroup volumes."
+keywords: perform, directory, delete, files, asynchronous, share, flexvol, flex vol, flexgroup, flex group, cancel 
+summary: "Beginning with ONTAP 9.8, you can use the volume file async-delete command to delete files and directories from Linux and Windows client shares in the background. You can perform asynchronous delete on both FlexVol and FlexGroup volumes."
 ---
-= Perform a fast directory delete by deleting files and directories asynchronously
+= Delete files and directories rapidly on the cluster
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You should use the REST API to delete your directory. Beginning with ONTAP 9.8, you can also use the `volume file async-delete` command to delete files and directories from Linux and Windows client shares in the background. You can perform asynchronous delete on both FlexVol and FlexGroup volumes.
-
-.About this task
+Beginning with ONTAP 9.8, you can use low-latency _fast-directory delete_ functionality to delete files and directories from Linux and Windows client shares asynchronously (that is, in the background). Cluster and SVM administrators can perform asynchronous delete operations on both FlexVol and FlexGroup volumes.
 
 If you are using a version of ONTAP earlier than ONTAP 9.11.1, you must be a cluster administrator or a SVM administrator using the advanced privilege mode.
 
-Beginning with ONTAP 9.11.1, a cluster administrator can grant rights on a volume to allow NFS and SMB clients to perform asynchronous delete operations.  When async delete is enabled, NFS clients can use the move command, and SMB clients can use the rename command to delete a directory and move it to a hidden .ontaptrashbin directory. for more information, see xref:enable-client-async-dir-delete-task.adoc[Enable client asynchronous directory delete on a volume].
+Beginning with ONTAP 9.11.1, a storage administrator can grant rights on a volume to allow NFS and SMB clients to perform asynchronous delete operations. For more information, see xref:manage-client-async-dir-delete-task.adoc[Manage client rights to delete directories rapidly].
 
-Beginning with ONTAP 9.9.1, you can also use System Manager to perform a fast directory delete. For more information, see https://docs.netapp.com/us-en/ontap/task_nas_file_system_analytics_take_corrective_action.html[Take corrective action based on analytics].
+Beginning with ONTAP 9.8, you can use fast directory delete functionality using the ONTAP CLI. Beginning with ONTAP 9.9.1, you can use this functionality with System Manager. For more information about this process, see https://docs.netapp.com/us-en/ontap/task_nas_file_system_analytics_take_corrective_action.html[Take corrective action based on analytics].
 
-.Steps
+[role="tabbed-block"]
+====
 
+.CLI
+--
+.Perform a fast directory delete with the CLI:
 . Enter advanced privilege mode: `-privilege advance`
 . Delete files or directories on a FlexVol or FlexGroup volume: `volume file async-delete start -vserver vserver_name -volume volume_name -path file_path -throttle throttle`
 +
@@ -42,6 +44,28 @@ Time                 Node             Severity      Event
 -------------------  ---------------- ------------- --------------------
 MM/DD/YYYY 00:11:11  cluster-vsim     INFORMATIONAL asyncDelete.message.success: Async delete job on path d1/d2 of volume (MSID: 2162149232) was completed.
 ----
+
+.Cancel a directory delete job
+.  Enter advanced privilege mode:
++
+`-privilege advanced`
+. Verify that the directory delete is in progress:
++
+`volume file async-delete show`
++
+If the SVM, volume, JobID and path of your directory is displayed, you can cancel the job.
+
+. Cancel the directory delete:
++
+`volume file async-delete cancel -vserver SVM_name -volume volume_name -jobid job_id`
+--
+
+.System Manager
+--
+
+For more information, see https://docs.netapp.com/us-en/ontap/task_nas_file_system_analytics_take_corrective_action.html[Take corrective action based on analytics].
+--
+====
 
 // 08 DEC 2021, BURT 1430515
 // 2022-3-22, IE-494
