@@ -1,6 +1,66 @@
 ---
 permalink: san-admin/asa-iscsi-lif-fo-task.html
-redirect: ontap/san-admin/index.html
+sidebar: sidebar
+keywords: failover, iscsi, all san array, cli, system manager, auto-revert, revert network interface
+summary: "The iSCSI LIF failover feature is available from ONTAP 9.11.1 on All SAN Array platforms and allows iSCSI LIFs to migrate from the node which is going down to its HA partner before the home-node goes down."
 ---
+= iSCSI LIF failover for ASA platforms
+:icons: font
+:imagesdir: ../media/
 
-// redirect
+[.lead]
+The iSCSI logical interface (LIF) failover feature is available from ONTAP 9.11.1 on All SAN Array (ASA) platforms and allows iSCSI LIFs to migrate from the node which is going down to its HA partner before the home-node goes down. The iSCSI LIF failover feature can only be enabled after the entire ONTAP cluster is on ONTAP 9.11.1 or later.
+
+.About this task
+The following list describes how this feature works:
+
+* For LIFs using the `data-iscsi` service policy, the failover-policy is restricted to `sfo-partner-only`, `local-only`, and `disabled`
+* iSCSI LIFs can failover only to the HA partner when their failover policy is set to `sfo-partner-only`
+* Giveback happens when the giveback policy is set to `auto-revert true` and the node comes back in quorum
+* When there is a planned or unplanned node takeover, the iSCSI LIF on the node which is taken-over fails over to the HA partner; the port on which the LIF fails over is determined by the VIF Manager
+* Once the failover is complete, the iSCSI LIF operates normally
+* When a giveback is initiated, the iSCSI LIF reverts back to its home node and port
+
+== System Manager procedure
+
+Beginning with ONTAP 9.11.1, you can use System Manager to migrate an iSCSI LIF from an ASA platform which is going down to its HA partner before the home-node goes down. The ability to migrate and revert are enabled by default on ASA platforms.
+
+=== Failover
+.Steps
+.	In System Manager, click *Network > Overview > Network Interfaces*
+.	Select the LIF you want to migrate, then click image:icon_kabob.gif[Kabob Icon], and then click *Migrate*.
+. In the *Migrate Interface* dialog box, select the destination node and port of the HA partner.
+.	Click *Migrate*.
+
+=== Giveback
+.Steps
+.	In System Manager, click *Network > Overview > Network Interfaces*.
+.	Select the LIF  you want to revert, then click image:icon_kabob.gif[Kabob Icon] and then click *Revert Network Interface*.
+. In the *Revert Network Interface* dialog box, click *Revert*.
+
+== CLI procedure
+
+Beginning with ONTAP 9.11.1, use the following commands on an ASA platform, to create and manage iSCSI LIFs. The ability to failover and auto-revert are enabled by default._
+
+|===
+
+h| If you want to... h| Use this command...
+
+|Create an iSCSI LIF
+|`network interface create -vserver _SVM_name_ -lif _iscsi_lif_ -service-policy default-data-blocks -data-protocol iscsi -home-node _node_name_ -home-port _port_name_`
+|Verify that the LIF was created successfully
+|`network interface show -vserver _SVM_name_ -fields failover-policy,failover-group,auto-revert,is-home`
+|Verify if you can override the auto-revert default on iSCSI LIFs
+|`network interface modify -vserver _SVM_name_ -lif iscsi_lif -auto-revert false`
+
+You will receive an error: `Error: command failed: auto-revert cannot be disabled on SAN LIFs.`
+
+|Perform a storage failover on an iSCSI LIF
+|`storage failover takeover -ofnode _node_name_ -option normal`
+
+You will receive a warning: `A takeover will be initiated. Once the partner node reboots, a giveback will be automatically initiated. Do you want to continue? {y/n}:`
+
+A `y` response will display a takeover message from its HA partner.
+|===
+
+// 22 MAR 2022, Jira IE-524
