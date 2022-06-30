@@ -11,19 +11,21 @@ summary: Beginning with ONTAP 9.11.1 on All SAN Array (ASA) platforms, the iSCSI
 [.lead]
 Beginning with ONTAP 9.11.1 on All SAN Array (ASA) platforms, the iSCSI LIF failover feature supports automatic and manual migration of iSCSI LIFs in an SFO partner failover (when an iSCSI LIF moves from its home node/port to its HA partner node/port and back again) and in a local failover (when an iSCSI LIF moves from its unhealthy port to a healthy port on its current home node and back again). This feature provides faster I/O resumption for SAN workloads running on ISCSI.
 
+== Overview
+
 * The automatic movement of an iSCSI LIF is a LIF failover (and auto-revert), which is triggered in certain events, such as planned or unplanned failover, a physical ethernet link down, or a node dropping out of replicated database (RDB) quorum.
 ** After upgrading your ASA HA pair to ONTAP 9.11.1, this feature is automatically enabled on newly created iSCSI LIFs if no iSCSI LIFs exist in the specified storage VM or if all existing iSCSI LIFs in the specified storage VM are already enabled with iSCSI LIF failover.
-** For iSCSI LIFs created prior to upgrading to ONTAP 9.11.1, to use the iSCSI LIF failover feature, you must enable it using the ONTAP CLI. (Enabling the failover feature and auto-revert capability means changing the failover policy to “sfo-partner-only” and designating the auto-revert value to “true”.)
+** For iSCSI LIFs created prior to upgrading to ONTAP 9.11.1, to use the iSCSI LIF failover feature, you must enable it using the ONTAP CLI. (Enabling the failover feature and auto-revert capability means changing the failover policy to `sfo-partner-only` and designating the auto-revert value to `true`.)
 +
 <<Manage iSCSI LIFs using the ONTAP CLI>>
 +
 If you do not enable iSCSI LIF failover on the existing iSCSI LIFs, when there is a failover event, the iSCSI LIFs will not failover.
 +
-Additionally, if after upgrading to ONTAP 9.11.1 or later you have existing iSCSI LIFs in a storage VM that have not been enabled with the iSCSI LIF failover feature and you create new iSCSI LIFs in the same storage VM, the new iSCSI LIFs assume the same failover policy (“disabled”) of the existing iSCSI LIFs in the storage VM.
+Additionally, if after upgrading to ONTAP 9.11.1 or later you have existing iSCSI LIFs in a storage VM that have not been enabled with the iSCSI LIF failover feature and you create new iSCSI LIFs in the same storage VM, the new iSCSI LIFs assume the same failover policy (`disabled`) of the existing iSCSI LIFs in the storage VM.
 
 * The manual movement of an iSCSI LIF is a LIF migrate/revert, which is initiated by the cluster admin using the ONTAP CLI or System Manager.
 ** You manually migrate and revert an iSCSI LIF when scheduled maintenance or replacement is needed, or when you have a pre-existing iSCSI LIF, meaning that the iSCSI LIF was created before you upgraded your HA pair to ONTAP 9.11.1 or later, and you have not enabled the iSCSI LIF failover feature on the LIF.
-
++
 <<Migrate and revert an iSCSI LIF>>
 
 == How iSCSI LIF failover works
@@ -34,7 +36,7 @@ Beginning with ONTAP 9.11.1, on All SAN Array (ASA) platforms, for LIFs with iSC
 * For LIFs using the `data-iscsi` service policy, the failover-policy is restricted to `sfo-partner-only`, `local-only`, and `disabled`.
 * iSCSI LIFs can failover only to the HA partner when their failover policy is set to `sfo-partner-only`.
 * Auto-revert of LIFs happens when the auto-revert is set to `true` and when the LIF’s home port is healthy and able to host the LIF.
-* On a planned or unplanned node takeover, the iSCSI LIF on the node which is taken-over fails over to the HA partner; the port on which the LIF fails over is determined by VIF Manager.
+* On a planned or unplanned node takeover, the iSCSI LIF on the node which is taken-over fails over to the HA partner. The port on which the LIF fails over is determined by VIF Manager.
 * Once the failover is complete, the iSCSI LIF operates normally.
 * When a giveback is initiated, the iSCSI LIF reverts back to its home node and port, if auto-revert is set to `true`.
 * When an ethernet link goes down on a port hosting one or more iSCSI LIFs, VIF Manager migrates the LIFs from the down port to a different port in the same broadcast domain. The new port could be in the same node or its HA partner. Once the link is restored and if auto-revert is set to `true`, VIF Manager reverts the iSCSI LIFs back to their home node and home port.
@@ -57,7 +59,7 @@ Your ASA platform HA pair must be running ONTAP 9.11.1 or later.
 
 .Steps
 .	In System Manager, click *Network > Overview > Network Interfaces*
-.	Select the LIF you want to migrate, then click image:icon_kabob.gif[Kabob Icon], and then click *Migrate*.
+.	Select the LIF you want to migrate, click image:icon_kabob.gif[Kabob Icon], and then click *Migrate*.
 . In the *Migrate Interface* dialog box, select the destination node and port of the HA partner.
 +
 NOTE: You have the option of permanently migrating the iSCSI LIF by checking the checkbox. Understand that the iSCSI LIF must be offline before it is permanently migrated. Additionally, once an iSCSI LIF is permanently migrated, it cannot be undone. There is no revert option.
@@ -67,7 +69,7 @@ NOTE: You have the option of permanently migrating the iSCSI LIF by checking the
 
 .Steps
 .	In System Manager, click *Network > Overview > Network Interfaces*.
-.	Select the LIF  you want to revert, then click image:icon_kabob.gif[Kabob Icon] and then click *Revert Network Interface*.
+.	Select the LIF  you want to revert, click image:icon_kabob.gif[Kabob Icon] and then click *Revert Network Interface*.
 . In the *Revert Network Interface* dialog box, click *Revert*.
 
 === Migrate and revert an iSCSI LIF using the ONTAP CLI
@@ -87,11 +89,6 @@ h| If you want to... h| Use this command...
 |Revert an iSCSI LIF back to its home node/port
 |See link:../networking/revert_a_lif_to_its_home_port.html[Revert a LIF to its home port] for the available commands.
 |===
-
-
-.About this task??
-You manually migrate and revert an iSCSI LIF when scheduled maintenance or replacement is needed, or if you have a pre-existing iSCSI LIF not enabled with the iSCSI LIF failover feature, meaning that the iSCSI LIF was created before you upgraded your HA pair to ONTAP 9.11.1 or later, and that after upgrading, you did not enable the iSCSI LIF failover feature (set the failover policy to “sfo-partner-only”).
-
 
 == Manage iSCSI LIFs using the ONTAP CLI
 
