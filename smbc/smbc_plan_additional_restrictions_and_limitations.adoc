@@ -100,40 +100,40 @@ If you experience a failover on the SM-BC destination in a fan-out configuration
 
 Beginning with ONTAP 9.11.1, AIX is supported with SM-BC. With an AIX configuration, the primary cluster is the "active" cluster.
 
-In an AIX configuration, failovers are disruptive. With each failover, you will need to perform a rescan on the host for I/O operations to resume. 
+In an AIX configuration, failovers are disruptive. With each failover, you will need to perform a re-scan on the host for I/O operations to resume. 
 
-You will need to perform configurations in both the AIX host and with ONTAP to enable SM-BC. 
-
-**ONTAP configuration**
-
-In the event of a concurrent failover, I/O is expected to fail as the primary path of the LUN may return `LU_NOT_SUPPORTED`. This failure can be mitigated by reviewing the process in the Knowledge Base article _link to be added_.
-
-**AIX configuration**
-
-The AIX host configured with SM-BC LUN will discover the paths only from the primary cluster after the LUN mapping process. See xref:smbc_install_mapping_luns_to_the_application_hosts.html[Mapping LUNS to the application host] for further details about this process. 
-
-LUN paths from the secondary cluster will return `LU_NOT_SUPPORTED` during the initial LUN discovery process. Automatic and planned failover operations will cause a LUN to lose all its paths, prompting the application to experience I/O failure. To restore protection, you must perform a manual AIX host rescan to rediscover the paths. 
-
-.Rediscover the LUN paths
-. Rescan the host for new ONTAP devices using the `cfgmgr` command.
-. Using the `lsmpio -l _disk_name_` command, check the path status status on each ONTAP device. The old primary clusters for all devices will appear as failed, as in the below example.
-====
-[root@aix_server /]: lsmpio -l hdisk3
-name    path_id  status   path_status  parent  connection
+To configure for SM-BC, refer to the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_configure_an_AIX_host_for_SnapMirror_Business_Continuity_(SM-BC)[How to configure an AIX host for SnapMirror Business Continuity (SM-BC)].
  
-hdisk3  0        Failed   Opt,Fai      fscsi6  2005d039ea1e44e4,1000000000000
-hdisk3  1        Failed   Opt,Fai      fscsi6  2003d039ea1e44e4,1000000000000
-hdisk3  2        Failed   Opt,Fai      fscsi7  2006d039ea1e44e4,1000000000000 
-hdisk3  3        Failed   Opt,Fai      fscsi7  2004d039ea1e44e4,1000000000000
-hdisk3  4        Enabled  Sel,Opt      fscsi6  2023d039ea1ee6a8,1000000000000
-hdisk3  5        Enabled  Sel,Opt      fscsi6  2025d039ea1ee6a8,1000000000000
-hdisk3  6        Enabled  Sel,Opt      fscsi7  2024d039ea1ee6a8,1000000000000
-hdisk3  7        Enabled  Sel,Opt      fscsi7  2026d039ea1ee6a8,1000000000000
-====
-. Remove the missing and failed paths from old primary cluster for all devices using the command:
-`rmpath -l _path_name_ -p _parent_name_ -w _connection_location_ -i _path_id_ -d`
-If the deletion is successful, you will receive the message `path Deleted`.
-. Verify the path status again using the `lsmpio -l _disk_name_` command. You should see only the enabled paths from step 2. 
+// **ONTAP configuration**
+
+// In the event of a concurrent failover, I/O is expected to fail as the primary path of the LUN may return `LU_NOT_SUPPORTED`. This failure can be mitigated by reviewing the process in the Knowledge Base article _link to be added_.
+
+// **AIX configuration**
+
+// The AIX host configured with SM-BC LUN will discover the paths only from the primary cluster after the LUN mapping process. See xref:smbc_install_mapping_luns_to_the_application_hosts.html[Mapping LUNS to the application host] for further details about this process. 
+
+// LUN paths from the secondary cluster will return `LU_NOT_SUPPORTED` during the initial LUN discovery process. Automatic and planned failover operations will cause a LUN to lose all its paths, prompting the application to experience I/O failure. To restore protection, you must perform a manual AIX host rescan to rediscover the paths. 
+
+// .Rediscover the LUN paths
+// . Rescan the host for new ONTAP devices using the `cfgmgr` command.
+// . Using the `lsmpio -l _disk_name_` command, check the path status status on each ONTAP device. The old primary clusters for all devices will appear as failed, as in the below example.
+// ====
+// [root@aix_server /]: lsmpio -l hdisk3
+// name    path_id  status   path_status  parent  connection
+ 
+// hdisk3  0        Failed   Opt,Fai      fscsi6  2005d039ea1e44e4,1000000000000
+// hdisk3  1        Failed   Opt,Fai      fscsi6  2003d039ea1e44e4,1000000000000
+// hdisk3  2        Failed   Opt,Fai      fscsi7  2006d039ea1e44e4,1000000000000 
+// hdisk3  3        Failed   Opt,Fai      fscsi7  2004d039ea1e44e4,1000000000000
+// hdisk3  4        Enabled  Sel,Opt      fscsi6  2023d039ea1ee6a8,1000000000000
+// hdisk3  5        Enabled  Sel,Opt      fscsi6  2025d039ea1ee6a8,1000000000000
+// hdisk3  6        Enabled  Sel,Opt      fscsi7  2024d039ea1ee6a8,1000000000000
+// hdisk3  7        Enabled  Sel,Opt      fscsi7  2026d039ea1ee6a8,1000000000000
+// ====
+// . Remove the missing and failed paths from old primary cluster for all devices using the command:
+// `rmpath -l _path_name_ -p _parent_name_ -w _connection_location_ -i _path_id_ -d`
+// If the deletion is successful, you will receive the message `path Deleted`.
+// . Verify the path status again using the `lsmpio -l _disk_name_` command. You should see only the enabled paths from step 2. 
 
 == Solaris Host setting recommendation for SM-BC configuration
 
