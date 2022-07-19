@@ -1,13 +1,14 @@
 name: NetAppDocs Organization CI
 
-on: [push, pull_request]
+on: [push, pull_request, workflow_dispatch]
 
 env:
-  DEPLOY_VERSION: v2
-  FRAMEWORK_BRANCH: main 
+  DEPLOY_VERSION: v3
+  FRAMEWORK_BRANCH: main
   INTERNAL_FLAG: ${{ endsWith(github.event.repository.name, '-internal') }}
   ES_API: ${{ endsWith(github.event.repository.name, '-internal') &&  secrets.ES_API_INTERNAL || secrets.ES_API }}
   ES_AUTH: ${{ endsWith(github.event.repository.name, '-internal') &&  secrets.ES_AUTH_INTERNAL || secrets.ES_AUTH }}
+  ES_AUTH_WEB: ${{ endsWith(github.event.repository.name, '-internal') &&  secrets.ES_AUTH_INTERNAL_WEB || secrets.ES_AUTH_WEB }}
   DEPLOY_KEY_PREVIEW: ${{ secrets.DEPLOY_KEY_PREVIEW }}
   DEPLOY_HOST_PREVIEW: ${{ secrets.DEPLOY_HOST_PREVIEW }}
   GH_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -22,59 +23,53 @@ jobs:
     if: ${{(github.ref == 'refs/heads/main') || (github.event.pull_request.base.ref == 'main') || endsWith(github.event.repository.name, '-internal') }}
     runs-on: ${{ endsWith(github.event.repository.name, '-internal') && 'netappdocs-runner'  || 'ubuntu-20.04' }}
     steps:
-      - name: "Repository Checkout"
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
 
       - name: "Framework Checkout"
         uses: actions/checkout@v2
         with:
-          repository: 'NetAppDocs/jekyll'
+          repository: 'NetAppDocOps/jekyll'
           token: ${{ env.GH_TOKEN }}
           path: dependencies/jekyll
           ref: ${{ env.FRAMEWORK_BRANCH }}
-
-      - name: "Copy GH actions"
-        run: mkdir -p $GITHUB_WORKSPACE/.github/actions/ && cp -R $GITHUB_WORKSPACE/dependencies/jekyll/.ci/actions/* $GITHUB_WORKSPACE/.github/actions/
-        shell: bash
-
+             
       - name: "Configure"
-        uses: ./.github/actions/pre-deploy
+        uses: ./dependencies/jekyll/.ci/actions/configure
+        
+      - name: "Install"
+        uses: ./dependencies/jekyll/.ci/actions/install
+        
+      - name: "Lipi Adoc syntax check"
+        if: ${{ env.LIPI_ENABLED == 'true' }}
+        uses: ./dependencies/jekyll/.ci/actions/lipi-adoc
 
-      - name: "Generate HTML/PDF"
-        run: source $GITHUB_WORKSPACE/.ci/deploy/post_install.bash
-        shell: bash
+      - name: "Generate HTML"
+        uses: ./dependencies/jekyll/.ci/actions/jekyll
+
+      - name: "Generate PDF"
+        uses: ./dependencies/jekyll/.ci/actions/jekyll-pdf
+        
+      - name: "Lipi Doc site check"
+        if: ${{ env.LIPI_ENABLED == 'true' }}
+        uses: ./dependencies/jekyll/.ci/actions/lipi-doc
 
       - name: "Deploy"
-        if: ${{ github.event_name == 'push' }}
-        uses: ./.github/actions/deploy
+        if: ${{ env.DEPLOY_ENABLED == 'true' }}
+        uses: ./dependencies/jekyll/.ci/actions/deploy
+        
+      - name: "Translate"
+        if: ${{ env.HARMONY_ENABLED == 'true' }}
+        uses: ./dependencies/jekyll/.ci/actions/translate
+        
+      - name: "Lipi Report"
+        if: ${{ always() && env.LIPI_ENABLED == 'true' }}
+        uses: ./dependencies/jekyll/.ci/actions/lipi-report
 
-  i18n:
-    if: ${{(github.ref == 'refs/heads/main') && !endsWith( github.event.repository.name, '-internal') }}
-    needs: build
-    runs-on: ${{ endsWith(github.event.repository.name, '-internal') && 'netappdocs-runner'  || 'ubuntu-20.04' }}
-    steps:
-      - name: "Repository Checkout"
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+      - name: "Post processing actions"
+        if: ${{ always() }}
+        uses: ./dependencies/jekyll/.ci/actions/post-processing
 
-      - name: "Jekyll Checkout"
-        uses: actions/checkout@v2
-        with:
-          repository: 'NetAppDocs/jekyll'
-          token: ${{ env.GH_TOKEN }}
-          path: dependencies/jekyll
-          ref: ${{ env.FRAMEWORK_BRANCH }}
-
-      - name: "Copy GH actions"
-        run: mkdir -p $GITHUB_WORKSPACE/.github/actions/ && cp -R $GITHUB_WORKSPACE/dependencies/jekyll/.ci/actions/* $GITHUB_WORKSPACE/.github/actions/
-        shell: bash
-
-      - name: "Configure"
-        uses: ./.github/actions/pre-i18n
-
-      - name: "Translate content"
-        run: source $GITHUB_WORKSPACE/.ci/i18n/post_install.bash
-        shell: bash
+      - name: Cleaning up workspace path
+        if: always()
+        run: |
+          echo "Cleaning up previous run"
+          rm -rf "${{ github.workspace }}/*"
