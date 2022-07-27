@@ -35,7 +35,9 @@ The supported protocols are SMB, NFS, FlexCache, iSCSI, and FC; iSCSI and FC can
 * All the name mapping and host-name resolution services used by an SVM, such as DNS, NIS, LDAP, and Active Directory, must be reachable from at least one LIF handling data traffic of the SVM.
 * A LIF handling intracluster traffic between nodes should not be on the same subnet as a LIF handling management traffic or a LIF handling data traffic.
 * Creating a LIF that does not have a valid failover target results in a warning message.
-* If you have a large number of LIFs in your cluster, you can verify the LIF capacity supported on the cluster by using the `network interface capacity show` command and the LIF capacity supported on each node by using the `network interface capacity details show` command (at the advanced privilege level).
+* If you have a large number of LIFs in your cluster, you can verify the LIF capacity supported on the cluster by using:
+** System Manager: Beginning with ONTAP 9.12.0, view the throughput on the Network Interface grid.
+** CLI: Use the `network interface capacity show` command and the LIF capacity supported on each node by using the `network interface capacity details show` command (at the advanced privilege level).
 * Beginning with ONTAP 9.7, if other LIFs already exist for the SVM in the same subnet, you do not need to specify the home port of the LIF. ONTAP automatically chooses a random port on the specified home node in the same broadcast domain as the other LIFs already configured in the same subnet.
 +
 Beginning with ONTAP 9.4, FC-NVMe is supported. If you are creating an FC-NVMe LIF you should be aware of the following:
@@ -46,6 +48,7 @@ Beginning with ONTAP 9.4, FC-NVMe is supported. If you are creating an FC-NVMe L
 * NVMe LIFs and namespaces must be hosted on the same node.
 * Only one NVMe LIF handling data traffic can be configured per SVM.
 * When you create a network interface with a subnet, ONTAP automatically selects an available IP address from the selected subnet and assigns it to the network interface. You can change the subnet if there is more than one subnet, but you cannot change the IP address.
+* When you create (add) a storage VM, for a network interface, you cannot specify an IP address that is in the range of an existing subnet. You will receive a subnet conflict error. This issue occurs in other workflows for a network interface, such as creating or modifying inter-cluster network interfaces in storage VM settings or cluster settings.
 * Beginning with ONTAP 9.11.1, the iSCSI LIF failover feature is available on All SAN Array (ASA) platforms.
 +
 iSCSI LIF failover is automatically enabled (the failover policy is set to `sfo-partner-only` and the auto-revert value is set to `true`) on newly created iSCSI LIFs if no iSCSI LIFs exist in the specified storage VM or if all existing iSCSI LIFs in the specified storage VM are already enabled with iSCSI LIF failover.
@@ -54,6 +57,54 @@ If after you upgrade to ONTAP 9.11.1 or later, you have existing iSCSI LIFs in a
 +
 link:../san-admin/asa-iscsi-lif-fo-task.html[iSCSI LIF failover for ASA platforms]
 
+Beginning with ONTAP 9.12.0, the procedure you follow depends on the interface that you use—System Manager or the CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Use System Manager to add a network interface.*
+
+.Steps
+
+. Select *Network > Overview > Network Interfaces*.
+
+. Select image:/media/icon_add.gif[add icon].
+
+. Select one of the following interface roles:
+.. Data
+.. Intercluster
+.. Storage VM Management
+
+. Select the protocol:
+.. SMB/CIFS and NFS
+.. iSCSI
+.. FC
+.. NVMe/FC
+.. NVMe/TCP
+
+. Name the LIF or accept the name generated from your previous selections.
+
+. Accept the home node or use the drop-down to select one.
+
+. If at least one subnet is configured in the IPspace of the selected storage VM, the subnet drop-down is displayed.
+
+.. If you select a subnet, choose it from the drop-down.
+
+.. If you proceed without a subnet the broadcast domain drop-down is displayed:
+
+... Specify the IP address. If the IP address is in use, a warning message will display.
+
+... Specify a subnet mask.
+
+. Select the home port from the broadcast domain, either automatically (recommended) or by selecting one from the drop=down menu. The Home port control is displayed based on the broadcast domain or subnet selection.
+
+. Save the network interface.
+--
+
+.CLI
+--
+*Use the CLI to create a LIF*
 
 .Steps
 
@@ -119,6 +170,9 @@ The following command creates an NVMe/FC LIF and specifies the `nvme-fc` data pr
 ....
 network interface create -vserver vs1.example.com -lif datalif1 -data-protocol nvme-fc -home-node node-4 -home-port 1c -address 192.0.2.145 -netmask 255.255.255.0 -auto-revert true
 ....
+
+====
+
 
 //
 // Created with NDAC Version 2.0 (August 17, 2020)
