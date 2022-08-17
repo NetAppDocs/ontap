@@ -1,0 +1,103 @@
+---
+sidebar: sidebar
+permalink: san-admin/provision_storage_cli.html
+keywords: netapp, ontap, san, provisioning, linux, servers, provision, storage, create lun, fc, iscsi, zone switches, scsi disk, iscsi
+summary: Create LUNs to provide storage for your host using the FC or iSCSI SAN protocol. LUNs appear as disks to your host.
+---
+
+= Provision SAN storage
+:toc: macro
+:toclevels: 1
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+This procedure creates new LUNs on an existing storage VM. LUNs appear to your host as disk devices.
+
+Your FC or iSCSI protocol should already be set up.
+
+NOTE: Asymmetric logical unit access (ALUA) is always enabled during LUN creation. You cannot change the ALUA setting.
+
+include::_include/san_lun_size.adoc[]
+
+*AMANDA'S NOTE: From CLI doc - rewrite needed* You must have an FC license and it must be enabled. If the FC license is not enabled, the LIFs and SVMs appear to be online but the operational status is down. The FC service must be enabled for your LIFs and SVMs to be operational. You must use single initiator zoning for all of the FC LIFs in the SVM to host the initiators.
+
+include::_include/98_qos_enabled_by_default.adoc[]
+
+.Steps
+
+image:lun-setup-workflow.gif[]
+
+. Use the `system license show` command to verify that you have a license for FC or iSCSI.
++
+`system license show`
++
+----
+
+Package           Type    Description           Expiration
+ ----------------- ------- --------------------- --------------------
+ Base              site    Cluster Base License  -
+ NFS               site    NFS License           -
+ CIFS              site    CIFS License          -
+ iSCSI             site    iSCSI License         -
+ FCP               site    FCP License           -
+----
+
+. If you do not have a license for FC or iSCSI, use the `license add` command.
++
+`license add -license-code _your_license_code_`
+
+. Enable your protocol service on the SVM:
++
+*For iscsi:* `vserver iscsi create -vserver _vserver_name_ -target-alias _vserver_name_`
++
+*For FC:* `vserver fcp create -vserver _vserver_name_ -status-admin up`
+
+. Create two LIFs for the SVMs on each node:
++
+`network interface create -vserver _vserver_name_ -lif _lif_name_ -role data -data-protocol iscsi|fc -home-node _node_name_ -home-port _port_name_ -address _ip_address_ -netmask netmask`
++
+NetApp supports a minimum of one iSCSI or FC LIF per node for each SVM serving data. However, two LIFS per node are required for redundancy.
+
+. Verify that your LIFs have been created and that their operational status is `online`:
++
+`network interface show -vserver _vserver_name_ _lif_name_`
+
+. Create your LUNs:
++
+`lun create -vserver vserver_name -volume _volume_name_ -lun _lun_name_ -size _lun_size_ -ostype linux -space-reserve enabled|disabled`
++
+Your LUN name cannot exceed 255 characters and cannot contain spaces.
++
+[NOTE]
+The NVFAIL option is automatically enabled when a LUN is created in a volume.
+
+. Create your igroups:
++
+`igroup create -vserver _vserver_name_ -igroup _igroup_name_ -protocol fcp|iscsi|mixed -ostype linux -initiator _initiator_name_`
+
+. Map your LUNs to igroups:
++
+`lun mapping create -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -igroup _igroup_name_`
+. Verify that your LUNs are configured correctly:
++
+`lun show -vserver _vserver_name_`
+
+. Follow steps in your host documentation for enabling block access on your specific hosts.
+. Use the Host Utilities to complete the FC or iSCSI mapping and to discover your LUNs on the host.
+
+
+.Related information
+
+link:./san-admin/index.html[SAN Administration overview]
+https://docs.netapp.com/us-en/ontap-sanhost/index.html[ONTAP SAN Host Configuration]
+https://docs.netapp.com/us-en/ontap/san-admin/manage-san-initiators-task.html[View and manage SAN initiator groups in System Manager]
+http://www.netapp.com/us/media/tr-4017.pdf[NetApp Technical Report 4017: Fibre Channel SAN Best Practices]
+
+
+
+// BURT 1416961, 21 DEC 2021
+// BURT 1448684, 10 JAN 2022
