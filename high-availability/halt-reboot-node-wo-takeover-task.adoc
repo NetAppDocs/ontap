@@ -2,7 +2,7 @@
 sidebar: sidebar
 permalink: high-availability/halt-reboot-node-wo-takeover-task.html
 keywords: high availability pair, hair, inhibit-takeover, reboot, epsilon, HA
-summary: If the -inhibit-takeover parameter is set to `true`, both nodes in an HA cluster will stop serving data unless you change specific configuration settings.
+summary: You halt or reboot a node in a two-node cluster without initiating takeover when you perform certain hardware maintenance on a node or a shelf and you want to limit down time by keeping the partner node up, or when there are issues preventing a manual takeover and you want to keep the partner node’s aggregates up and serving data. Additionally, if technical support is assisting you with troubleshooting problems, they might have you perform this procedure as part of those efforts.
 ---
 = Halt or reboot a node without initiating takeover in a two-node cluster
 :hardbreaks:
@@ -12,11 +12,77 @@ summary: If the -inhibit-takeover parameter is set to `true`, both nodes in an H
 :imagesdir: ../media/
 
 [.lead]
-In a two-node cluster, cluster high availability (HA) ensures that the failure of one node does not disable the cluster. If you halt or reboot a node in a two-node cluster without takeover by using the `-inhibit-takeover` parameter set to `true`, both nodes will stop serving data unless you change specific configuration settings.
+You halt or reboot a node in a two-node cluster without initiating takeover when you perform certain hardware maintenance on a node or a shelf and you want to limit down time by keeping the partner node up, or when there are issues preventing a manual takeover and you want to keep the partner node’s aggregates up and serving data. Additionally, if technical support is assisting you with troubleshooting problems, they might have you perform this procedure as part of those efforts.
 
-Before a node in a cluster configured for cluster HA is rebooted or halted using the `-inhibit-takeover true` parameter, you must first disable cluster HA and then assign epsilon to the node that you want to remain online.
+.Before you begin
+Your two-node cluster must be running clustered ONTAP 9 or later.
 
-.Halt or reboot a node
+.About this task
+* Before you inhibit takeover (using the `-inhibit-takeover true` parameter), you disable cluster HA and assign epsilon to the node that you want to remain online.
+
+CAUTION: In a two-node cluster, cluster HA ensures that the failure of one node does not disable the cluster. However,  if you do not disable cluster HA before using the  `-inhibit-takeover true` parameter, both nodes stop serving data.
+
+NOTE: If you attempt to halt or reboot a node before disabling cluster HA and moving Epsilon, ONTAP issues a warning and instructs you to disable cluster HA and reassign epsilon.
+
+* You migrate LIFs (logical interfaces) to the partner node that you want to remain online.
+* If on the node you are halting or rebooting there are aggregates you want to keep, you move them to the node that you want to remain online.
+
+NOTE: This option is available on HA pairs running ONTAP 8.2 or later.
+
+
+.Steps
+. Verify both nodes are healthy:
+`cluster show`
++
+For both nodes, `true` appears in the `Health` column.
++
+----
+cluster::> cluster show
+Node         Health  Eligibility
+------------ ------- ------------
+node1        true     true
+node2        true     true
+----
+
+. Migrate all LIFs from the node that you will halt or reboot to the partner node:
+`network interface migrate-all -node _node_name_`
++
+(Note to reviewers: should this command really be what’s in the man pages?:
+network interface migrate-all -vserver vserver_name)
+
+. If on the node you will halt or reboot there are aggregates you want to keep online when the node is down, relocate them to the partner node; otherwise, go to the next step.
++
+NOTE: Your two-node cluster must be running clustered ONTAP 8.2 or later to do this step.
+
+.. Show the aggregates on the node you will halt or reboot:
+`storage aggregates show -node _node_name_`
++
+For example, node1 is the node that will be halted or rebooted:
+
+----
+cluster::> storage aggregates show -node node1
+Aggregate  Size  Available  Used%  State  #Vols   Nodes   RAID  Status
+---------  ----  ---------  -----  -----  -----   -----   ----  ------
+aggr0_node_1_0
+           744.9GB   32.68GB   96% online       2 node1    raid_dp,
+                                                                normal
+aggr1       2.91TB    2.62TB   10% online       8 node1    raid_dp,
+                                                                normal
+aggr2
+            4.36TB    3.74TB   14% online      12 node1    raid_dp,
+                                                                normal
+test2_aggr  2.18TB    2.18TB    0% online       7 node1    raid_dp,
+                                                                normal
+4 entries were displayed.
+----
+
+.. Move the aggregates to the partner node:
+`storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
++
+For example, aggregates aggr1, aggr2 and test2_aggr are being moved from node1 to node2:
++
+`storage aggregate relocation start -node _node1_ -destination _node2_ -aggregate-list _aggr1_,_aggr2_,_test2_aggr_`
+
 . Disable cluster HA:
 `cluster ha modify -configured false`
 Note that this operation does not disable storage failover.
@@ -29,7 +95,7 @@ cluster show
 In the following example, Node1 holds epsilon:
 +
 ----
-cluster::*> cluster show                       
+cluster::*> cluster show
 Node         Health  Eligibility   Epsilon
 ------------ ------- ------------  ------------
 Node1        true    true          true
@@ -54,4 +120,5 @@ Enabling cluster HA automatically removes epsilon from both nodes.
 .Related information
 * link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_halt_a_single_node_without_takeover_in_a_two-node__ONTAP_cluster[How to halt a single node without takeover in a two-node ONTAP cluster^]
 
+// 23 aug 2022, KDA-591 graceful shutdown, merge KB content https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_halt_a_single_node_without_takeover_in_a_two-node__ONTAP_cluster
 // 29 april 2022, issue #457
