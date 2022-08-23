@@ -58,7 +58,7 @@ NOTE: Your two-node cluster must be running clustered ONTAP 8.2 or later to do t
 `storage aggregates show -node _node_name_`
 +
 For example, node1 is the node that will be halted or rebooted:
-
++
 ----
 cluster::> storage aggregates show -node node1
 Aggregate  Size  Available  Used%  State  #Vols   Nodes   RAID  Status
@@ -85,37 +85,124 @@ For example, aggregates aggr1, aggr2 and test2_aggr are being moved from node1 t
 
 . Disable cluster HA:
 `cluster ha modify -configured false`
-Note that this operation does not disable storage failover.
-. Because disabling cluster HA automatically assigns epsilon to one of the two nodes, you must determine which node holds it, and if necessary, reassign it to the node that you wish to remain online.
++
+The return output confirms HA is disabled: Notice: HA is disabled
++
+NOTE: This operation does not disable storage failover.
+
+. Determine which node holds epsilon and, if necessary, reassign it to the node that will remain online.
++
+NOTE: When you disabled cluster HA in the previous step, epsilon was automatically assigned to one of the two nodes. You must make sure epsilon is on the node that will remain online.
+
 .. Set the privilege level to advanced:
-set -privilege advanced
+`set -privilege advanced`
++
 Confirm when prompted to continue into advanced mode. The advanced mode prompt appears (*>).
-.. Determine which node holds epsilon by using the following command:
-cluster show
-In the following example, Node1 holds epsilon:
+
+.. Determine which node holds epsilon:
+`cluster show`
++
+The node that holds Epsilon shows `true` in the `Epsilon` column.
++
+For example, node1 holds epsilon:
++
+----
+cluster::*> cluster show
+
+Node         Health  Eligibility   Epsilon
+------------ ------- ------------  ------------
+node1        true    true          true
+node2        true    true          false
+----
+
+.. The next step depends on which node holds epsilon:
+* If the node that will remain online holds epsilon, go to substep g.
+* If the node you will halt or reboot holds epsilon, complete substeps d through g.
+.. Remove epsilon from the node:
+`cluster modify -node _node_name_ -epsilon false`
++
+At this point, neither node holds epsilon.
+.. Assign epsilon to the node that will remain online:
+`cluster modify -node _node_name_ -epsilon true`
+.. Verify that epsilon is now on the node that will remain online:
+`cluster show`
++
+The node that holds epsilon shows `true` in the `Epsilon` column.
++
+For example, node2 holds epsilon:
 +
 ----
 cluster::*> cluster show
 Node         Health  Eligibility   Epsilon
 ------------ ------- ------------  ------------
-Node1        true    true          true
-Node2        true    true          false
+node1        true    true          false
+node2        true    true          true
+----
+
+.. Return to the admin privilege level:
+`set -privilege admin`
+
+. Halt or reboot and inhibit takeover of the node that does not hold epsilon, by using the appropriate command:
++
+* `system node halt -node _node_name_ -inhibit-takeover true`
+* `system node reboot -node _node_name_ -inhibit-takeover true`
++
+NOTE: In the command output, you will see a warning asking you if you want to proceed, enter `y’.
+
+. Verify that the node that is still online is in a healthy state (while the partner is down):
+`cluster show`
++
+For the online node, `true` appears in the `Heath` column.
++
+For example, node2 is still online:
++
+----
+cluster::> cluster show
+Node         Health  Eligibility
+------------ ------- ------------
+node1        false    true
+node2        true     true
 ----
 +
-If the node you wish to halt or reboot does not hold epsilon, proceed to step 3.
-.. If the node you wish to halt or reboot holds epsilon, you must remove it from the node:
-`cluster modify -node Node1 -epsilon false`
-At this point, neither node holds epsilon.
-.. Assign epsilon to the node that you wish to remain online (in this example, Node2):
-`cluster modify -node Node2 -epsilon true`
-. Halt or reboot and inhibit takeover of the node that does not hold epsilon (in this example, Node2) by using either of the following commands as appropriate:
-`system node halt -node Node2 -inhibit-takeover true`
-`system node reboot -node Node2 -inhibit-takeover true`
-. After the halted or rebooted node is back online, you must enable cluster HA by using the following command:
+NOTE: In the command output, you will see a warning that cluster HA is not configured. You can ignore the warning at this time.
+
+. Perform the actions that required you to halt or reboot the node.
+. Boot the offlined node from the LOADER prompt:
+`boot_ontap`
+. Verify both nodes are healthy:
+`cluster show`
++
+For both nodes, `true` appears in the `Heath` column.
++
+----
+cluster::> cluster show
+Node         Health  Eligibility
+------------ ------- ------------
+node1        true     true
+node2        true     true
+----
++
+NOTE: In the command output, you will see a warning that cluster HA is not configured. You can ignore the warning at this time.
+
+. Reenable cluster HA:
 `cluster ha modify -configured true`
-Enabling cluster HA automatically removes epsilon from both nodes.
-. Return to the admin privilege level:
-`set -privilege admin`
++
+NOTE: Enabling cluster HA automatically removes epsilon from both nodes.
+(Note to reviewers: This text is in the IE version of this procedure. Is this really true? If yes, where does Epsilon go -do users need to do something?)
+
+. If earlier in this procedure you relocated aggregates to the partner node, move them back to their home node; otherwise, go to the next step:
+`storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
++
+For example, aggregates aggr1, aggr2 and test2_aggr are being moved from node node2 to node node1:
+`storage aggregate relocation start -node _node2_ -destination _node1_ -aggregate-list _aggr1_,_aggr2_,_test2_aggr_`
+
+. Revert LIFs to their home ports:
+.. View LIFs that are not at home:
+`network interface show -is-home false`
+.. If there are non-home LIFs that were not migrated from the down node, verify it is safe to move them before reverting.
+(Note to reviewers: how do users verify LIFs are safe to move?)
+.. If it is safe to do so, revert all LIFs home.
+ `network interface revert *``
 
 .Related information
 * link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_halt_a_single_node_without_takeover_in_a_two-node__ONTAP_cluster[How to halt a single node without takeover in a two-node ONTAP cluster^]
