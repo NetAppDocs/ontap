@@ -32,11 +32,11 @@ You should not create a VLAN on a network interface with the same identifier as 
 
 == Create a VLAN
 
-You can create a VLAN for maintaining separate broadcast domains within the same network domain by using the `network port vlan create` command.
+You can create a VLAN for maintaining separate broadcast domains within the same network domain by using System Manager or the `network port vlan create` command.
 
 .Before you begin
 
-Your network administrator must have confirmed that the following requirements have been met:
+Confirm that the following requirements have been met:
 
 * The switches deployed in the network must either comply with IEEE 802.1Q standards or have a vendor-specific implementation of VLANs.
 * For supporting multiple VLANs, an end-station must be statically configured to belong to one or more VLANs.
@@ -46,8 +46,6 @@ Your network administrator must have confirmed that the following requirements h
 
 .About this task
 
-In certain circumstances, if you want to create the VLAN port on a degraded port without correcting the hardware issue or any software misconfiguration, then you can set the `-ignore- health-status` parameter of the `network port modify` command as true.
-
 Creating a VLAN attaches the VLAN to the network port on a specified node in a cluster.
 
 When you configure a VLAN over a port for the first time, the port might go down, resulting in a temporary disconnection of the network. Subsequent VLAN additions to the same port do not affect the port state.
@@ -55,7 +53,43 @@ When you configure a VLAN over a port for the first time, the port might go down
 [NOTE]
 You should not create a VLAN on a network interface with the same identifier as the native VLAN of the switch. For example, if the network interface e0b is on native VLAN 10, you should not create a VLAN e0b-10 on that interface.
 
-.Step
+The procedure you follow depends on the interface that you use—System Manager or the CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+*Use System Manager to create a VLAN*
+
+Beginning with ONTAP 9.12.0, you can automatically select the broadcast domain or manually select on from the list. Previously, broadcast domains were always automatically selected based on layer 2 connectivity. If you manually select a broadcast domain, a warning appears indicating that manually selecting a broadcast domain could result in loss of connectivity.
+
+.Steps
+
+. Select *Network > Ethernet port > + VLAN*.
+
+. Select the node from the drop-down list.
+
+. Choose from the following:
+
+.. ONTAP to *Automatically select broadcast domain (recommended)*.
+
+.. To manually select a broadcast domain from the list.
+
+. Select the ports to form the VLAN.
+
+. Specify the VLAN ID.
+
+. Save your changes.
+--
+
+.CLI
+--
+*Use the CLI to create a VLAN*
+
+In certain circumstances, if you want to create the VLAN port on a degraded port without correcting the hardware issue or any software misconfiguration, then you can set the `-ignore-health-status` parameter of the `network port modify` command as `true`.
+
+.Steps
 
 . Use the `network port vlan create` command to create a VLAN.
 
@@ -71,6 +105,29 @@ network port vlan create -node cluster-1-01 -vlan-name e1c-80
 Beginning with ONTAP 9.8, VLANs are automatically placed into appropriate broadcast domains about one minute after their creation. If you do not want ONTAP to do this, and prefer to manually place the VLAN into a broadcast domain, then specify the `-skip-broadcast-domain-placement` parameter as part of the `vlan create` command.
 
 For more information about this command, see http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html[ONTAP 9 commands^].
+====
+
+== Edit a VLAN
+
+You can change the broadcast domain or disable a VLAN.
+
+.Use System Manager to edit a VLAN
+
+Beginning with ONTAP 9.12.0, you can automatically select the broadcast domain or manually select on from the list. Previously broadcast domains were always automatically selected based on layer 2 connectivity. If you manually select a broadcast domain, a warning appears indicating that manually selecting a broadcast domain could result in loss of connectivity.
+
+.Steps
+
+. Select *Network > Ethernet port > VLAN*.
+
+. Select the edit icon.
+
+. Do one of the following:
+
+* Change the broadcast domain by selecting a different one from the list.
+
+* Clear the *Enabled* check box.
+
+. Save your changes.
 
 == Delete a VLAN
 
@@ -84,6 +141,27 @@ Make sure there are no LIFs associated with the VLAN.
 
 Deletion of the last VLAN from a port might cause a temporary disconnection of the network from the port.
 
+The procedure you follow depends on the interface that you use—System Manager or the CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Use System Manager to delete a VLAN*
+
+.Steps
+
+. Select *Network > Ethernet port > VLAN*.
+
+. Select the VLAN you want to remove.
+
+. Click *Delete*.
+--
+
+.CLI
+--
+*Use the CLI to delete a VLAN*
+
 .Step
 
 Use the `network port vlan delete` command to delete a VLAN.
@@ -94,4 +172,7 @@ The following example shows how to delete VLAN `e1c-80` from network port `e1c` 
 network port vlan delete -node cluster-1-01 -vlan-name e1c-80
 ....
 
+====
+
+// IE-554, 2022-07-28
 // 08 DEC 2021, BURT 1430515

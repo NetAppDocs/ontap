@@ -1,0 +1,110 @@
+---
+sidebar: sidebar
+permalink: networking/add_broadcast_domain.html
+keywords: broadcast, domain, adding, add, network, ports, cluster, svm, IPspace, mtu
+summary: Broadcast domains group network ports in the cluster that belong to the same layer 2 network. The ports can then be used by SVMs.
+---
+
+= Add a broadcast domain
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+
+[.lead]
+Broadcast domains group network ports in the cluster that belong to the same layer 2 network. The ports can then be used by SVMs.
+
+Beginning with ONTAP 9.8, broadcast domains are automatically created during the cluster create or join operation. Beginning with ONTAP 9.12.0, in addition to the automatically created broadcast domains, you can manually add a broadcast domain in System Manager.
+
+.Before you begin
+
+The ports you plan to add to the broadcast domain must not belong to another broadcast domain. If the ports you want to use belong to another broadcast domain, but are unused, remove those ports from the original broadcast domain.
+
+.About this task
+
+* All broadcast domain names must be unique within an IPspace.
+
+* The ports added to a broadcast domain can be physical network ports, VLANs, or link aggregation groups/interface groups (LAGs/ifgrps).
+
+* The maximum transmission unit (MTU) of the ports added to a broadcast domain are updated to the MTU value set in the broadcast domain.
+
+* The MTU value must match all the devices connected to that layer 2 network except for the e0M port handling management traffic.
+
+* If you do not specify an IPspace name, the broadcast domain is created in the "Default" IPspace.
+
+To make system configuration easier, a failover group of the same name is created automatically that contains the same ports.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+.Steps
+
+. Select *Network > Overview > Broadcast domain*.
+
+. Click image:icon_add.gif[add icon]
+
+. Name the broadcast domain.
+
+. Set the MTU.
+
+. Select the IPspace.
+
+. Save the broadcast domain.
+
+You can edit or delete a broadcast domain after it has been added.
+
+--
+
+.CLI
+--
+In ONTAP 9.7 or earlier, you can manually create a broadcast domain.
+
+.Steps
+
+. View the ports that are not currently assigned to a broadcast domain:
++
+`network port show`
++
+If the display is large, use the `network port show -broadcast-domain` command to view only unassigned ports.
+
+. Create a broadcast domain:
++
+`network port broadcast-domain create -broadcast-domain _broadcast_domain_name_ -mtu _mtu_value_ [-ipspace _ipspace_name_] [-ports _ports_list_]`
+
+.. `broadcast_domain_name` is the name of the broadcast domain you want to create.
+
+.. `mtu_value` is the MTU size for IP packets; 1500 and 9000 are typical values.
++
+This value is applied to all ports that are added to this broadcast domain.
+
+.. `ipspace_name` is the name of the IPspace to which this broadcast domain will be added.
++
+The "Default" IPspace is used unless you specify a value for this parameter.
+
+.. `ports_list` is the list of ports that will be added to the broadcast domain.
++
+The ports are added in the format `node_name:port_number`, for example, `node1:e0c`.
+
+. Verify that the broadcast domain was created as desired:
++
+`network port show -instance -broadcast-domain new_domain`
+
+.Example
+
+The following command creates broadcast domain bcast1 in the Default IPspace, sets the MTU to 1500, and adds four ports:
+
+`network port broadcast-domain create -broadcast-domain _bcast1_ -mtu _1500_ -ports _cluster1-01:e0e,cluster1-01:e0f,cluster1-02:e0e,cluster1-02:e0f_`
+
+.After you finish
+
+You can define the pool of IP addresses that will be available in the broadcast domain by creating a subnet, or you can assign SVMs and interfaces to the IPspace at this time. For more information, see link:https://docs.netapp.com/us-en/ontap/peering/index.html[Cluster and SVM peering].
+
+If you need to change the name of an existing broadcast domain, use the `network port broadcast-domain rename` command.
+====
+
+
+// IE-554, 2022-07-28
