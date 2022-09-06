@@ -14,17 +14,14 @@ summary: You halt or reboot a node in a two-node cluster without initiating take
 [.lead]
 You halt or reboot a node in a two-node cluster without initiating takeover when you perform certain hardware maintenance on a node or a shelf and you want to limit down time by keeping the partner node up, or when there are issues preventing a manual takeover and you want to keep the partner node’s aggregates up and serving data. Additionally, if technical support is assisting you with troubleshooting problems, they might have you perform this procedure as part of those efforts.
 
-.Before you begin
-Your two-node cluster must be running clustered ONTAP 9 or later.
-
 .About this task
-* Before you inhibit takeover (using the `-inhibit-takeover true` parameter), you disable cluster HA and assign epsilon to the node that you want to remain online.
+* Before you inhibit takeover (using the `-inhibit-takeover true` parameter), you disable cluster HA.
 
 [CAUTION]
 ====
 * In a two-node cluster, cluster HA ensures that the failure of one node does not disable the cluster. However,  if you do not disable cluster HA before using the  `-inhibit-takeover true` parameter, both nodes stop serving data.
 
-* If you attempt to halt or reboot a node before disabling cluster HA and moving Epsilon, ONTAP issues a warning and instructs you to disable cluster HA and reassign epsilon.
+* If you attempt to halt or reboot a node before disabling cluster HA, ONTAP issues a warning and instructs you to disable cluster HA.
 ====
 
 * You migrate LIFs (logical interfaces) to the partner node that you want to remain online.
@@ -84,63 +81,11 @@ For example, aggregates aggr1, aggr2 and test2_aggr are being moved from node1 t
 . Disable cluster HA:
 `cluster ha modify -configured false`
 +
-The return output confirms HA is disabled: Notice: HA is disabled
+The return output confirms HA is disabled: `Notice: HA is disabled`
 +
 NOTE: This operation does not disable storage failover.
 
-. Determine which node holds epsilon and, if necessary, reassign it to the node that will remain online.
-+
-NOTE: When you disabled cluster HA in the previous step, epsilon was automatically assigned to one of the two nodes. You must make sure epsilon is on the node that will remain online.
-
-.. Set the privilege level to advanced:
-`set -privilege advanced`
-+
-Confirm when prompted to continue into advanced mode. The advanced mode prompt appears (*>).
-
-.. Determine which node holds epsilon:
-`cluster show`
-+
-The node that holds Epsilon shows `true` in the `Epsilon` column.
-+
-For example, node1 holds epsilon:
-+
-----
-cluster::*> cluster show
-
-Node         Health  Eligibility   Epsilon
------------- ------- ------------  ------------
-node1        true    true          true
-node2        true    true          false
-----
-
-.. The next step depends on which node holds epsilon:
-* If the node that will remain online holds epsilon, go to substep g.
-* If the node you will halt or reboot holds epsilon, complete substeps d through g.
-.. Remove epsilon from the node:
-`cluster modify -node _node_name_ -epsilon false`
-+
-At this point, neither node holds epsilon.
-.. Assign epsilon to the node that will remain online:
-`cluster modify -node _node_name_ -epsilon true`
-.. Verify that epsilon is now on the node that will remain online:
-`cluster show`
-+
-The node that holds epsilon shows `true` in the `Epsilon` column.
-+
-For example, node2 holds epsilon:
-+
-----
-cluster::*> cluster show
-Node         Health  Eligibility   Epsilon
------------- ------- ------------  ------------
-node1        true    true          false
-node2        true    true          true
-----
-
-.. Return to the admin privilege level:
-`set -privilege admin`
-
-. Halt or reboot and inhibit takeover of the node that does not hold epsilon, by using the appropriate command:
+. Halt or reboot and inhibit takeover of the target node, by using the appropriate command:
 +
 * `system node halt -node _node_name_ -inhibit-takeover true`
 * `system node reboot -node _node_name_ -inhibit-takeover true`
@@ -166,9 +111,6 @@ NOTE: In the command output, you will see a warning that cluster HA is not confi
 
 . Reenable cluster HA:
 `cluster ha modify -configured true`
-+
-NOTE: Enabling cluster HA automatically removes epsilon from both nodes.
-(Note to reviewers: This text is in the IE version of this procedure. Is this really true? If yes, where does Epsilon go -do users need to do something?)
 
 . If earlier in this procedure you relocated aggregates to the partner node, move them back to their home node; otherwise, go to the next step:
 `storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
