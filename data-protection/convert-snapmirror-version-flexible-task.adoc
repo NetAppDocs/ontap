@@ -23,7 +23,85 @@ After you convert a SnapMirror relationship type from DP to XDP, space-related s
 
 .Steps
 
-. Quiesce the existing DP-type relationship:
+. From the destination cluster, ensure that the SnapMirror relationship is type DP, that the mirror state is SnapMirrored, the relationship status is Idle, and the relationship is healthy:
++
+`snapmirror show -destination-path _SVM:volume_|_cluster://SVM/volume_`
++
+The following example shows the output from the `snapmirror show` command:
++
+----
+cluster_dst::>snapmirror show -destination-path svm_backup:volA_dst
+
+Source Path: svm1:volA
+Destination Path: svm_backup:volA_dst
+Relationship Type: DP
+SnapMirror Schedule: -
+Tries Limit: -
+Throttle (KB/sec): unlimited
+Mirror State: Snapmirrored
+Relationship Status: Idle
+Transfer Snapshot: -
+Snapshot Progress: -
+Total Progress: -
+Snapshot Checkpoint: -
+Newest Snapshot: snapmirror.10af643c-32d1-11e3-954b-123478563412_2147484682.2014-06-27_100026
+Newest Snapshot Timestamp: 06/27 10:00:55
+Exported Snapshot: snapmirror.10af643c-32d1-11e3-954b-123478563412_2147484682.2014-06-27_100026
+Exported Snapshot Timestamp: 06/27 10:00:55
+Healthy: true
+----
++
+[NOTE]
+====
+You might find it helpful to retain a copy of the `snapmirror show` command output to keep track existing of the relationship settings.
+====
+
+. From the source and the destination volumes, ensure that both volumes have a common Snapshot copy:
++
+`volume snapshot show -vserver _SVM_ -volume _volume_`
++
+The following example shows the `volume snapshot show` output for the souce and the destination volumes:
++
+----
+cluster_src:> volume snapshot show -vserver vsm1 -volume volA
+---Blocks---
+Vserver Volume Snapshot State Size Total% Used%
+-------- ------- ------------------------------- -------- -------- ------ -----
+svm1 volA
+weekly.2014-06-09_0736 valid 76KB 0% 28%
+weekly.2014-06-16_1305 valid 80KB 0% 29%
+daily.2014-06-26_0842 valid 76KB 0% 28%
+hourly.2014-06-26_1205 valid 72KB 0% 27%
+hourly.2014-06-26_1305 valid 72KB 0% 27%
+hourly.2014-06-26_1405 valid 76KB 0% 28%
+hourly.2014-06-26_1505 valid 72KB 0% 27%
+hourly.2014-06-26_1605 valid 72KB 0% 27%
+daily.2014-06-27_0921 valid 60KB 0% 24%
+hourly.2014-06-27_0921 valid 76KB 0% 28%
+snapmirror.10af643c-32d1-11e3-954b-123478563412_2147484682.2014-06-27_100026
+valid 44KB 0% 19%
+11 entries were displayed.
+
+
+cluster_dest:> volume snapshot show -vserver svm_backup -volume volA_dst
+---Blocks---
+Vserver Volume Snapshot State Size Total% Used%
+-------- ------- ------------------------------- -------- -------- ------ -----
+svm_backup volA_dst
+weekly.2014-06-09_0736 valid 76KB 0% 30%
+weekly.2014-06-16_1305 valid 80KB 0% 31%
+daily.2014-06-26_0842 valid 76KB 0% 30%
+hourly.2014-06-26_1205 valid 72KB 0% 29%
+hourly.2014-06-26_1305 valid 72KB 0% 29%
+hourly.2014-06-26_1405 valid 76KB 0% 30%
+hourly.2014-06-26_1505 valid 72KB 0% 29%
+hourly.2014-06-26_1605 valid 72KB 0% 29%
+daily.2014-06-27_0921 valid 60KB 0% 25%
+hourly.2014-06-27_0921 valid 76KB 0% 30%
+snapmirror.10af643c-32d1-11e3-954b-123478563412_2147484682.2014-06-27_100026
+----
+
+. To ensure scheduled updates will not run during the conversion, quiesce the existing DP-type relationship:
 +
 `snapmirror quiesce -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
 +
@@ -37,12 +115,12 @@ You must run this command from the destination SVM or the destination cluster.
 The following example quiesces the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
 +
 ----
-cluster_dst::> snapmirror quiesce -source-path svm1:volA -destination-path svm_backup:volA_dst
+cluster_dst::> snapmirror quiesce -destination-path svm_backup:volA_dst
 ----
 
 . Break the existing DP-type relationship:
 +
-`snapmirror break -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
+`snapmirror break -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
 +
 For complete command syntax, see the man page.
 +
@@ -54,10 +132,10 @@ You must run this command from the destination SVM or the destination cluster.
 The following example breaks the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
 +
 ----
-cluster_dst::> snapmirror break -source-path svm1:volA -destination-path svm_backup:volA_dst
+cluster_dst::> snapmirror break -destination-path svm_backup:volA_dst
 ----
 
-. Disable automatic deletion of Snapshot copies on the destination volume:
+. If automatic deletion of Snapshot copies is enabled on the destination volume, disable it:
 +
 `volume snapshot autodelete modify -vserver _SVM_ -volume _volume_ -enabled false`
 +
@@ -69,7 +147,7 @@ cluster_dst::> volume snapshot autodelete modify -vserver svm_backup -volume vol
 
 . Delete the existing DP-type relationship:
 +
-`snapmirror delete -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
+`snapmirror delete -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
 +
 For complete command syntax, see the man page.
 +
@@ -81,10 +159,10 @@ You must run this command from the destination SVM or the destination cluster.
 The following example deletes the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
 +
 ----
-cluster_dst::> snapmirror delete -source-path svm1:volA -destination-path svm_backup:volA_dst
+cluster_dst::> snapmirror delete -destination-path svm_backup:volA_dst
 ----
 
-. Create the new XDP-type relationship:
+. You can use the output you retained from the `snapmirror show` command to create the new XDP-type relationship:
 +
 `snapmirror create -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ... -type XDP -schedule _schedule_ -policy _policy_`
 +
@@ -119,8 +197,15 @@ The following example resyncs the relationship between the source volume `volA` 
 cluster_dst::> snapmirror resync -source-path svm1:volA -destination-path svm_backup:volA_dst
 ----
 
+. If you disabled automatic deletion of Snapshot copies, reenable it:
++
+`volume snapshot autodelete modify -vserver _SVM_ -volume _volume_ -enabled true`
+
 .After you finish
 
-Use the `snapmirror show` command to verify that the SnapMirror relationship was created. For complete command syntax, see the man page.
+. Use the `snapmirror show` command to verify that the SnapMirror relationship was created. For complete command syntax, see the man page.
+. Once the SnapMirror XDP destination volume begins updating Snapshot copies as defined by the SnapMirror policy, you can use the output of `snapmirror list-destinations` command from the source cluster to display the new SnapMirror XDP relationship.
 
+
+// 2022-7-19, BURT 1491676
 // 2022-2-2, BURT 1364426

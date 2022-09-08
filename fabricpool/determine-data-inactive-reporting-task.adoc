@@ -25,6 +25,7 @@ You cannot enable inactive data reporting when FabricPool cannot be enabled, inc
  ** MetroCluster aggregates running ONTAP versions earlier than 9.7
  ** Flash Pool (hybrid aggregates, or SnapLock aggregates)
 
+* Inactive data reporting is enabled by default on aggregates where any volumes have adaptive compression enabled.
 * Inactive data reporting is enabled by default on all SSD aggregates in ONTAP 9.6.
 * Inactive data reporting is enabled by default on FabricPool aggregate in ONTAP 9.4 and ONTAP 9.5.
 * You can enable inactive data reporting on non-FabricPool aggregates using the ONTAP CLI, including HDD aggregates, beginning with ONTAP 9.6.
@@ -59,17 +60,16 @@ vs1     vv2    10.38MB                             0%
 
  ** The `performance-tier-inactive-user-data` field displays how much user data stored in the aggregate is inactive.
  ** The `performance-tier-inactive-user-data-percent` field displays what percent of the data is inactive across the active file system and Snapshot copies.
- ** For an aggregate that is not used for FabricPool, it takes 31 days after you enable inactive data reporting for ONTAP to display inactive data for the entire volume, regardless of whether a tiering policy has been set or what the tiering policy is.
+ ** For an aggregate that is not used for FabricPool, inactive data reporting uses the tiering policy to decide how much data to report as cold.
+  *** For the `none` tiering policy, 31 days is used.
+  *** For the `snapshot-only` and `auto`, inactive data reporting uses `tiering-minimum-cooling-days`.
+  *** For the `ALL` policy, inactive data reporting assumes the data will tier within a day.
 +
 Until the period is reached, the output shows "`-`" for the amount of inactive data instead of a value.
 
  ** On a volume that is part of FabricPool, what ONTAP reports as inactive depends on the tiering policy that is set on a volume.
-  *** For the `auto` tiering policy, ONTAP reports the inactive amount of the entire volume for the period specified by the `-tiering-minimum-cooling-days` parameter in the advanced privilege level of the `volume create` or `volume modify` command.
-+
-If no value is set for `-tiering-minimum-cooling-days`, then ONTAP uses the default value (31 days).
-
-  *** For the `snapshot-only` tiering policy, ONTAP reports the amount of the active file system that is inactive for at least 31 days.
   *** For the `none` tiering policy, ONTAP reports the amount of the entire volume that is inactive for at least 31 days. You cannot use the `-tiering-minimum-cooling-days` parameter with the `none` tiering policy.
-  *** For the `all` tiering policy, inactive data reporting is not supported.
+  *** For the `ALL`, `snapshot-only`, and `auto` tiering policies, inactive data reporting is not supported.
 
+// 2022-6-28, BURT 1442879
 // 2022-3-23, issue #374

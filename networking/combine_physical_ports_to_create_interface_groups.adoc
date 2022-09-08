@@ -21,7 +21,7 @@ summary: Combine two or more physical ports into a single logical port to create
 //
 
 [.lead]
-An interface group is created by combining two or more physical ports into a single logical port. The logical port provides increased resiliency, increased availability, and load sharing.
+An interface group, also known as a Link Aggregation Group (LAG), is created by combining two or more physical ports into a single logical port. The logical port provides increased resiliency, increased availability, and load sharing.
 
 == Interface group types
 
@@ -130,18 +130,69 @@ You can use sequential load balancing to equally distribute packets among multip
 
 However, because sequential load balancing may cause out-of-order packet delivery, extremely poor performance can result. Therefore, sequential load balancing is generally not recommended.
 
-== Create an interface group
+== Create an interface group or LAG
 
-You can create an interface group—single-mode, static multimode, or dynamic multimode (LACP)—to present a single interface to clients by combining the capabilities of the aggregated network ports.
+You can create an interface group or LAG—single-mode, static multimode, or dynamic multimode (LACP)—to present a single interface to clients by combining the capabilities of the aggregated network ports.
 
-.About this task
+The procedure you follow depends on the interface that you use—System Manager or the CLI:
 
-* For a complete list of configuration restrictions that apply to port interface groups, see the `network port ifgrp add-port` man page.
-* When creating a multimode interface group, you can specify any of the following load-balancing methods:
-** port: Network traffic is distributed on the basis of the transport layer (TCP/UDP) ports. This is the recommended load-balancing method.
-** mac: Network traffic is distributed on the basis of MAC addresses.
-** ip: Network traffic is distributed on the basis of IP addresses.
-** sequential: Network traffic is distributed as it is received.
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Use System Manager to create a LAG*
+
+.Steps
+
+. Select *Network > Ethernet port > + Link Aggregation Group* to create a LAG.
+
+. Select the node from the drop-down list.
+
+. Choose from the following:
+
+.. ONTAP to *Automatically select broadcast domain (recommended)*.
+
+.. To manually select a broadcast domain.
+
+. Select the ports to form the LAG.
+
+. Select the mode:
+
+.. Single: Only one port is used at a time.
+
+.. Multiple: All ports can be used simultaneously.
+
+.. LACP: The LACP protocol determines the ports that can be used.
+
+. Select the load balancing:
+
+.. IP based
+
+.. MAC based
+
+.. Port
+
+.. Sequential
+
+. Save your changes.
+
+
+image:AddLag01.png[Add lag graphic]
+
+--
+
+.CLI
+--
+*Use the CLI to create an interface group*
+
+For a complete list of configuration restrictions that apply to port interface groups, see the `network port ifgrp add-port` man page.
+
+When creating a multimode interface group, you can specify any of the following load-balancing methods:
+
+** `port`: Network traffic is distributed on the basis of the transport layer (TCP/UDP) ports. This is the recommended load-balancing method.
+** `mac`: Network traffic is distributed on the basis of MAC addresses.
+** `ip`: Network traffic is distributed on the basis of IP addresses.
+** `sequential`: Network traffic is distributed as it is received.
 
 [NOTE]
 The MAC address of an interface group is determined by the order of the underlying ports and how these ports initialize during bootup. You should therefore not assume that the ifgrp MAC address is persistent across reboots or ONTAP upgrades.
@@ -157,10 +208,32 @@ For more information about this command, see http://docs.netapp.com/ontap-9/topi
 The following example shows how to create an interface group named a0a with a distribution function of port and a mode of multimode:
 
 `network port ifgrp create -node _cluster-1-01_ -ifgrp _a0a_ -distr-func _port_ -mode _multimode_`
+====
 
-== Add a port to an interface group
+== Add a port to an interface group or LAG
 
-You can add up to 16 physical ports to an interface group for all port speeds.
+You can add up to 16 physical ports to an interface group or LAG for all port speeds.
+
+The procedure you follow depends on the interface that you use—System Manager or the CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Use System Manager to add a port to a LAG*
+
+.Steps
+
+. Select *Network > Ethernet port > LAG* to edit a LAG.
+
+. Select additional ports on the same node to add to the LAG.
+
+. Save your changes.
+--
+
+.CLI
+--
+*Use the CLI to add ports to an interface group*
 
 .Step
 
@@ -175,14 +248,36 @@ The following example shows how to add port e0c to an interface group named a0a:
 `network port ifgrp add-port -node _cluster-1-01_ -ifgrp _a0a_ -port _e0c_`
 
 Beginning with ONTAP 9.8, interface groups are automatically placed into an appropriate broadcast domain about one minute after the first physical port is added to the interface group. If you do not want ONTAP to do this, and prefer to manually place the ifgrp into a broadcast domain, then specify the `-skip-broadcast-domain-placement` parameter as part of the `ifgrp add-port` command.
+====
 
-== Remove a port from an interface group
+== Remove a port from an interface group or LAG
 
 You can remove a port from an interface group that hosts LIFs, as long as it is not the last port in the interface group. There is no requirement that the interface group must not host LIFs or that the interface group must not be the home port of a LIF considering that you are not removing the last port from the interface group. However, if you are removing the last port, then you must migrate or move the LIFs from the interface group first.
 
 .About this task
 
-You can remove up to 16 ports (physical interfaces) from an interface group.
+You can remove up to 16 ports (physical interfaces) from an interface group or LAG.
+
+The procedure you follow depends on the interface that you use—System Manager or the CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Use System Manager to remove a port from a LAG*
+
+.Steps
+
+. Select *Network > Ethernet port > LAG* to edit a LAG.
+
+. Select the ports to remove from the LAG.
+
+. Save your changes.
+--
+
+.CLI
+--
+*Use the CLI to remove ports from an interface group*
 
 .Step
 
@@ -193,15 +288,37 @@ Remove network ports from an interface group:
 The following example shows how to remove port e0c from an interface group named a0a:
 
 `network port ifgrp remove-port -node _cluster-1-01_ -ifgrp _a0a_ -port _e0c_`
+====
 
-== Delete an interface group
+== Delete an interface group or LAG
 
-You can delete interface groups if you want to configure LIFs directly on the underlying physical ports or decide to change the interface group mode or distribution function.
+You can delete interface groups or LAGs if you want to configure LIFs directly on the underlying physical ports or decide to change the interface group or LAG mode or distribution function.
 
 .Before you begin
 
-* The interface group must not be hosting a LIF.
-* The interface group must be neither the home port nor the failover target of a LIF.
+* The interface group or LAG must not be hosting a LIF.
+* The interface group or LAG must be neither the home port nor the failover target of a LIF.
+
+The procedure you follow depends on the interface that you use—System Manager or the CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Use System Manager to delete a LAG*
+
+.Steps
+
+. Select *Network > Ethernet port > LAG* to delete a LAG.
+
+. Select the LAG you want to remove.
+
+. Delete the LAG.
+--
+
+.CLI
+--
+*Use the CLI to delete an interface group*
 
 .Step
 
@@ -212,5 +329,7 @@ For more information about this command, see link:http://docs.netapp.com/ontap-9
 The following example shows how to delete an interface group named a0b:
 
 `network port ifgrp delete -node _cluster-1-01_ -ifgrp _a0b_`
+====
 
 // 08 DEC 2021, BURT 1430515
+// IE-554, 2022-07-28

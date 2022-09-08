@@ -21,7 +21,7 @@ A LIF is an IP address associated with a physical or logical port. If there is a
 * The underlying physical or logical network port must have been configured to the administrative up status.
 * If you are planning to use a subnet name to allocate the IP address and network mask value for a LIF, the subnet must already exist.
 +
-Subnets contain a pool of IP addresses that belong to the same layer 3 subnet. They are created using the `network subnet create` command.
+Subnets contain a pool of IP addresses that belong to the same layer 3 subnet. They are created using System Manager or the `network subnet create` command.
 
 * The mechanism for specifying the type of traffic handled by a LIF has changed. For ONTAP 9.5 and earlier, LIFs used roles to specify the type of traffic it would handle. Beginning with ONTAP 9.6, LIFs use service policies to specify the type of traffic it would handle.
 
@@ -35,7 +35,9 @@ The supported protocols are SMB, NFS, FlexCache, iSCSI, and FC; iSCSI and FC can
 * All the name mapping and host-name resolution services used by an SVM, such as DNS, NIS, LDAP, and Active Directory, must be reachable from at least one LIF handling data traffic of the SVM.
 * A LIF handling intracluster traffic between nodes should not be on the same subnet as a LIF handling management traffic or a LIF handling data traffic.
 * Creating a LIF that does not have a valid failover target results in a warning message.
-* If you have a large number of LIFs in your cluster, you can verify the LIF capacity supported on the cluster by using the `network interface capacity show` command and the LIF capacity supported on each node by using the `network interface capacity details show` command (at the advanced privilege level).
+* If you have a large number of LIFs in your cluster, you can verify the LIF capacity supported on the cluster:
+** System Manager: Beginning with ONTAP 9.12.0, view the throughput on the Network Interface grid.
+** CLI: Use the `network interface capacity show` command and the LIF capacity supported on each node by using the `network interface capacity details show` command (at the advanced privilege level).
 * Beginning with ONTAP 9.7, if other LIFs already exist for the SVM in the same subnet, you do not need to specify the home port of the LIF. ONTAP automatically chooses a random port on the specified home node in the same broadcast domain as the other LIFs already configured in the same subnet.
 +
 Beginning with ONTAP 9.4, FC-NVMe is supported. If you are creating an FC-NVMe LIF you should be aware of the following:
@@ -46,6 +48,63 @@ Beginning with ONTAP 9.4, FC-NVMe is supported. If you are creating an FC-NVMe L
 * NVMe LIFs and namespaces must be hosted on the same node.
 * Only one NVMe LIF handling data traffic can be configured per SVM.
 * When you create a network interface with a subnet, ONTAP automatically selects an available IP address from the selected subnet and assigns it to the network interface. You can change the subnet if there is more than one subnet, but you cannot change the IP address.
+* When you create (add) an SVM, for a network interface, you cannot specify an IP address that is in the range of an existing subnet. You will receive a subnet conflict error. This issue occurs in other workflows for a network interface, such as creating or modifying inter-cluster network interfaces in SVM settings or cluster settings.
+* Beginning with ONTAP 9.11.1, the iSCSI LIF failover feature is available on All SAN Array (ASA) platforms.
++
+iSCSI LIF failover is automatically enabled (the failover policy is set to `sfo-partner-only` and the auto-revert value is set to `true`) on newly created iSCSI LIFs if no iSCSI LIFs exist in the specified SVM or if all existing iSCSI LIFs in the specified SVM are already enabled with iSCSI LIF failover.
++
+If after you upgrade to ONTAP 9.11.1 or later, you have existing iSCSI LIFs in an SVM that have not been enabled with the iSCSI LIF failover feature and you create new iSCSI LIFs in the same SVM, the new iSCSI LIFs assume the same failover policy (`disabled`) of the existing iSCSI LIFs in the SVM.
++
+link:../san-admin/asa-iscsi-lif-fo-task.html[iSCSI LIF failover for ASA platforms]
+
+Beginning with ONTAP 9.12.0, the procedure you follow depends on the interface that you use—System Manager or the CLI:
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Use System Manager to add a network interface*
+
+.Steps
+
+. Select *Network > Overview > Network Interfaces*.
+
+. Select image:icon_add.gif[add icon].
+
+. Select one of the following interface roles:
+.. Data
+.. Intercluster
+.. SVM Management
+
+. Select the protocol:
+.. SMB/CIFS and NFS
+.. iSCSI
+.. FC
+.. NVMe/FC
+.. NVMe/TCP
+
+. Name the LIF or accept the name generated from your previous selections.
+
+. Accept the home node or use the drop-down to select one.
+
+. If at least one subnet is configured in the IPspace of the selected SVM, the subnet drop-down is displayed.
+
+.. If you select a subnet, choose it from the drop-down.
+
+.. If you proceed without a subnet, the broadcast domain drop-down is displayed:
+
+... Specify the IP address. If the IP address is in use, a warning message will display.
+
+... Specify a subnet mask.
+
+. Select the home port from the broadcast domain, either automatically (recommended) or by selecting one from the drop=down menu. The Home port control is displayed based on the broadcast domain or subnet selection.
+
+. Save the network interface.
+--
+
+.CLI
+--
+*Use the CLI to create a LIF*
 
 .Steps
 
@@ -62,12 +121,12 @@ You can also specify whether the LIF should automatically revert to the home-nod
 * You can specify an IP address with the `-address` and `-netmask` options,  or you enable allocation from a subnet with the `-subnet_name` option.
 * When using a subnet to supply the IP address and network mask, if the subnet was defined with a gateway, a default route to that gateway is added automatically to the SVM when a LIF is created using that subnet.
 * If you assign IP addresses manually (without using a subnet), you might need to configure a default route to a gateway if there are clients or domain controllers on a different IP subnet. The `network route create` man page contains information about creating a static route within an SVM.
-* `-auto-revert` allows you to specify whether a data LIF is automatically reverted to its home node under circumstances such as startup, changes to the status of the management database, or when the network connection is made. The default setting is `false`, but you can set it to `true` depending on network management policies in your environment.
+* `-auto-revert` enables you to specify whether a data LIF is automatically reverted to its home node under circumstances such as startup, changes to the status of the management database, or when the network connection is made. The default setting is `false`, but you can set it to `true` depending on network management policies in your environment.
 * `-service-policy` Beginning with ONTAP 9.5, you can assign a service policy for the LIF with the `-service-policy` option.
 When a service policy is specified for a LIF, the policy is used to construct a default role, failover policy, and data protocol list for the LIF. In ONTAP 9.5, service policies are supported only for intercluster and BGP peer services. In ONTAP 9.6, you can create service policies for several data and management services.
-* `-data-protocol` allows you to create a LIF that supports the Fibre Channel Protocol (FCP) or NVMe/FC protocols. This option is not required when creating an IP LIF.
+* `-data-protocol` enables you to create a LIF that supports the FCP or NVMe/FC protocols. This option is not required when creating an IP LIF.
 
-. *Optional*: If you want to assign an IPv6 address in the -address option:
+. *Optional*: Assign an IPv6 address in the -address option:
 .. Use the network ndp prefix show command to view the list of RA prefixes learned on various interfaces.
 +
 The `network ndp prefix show` command is available at the advanced privilege level.
@@ -78,7 +137,7 @@ The `network ndp prefix show` command is available at the advanced privilege lev
 +
 For deriving the `id`, choose a random 64-bit hexadecimal number.
 
-. Verify that the LIF was created successfully by using the `network interface show` command.
+. Verify that the LIF was created by using the `network interface show` command.
 . Verify that the configured IP address is reachable:
 
 
@@ -92,7 +151,7 @@ h|To verify an... h|Use...
 |network ping6
 |===
 
-== Examples
+.Examples
 
 The following command creates a LIF and specifies the IP address and network mask values using the `-address` and `-netmask` parameters:
 
@@ -112,11 +171,15 @@ The following command creates an NVMe/FC LIF and specifies the `nvme-fc` data pr
 network interface create -vserver vs1.example.com -lif datalif1 -data-protocol nvme-fc -home-node node-4 -home-port 1c -address 192.0.2.145 -netmask 255.255.255.0 -auto-revert true
 ....
 
-//
+====
+
+
+// IE-554, 2022-07-28
 // Created with NDAC Version 2.0 (August 17, 2020)
 // restructured: March 2021
 // enhanced keywords May 2021
 // CSAR 1408595
 // 08 DEC 2021, BURT 1430515
 // 16-JUN-2022 BURT 1477167
+// added iSCSI LIF failover bullet Jun 2022
 //
