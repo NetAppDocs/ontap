@@ -65,7 +65,7 @@ In ONTAP 9.5 and later, SnapMirror Synchronous technology supports the NFSv3, FC
 The following features are supported for SnapMirror Synchronous technology in ONTAP 9.7:
 
 * Replication of application-created Snapshot copies
-Only the Snapshot copies with the SnapMirror label that match the rule associated with Sync or Strict Sync policy. Scheduled Snapshot copies created using a Snapshot policy are not replicated.
+If a Snapshot copy is tagged with the appropriate label at the time of the `snapshot create` operation, using the CLI or the ONTAP API, SnapMirror Synchronous replicates the Snapshot copies, both user created or those created with external scripts, after quiescing the applications. Scheduled Snapshot copies created using a Snapshot policy are not replicated. For more information about replicating application-created Snapshot copies, see the Knowledge Base article: link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_replicate_application_created_snapshots_with_SnapMirror_Synchronous[How to replicate application created snapshots with SnapMirror Synchronous^].
 
 * FC-NVMe
 * LUN clones and NVMe namespace clones
@@ -83,7 +83,7 @@ A flip resync of the synchronous source would result in the SVM DR excluding the
 
 * NFSv4.0 and NFSv4.1
 * SMB 2.0 or later
-* Mixed protocol access(NFSv3 and SMB)
+* Mixed protocol access (NFSv3 and SMB)
 * Antivirus on the primary volume of the SnapMirror Synchronous relationship
 * Hard or soft quotas on the primary volume of the SnapMirror Synchronous relationship
 The quota rules are not replicated to the destination; therefore, the quota database is not replicated to the destination.
@@ -129,7 +129,8 @@ LUNs and NVMe namespaces are not supported on the same volume or SVM.
 SnapMirror Synchronous has two modes of operation based on the type of the SnapMirror policy used:
 
 * *Sync mode*
-In Sync mode, an I/O to primary storage is first replicated to secondary storage. Then the I/O is written to primary storage, and acknowledgment is sent to the application that issued the I/O. If the write to the secondary storage is not completed for any reason, the application is allowed to continue writing to the primary storage. When the error condition is corrected, SnapMirror Synchronous technology automatically resynchronizes with the secondary storage and resumes replicating from primary storage to secondary storage in Synchronous mode.
+In Sync mode, application I/O operations are sent in parallel to the primary and secondary
+storage systems. If the write to the secondary storage is not completed for any reason, the application is allowed to continue writing to the primary storage. When the error condition is corrected, SnapMirror Synchronous technology automatically resynchronizes with the secondary storage and resumes replicating from primary storage to secondary storage in Synchronous mode.
 In Sync mode, RPO=0 and RTO is very low until a secondary replication failure occurs at which time RPO and RTO become indeterminate, but equal the time to repair the issue that caused secondary replication to fail and for the resync to complete.
 
 * *StrictSync mode*
@@ -146,11 +147,13 @@ If the relationship status becomes `OutofSync` for a SnapMirror Synchronous rela
 
 .Related information
 
-http://www.netapp.com/us/media/tr-4733.pdf[NetApp Technical Report 4733: SnapMirror Synchronous for ONTAP 9.6^]
+http://www.netapp.com/us/media/tr-4733.pdf[NetApp Technical Report 4733: SnapMirror Synchronous for ONTAP 9.11.1^]
 
 // 2021-11-18, add new supported and unsupported features for ONTAP 9.10.1
 // 3 Feb 2022, BURT 1436974
 // 2022-31-3, update limits table for ONTAP 9.11.1
 // 25 april 2022, BURT 1419781
 // 2022-5-5, update table headings
-// 2022-5-19, update supported features in 9.10.1 per TME 
+// 2022-5-19, update supported features in 9.10.1 per TME
+// 2022-7-28. issue #593, changed to match TR and verified with Krishna Murthy
+// 2022-8-8, BURT 1495505
