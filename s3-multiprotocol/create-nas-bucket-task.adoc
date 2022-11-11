@@ -1,0 +1,73 @@
+---
+permalink: s3-multiprotocol/create-nas-bucket-task.html
+sidebar: sidebar
+keywords: s3, svm, bucket, object, server, versioning, protocol, filesystems, nas, directories
+summary: "An S3 NAS buckets is a mapping between an S3 bucket name and a NAS path. "
+---
+= Create S3 NAS bucket  
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+An S3 NAS buckets is a mapping between an S3 bucket name and a NAS path. S3 NAS buckets allow you to provide S3 access to any part of an SVM namespace having existing volumes and directory structure.
+
+.Before you begin 
+
+* An S3 object server is configured in an SVM containing NAS data. 
+* The NAS data conforms to the link:nas-data-requirements-client-access-reference.html[requirements for S3 client access]. 
+
+.About this task
+You can configure S3 NAS buckets to specify any set of files and directories within the root directory of the SVM.
+
+You can also set bucket policies that allow or disallow access to NAS data based on any combination of these parameters: 
+
+* Files and directories
+* User and group permissions
+* S3 operations
+
+For example, you might want separate bucket policies that grant read-only data access to a large group of users, and another that allows a limited group to perform operations on a subset of that data.
+
+Because S3 NAS “buckets” are mappings and not S3 buckets, the following properties of standard S3 buckets don't apply to S3 NAS buckets.
+
+* *aggr-list \ aggr-list-multiplier \ storage-service-level \ volume \ size \ exclude-aggr-list \ qos-policy-group* +
+No volumes or qtree are created when configuring S3 NAS buckets.
+* *role \ is -protected \ is -protected-on-ontap \ is -protected-on-cloud* +
+S3 NAS buckets are not protected or mirrored using S3 SnapMirror, but will instead be using regular SnapMirror protection available at volume granularity.
+* *versioning-state* +
+NAS volumes usually have Snapshot technology available to save different versions. However, versioning is not currently available in S3 NAS buckets.
+* *logical-used \ object-count* +
+Equivalent statistics are available for NAS volumes through the volume commands.
+
+// start tabbed area
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+Add a new S3 NAS bucket on an NAS-enabled storage VM.
+
+. Click *Storage > Buckets*, then click *Add*.
+. Enter a name for the S3 NAS bucket and select the storage VM, do not enter a size, then click *More Options*.
+. Enter a valid path name or click Browse to select from a list of valid path names. +
+When you enter a valid pathname, options that are not relevant to S3 NAS configuration are hidden.
+. If you have already mapped S3 users to NAS users and created groups, you can configure their permissions, then click *Save*. +
+You must have already mapped S3 users to NAS users before configuring permissions in this step.
+
+Otherwise, click *Save* to complete S3 NAS bucket configuration.
+--
+
+.CLI
+--
+Create an S3 NAS bucket in an SVM containing NAS filesystems. +
+`vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ -type nas -nas-path _junction_path_ [-comment _text_]`
+
+Example: +
+`cluster1::> vserver object-store-server bucket create -bucket testbucket -type nas -path /vol1`
+--
+
+====
+
+// end tabbed area
+
+// 2022 Nov 5, ONTAPDOC-564

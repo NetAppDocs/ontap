@@ -1,0 +1,58 @@
+---
+permalink: snaplock/snapshot-lock-concept.html
+sidebar: sidebar
+keywords: snaplock, snapshot copy, lock, tamperproof
+summary: "Beginning with ONTAP 9.12.1, you can lock a Snapshot copy on a non-SnapLock volume to provide protection from ransomware attacks. Locking Snapshot copies ensures they can't be deleted accidentally or maliciously."
+---
+= Tamperproof Snapshot copy locking overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.12.1, you can lock a Snapshot copy on a non-SnapLock volume to provide protection from ransomware attacks. Locking Snapshot copies ensures that they can't be deleted accidentally or maliciously.
+
+You use the SnapLock compliance clock feature to lock Snapshot copies for a specified period so that they cannot be deleted until the expiration time is reached. Locking Snapshot copies makes them tamperproof, protecting them from ransomware threats. You can use locked Snapshot copies to recover data if a volume is compromised by a ransomware attack.
+
+== Tamperproof Snapshot copy requirements and considerations
+
+* All nodes in the cluster must be running ONTAP 9.12.1 or later.
+* The SnapLock license must be installed on the cluster.
++
+For details, see link:https://docs.netapp.com/us-en/ontap/snaplock/install-license-task.html[Installing the SnapLock license ]
+* The compliance clock on the cluster must be initialized.
++
+For details, see link:https://docs.netapp.com/us-en/ontap/snaplock/initialize-complianceclock-task.html[Initialize the Compliance Clock ]
+* When Snapshot locking is enabled on a volume, you can upgrade the clusters to a version of ONTAP later than ONTAP 9.12.1; however, you cannot revert to an earlier version of ONTAP until all locked Snapshot copies have reached their expiration date and are deleted and Snapshot copy locking is disabled.
+* When a Snapshot is locked, the volume expiry time is set to the expiry time of the Snapshot copy. If more than one Snapshot copy is locked, the volume expiry time  reflects the largest expiry time among all Snapshot copies.
+* The retention period for locked Snapshot copies takes precedence over the Snapshot copy keep count, which means the keep count limit is not honored if the Snapshot copy retention period for locked Snapshot copies has not expired.
+* In a SnapMirror relationship, you can set a retention period on a mirror-vault policy rule, and the retention period is applied for Snapshot copies replicated to the destination if the destination volume has Snapshot copy locking enabled. The retention period takes precedence over keep count; for example, Snapshot copies that have not passed their expiry will be retained even if the keep count is exceeded. 
+* You can rename a Snapshot copy on a non-SnapLock volume. Snapshot rename operations on the primary volume of a SnapMirror relationship are reflected on the secondary volume only if the policy is MirrorAllSnapshots. For other policy types, the renamed Snapshot copy is not propagated during updates. 
+* You can restore a locked Snapshot copy with the `volume snapshot restore` command only if the locked Snapshot copy is the most recent. If there are any unexpired Snapshot copies later than the one being restored, the Snapshot copy restore operation fails.
+
+== Features supported with tamperproof Snapshot copies
+
+* FlexGroup volumes
++
+Snapshot copy locking is supported on FlexGroup volumes. Snapshot locking occurs only on the root constituent Snapshot copy. Deleting the FlexGroup volume is allowed only if the root constituent expiration time has passed.
+
+* FlexVol to FlexGroup conversion
++
+You can convert a FlexVol volume with locked Snapshot copies to a FlexGroup volume. Snapshot copies remain locked after the conversion.
+
+* FabricPool
++
+Snapshot copy locking is supported on FabricPool volumes only if the volume does not have any blocks tiered to the cloud and the tiering policy is set to “none”. When the Snapshot copy locking feature is enabled, setting the tiering policy on the volume to a policy other than “none” is not allowed.
+
+== Unsupported features
+
+The following features currently are not supported with tamperproof Snapshot copies:
+
+* Consistency groups
+* FlexCache volumes
+* SMtape
+* SnapMirror Business Continuity (SM-BC)
+* SnapMirror Synchronous
+
+
+
+// 2022-Oct-26, ONTAPDOC-600
