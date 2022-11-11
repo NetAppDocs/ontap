@@ -1,0 +1,77 @@
+---
+permalink: s3-multiprotocol/index.html
+sidebar: sidebar
+keywords: multiprotocol, s3, configuration, overview, nfs, smb
+summary: "Beginning with ONTAP 9.12.1, you can enable clients running the S3 protocol to access the same data that are being served to clients that use the NFS and SMB protocols without reformatting."
+---
+= S3 multiprotocol overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.12.1, you can enable clients running the S3 protocol to access the same data that are being served to clients that use the NFS and SMB protocols without reformatting. This capability allows NAS data to continue to be served to NAS clients, while presenting object data to S3 clients running S3 applications (such as data mining and artificial intelligence). 
+
+S3 multiprotocol functionality addresses two use cases:
+
+. Access to existing NAS data using S3 clients
++
+If your existing data was created using traditional NAS clients (NFS or SMB) and is located on NAS volumes (FlexVol or FlexGroup volumes), you can now use analytical tools on S3 clients to access this data.
+. Backend storage for modern clients capable of performing I/O using both NAS and S3 protocols
++
+You can now provide integrated access for applications such Spark and Kafka that can read and write the same data using both NAS and S3 protocols.
+
+== How S3 multiprotocol works 
+ONTAP multiprotocol allows you to present the same data set as a file hierarchy or as objects in a bucket. To do so, ONTAP creates “S3 NAS buckets” that allow S3 clients to create, read, delete, and enumerate files in NAS storage using S3 object requests. This mapping conforms to the NAS security configuration, observing file and directory access permissions as well as writing to the security audit trail as necessary.
+
+This mapping is accomplished by presenting a specified NAS directory hierarchy as an S3 bucket. Each file in the directory hierarchy is represented as an S3 object whose name is relative from the mapped directory downwards, with directory boundaries represented by the slash character ('/').
+
+Normal ONTAP-defined S3 users can access this storage, as governed by the bucket policies defined for the bucket that maps to the NAS directory. For this to be possible, mappings must be defined between the S3 users and SMB/NFS users. The credentials of the SMB/NFS uses will be used for the NAS permissions checking and included in any audit records resulting from these accesses.
+
+When created by SMB or NFS clients, a file is immediately placed in a directory, and therefore visible to clients, before any data is written to it. S3 clients expect different semantics, in which the new object is not visible in the namespace until all its data has been written. This mapping of S3 to NAS storage creates files using S3 semantics, keeping the files invisible externally until the S3 creation command completes.
+
+== Data protection for S3 NAS buckets
+S3 NAS “buckets” are simply mappings of NAS data for S3 clients, they are not standard S3 buckets. Therefore, there is no need to protect S3 NAS buckets using NetApp S3 SnapMirror functionality. Instead, you can replicate source SVMs containing S3 NAS buckets using a standard SnapMirror data protection relationship with destination SVMs.
+
+Learn about link:../data-protection/snapmirror-svm-replication-concept.html[SnapMirror SVM replication]. 
+
+== Auditing for S3 NAS buckets
+Because S3 NAS buckets are not conventional S3 buckets, S3 audit cannot be configured to audit access on them. Learn more about link:../s3-audit/index.html[S3 audit].
+
+Nonetheless, the NAS files and directories that are mapped in S3 NAS buckets can be audited for access events using conventional ONTAP audit procedures. S3 operations can therefore trigger NAS audit events, with the following exceptions:
+
+* If S3 client access is denied by the S3 policy configuration (group or bucket policy), NAS audit for the event is not initiated. This is because S3 permissions are checked before SVM audit checks can be made.  
+* If the target file of an S3 Get request is 0 size, 0 content is returned to the Get request and the Read access is not logged. 
+* If the target file of an S3 Get request is in a folder for which the user has no traverse permission, the access attempt fails and the event is not logged.
+
+Learn about link:../nas-audit/auditing-events-concept.html[auditing NAS events on SVMs].
+
+== S3 and NAS interoperability
+ONTAP S3 NAS buckets support standard NAS and S3 functionality except as listed here.
+
+=== NAS functionality not currently supported by S3 NAS buckets
+FabricPool capacity tier::
+S3 NAS buckets cannot configured as a capacity tier for FabricPool.
+
+=== S3 functionality not currently supported by S3 NAS buckets
+
+AWS user metadata::
+* Key-values pairs received as part of S3 user-metadata are not stored on disk along with object data in the current release. 
+* Request headers with the prefix "x-amz-meta" are ignored.
+
+AWS Tags:: 
+* On PUT object and Multipart Initiate requests, headers with the prefix "x-amz-tagging" are ignored. 
+* Requests to update tags on an existing file (i.e. a Put, Get, and Delete requests with the ?tagging query-string) are rejected with an error.
+
+Versioning::
+It is not possible to specify versioning in the bucket mapping configuration. 
+* Requests that include non-null version specifications (the versionId=xyz query-string) receive error responses. 
+* Requests to affect the versioning state of a bucket are rejected with errors.
+
+Multipart operations::
+The following operations are not supported:
+* AbortMultipartUpload
+* CompleteMultipartUpload
+* CreateMultipartUpload
+* ListMultipartUpload
+
+// 2022 Nov 09, ONTAPDOC-564
