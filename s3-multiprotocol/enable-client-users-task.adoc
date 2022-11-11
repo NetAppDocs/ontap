@@ -1,0 +1,83 @@
+---
+permalink: s3-multiprotocol/enable-client-users-task.html
+sidebar: sidebar
+keywords: s3, nas, vserver, configuration, nas, certificate, linux, unix, installation
+summary: "To enable S3 client users to access NAS data, you must map S3 user names to corresponding NAS users, then grant them permission to access the NAS data using bucket service polices."
+---
+= Enable S3 client users  
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+To enable S3 client users to access NAS data, you must map S3 user names to corresponding NAS users, then grant them permission to access the NAS data using bucket service polices.
+
+.Before you begin
+User names for client access – LINUX/UNIX, Windows and S3 client users – must already exist.
+
+.About this task
+Mapping an S3 user name to a corresponding LINUX/UNIX or Windows user allows authorization checks on the NAS files to be honored when those files are accessed by S3 clients. S3 to NAS mappings are specified by providing an S3 user name _Pattern_, which can be expressed as a single name or a POSIX regular expression, and a LINUX/UNIX or Windows user name _Replacement_.
+
+In case there is no name-mapping present, default name-mapping will be used, where the S3 user name itself will be used as the UNIX user name and Windows user name. You can modify the UNIX and Windows default user name mappings with the `vserver object-store-server modify` command.
+
+Only local name-mapping configuration is supported; LDAP is not supported.
+
+After S3 users are mapped to NAS users, you can grant permissions to users specifying the resources (directories and files) to which they have access and the actions they are allowed or not allowed to perform there.
+
+// start tabbed area
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+. Create local name mappings for UNIX or Windows clients (or both).
+.. Click *Storage > Buckets*, then select the S3/NAS-enabled storage VM.
+.. Select *Settings*, then click image:../media/icon_arrow.gif[right arrow] in *Name Mapping* (under *Host Users and Groups*).
+.. In the *S3 to Windows* or *S3 to UNIX* tiles (or both), click *Add*, then entered the desired *Pattern* (S3) and *Replacement* (NAS) user names.
+. Create a bucket policy to provide client access.
+.. Click *Storage > Buckets*, click image:../media/icon_kabob.gif[kebab icon] next to the desired S3 bucket, then click *Edit*.
+.. Click *Add* and supply the desired values.
+[circle]
+* *Principal* - Provide S3 user names or use the default (all users) 
+* *Effect* - Select *Allow* or *Deny/*
+* *Actions* - Enter actions for these users and resources. The set of resource operations that the object store server currently supports for S3 NAS buckets are: GetObject, PutObject, DeleteObject, ListBucket, GetBucketAcl, GetObjectAcl, GetObjectTagging, PutObjectTagging, DeleteObjectTagging, GetBucketLocation, GetBucketVersioning, PutBucketVersioning and ListBucketVersions. Wildcards are accepted for this parameter.
+* *Resources* - Enter folder or file paths in which the actions are allowed or denied, or use the defaults (root directory of the bucket).
+--
+
+.CLI
+--
+. Create local name mappings for UNIX or Windows clients (or both). +
+`vserver name-mapping create -vserver svm_name> -direction {s3-win|s3-unix} -position _integer_ -pattern _s3_user_name_ -replacement _nas_user_name_`
+[disc]
+* `-position` - priority number for mapping evaluation; enter 1 or 2.
+* `-pattern` - an S3 user name or a regular expression
+* `-replacement` - a windows or unix user name
+
+Examples +
+`vserver name-mapping create -direction s3-win -position 1 -pattern s3_user_1 -replacement win_user_1
+vserver name-mapping create -direction s3-unix -position 2 -pattern s3_user_1 -replacement unix_user_1`
+
+[start=2]
+. Create a bucket policy to provide client access. +
+`vserver object-store-server bucket policy add-statement -vserver svm_name -bucket bucket_name -effect {deny|allow}  -action list_of_actions -principal list_of_users_or_groups -resource [-sid alphanumeric_text]`
+[disc]
+* `-effect {deny|allow}` - specifies whether access is allowed or denied when a user requests an action.
+* `-action <Action>, ...` - specifies resource operations that are allowed or denied. The set of resource operations that the object store server currently supports for S3 NAS buckets are: GetObject, PutObject, DeleteObject, ListBucket, GetBucketAcl, GetObjectAcl, GetObjectTagging, PutObjectTagging, DeleteObjectTagging, GetBucketLocation, GetBucketVersioning, PutBucketVersioning and ListBucketVersions. Wildcards are accepted for this parameter.
+* `-principal <Objectstore Principal>, ...` - validates the user requesting access against the object store server users or groups specified in this parameter. 
+[circle]
+** An object store server group is specified by adding a prefix group/ to the group name. 
+** `-principal` - (the hyphen character) grants access to all users.
+* `-resource <text>, ...` - specifies the bucket, folder, or object for which allow/deny permissions are set. Wildcards are accepted for this parameter.
+* `[-sid <SID>]` - specifies an optional text comment for the object store server bucket policy statement. 
+
+Examples +
+`cluster1::> vserver object-store-server bucket policy add-statement -bucket testbucket -effect allow -action  GetObject,PutObject,DeleteObject,ListBucket,GetBucketAcl,GetObjectAcl, GetBucketLocation,GetBucketPolicy,PutBucketPolicy,DeleteBucketPolicy -principal user1 -resource testbucket,testbucket/* sid "FullAccessForUser1"`
+
+`cluster1::> vserver object-store-server bucket policy statement create -vserver vs1 -bucket bucket1 -effect allow -action GetObject -principal - -resource bucket1/readme/* -sid "ReadAccessToReadmeForAllUsers"`
+--
+
+====
+
+// end tabbed area
+
+// 2022 Nov 05, ONTAPDOC-564
