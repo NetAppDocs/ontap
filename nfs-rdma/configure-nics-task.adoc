@@ -1,7 +1,7 @@
 ---
 permalink: nfs-rdma/configure-nics-task.html
 sidebar: sidebar
-keywords: networking, NICs, NFS over RDMA, NVIDIA, NFS
+keywords: networking, NICs, NFS over RDMA, NVIDIA, NFS, system manager, ports, ethernet ports
 summary: "This article explains how both client-system and storage platform configuration processes and requirements for NICs to utilize NFS over RDMA in ONTAP."
 ---
 = Configure NICs for NFS over RDMA
@@ -26,20 +26,42 @@ The client, server, and any switches, and all ports on switches must be configur
 
 Once this configuration is confirmed, you can mount the NFS. 
 
-.Steps 
+[role="tabbed-block"]
+====
+.System Manager
+--
+You must be using ONTAP 9.12.1 or later to configure network interfaces with NFS over RDMA using System Manager.
+
+.Steps
+. Check if RDMA is supported. Navigate to *Network > Ethernet Ports* and select the appropriate node in the group view. When you expand the node, look at the *RDMA protocols* field for a given port: the value *RoCE* denotes RDMA is supported; a dash (*-*) indicates it is not supported.
+. To add a VLAN, select *+ VLAN*. Select the appropriate node. In the *Port* dropdown menu, the available ports will display the text *RoCE Enabled* if they support RDMA; no text will be displayed if they do not support RDMA.
+. Follow the workflow in xref:../task_nas_enable_linux_nfs.html[Enable NAS storage for Linux servers using NFS] to configure a new NFS server.
++
+When adding network interfaces, you will have the option to select *Use RoCE ports*. Select this option for any network interfaces that you want to use NFS over RDMA.
+--
+
+.CLI
+--
 . Check if RDMA access is enabled on the NFS server with the command:
 +
-`vserver nfs show-vserver _vserver_name_`
+`vserver nfs show-vserver _SVM_name_`
 +
 By default, `-rdma` should be enabled. If it is not, enable RDMA access on the NFS server:
 +
-`vserver nfs modify -vserver _vserver_name_ -rdma enabled`
+`vserver nfs modify -vserver _SVM_name_ -rdma enabled`
 . Mount the client via NFSv4.0 over RDMA:
-.. The input for the proto parameter depends on the server IP protocol version. If it is v4, use `proto=rdma`. If it is v6, use `proto=rdma6`. 
-.. Specify the NFS target port as `port=20049` instead of the standard port of 2049:
+.. The input for the proto parameter depends on the server IP protocol version. If it is IPv4, use `proto=rdma`. If it is IPv6, use `proto=rdma6`. 
+.. Specify the NFS target port as `port=20049` instead of the standard port 2049:
 +
 `mount -o vers=4,minorversion=0,proto=rdma,port=20049 _Server_IP_address_:/_volume_path_ _mount_point_`
 . *OPTIONAL*: If you need to unmount the client, run the command `unmount _mount_path_`
+--
+====
+
+.More information
+* xref:../nfs-config/create-server-task.html[Create an NFS server]
+* xref:../task_nas_enable_linux_nfs.html[Enable NAS storage for Linux servers using NFS]
 
 
+// 06 OCT 2022, IE-582
 //29 october 2021, BURT 1401394
