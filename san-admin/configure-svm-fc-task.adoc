@@ -21,18 +21,60 @@ NetApp supports a minimum of one FC LIF per node for each SVM serving data with 
 
 .Steps
 
+// start tabbed area
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Configure an storage VM for iSCSI with ONTAP System Manager (9.7 and later).
+
+[cols=2, options="header"]
+|===
+| To configure FC on a new storage VM
+| To configure FC on an existing storage VM
+
+a|
+. In System Manager, click *Storage > Storage VMs* and then click *Add*.
+. Enter a name for the storage VM.
+. Select *FC* for the *Access Protocol*.
+. Click *Enable FC*.
++ The FC ports are automatically assigned.
+. Click *Save*.
+
+a|
+. In System Manager, click *Storage > Storage VMs*.
+. Click on the storage VM you want to configure.
+. Click on the *Settings* tab, and then click image:icon_gear.gif[] next to the FC protocol.
+. Click *Enable FC* and enter the IP address and subnet mask for the network interface.
++ The FC ports are automatically assigned.
+. Click *Save*.
+|===
+
+--
+.CLI
+--
+
 . Enable FC service on the SVM:
 +
 `vserver fcp create -vserver _vserver_name_ -status-admin up`
+
 . Create two LIFs for the SVMs on each node serving FC:
 +
-`network interface create -vserver _vserver_name_ -lif _lif_name_ -role data -data-protocol fcp -home-node _node_name_ -home-port _port_`
+* For ONTAP 9.6 and later: 
 +
-The `-role` parameter should be `data` and the `data-protocol` parameter should be `fcp`.
+`network interface create -vserver _vserver_name_ -lif _lif_name_ -data-protocol fcp -service-policy default-data-fcp -home-node _node_name_ -home-port _port_name_ -address _ip_address_ -netmask _netmask_`
+
+* For ONTAP 9.5 and earlier: 
++
+`network interface create -vserver _vserver_name_ -lif _lif_name_ -role data -data-protocol fcp -home-node _node_name_ -home-port _port_`
 
 . Verify that your LIFs have been created and that their operational status is `online`:
 +
 `network interface show -vserver _vserver_name_ _lif_name_`
+--
+====
+// end tabbed area
 
 .Related information
 
@@ -41,3 +83,5 @@ https://mysupport.netapp.com/site/global/dashboard[NetApp Support]
 https://mysupport.netapp.com/matrix[NetApp Interoperability Matrix Tool^]
 
 xref:lifs-cluster-concept.adoc[Considerations for LIFs in cluster SAN environments]
+
+// 2022 Nov 18, PR 696

@@ -25,18 +25,22 @@ AFF A220, AFF A800, FAS2720, FAS2750, and later systems store core dumps on thei
 [NOTE]
 If an HA pair is using encrypting SAS or NVMe drives (SED, NSE, FIPS), you must follow the instructions in the topic xref:return-seds-unprotected-mode-task.html[Returning a FIPS drive or SED to unprotected mode] for all drives within the HA pair prior to initializing the system (boot options 4 or 9). Failure to do this may result in future data loss if the drives are repurposed.
 
-== Supported drive types
+== Supported self-encrypting drive types
 
-Two types of self-encrypting drive are supported:
+Two types of self-encrypting drives are supported:
 
 * Self-encrypting FIPS-certified SAS or NVMe drives are supported on all FAS and AFF systems. These drives, called _FIPS drives,_ conform to the requirements of Federal Information Processing Standard Publication 140-2, level 2. The certified capabilities enable protections in addition to encryption, such as preventing denial-of-service attacks on the drive. FIPS drives cannot be mixed with other types of drives on the same node or HA pair.
-* Beginning with ONTAP 9.6, self-encrypting NVMe drives that have not undergone FIPS testing are supported on AFF A800, A320, and later systems. These drives, called _SEDs_, offer the same encryption capabilities as FIPS drives, but can be mixed with non-SEDs on the same node or HA pair.
+* Beginning with ONTAP 9.6, self-encrypting NVMe drives that have not undergone FIPS testing are supported on AFF A800, A320, and later systems. These drives, called _SEDs_, offer the same encryption capabilities as FIPS drives, but can be mixed with non-encrypting drives on the same node or HA pair.
+* All FIPS validated drives use a firmware cryptographic module that has been through FIPS validation.  The FIPS drive cryptographic module does not use any keys that are generated outside of the drive (the authentication passphrase that is input to the drive is used by the drive’s firmware cryptographic module to obtain a key encryption key).
 
-== When to use KMIP servers
+NOTE: Non-encrypting drives are drives that are not SEDs or FIPS drives.
 
-Although it is less expensive and typically more convenient to use the onboard key manager, you should set up KMIP servers if any of the following are true:
 
-* Your encryption key management solution must comply with FIPS 140-2 level 2 or higher.
+== When to use external key management
+
+Although it is less expensive and typically more convenient to use the onboard key manager, you should use external key management if any of the following are true:
+
+* Your organization’s policy requires a key management solution that uses a FIPS 140-2 Level 2 (or higher) cryptographic module.
 * You need a multi-cluster solution, with centralized management of encryption keys.
 * Your business requires the added security of storing authentication keys on a system or in a location different from the data.
 
@@ -54,7 +58,7 @@ Non-homogeneous disk sets
 a|
 
 * FIPS drives cannot be mixed with other types of drives on the same node or HA pair. Conforming HA pairs can coexist with non-conforming HA pairs in the same cluster.
-* SEDs can be mixed with non-SEDs on the same node or HA pair.
+* SEDs can be mixed with non-encrypting drives on the same node or HA pair.
 
 a|
 Drive type
@@ -70,7 +74,7 @@ Beginning with ONTAP 9.3, KMIP key management configurations support 10 Gb netwo
 a|
 Ports for communication with the key management server
 a|
-Beginning with ONTAP 9.3, you can use any storage controller port for communication with the key management server. Otherwise, you should use port e0m for communication with key management servers. Depending on the storage controller model, certain network interfaces might not be available during the boot process for communication with key management servers.
+Beginning with ONTAP 9.3, you can use any storage controller port for communication with the key management server. Otherwise, you should use port e0M for communication with key management servers. Depending on the storage controller model, certain network interfaces might not be available during the boot process for communication with key management servers.
 a|
 MetroCluster (MCC)
 a|
@@ -84,4 +88,6 @@ a|
 
 https://hwu.netapp.com/[NetApp Hardware Universe^]
 
-// 2022 jan 25, BURT 1452520 
+// 2022 jan 25, BURT 1452520
+// BURT 1496026, Aug 10 2022
+// ontap-issue-686, 25 OCT 2022

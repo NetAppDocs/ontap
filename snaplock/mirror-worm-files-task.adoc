@@ -31,7 +31,7 @@ If the destination volume has an expiry period that is later than the source, th
 
 If the destination has legal-holds placed on it that differ from the source, a resync is not allowed. The source and destination must have identical legal-holds or all legal-holds on the destination must be released before a resync is attempted.
 
-A locked snapshot on the destination volume created to capture the divergent data can be copied to the source by running the `snapmirror update -s snapshot` command. The snapshot once copied will continue to be locked at the source as well.
+A locked Snapshot copy on the destination volume created to capture the divergent data can be copied to the source using the CLI by running the `snapmirror update -s snapshot` command. The snapshot once copied will continue to be locked at the source as well.
 
 * SVM data protection relationships are not supported.
 * Load-sharing data protection relationships are not supported.
@@ -40,8 +40,32 @@ The following illustration shows the procedure for initializing a SnapMirror rel
 
 image::../media/snapmirror_steps_clustered.png[This illustration shows the procedure for initializing a SnapMirror relationship: identifying the destination cluster, creating a destination volume, creating a SnapMirror relationship between the volumes, and then initializing the relationship to start a baseline transfer.]
 
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Beginning with ONTAP 9.12.1, you can use System Manager to set up SnapMirror replication of WORM files.
+
 .Steps
 
+. Navigate to *Storage > Volumes*.
+. Click *Show/Hide* and select *SnapLock Type* to display the column in the *Volumes* window.
+. Locate a SnapLock volume.
+. Click image:icon_kabob.gif[alt=Menu Options] and select *Protect*.
+. Choose the destination cluster and the destination storage VM.
+. Click *More Options*.
+. Select *Show legacy policies* and select *DPDefault (legacy)*.
+. In the *Destination Configuration details* section, select *Override transfer schedule* and select *hourly*.
+. Click *Save*.
+. To the left of the source volume name, click the arrow to expand the volume details, and on the right side of the page,review the remote SnapMirror protection details.
+. On the remote cluster, navigate to *Protection Relationships*.
+. Locate the relationship and click the destination volume name to view the relationship details.
+. Verify that the destination volume SnapLock type and other SnapLock information. 
+--
+
+.CLI
+--
 . Identify the destination cluster.
 . On the destination cluster, install the SnapLock license, initialize the ComplianceClock, and, if you are using an ONTAP release earlier than 9.10.1, create a SnapLock aggregate.
 . On the destination cluster, create a SnapLock destination volume of type `DP` that is either the same size as or greater in size than the source volume:
@@ -49,9 +73,7 @@ image::../media/snapmirror_steps_clustered.png[This illustration shows the proce
 `*volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -snaplock-type compliance|enterprise -type DP -size _size_*`
 +
 [NOTE]
-====
 Beginning with ONTAP 9.10.1, SnapLock and non-SnapLock volumes can exist on the same aggregate; therefore, you are no longer required to create a separate SnapLock aggregate if you are using ONTAP 9.10.1. You use the volume -snaplock-type option to specify a Compliance or Enterprise SnapLock volume type. In ONTAP releases earlier than ONTAP 9.10.1, the SnapLock mode--Compliance or Enterprise--is inherited from the aggregate. Version-flexible destination volumes are not supported. The language setting of the destination volume must match the language setting of the source volume.
-====
 +
 The following command creates a 2 GB SnapLock `Compliance` volume named `dstvolB` in `SVM2` on the aggregate `node01_aggr`:
 +
@@ -90,9 +112,7 @@ SVM2::> snapmirror create -source-path SVM1:srcvolA -destination-path SVM2:dstvo
 ----
 +
 [NOTE]
-====
 The XDP type is available in ONTAP 9.5 and later. You must use the DP type in ONTAP 9.4 and earlier.
-====
 
 . On the destination SVM, initialize the SnapMirror relationship:
 +
@@ -105,6 +125,8 @@ The following command initializes the relationship between the source volume `sr
 ----
 SVM2::> snapmirror initialize -destination-path SVM2:dstvolB
 ----
+--
+====
 
 .Related information
 
@@ -118,3 +140,4 @@ link:../data-protection/index.html[Data protection]
 // 09 DEC 2021, BURT 1430515
 // 2022-5-23, issue #505
 // 2022-6-6, more updates for issue #505 
+// 2022-9-12, ONTAPDOC-580

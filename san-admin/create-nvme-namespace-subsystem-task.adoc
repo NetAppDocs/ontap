@@ -4,36 +4,57 @@ sidebar: sidebar
 keywords: create, nvme, namespace, subsystem
 summary: "For systems using the NVMe protocol, you must create one or more NVMe namespaces and subsystems. Each namespace can then be mapped to an NVMe subsystem to allow data access from your host system."
 ---
-= Create an NVMe namespace and subsystem
+= Provision NVMe storage 
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-For systems using the NVMe protocol, you must create one or more NVMe namespaces and subsystems. Each namespace can then be mapped to an NVMe subsystem to allow data access from your host system.
+If a procedure for your specific host is not available, you can use these steps to create namespaces and provision storage for any NVMe supported host.
 
-.What you'll need
+Namespaces appear to Linux as SCSI disk devices.
 
-The SVM must already be configured for NVMe.
+This procedure creates new namespaces on an existing storage VM. Your storage VM must be configured for NVME, and your FC or TCP transport should already be set up.
+
+include::_include/98_qos_enabled_by_default.adoc[]
 
 .Steps
 
-. Verify that the SVM is configured for NVMe:
-+
-`vserver show -vserver _SVM_name_ -fields allowed-protocols`
-+
-`NVMe` should be displayed under the `allowed-protocols` column.
+// start tabbed area
 
-. Create the NVMe namespace:
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+Create namespaces to provide storage using the NVMe protocol with ONTAP System Manager (9.7 and later).
+
+. In System Manager, click *Storage > NVMe Namespaces* and then click *Add*.
 +
-`vserver nvme namespace create -vserver _SVM_name_ -path _path_ -size _size_of_namespace_ -ostype _OS_type_`
-. Create the NVMe subsystem:
+If you need to create a new subsystem, click *More Options*.
 +
-`vserver nvme subsystem create -vserver _SVM_name_ -subsystem _name_of_subsystem_ -ostype _OS_type_`
-. Verify that the subsystem was created:
-+
-`vserver nvme subsystem show -vserver _SVM_name_`
-+
-The `nvme` subsystem should be displayed under the `Subsystem` column.
+include::_include/98_qos_how_to_modify.adoc[]
+
+[start=2]
+. Zone your FC switches by WWPN. Use one zone per initiator and include all target ports in each zone.
+
+. On your host, discover the new namespaces.
+
+. Initialize the namespace and format it with a file system.
+
+. Verify that your host can write and read data on the namespace.
+
+--
+
+.CLI
+--
+Create namespaces to provide storage using the NVMe protocol with the ONTAP CLI.
+
+This procedure creates an NVMe namespace and subsystem on an existing storage VM which has already been configured for the NVMe protocol, then maps the namespace to the subsystem to allow data access from your host system.
+
+If you need to configure the storage VM for NVMe, see link:configure-svm-nvme-task.html[Configure an SVM for NVMe].
+
+include::_include/nvme-provisioning-cli.adoc[]
+--
 
 == About NVMe subsystems
 

@@ -17,12 +17,53 @@ You need a minimum of one iSCSI LIF per node for each SVM serving data with the 
 
 .Steps
 
+// start tabbed area
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Configure an storage VM for iSCSI with ONTAP System Manager (9.7 and later).
+
+[cols=2, options="header"]
+|===
+| To configure iSCSI on a new storage VM
+| To configure iSCSI on an existing storage VM
+
+a|
+. In System Manager, click *Storage > Storage VMs* and then click *Add*.
+. Enter a name for the storage VM.
+. Select *iSCSI* for the *Access Protocol*.
+. Click *Enable iSCSI* and enter the IP address and subnet mask for the network interface.
++ Each node should have at least two network interfaces.
+. Click *Save*.
+
+a|
+. In System Manager, click *Storage > Storage VMs*.
+. Click on the storage VM you want to configure.
+. Click on the *Settings* tab, and then click image:icon_gear.gif[] next to the iSCSI protocol.
+. Click *Enable iSCSI* and enter the IP address and subnet mask for the network interface.
++ Each node should have at least two network interfaces.
+. Click *Save*.
+|===
+
+--
+.CLI
+--
+Configure an storage VM for iSCSI with the ONTAP CLI.
+
 . Enable the SVMs to listen for iSCSI traffic:
 +
 `vserver iscsi create -vserver _vserver_name_ -target-alias _vserver_name_`
 . Create a LIF for the SVMs on each node to use for iSCSI:
 +
-`network interface create -vserver _vserver_name_ -lif _lif_name_ -role data -data-protocol iscsi -home-node _node_name_ -home-port _port_name_ -address _ip_address_ -netmask netmask`
+* For ONTAP 9.6 and later: 
++
+`network interface create -vserver _vserver_name_ -lif _lif_name_ -data-protocol iscsi -service-policy default-data-iscsi -home-node _node_name_ -home-port _port_name_ -address _ip_address_ -netmask _netmask_`
+* For ONTAP 9.5 and earlier: 
++
+`network interface create -vserver _vserver_name_ -lif _lif_name_ -role data -data-protocol iscsi -home-node _node_name_ -home-port _port_name_ -address _ip_address_ -netmask _netmask_`
+
 . Verify that you set up your LIFs correctly:
 +
 `network interface show -vserver _vserver_name_`
@@ -30,9 +71,13 @@ You need a minimum of one iSCSI LIF per node for each SVM serving data with the 
 +
 `vserver iscsi show –vserver _vserver_name_`
 . From your host, create iSCSI sessions to your LIFs.
+--
+====
+// end tabbed area
 
 .Related information
 
 https://www.netapp.com/media/10680-tr4080.pdf[NetApp Technical Report 4080: Best practices for modern SAN]
 
+// 2022 Nov 18, PR 696
 // 1 February 2022, BURT 1450858 

@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar
 permalink: file-system-analytics/considerations-concept.html
-keywords: file system analytics, performance, 7-mode
+keywords: file system analytics, performance, SVM 
 summary: File System Analytics is designed to provide visibility on volumes with active NAS data. There are restrictions and limitations to its use. 
 ---
 = Considerations for File System Analytics
@@ -11,45 +11,18 @@ summary: File System Analytics is designed to provide visibility on volumes with
 [.lead]
 You should be aware of certain usage limits and potential performance impacts associated with implementing File System Analytics.
 
-== Supported volume types
 
-File System Analytics is designed to provide visibility on volumes with active NAS data, with the exception of FlexCache caches and SnapMirror destination volumes.
-
-== Peformance considerations
-
-Enabling File System Analytics may incur a performance impact during the initial metadata collection. Do not enable analytics on the systems that are at a maximum utilization.
-
-ONTAP System Manager provides xref:../concept_cluster_performance_overview.adoc[performance monitoring tools] to manage cluster health and metrics. 
-
-*SVM protected relationships*
+== SVM-protected relationships
 
 If you have enabled File System Analytics on volumes whose containing SVM is in a protection relationship, the analytics data is not replicated to the destination SVM. If the source SVM must be resynchronized in a recovery operation, you must manually reenable analytics on desired volumes after recovery.
 
-== RBAC
+== Performance considerations
 
-If you are user of System Manager or the ONTAP REST API xref:../concepts/administrator-authentication-rbac-concept.html[RBAC] in your ONTAP set up, you will need to create a dedicated role to moderate access to Activity Tracking in File System Analytics. 
+In some cases, enabling File System Analytics could negatively impact performance during the initial metadata collection. This is most typically seen on systems that are at maximum utilization. To avoid enabling analytics on such systems, you can use ONTAP System Manager performance monitoring tools.
 
-.Control access to Activity Tracking
-. Create a default role to have access to all features. This needs to be done before creating the restrictive role to ensure the role is only restrictive on the Activity Tracking:
-+
-`security login role create -cmddirname DEFAULT -access all -role storageAdmin`
-. Create the restrictive role:
-+
-`security login role create -cmddirname "volume file show-disk-usage" -access none -role storageAdmin`
-. Authorize roles to access the SVM's web services:
-    * `rest` for REST API calls
-    * `security` for password protection
-    * `sysmgr` for System Manager access
-+
-====
-vserver services web access create -vserver _svm-name_ -name_ -name rest -role storageAdmin +
-vserver services web access create -vserver _svm-name_ -name security -role storageAdmin +
-vserver services web access create -vserver _svm-name_ -name sysmgr -role storageAdmin
-====
-. Create a user. You must issue a distinct create command for each application you would like to apply to the user. Calling create multiple times on the same user simply applies all the applications to that one user and does not create a new user each time. The `http` parameter for application type applies for the ONTAP REST API and System Manager.
-+
-`security login create -user-or-group-name storageUser -authentication-method password -application http -role storageAdmin`
-. With the new user credentials, you can now log in to System Manager or use the ONTAP REST API to access File Systems Analytics data. 
+If you experience a notable increase in latency, refer to the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/High_or_fluctuating_latency_after_turning_on_NetApp_ONTAP_File_System_Analytics[High or fluctuating latency after turning on NetApp ONTAP File System Analytics^].
+
 
 // created 7 December 2021 from FSA overview
 // 25 april 2022, BURT 1413512
+// 2022 september 6, issue #346
