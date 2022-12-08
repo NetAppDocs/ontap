@@ -13,21 +13,25 @@ Beginning with ONTAP 9.12.1, NFSv4.1 clients can take advantage of session trunk
 
 Trunking is advantageous for exporting FlexVol volumes to trunking-capable clients; in particular, VMware and Linux clients. 
 
-FlexGroup volumes are supported for trunking. However, in this release, multipath access to a FlexGroup volume can only be configured on a single node, thereby limiting the benefit of FlexGroup volumes if they cannot be configured on multiple nodes.
+In this release, trunking is restricted to LIFs on a single node; trunking cannot span LIFs across multiple nodes.
 
-Only session trunking is supported for multipathing in this release.
+FlexGroup volumes are supported for trunking. Although this can provide better performance, multipath access to a FlexGroup volume can only be configured on a single node. Trunking is not supported for FlexGroup volumes that span multiple nodes.
+
+Only session trunking is supported for multipathing.
 
 == How to use trunking 
 
-To take advantage of multipathing benefits offered by trunking, you need to create a set of LIFs – referred to as a _trunking group_ – that are associated with the SVM containing a trunking-enabled NFS server. Each LIF in a trunking group must have a home port on the same node of the cluster and be a member of the same failover group. Most trunking-capable clients can support up to 16 trunked connections.
+To take advantage of multipathing benefits offered by trunking, you need a set of LIFs – referred to as a _trunking group_ – that are associated with the SVM containing a trunking-enabled NFS server. The LIFs in a trunking group must have home ports on the same node of the cluster, and they must reside on those home ports. It is a best practice that all LIFs in a trunking group are members of the same failover group. 
 
-When clients mount shares exported from the SVM with the trunking-enabled server, they specify the IP addresses of the LIFs in the trunk group. The clients then distribute NFS operations over the multiple connections based on their own algorithm (such as round-robin).
+ONTAP supports up to 16 trunked connections per node.
+
+When a client mounts shares from a trunking-enabled server, they specify a number of IP addresses for LIFs in a trunking group. After the client connects to the first LIF, additional LIFs are only added to the NFSv4.1 session and used for trunking if they conform to trunking group requirements. The client then distributes NFS operations over the multiple connections based on their own algorithm (such as round-robin).
 
 For best performance, you should configure trunking in an SVM that is dedicated to providing multipath exports, not single-path exports. That is, you should only enable trunking on a NFS server in an SVM whose exports are provided to trunking-enabled clients only.
 
 == Supported clients 
 
-The ONTAP NFSv4.1 server supports trunking on any client capable of single-node trunking.
+The ONTAP NFSv4.1 server supports trunking with any client capable of NFSv4.1 session trunking.
 
 The following clients have been tested with ONTAP 9.12.1:
 
@@ -44,8 +48,4 @@ In contrast, trunking is _multipathing_ functionality, which provides multiple T
 
 Learn more about link:../nfs-admin/ontap-support-nfsv41-concept.html[nconnect.]
 
-== Reverting to ONTAP 9.12.1 or earlier when trunking is enabled
-
-After reverting to an earlier ONTAP release, the clients using trunked connections will fall back to using a single connection and their data throughput will be affected, but there will be no disruption. The revert behavior is the same as modifying the NFSv4.1 trunking option for the SVM from enabled to disabled.
-
-// 2022 Dec 01, ONTAPDOC-552
+// 2022 Dec 08, ONTAPDOC-552

@@ -9,19 +9,21 @@ summary: 'To take advantage of NFSv4.1 trunking, you need to have a LIF with a c
 :imagesdir: ../media/
 
 [lead]
-To take advantage of NFSv4.1 trunking, you need to have a LIF with a corresponding NIC for each trunked connection. The LIFs in a trunking group must have home ports on the same node, and they must be configured in a failover group on the same node.
+To take advantage of NFSv4.1 trunking, you need to have multiple LIFs  residing on two or more NICs for each trunked connection. The LIFs in a trunking group must reside on the same node and have home ports on the same node, and they should be configured in a failover group on the same node.
 
 .Before you begin
 
-* There must be a NIC installed for each LIF in a trunking group.
-* You must know the port names associated with NICs.
+* There must be at least two NICs installed.
+* You must know the port names associated with the NICs.
 * The ports must all be on the same node.
 
 .About this task
 
-You can have multiple failover groups, but the failover group for trunking must include only those LIFS in the trunking group.
+A one-to-one mapping of LIFs and NICs will yield the greatest performance gain but is not required to enable trunking.
 
-You must adjust the trunking failover group any time you add or remove connections (and underlying NICs) from a failover group.
+Although you can have multiple failover groups, it is a best practice that the failover group for trunking includes only those LIFS in the trunking group.
+
+You should adjust the trunking failover group any time you add or remove connections (and underlying NICs) from a failover group.
 
 .Steps
 
@@ -45,7 +47,7 @@ The following command creates failover group fg3 for SVM vs1 and adds three port
 +
 Learn more about link:../networking/configure_failover_groups_and_policies_for_lifs_overview.html[failover groups.]
 
-. Create LIFs for members of the trunking group:
+. If needed, create LIFs for members of the trunking group:
 +
 `network interface create -vserver _svm_name_ -lif _lif_name_ -home-node _node_name_ -home-port _port_name_ -address _IP_address_ -netmask _IP_address_ [-service-policy policy] [-auto-revert {true|false}]`
 +
@@ -59,9 +61,9 @@ You can also specify whether the LIF should automatically revert to the home-nod
 +
 * When you assign IP addresses manually (without using a subnet), you might need to configure a default route to a gateway if there are clients or domain controllers on a different IP subnet. The network route create man page contains information about creating a static route within an SVM.
 +
-* `-service-policy` - the service policy for the LIF. If no policy is specified, a default policy will be assigned automatically. Use the `network interface service-policy show` command to review available service policies. *???*
+* `-service-policy` - the service policy for the LIF. If no policy is specified, a default policy will be assigned automatically. Use the `network interface service-policy show` command to review available service policies.
 +
-* `-auto-revert` - specify whether a data LIF is automatically reverted to its home node under circumstances such as startup, changes to the status of the management database, or when the network connection is made. *The default setting is false*, but you can set it to true depending on network management policies in your environment.
+* `-auto-revert` - specify whether a data LIF is automatically reverted to its home node under circumstances such as startup, changes to the status of the management database, or when the network connection is made. The default setting is false, but you can set it to true depending on network management policies in your environment.
 +
 Repeat this step for every LIF needed in the trunking group.
 +
@@ -86,4 +88,4 @@ Learn more about link:../networking/create_lifs.html[LIF creation.]
 | IPv6 address | `network ping6`
 |===
 
-// 2022 Nov 28, ONTAPDOC-552
+// 2022 Dec 08, ONTAPDOC-552
