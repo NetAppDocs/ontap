@@ -11,9 +11,15 @@ summary: 'To enable clients to to take advantage of trunking for existing data s
 [lead]
 To enable clients to to take advantage of trunking for existing data shares, you might have to modify export policies and rules, and the volumes to which they are attached. There are different export requirements for Linux clients and VMware datastores. 
 
-If you are upgrading to 9.12.1 and you have already exported a volume, you can continue to use that volume in a trunking group. However, you might need to create additional volumes for Linux clients. This is because Linux clients must have a separate mount for each trunking connection (that is, for each LIF). The mounts can be two or more exported volumes mounted at the same mount point, or the same volume mounted at a separate mount point. You must therefore consider how many volumes to export.
+Client export requirements:
 
-There are no additional requirements for volumes exported to VMware clients. 
+* Linux clients must have a separate mount and a separate mount point for each trunking connection (that is, for each LIF).
++
+If you are upgrading to 9.12.1 and you have already exported a volume, you can continue to use that volume in a trunking group.
+
+* VMware clients require only a single mount point for an exported volume, with multiple LIFs specified. 
++
+VMware clients require root access in the export policy. 
 
 .Steps
 
@@ -29,22 +35,12 @@ In particular, verify that the `-clientmatch` parameter correctly identifies the
 +
 If adjustments are necessary, modify the rule using the `vserver export-policy rule modify`command or create a new rule:
 +
-`vserver export-policy rule create -vserver svm_name -policyname _policy_name_ -ruleindex integer -protocol nfs4 -clientmatch { text | "text,text,…" } -rorule security_type -rwrule security_type -superuser security_type -anon user_ID`
+`vserver export-policy rule create -vserver svm_name -policyname _policy_name_ -ruleindex integer -protocol nfs4 -clientmatch { text | "text,text,…" } -rorule _security_type_ -rwrule _security_type_ -superuser _security_type_ -anon _user_ID_`
 +
 Learn more about link:../nfs-config/add-rule-export-policy-task.html[creating export rules.]
 
 . Verify that existing exported volumes are online:
 +
 `volume show -vserver _svm_name_`
-+
-. If needed, create new volumes:
-+
-`volume create -vserver _svm_name_ -volume _volume_name_ -aggregate _aggregate_name_ -size {integer[KB|MB|GB|TB|PB]} -security-style unix -user _user_name_or_number_ -group _group_name_or_number_ -junction-path _junction_path_ -policy _export_policy_name_`
-+
-Verify that the volume was created with the desired junction point:
-+
-`volume show -vserver _svm_name_ -volume _volume_name_ -junction`
-+
-Learn about link:../nfs-config/create-volume-task.html[creating volumes.]
 
-// 2022 Nov 28, ONTAPDOC-552
+// 2022 Dec 08, ONTAPDOC-552
