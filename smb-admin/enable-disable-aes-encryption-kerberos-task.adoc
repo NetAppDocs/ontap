@@ -13,7 +13,7 @@ To take advantage of the strongest security with Kerberos-based communication, y
 
 .About this task
 
-Beginning with ONTAP 9.12.1, AES encryption is enabled and disabled using the `-advertised-enc-types` option, which allows you to specify the encryption types advertised to the AD KDC. The default setting is `rc4`, but when an AES type is specified, AES encryption is enabled. You can also use the option to explicitly disable the weaker RC4 and DES encryption types. In earlier ONTAP releases, you must use the `-is-aes-encryption-enabled` option to enable and disable AES encryption, and encryption types cannot be specified.
+Beginning with ONTAP 9.12.1, AES encryption is enabled and disabled using the `-advertised-enc-types` option, which allows you to specify the encryption types advertised to the AD KDC. The default setting is `rc4` and `des`, but when an AES type is specified, AES encryption is enabled. You can also use the option to explicitly disable the weaker RC4 and DES encryption types. In earlier ONTAP releases, you must use the `-is-aes-encryption-enabled` option to enable and disable AES encryption, and encryption types cannot be specified.
 
 To enhance security, the storage virtual machine (SVM) changes its machine account password in the AD each time the AES security option is modified. Changing the password might require administrative AD credentials for the organizational unit (OU) that contains the machine account.
 
@@ -43,27 +43,26 @@ a|
 +
 *Note:* The `-is-aes-encryption-enabled` option is deprecated in ONTAP 9.12.1 and might be removed in a later release.
 
-. Verify that AES encryption is enabled or disabled as desired: `vserver cifs security show -vserver vserver_name -fields is-aes-encryption-enabled,advertised-enc-types`
-+
-The `is-aes-encryption-enabled` field displays `true` if AES encryption is enabled and `false` if it is disabled.
+. Verify that AES encryption is enabled or disabled as desired: `vserver cifs security show -vserver vserver_name -fields advertised-enc-types`
 
-.Example
+.Examples
 
 The following example enables the AES encryption types for the SMB server on SVM vs1:
 
 ----
-cluster1::> vserver cifs security modify -vserver vs1 -advertised-enc-types des,rc4,aes-128,aes-256
+cluster1::> vserver cifs security modify -vserver vs1 -advertised-enc-types aes-128,aes-256
 
-cluster1::> vserver cifs security show -vserver vs2 -fields is-aes-encryption-enabled,advertised-enc-types
-vserver  is-aes-encryption-enabled  advertised-enc-types
--------- -------------------------  --------------------
-vs2      true                       des,rc4,aes-128,aes-256
+cluster1::> vserver cifs security show -vserver vs1 -fields advertised-enc-types
+
+vserver  advertised-enc-types
+-------- --------------------
+vs1      aes-128,aes-256
 ----
 
 The following example enables the AES encryption types for the SMB server on SVM vs2. The administrator is prompted to enter the administrative AD credentials for the OU containing the SMB server.
 
 ----
-cluster1::> vserver cifs security modify -vserver vs2 -advertised-enc-types des,rc4,aes-128,aes-256
+cluster1::> vserver cifs security modify -vserver vs2 -advertised-enc-types aes-128,aes-256
 
 Info: In order to enable SMB AES encryption, the password for the SMB server
 machine account must be reset. Enter the username and password for the
@@ -73,12 +72,13 @@ Enter your user ID: administrator
 
 Enter your password:
 
+cluster1::> vserver cifs security show -vserver vs2 -fields advertised-enc-types
 
-cluster1::> vserver cifs security show -vserver vs2 -fields is-aes-encryption-enabled,advertised-enc-types
-vserver  is-aes-encryption-enabled  advertised-enc-types
--------- -------------------------  --------------------
-vs2      true                       des,rc4,aes-128,aes-256
+vserver  advertised-enc-types
+-------- --------------------
+vs2      aes-128,aes-256
 -----
+
 --
 
 .ONTAP 9.11.1 and earlier
@@ -138,5 +138,5 @@ vs2      true
 --
 ====
 
-// 2022 Dec 05, BURT 1499636
+// 2022 Dec 16, BURT 1499636
 // 2021 Dec 10, GitHub issue #287
