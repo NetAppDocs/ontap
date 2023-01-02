@@ -1,7 +1,7 @@
 ---
 permalink: snaplock/initialize-complianceclock-task.html
 sidebar: sidebar
-keywords: snaplock, complianceclock, initialize, worm, retention, period, node
+keywords: snaplock, complianceclock, initialize, worm, retention, period, node, ntp, reset, resynchronize
 summary: "The SnapLock ComplianceClock ensures against tampering that might alter the retention period for WORM files. You must initialize the system ComplianceClock on each node that hosts a SnapLock aggregate. Once you initialize the ComplianceClock on a node, you cannot initialize it again."
 ---
 = Initialize the ComplianceClock
@@ -69,3 +69,47 @@ Do you want to continue? (y|n): y
 ====
 
 // 2022-9-12, ONTAPDOC-580
+
+== Enable ComplianceClock resynchronization for an NTP-configured system
+
+You can enable the SnapLock ComplianceClock time synchronization feature when an NTP server is configured.
+
+.What you'll need
+
+* This feature is available only at the advanced privilege level.
+* You must be a cluster administrator to perform this task.
+* The SnapLock license must be installed on the node.
+* This feature is available only for Cloud Volumes ONTAP, ONTAP Select, and VSIM platforms.
+
+.About this task
+
+When the SnapLock secure clock daemon detects a skew beyond the threshold, ONTAP uses the system time to reset both the system and volume ComplianceClocks. A period of 24 hours is set as the skew threshold. This means that the system ComplianceClock is synchronized to the system clock only if the skew is more than a day old.
+
+The SnapLock secure clock daemon detects a skew and changes the ComplianceClock to the system time. Any attempt at modifying the system time to force the ComplianceClock to synchronize to the system time fails, since the ComplianceClock synchronizes to the system time only if the system time is synchronized with the NTP time.
+
+.Steps
+
+. Enable the SnapLock ComplianceClock time synchronization feature when an NTP server is configured:
++
+`*snaplock compliance-clock ntp*`
++
+The following command enables the system ComplianceClock time synchronization feature:
++
+----
+cluster1::*> snaplock compliance-clock ntp modify -is-sync-enabled true
+----
+
+. When prompted, confirm that the configured NTP servers are trusted and that the communications channel is secure to enable the feature:
++
+
+. Check that the feature is enabled:
++
+`*snaplock compliance-clock ntp show*`
++
+The following command checks that the system ComplianceClock time synchronization feature is enabled:
++
+----
+cluster1::*> snaplock compliance-clock ntp show
+
+Enable clock sync to NTP system time: true
+----
