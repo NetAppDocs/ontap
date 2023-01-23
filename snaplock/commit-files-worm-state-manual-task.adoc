@@ -1,15 +1,19 @@
 ---
 permalink: snaplock/commit-files-worm-state-manual-task.html
 sidebar: sidebar
-keywords: commit, file, worm, manually, nfs, cifs, read, only
-summary: "You commit a file to WORM manually by making the file read-only. You can use any suitable command or program over NFS or CIFS to change the read-write attribute of a file to read-only."
+keywords: commit, file, worm, manually, nfs, cifs, read, only, automatically, program, appendable, nfs, cifs, chunk, vam
+summary: "You can commit files to WORM (write once, read many) either manually or by committing them automatically. You can also create WORM appendable files."
 ---
-= Commit files to WORM manually
+= Commit files to WORM
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You commit a file to WORM manually by making the file read-only. You can use any suitable command or program over NFS or CIFS to change the read-write attribute of a file to read-only.
+You can commit files to WORM (write once, read many) either manually or by committing them automatically. You can also create WORM appendable files. 
+
+== Commit files to WORM manually
+
+You commit a file to WORM manually by making the file read-only. You can use any suitable command or program over NFS or CIFS to change the read-write attribute of a file to read-only. You might choose to manually commit files if you want to ensure an application has finished writing to a file so that the file isn't committed prematurely or if there are scaling issues for the autocommit scanner because of a high number of volumes.
 
 .What you'll need
 * The file you want to commit must reside on a SnapLock volume.
@@ -34,3 +38,185 @@ In a Windows shell, use the following command to make a file named `document.txt
 ----
 attrib +r document.txt
 ----
+
+== Commit files to WORM automatically
+
+The SnapLock autocommit feature enables you to commit files to WORM automatically. The autocommit feature commits a file to WORM state on a SnapLock volume if the file did not change for the autocommit-period 
+duration. The autocommit feature is disabled by default.
+
+.What you'll need
+
+* The files you want to autocommit must reside on a SnapLock volume.
+* The SnapLock volume must be online.
+* The SnapLock volume must be a read-write volume.
+
+[NOTE]
+====
+The SnapLock autocommit feature scans through all of the files in the volume and commits a file if it meets the autocommit requirement. There might be a time interval between when the file is ready for autocommit and when it is actually committed by the SnapLock autocommit scanner. However, the file is still protected from modifications and deletion by the file system as soon as it is eligible for autocommit.
+====
+
+.About this task
+
+The _autocommit period_ specifies the amount of time that files must remain unchanged before they are autocommitted. Changing a file before the autocommit period has elapsed restarts the autocommit period for the file.
+
+The following table shows the possible values for the autocommit period:
+
+[options="header"]
+|===
+| Value| Unit| Notes
+a|
+none
+a|
+-
+a|
+The default.
+a|
+5 - 5256000
+a|
+minutes
+a|
+-
+a|
+1 - 87600
+a|
+hours
+a|
+-
+a|
+1 - 3650
+a|
+days
+a|
+-
+a|
+1 - 120
+a|
+months
+a|
+-
+a|
+1 - 10
+a|
+years
+a|
+-
+|===
+
+[NOTE]
+====
+The minimum value is 5 minutes and the maximum value is 10 years.
+====
+
+.Steps
+
+. Autocommit files on a SnapLock volume to WORM:
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -autocommit-period _autocommit_period_*`
++
+For a complete list of options, see the man page for the command.
++
+The following command autocommits the files on volume `vol1` of SVM vs1, as long as the files remain unchanged for 5 hours:
++
+----
+cluster1::>volume snaplock modify -vserver vs1 -volume vol1 -autocommit-period 5hours
+----
+
+== Create a WORM appendable file
+
+A WORM appendable file retains data written incrementally, like log entries. You can use any suitable command or program to create a WORM appendable file, or you can use the SnapLock _volume append mode_ feature to create WORM appendable files by default.
+
+== Use a command or program to create a WORM appendable file
+
+You can use any suitable command or program over NFS or CIFS to create a WORM appendable file. A WORM appendable file retains data written incrementally, like log entries. Data is appended to the file in 256 KB chunks. As each chunk is written, the previous chunk becomes WORM-protected. You cannot delete the file until the retention period has elapsed.
+
+.What you'll need
+
+The WORM appendable file must reside on a SnapLock volume.
+
+.About this task
+
+Data does not have to be written sequentially to the active 256 KB chunk. When data is written to byte n×256KB+1 of the file, the previous 256 KB segment becomes WORM-protected.
+
+.Steps
+
+. Use a suitable command or program to create a zero-length file with the desired retention time.
++
+In a UNIX shell, use the following command to set a retention time of 21 November 2020 6:00 a.m. on a zero-length file named `document.txt`:
++
+----
+touch -a -t 202011210600 document.txt
+----
+
+. Use a suitable command or program to change the read-write attribute of the file to read-only.
++
+In a UNIX shell, use the following command to make a file named `document.txt` read-only:
++
+----
+chmod 444 document.txt
+----
+
+. Use a suitable command or program to change the read-write attribute of the file back to writable.
++
+[NOTE]
+====
+This step is not deemed a compliance risk because there is no data in the file.
+====
++
+In a UNIX shell, use the following command to make a file named `document.txt` writable:
++
+----
+chmod 777 document.txt
+----
+
+. Use a suitable command or program to start writing data to the file.
++
+In a UNIX shell, use the following command to write data to `document.txt`:
++
+----
+echo test data >> document.txt
+----
++
+[NOTE]
+====
+Change the file permissions back to read-only when you no longer need to append data to the file.
+====
+
+== Use volume append mode to create WORM appendable files
+
+Beginning with ONTAP 9.3, you can use the SnapLock _volume append mode_ (VAM) feature to create WORM appendable files by default. A WORM appendable file retains data written incrementally, like log entries. Data is appended to the file in 256 KB chunks. As each chunk is written, the previous chunk becomes WORM-protected. You cannot delete the file until the retention period has elapsed.
+
+.What you'll need
+
+* The WORM appendable file must reside on a SnapLock volume.
+* The SnapLock volume must be unmounted and empty of Snapshot copies and user-created files.
+
+.About this task
+
+Data does not have to be written sequentially to the active 256 KB chunk. When data is written to byte n×256KB+1 of the file, the previous 256 KB segment becomes WORM-protected.
+
+If you specify an autocommit period for the volume, WORM appendable files that are not modified for a period greater than the autocommit period are committed to WORM.
+
+[NOTE]
+====
+VAM is not supported on SnapLock audit log volumes.
+====
+
+.Steps
+
+. Enable VAM:
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -is-volume-append-mode-enabled true|false*`
++
+For a complete list of options, see the man page for the command.
++
+The following command enables VAM on volume `vol1` of SVM``vs1``:
++
+----
+cluster1::>volume snaplock modify -vserver vs1 -volume vol1 -is-volume-append-mode-enabled true
+----
+
+. Use a suitable command or program to create files with write permissions.
++
+The files are WORM-appendable by default.
+
+// 09 DEC 2021, BURT 1430515
