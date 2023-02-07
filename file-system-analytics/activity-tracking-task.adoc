@@ -2,7 +2,7 @@
 permalink: file-system-analytics/activity-tracking-task.html
 sidebar: sidebar
 keywords: monitor, volume, ontap, FSA, File System Analytics, 
-summary: "Activity Tracking to view hot files, directories, clients, and users in a specified volume for real-time performance troubleshooting with"
+summary: "Activity Tracking feature that allows you to identify hot objects and download them as a CSV file."
 ---
 = Enable Activity Tracking
 :icons: font
@@ -93,81 +93,6 @@ If you use RBAC with the ONTAP REST API or System Manager, you will need to crea
 --
 ====
 
-== Role-based access control (RBAC) and Activity Tracking
-
-If you use xref:../concepts/administrator-authentication-rbac-concept.html[role-based access control] (RBAC) in System Manager or the ONTAP REST API, you will need to create a dedicated role to moderate access to Activity Tracking in File System Analytics. In versions of ONTAP prior to ONTAP 9.12.1, you must configure RBAC permissions through the ONTAP CLI or ONTAP REST API. 
-
-Beginning in ONTAP 9.12.1, ONTAP includes a predefined `admin-no-fsa` role, which encompasses admin-level privileges but prevents the user from performing operations in File System Analytics. 
-
-[role="tabbed-block"]
-====
-.System Manager
---
-Beginning in ONTAP 9.12.1, you can configure RBAC permissions for File System Analytics using System Manager.
-
-.Steps
-. Select *Cluster > Settings*. Under *Security*, navigate to *Users and Roles* and select image:icon_arrow.gif[arrow icon]. 
-. Under *Roles*, select image:icon_add.gif[add icon].
-. Provide a name for the role. Under Role Attributes, configure the access or restrictions for the user role by providing the appropriate link:https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-the-ontap-api-documentation-page[API endpoints^]. See the table below for primary paths and secondary paths to configure File System Analytics access or restrictions. 
-+
-[options="header"]  
-|===
-| Restriction | Primary Path | Secondary Path
-| Activity Tracking on volumes | `/api/storage/volumes` 
-a|
-* `/<:uuid>/top-metrics/directories`
-* `/<:uuid>/top-metrics/files`
-* `/<:uuid>/top-metrics/clients`
-* `/<:uuid>/top-metrics/users`
-| Activity Tracking on SVMs | `/api/svm/svms` 
-a| 
-* `/<:uuid>/top-metrics/directories`
-* `/<:uuid>/top-metrics/files`
-* `/<:uuid>/top-metrics/clients`
-* `/<:uuid>/top-metrics/users`
-| All File System Analytics operations | `/api/storage/volumes` | `/:uuid/files`
-|===
-+
-You can use `/{asterisk}/` instead of an UUID to set the policy for all volumes or SVMs at the endpoint. 
-+
-Choose the access privileges for each endpoint.
-. Select *Save*.
-. To assign the role to a user or users, see xref:../task_security_administrator_access.html[Control administrator access].
---
-
-.CLI
---
-
-.Steps
-. Create a default role to have access to all features. 
-+
-This needs to be done before creating the restrictive role to ensure the role is only restrictive on the Activity Tracking:
-+
-`security login role create -cmddirname DEFAULT -access all -role storageAdmin`
-. Create the restrictive role:
-+
-`security login role create -cmddirname "volume file show-disk-usage" -access none -role storageAdmin`
-. Authorize roles to access the SVM's web services:
-    * `rest` for REST API calls
-    * `security` for password protection
-    * `sysmgr` for System Manager access
-+
-`vserver services web access create -vserver _svm-name_ -name_ -name rest -role storageAdmin`
-+
-`vserver services web access create -vserver _svm-name_ -name security -role storageAdmin`
-+
-`vserver services web access create -vserver _svm-name_ -name sysmgr -role storageAdmin`
-. Create a user. 
-+
-You must issue a distinct create command for each application you would like to apply to the user. Calling create multiple times on the same user simply applies all the applications to that one user and does not create a new user each time. The `http` parameter for application type applies for the ONTAP REST API and System Manager.
-+
-`security login create -user-or-group-name storageUser -authentication-method password -application http -role storageAdmin`
-. With the new user credentials, you can now log in to System Manager or use the ONTAP REST API to access File Systems Analytics data.
---
-====
-
-link:https://docs.netapp.com/us-en/ontap-automation/rest/rbac_overview.html[Learn more about RBAC roles and the ONTAP REST API^]
-
-
+// 7 February 2022, ONTAPDOC-875
 //2021-10-29, IE-422
 //2022-03-22, IE-509
