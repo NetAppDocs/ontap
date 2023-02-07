@@ -1,0 +1,63 @@
+---
+permalink: upgrade/task_preparing_snapmirror_relationships_for_a_nondisruptive_upgrade_or_downgrade.html
+sidebar: sidebar
+keywords: ontap, upgrade, snapmirror, operations, quisce
+summary: 'It is recommended that you quiesce your SnapMirror operations before performing a nondisruptive upgrade of ONTAP.'
+---
+= Prepare SnapMirror relationships for a nondisruptive upgrade
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+It is recommended that you quiesce your SnapMirror operations before performing a nondisruptive upgrade of ONTAP.
+
+.Steps
+
+. Use the `snapmirror show` command to determine the destination path for each SnapMirror relationship.
+. For each destination volume, suspend future SnapMirror transfers: 
++
+`snapmirror quiesce -destination-path destination`
++
+If there are no active transfers for the SnapMirror relationship, this command sets its status to "Quiesced". If the relationship has active transfers, the status is set to "Quiescing" until the transfer is completed, and then the status becomes "Quiesced".
++
+This example quiesces transfers involving the destination volume "vol1" from "SVMvs0.example.com":
++
+----
+cluster1::> snapmirror quiesce -destination-path vs0.example.com:vol1
+----
+
+. Verify that all SnapMirror relationships are quiesced: 
++
+`snapmirror show -status !Quiesced`
++
+This command displays any SnapMirror relationships that are _not_ quiesced.
++
+This example shows that all SnapMirror relationships are quiesced:
++
+----
+cluster1::> snapmirror show -status !Quiesced
+There are no entries matching your query.
+----
+
+. If any SnapMirror relationships are currently being transferred, do one of the following options:
++
+[cols=2*,options="header"]
+|===
+| Option| Description
+a|
+Wait for the transfers to finish before performing the ONTAP upgrade.
+a|
+After each transfer finishes, the relationship changes to "Quiesced" status.
+a|
+Stop the transfers: 
+
+`snapmirror abort -destination-path destination -h`    
+
+*Note:* You must use the `-foreground true` parameter if you are aborting load-sharing mirror transfers.
+a|
+This command stops the SnapMirror transfer and restores the destination volume to the last Snapshot copy that was successfully transferred. The relationship is set to "Quiesced" status.
+|===
+
+.Related information
+
+xref:concept_upgrade_requirements_for_snapmirror.adoc[Upgrade requirements for SnapMirror]
