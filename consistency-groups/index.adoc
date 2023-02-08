@@ -9,17 +9,26 @@ summary: "You can use consistency groups in ONTAP, including hierarchical and si
 :imagesdir: ../media/
 
 [.lead]
-A consistency group is a collection of volumes that provides a write-order consistency guarantee for an application workload spanning multiple volumes.
+A consistency group is a collection of volumes that are a managed as a single unit. With ONTAP, consistency group provide easy of management and a protection guarantee for an application workload spanning multiple volumes.
+
+You can use consistency groups to simplify your storage management. Imagine you have an important database spanning twenty LUNs. You could manage the LUNs on an individual basis, or treat the LUNs as a solitary dataset, grouping them into a single consistency group.
 
 Consistency groups facilitate application workload management, providing easy management of local and remote protection policies and providing simultaneous crash-consistent or application-consistent Snapshot copies of a collection of volumes at a point in time. Snapshots in consistency groups enable an entire application workload to be restored.
+
+== Consistency group features
 
 Consistency groups support any FlexVol volume regardless of protocol (NAS, SAN, or NVMe) and can be managed through the ONTAP REST API or in System Manager under the *Storage > Consistency Groups* menu item.
 
 Consistency groups can exist as individual entities or in a hierarchical relationship. An individual consistency group is a collection of volumes. Volumes can have their own volume-granular snapshot policy. In addition, the consistency group the volume is associated with can have its own snapshot policy. The consistency group can only have one SnapMirror Business Continuity (SM-BC) relationship and shared SM-BC policy, which can be used to recover the entire consistency group.
 
+The following diagram illustrates how you might use an individual consistency group. The data for an application hosted on `SVM1` spans two volumes: `vol1` and `vol2`. A Snapshot policy on the consistency group captures snapshots of the data every 15 minutes, grouping the snapshots within the consistency group. If you need to restore one of the volumes, you can perform a restore operation at the consistency group level, ensuring the data is synchronized.   
+
 image:../media/consistency-group-single-diagram.gif[Diagram of a single consistency group with its constituent volumes and local Snapshot policy]
 
+
 Larger application workloads might require multiple consistency groups. In these situations, multiple consistency groups can be placed together in a hierarchical relationship. In this configuration, single consistency groups become the child components of a parent consistency group. The parent consistency group can include up to five child consistency groups. Like in individual consistency groups, a remote SM-BC protection policy can be applied to the entire configuration of consistency groups (parent and children) to recover the application workload.
+
+In the following example, an application is hosted on SVM1. The administrator has created a parent consistency group, `SVM1_app`, which includes two child consistency group: `SVM1appDataCG` containing the data, and `SVM`app_logCG` containing the logs. Each child consistency group has its own snapshopt policy. Snapshots of the data are taken every 15 minutes, while snapshots of the logs are taken hourly. The parent consistency group`SVM1_app` includes an SM-BC policy which replicates the data to a secondary cluster, which the consistency group will failover to in the event of a disruption. 
 
 image:../media/consistency-group-nested-diagram.gif[Diagram of a nested consistency group with its associated volumes]
 
@@ -33,16 +42,18 @@ For more information about the ONTAP REST API, refer to https://docs.netapp.com/
 == Protection
 
 Consistency groups offer:
-* local protection through Snapshot policies
-* remote protection through SnapMirror Business Continuity (SM-BC).
+* Local protection through Snapshot policies
+* Remote protection through SnapMirror Business Continuity (SM-BC).
 Creating a consistency group does not automatically enable protection. Local and/or remote protection policies can be set when creating or after creating a consistency group. 
 
-To configure local protection with consistency groups, see link:protect-task.html[Protect a consistency group]. Beginning in ONTAP 9.11.1, consistency groups offer link:protect-task.html#two-phase-CG-snapshot-creation[two-phase consistency group snapshot creation].
+To configure local protection with consistency groups, see link:protect-task.html[Protect a consistency group].
 
 In order to utilize remote protection, you must meet the requirements for xref:../smbc/smbc_plan_prerequisites.html#licensing[SnapMirror Business Continuity deployments].
 
 [NOTE]
 SM-BC relationships cannot be established on volumes mounted for NAS access.
+
+ Beginning in ONTAP 9.11.1, consistency groups offer link:protect-task.html#two-phase-CG-snapshot-creation[two-phase consistency group snapshot creation].
 
 == Application and component tags 
 
@@ -58,7 +69,7 @@ You can apply tags when creating a consistency group or after the consistency gr
 
 Beginning with ONTAP 9.11.1, you can provision consistency groups with new volumes on a cluster within a MetroCluster configuration. These volumes are provisioned on mirrored aggregates.
 
-After they are provisioned, you can move volumes associated with consistency groups between mirrored and unmirrored aggregates. Therefore, they can be located on mirrored aggregates, unmirrored aggregates, or both. You can modify mirrored aggregates containing volumes associated with consistency groups to become unmirrored. Similarly, you can modify unmirrored aggregates containing volumes associated with consistency groups to enable mirroring.
+After they are provisioned, you can move volumes associated with consistency groups between mirrored and unmirrored aggregates. Therefore, volumes associated with consistency groups can be located on mirrored aggregates, unmirrored aggregates, or both. You can modify mirrored aggregates containing volumes associated with consistency groups to become unmirrored. Similarly, you can modify unmirrored aggregates containing volumes associated with consistency groups to enable mirroring.
 
 Volumes associated with consistency groups placed on mirrored aggregates and their Snapshots, including any consistency group Snapshots, are replicated to the remote site (site B). The contents of the volumes on site B are consistency group semantics-compliant. You can access replicated consistency group Snapshots using consistency group Snapshot REST API and System Manager on clusters running ONTAP 9.11.1 or later.
 
