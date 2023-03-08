@@ -25,11 +25,11 @@ SnapMirror Business Continuity provides the following benefits:
 * Instantaneous creation of mirror clones without impacting application availability
 * Beginning in ONTAP 9.11.1, SM-BC supports xref:../data-protection/restore-single-file-snapshot-task.html[single-file SnapRestore]. 
 
-== Typical use cases
+== Business cases
 
 === Application deployment for zero RTO or Transparent Application Failover
 
-Transparent Application Failover is based on host multipath I/O (MPIO) software-based path failover to achieve non-disruptive access to the storage. Both LUN copies, for example, primary(L1P) and mirror copy(L1S), have the same identity (serial number) and are reported as read-writable to the host. However, reads and writes are serviced only by the primary volume. I/Os issued to the mirror copy are proxied to the primary copy. The host's preferred path to L1 is VS1:N1 based on Asymmetric Logical Unit Access (ALUA) access state Active Optimized (A/O). Mediator is recommended as part of the deployment, primarily to perform failover in case of a storage outage on the primary.
+Transparent Application Failover is based on host multipath I/O (MPIO) software-based path failover to achieve non-disruptive access to the storage. Both LUN copies, for example, primary (L1P) and mirror copy (L1S), have the same identity (serial number) and are reported as read-writable to the host. However, reads and writes are serviced only by the primary volume. I/Os issued to the mirror copy are proxied to the primary copy. The host's preferred path to L1 is VS1:N1 based on Asymmetric Logical Unit Access (ALUA) access state Active Optimized (A/O). Mediator is recommended as part of the deployment, primarily to perform failover in case of a storage outage on the primary.
 
 === Disaster scenario
 
@@ -41,4 +41,56 @@ The following figure illustrates the operation of the SnapMirror Business Contin
 
 image:workflow_san_snapmirror_business_continuity.png[SnapMirror Business Continuity workflow]
 
+In section one of the diagram, an application is deployed on a SVM in the primary data center. The volumes that have been added to the primary consistency group are protected with SM-BC and are mirrored to destination consistency group at a secondary data center. The volumes in the primary consistency group will failover to the mirrored consistency group in the event of a disruption. Volumes not in a mirrored consistency group are not served. 
+
+== Using SM-BC
+
+You can manage SM-BC using the System Manager, the ONTAP CLI, and the ONTAP REST API. Beginning with ONTAP 9.10.1, ONTAP offers enhanced xref:../consistency-groups/index.html[consistency group] management feature that help you manage your SM-BC consistency gorups. 
+
+== Key concepts
+
+As you begin to explore the ONTAP SnapMirror Business Continuity and plan a deployment, it is helpful to become familiar with the key terminology and concepts.
+
+.SM-BC
+
+Acronym for the SnapMirror Business Continuity (SM-BC) solution available with ONTAP 9.8 and later.
+
+.Consistency group
+
+[Note]
+Beginning with ONTAP 9.10.1, consistency groups have become a first-order management unit. To learn more about consistency groups, refer to link:../consistency-groups/index.html[Consistency groups overview].
+
+A consistency group (CG) is a collection of FlexVol volumes that provide a write order consistency guarantee for the application workload which needs to be protected for business continuity. The purpose of a consistency group is to take simultaneous crash-consistent Snapshot copies of a collection of volumes at a point in time. In regular deployment, the group of volumes picked to be part of a CG are mapped to an application instance. SnapMirror relationships, also known as a CG relationship, is established between a source CG and a destination CG. The source and destination CGs must contain the same number and type of volumes.
+
+.Constituent
+
+The individual FlexVol volumes that are part of a consistency group.
+
+.Mediator
+
+ONTAP Mediator provides an alternate health path to the peer cluster, with the intercluster LIFs providing the other health path. With the Mediator's health information, clusters can differentiate between intercluster LIF failure and site failure. When the site goes down, Mediator passes on the health information to the peer cluster on demand, facilitating the peer cluster to fail over. With the Mediator-provided information and the intercluster LIF health check information, ONTAP determines whether to perform an auto failover, if it is failover incapable, continue or stop.
+
+Mediator is one of three parties in the SM-BC quorum, working with the primary cluster and the secondary cluster to reach a consensus. A consensus requires at least two parties in the quorum to agree to an operation.
+
+.Out of Sync (OOS)
+
+The application I/O is not replicating to the secondary storage system. The destination volume is not in sync with the source volume because SnapMirror replication is not occuring. If the mirror state is Snapmirrored, this indicates a transfer failure or failure due to an unsupported operation.
+
+.Zero RPO
+
+Zero recovery point objective. This is the acceptable amount of data loss from downtime.
+
+.Zero RTO
+
+Zero recovery time objective or Transparent Application Failover is achieved by using host multipath I/O (MPIO) software-based path failover to provide non-disruptive access to the storage.
+
+.Planned failover
+
+A manual operation to change the roles of copies in a SM-BC relationship. The primary becomes the secondary and the secondary becomes the primary. ALUA reporting also changes.
+
+.Automatic unplanned failover (AUFO)
+
+An automatic operation to perform a failover to the mirror copy. The operation requires assistance from Mediator to detect that the primary copy is unavailable.
+
+// ontapdoc-883, 7 march 2023
 // 7 april 2022, BURT 1459617
