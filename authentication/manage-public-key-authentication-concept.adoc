@@ -11,6 +11,9 @@ summary: "For SSH public key authentication, you must associate the public key w
 [.lead]
 For SSH public key authentication, you must associate the public key with an administrator account before the account can access the SVM. You can use the `security login publickey create` command to associate a key with an administrator account.
 
+== Associate a public key with an administrator account 
+You can associate a public key with an administrator account for SSH access without using a certificate for expiration or revocation checks.
+
 .Before you begin
 
 * You must have generated the SSH key.
@@ -38,4 +41,48 @@ cluster1::>security login publickey create -vserver engData1 -username svmadmin1
 /vU9upnKzd2zAk9C1f7YaWRUAFNs2Qe5lUmQ3ldi8AD0Vfbr5T6HZPCixNAIza
 FciDy7hgnmdj9eNGedGr/JNrftQbLD1hZybX+72DpQB0tYWBhe6eDJ1oPLob
 ZBGfMlPXh8VjeU44i7W4+s0hG0E=tsmith@publickey.example.com"
+----
+
+== Associate a public key and X.509 certificate with an administrator account
+Beginning with ONTAP 9.13.1, you can associate an X.509 certificate with the public key that you associate with the administrator account. This gives you the added security of certificate expiration or revocation checks upon SSH login for that account.
+
+.Before you begin
+
+* You must have generated the SSH key.
+* You must have received an X.509 certificate from a certificate authority (CA).
+* You must be a cluster or SVM administrator to perform this task.
+
+.About this task
+
+If you authenticate an account over SSH with both an SSH public key and an X.509 certificate, ONTAP checks the validity of the X.509 certificate before authenticating with the SSH public key.
+
+.Step
+
+. Associate a public key and an X.509 certificate with an administrator account:
++
+`security login publickey create -vserver _SVM_name_ -username _user_name_ -index _index_ -publickey _certificate_ -x509-certificate install`
++
+For complete command syntax, see the link:config-worksheets-reference.html[worksheet].
++
+link:config-worksheets-reference.html[Associating a public key with a user account]
++
+The following command associates a public key and X.509 certificate with the SVM administrator account `svmadmin2` for the SVM ``engData2``. The public key is assigned index number 6.
++
+----
+cluster1::>security login publickey create -vserver engData2 -username svmadmin2 -index 6 -publickey
+"ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAIEAspH64CYbUsDQCdW22JnK6J
+/vU9upnKzd2zAk9C1f7YaWRUAFNs2Qe5lUmQ3ldi8AD0Vfbr5T6HZPCixNAIza
+FciDy7hgnmdj9eNGedGr/JNrftQbLD1hZybX+72DpQB0tYWBhe6eDJ1oPLob
+ZBGfMlPXh8VjeU44i7W4+s0hG0E=tsmith@publickey.example.com" -x509-certificate install
+Please enter Certificate: Press <Enter> when done
+-----BEGIN CERTIFICATE-----
+McDCB96ADAgECAhR0utQ3kJEXIUnmBq3qZeqSkufseTAKBggqhkjOPQQDAjAa
+MRgwFgDDA9TU0ggQ2VydGlmaWNhdGUwHhcNMjMwMTA0MTIwMTA1WhcNMzEw
+MTAxMDAwMjAaMRgwFgYDVQQDDA9TU0ggQ2VydGlmaWdGUwdjAQBgcqhkjO
+PQIBBgUrgQQAIgNiAAR2E/TGEKXiugY6uh7s5z6/Wu8vdFHobp3LePv+/yD
+f18lgfCNOAIKZQAO7TtxCuL1/7oZJg5V1+tsZeki7JkS0kPEKpEfF5YxMUxj3
+4qdyvOew3Kae87oI3K8wCgYIKoZIzj0EAwIDaAAB4sNTnCBkA6SRMDbqNWS
+/joxSLSjHeKIRNKKKw2kaAaxJhGQ90cnMDjarYVI4wAjEAwi0MF26dKnMoPMmX
+G9S5jF7FVD43vNghnHKx8upvdhrxb6EOwfBfOVpLub4on
+-----END CERTIFICATE-----
 ----
