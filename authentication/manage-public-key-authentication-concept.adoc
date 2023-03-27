@@ -33,9 +33,9 @@ For complete command syntax, see the link:config-worksheets-reference.html[works
 +
 link:config-worksheets-reference.html[Associating a public key with a user account]
 
-. Verify the change:
+. Verify the change by viewing the public key:
 +
-`security login publickey show`
+`security login publickey show -vserver SVM_name -username user_name -index index`
 
 .Example
 
@@ -54,9 +54,13 @@ Beginning with ONTAP 9.13.1, you can associate an X.509 certificate with the pub
 
 .Before you begin
 
-* You must have generated the SSH key.
-* You must have received an X.509 certificate from a certificate authority (CA).
 * You must be a cluster or SVM administrator to perform this task.
+* You must have generated the SSH key.
+* If you only need the certificate to be checked for expiration, you can use a self-signed certificate.
+* If you need the certificate to be checked for expiration and revocation:
+** You must have received the X.509 certificate from a certificate authority (CA).
+** You must install the certificate chain (intermediate and root CA certificates) using `security certificate install` commands.
+** You need to enable OCSP for SSH. Refer to link:../system-admin/verify-digital-certificates-valid-ocsp-task.html[Verify digital certificates are valid using OCSP^] for instructions. 
 
 .About this task
 
@@ -71,9 +75,9 @@ If you authenticate an account over SSH with both an SSH public key and an X.509
 For complete command syntax, see the link:config-worksheets-reference.html[worksheet].
 +
 link:config-worksheets-reference.html[Associating a public key with a user account]
-. Verify the change:
+. Verify the change by viewing the public key:
 +
-`security login publickey show`
+`security login publickey show -vserver SVM_name -username user_name -index index`
 
 .Example
 
@@ -98,6 +102,31 @@ G9S5jF7FVD43vNghnHKx8upvdhrxb6EOwfBfOVpLub4on
 -----END CERTIFICATE-----
 ----
 
+== Remove the certificate association from the SSH public key for an administrator account
+You can remove the current certificate association from the account's SSH public key, while retaining the public key.
+
+.Before you begin
+
+You must be a cluster or SVM administrator to perform this task.
+
+.Steps
+
+. Remove the X.509 certificate association from an administrator account, and retain the existing SSH public key:
++
+`security login modify -vserver SVM_name -username user_name -index index -x509-certificate delete`
+
+. Verify the change by viewing the public key:
++
+`security login publickey show -vserver SVM_name -username user_name -index index`
+
+.Example
+
+The following command removes the X.509 certificate association from the SVM administrator account `svmadmin2` for the SVM ``engData2`` at index number 6.
+
+----
+cluster1::> security login publickey delete -vserver engData2 -username svmadmin2 -index 6
+----
+
 == Remove the public key and certificate association from an administrator account
 You can remove the current public key and certificate configuration from an account.
 
@@ -111,14 +140,14 @@ You must be a cluster or SVM administrator to perform this task.
 +
 `security login publickey delete -vserver _SVM_name_ -username _user_name_ -index _index_`
 
-. Verify the change:
+. Verify the change by viewing the public key:
 +
-`security login publickey show`
+`security login publickey show -vserver SVM_name -username user_name -index index`
 
 .Example
 
-The following command removes a public key and X.509 certificate from the SVM administrator account `svmadmin2` for the SVM ``engData2`` at index number 6.
+The following command removes a public key and X.509 certificate from the SVM administrator account `svmadmin3` for the SVM ``engData3`` at index number 7.
 
 ----
-cluster1::> security login publickey delete -vserver engData2 -username svmadmin2 -index 6
+cluster1::> security login publickey delete -vserver engData3 -username svmadmin3 -index 7
 ----
