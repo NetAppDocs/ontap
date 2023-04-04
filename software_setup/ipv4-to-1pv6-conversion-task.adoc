@@ -1,0 +1,69 @@
+---
+permalink: software_setup/ipv4-to-1pv6-conversion-task.html
+sidebar: sidebar
+keywords: software, setup, ontap, covert, converting, ipv4, ipv6
+summary: 'Beginning in ONTAP 9.13.1, you can assign IPv6 addresses for management LIFs on A800 nd FAS8700 platforms.  For ONTAP releases earlier than 9.13.1, for 9.13.1 and later on other platforms, you must assign IPv4 addresses for management LIFs then convert IPv6 addresses after you complete cluster setup.'
+---
+= Covert from IPv4 to IPv6
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning in ONTAP 9.13.1, you can assign IPv6 addresses for management LIFs on A800 nd FAS8700 platforms.  For ONTAP releases earlier than 9.13.1, for 9.13.1 and later on other platforms, you must assign IPv4 addresses for management LIFs then convert IPv6 addresses after you complete cluster setup.
+
+.Steps
+ 
+. Enable IPv6 for the cluster:  
++
+[source, cli]
+----
+network options ipv6 modify -enable true
+----
+
+. Set privilege to advanced: 
++
+[source, cli]
+----
+set priv advanced
+----
+
+. View the list of RA prefixes learned on various interfaces:
++
+[source, cli]
+----
+network ndp prefix show
+----
+
+d.	Create an IPv6 management LIF:
++
+Replace the command variables with the required values.  Use the format `prefix::id` in the address parameter to construct the IPv6 address manually.
++ 
+[source, cli]
+----
+network interface create -vserver "<SVM_name>" -lif "<LIF>" -home-node "<home_node>" -home-port "<home_port>" -address "<IPv6prefix::id>" -netmask-length "<netmask_length>" -failover-policy "<policy>"" -service-policy "<service_policy>" -auto-revert true
+----
++
+.Example
++
+The following example creates an an IPv6 LIF named datalif2 on SVM vs0. 
++
+----
+cluster1::> network interface create -vserver vs0 -lif datalif2 -home-node node0 -home-port e0c -address 3ffe:1::aaaa -netmask-length 64 -failover-policy broadcast-domain-wide -service-policy default-data-files -auto-revert true
+----
+
+. Verify that the LIF was created: 
++ 
+[source, cli]
+----
+network interface show
+----
+
+. Verify that the configured IP address is reachable: 
++ 
+[source, cli]
+----
+network ping
+----
+
+
+// 2023 May 03, Jira 781
