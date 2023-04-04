@@ -24,6 +24,8 @@ xref:enable-ad-users-groups-access-cluster-svm-task.adoc[Configuring Active Dire
 +
 You can perform this task before or after you enable account access.
 
+* •	Beginning with ONATP 9.13.1, you can use an SSH public key as your primary authentication method with an AD user or group password, or you can use an SSH public key as your secondary authentication method after an AD user or group password.
+
 * Beginning with ONTAP 9.11.1, you can use link:../nfs-admin/ldap-fast-bind-nsswitch-authentication-task.html[LDAP fast bind for nsswitch authentication] if it is supported by the AD LDAP server.
 
 * If you are unsure of the access control role that you want to assign to the login account, you can use the `security login modify` command to add the role later.
@@ -38,24 +40,51 @@ AD group account access is supported only with the `SSH` and `ontapi` applicatio
 .Step
 
 . Enable AD user or group administrator accounts to access an SVM:
-+
-`security login create -vserver SVM_name -user-or-group-name user_or_group_name -application application -authmethod domain -role role -comment comment [-is-ldap-fastbind true]`
-+
-For complete command syntax, see the link:config-worksheets-reference.html[worksheet].
-+
-link:config-worksheets-reference.html[Creating or modifying login accounts]
-+
-The following command enables the AD cluster administrator account `DOMAIN1\guest1` with the predefined `backup` role to access the admin SVM``engCluster``.
-+
+
+[cols="15,15,10,60", options="header"]
+|====
+|Primary authentication
+|Secondary authentication
+|ONTAP Version
+|Command
+
+|Domain
+|None
+|9.12.1 and earlier
+a|
+[source,cli]
 ----
-cluster1::>security login create -vserver engCluster -user-or-group-name DOMAIN1\guest1 -application ssh -authmethod domain -role backup
+security login create -vserver "<svm_name>" -user-or-group-name "<user_or_group_name>" -application "<application>" -authentication-method domain -role "<role>" -comment "<comment>" [-is-ldap-fastbind true]
 ----
-+
-The following command enables the SVM administrator accounts in the AD group account `DOMAIN1\adgroup` with the predefined `vsadmin-volume` role to access the SVM``engData``.
-+
+
+|Public key
+|None
+|9.13.1 and later
+a|
+[source,cli]
 ----
-cluster1::>security login create -vserver engData -user-or-group-name DOMAIN1\adgroup -application ssh -authmethod domain -role vsadmin-volume
+security login create -vserver "<svm_name>" -user-or-group-name "<user_or_group_name>" -application ssh -authentication-method publickey -role "<role>" 
 ----
+
+|Domain
+|Public key
+|9.13.1 and later
+a|
+*For a new user*
+[source,cli]
+----
+security login create -vserver "<svm_name>" -user-or-group-name "<user_or_group_name>" -application ssh -authentication-method domain -second-authentication-method publickey -role "<role>"
+----
+
+*For an existing user*
+[source,cli]
+----
+security login modify -vserver "<svm_name>" -user-or-group-name "<user_or_group_name>" -application ssh -authentication-method domain -second-authentication-method publickey -role "<role>"
+----
+|====
+
+For complete command syntax, see link:config-worksheets-reference.html[worksheets for administrator authentication and RBAC configuration]
+
 
 .After you finish
 
@@ -63,4 +92,6 @@ If you have not configured AD domain controller access to the cluster or SVM, yo
 
 xref:enable-ad-users-groups-access-cluster-svm-task.adoc[Configuring Active Directory domain controller access]
 
+
+// 2023 May 02, Jira 908
 // 2022-04-21, BURT 1454130
