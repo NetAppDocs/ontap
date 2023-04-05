@@ -13,35 +13,33 @@ You can use the `volume create` command to enable encryption on a new volume.
 
 .About this task
 
-You can encrypt volumes using NetApp Volume Encryption (NVE) and, beginning with ONTAP 9.6, NetApp Aggregate Encryption (NAE). To learn more about NAE and NVE, refer to the xref:configure-netapp-volume-encryption-concept[volume encryption overview].
+You can encrypt volumes using NetApp Volume Encryption (NVE) and, beginning with ONTAP 9.6, NetApp Aggregate Encryption (NAE). To learn more about NAE and NVE, refer to the xref:configure-netapp-volume-encryption-concept.html[volume encryption overview].
 
-The procedure to enable encryption in ONTAP varies based on the version of ONTAP you are using and your specific configuration:
+The procedure to enable encryption on a new volume in ONTAP varies based on the version of ONTAP you are using and your specific configuration:
 
-* Beginning with ONTAP 9.4, if you enable `cc-mode` when you set up the Onboard Key Manager, volumes you create with the `volume create` command are automatically encrypted, whether or not you specify `-encrypt true`.
+* Beginning with ONTAP 9.4, if you enable `cc-mode` when you set up the Onboard Key M anager, volumes you create with the `volume create` command are automatically encrypted, whether or not you specify `-encrypt true`.
 * In ONTAP 9.6 and earlier releases, you must use `-encrypt true` with `volume create` commands to enable encryption (provided you did not enable `cc-mode`).
-* If you are using NAE in ONTAP 9.6, you must enable NAE at the aggregate level. Refer to xref:enable-aggregate-level-encryption-nve-license-task.html[Enable aggregate-level encryption with the VE license] for more details on this task. 
-* Beginning with ONTAP 9.7, newly created volumes are encrypted by default when you have the VE license and onboard or external key management.
-** In ONTAP 9.7 and later releases, if you use `-encrypt true` to create a volume in an NAE aggregate, the volume will have NVE encryption instead of NAE. All volumes in an NAE aggregate must be encrypted with either NVE or NAE.
+* If you want to create an NAE volume in ONTAP 9.6, you must enable NAE at the aggregate level. Refer to xref:enable-aggregate-level-encryption-nve-license-task.html[Enable aggregate-level encryption with the VE license] for more details on this task. 
+* Beginning with ONTAP 9.7, newly created volumes are encrypted by default when you have the VE license and onboard or external key management. By default, new volumes created in an NAE aggregate will be of type NAE rather than NVE. 
+** In ONTAP 9.7 and later releases, if you add `-encrypt true` to the `volume create` command to create a volume in an NAE aggregate, the volume will have NVE encryption instead of NAE. All volumes in an NAE aggregate must be encrypted with either NVE or NAE.
 
 [NOTE]
 Plaintext volumes are not supported in NAE aggregates.
 
 .Steps
-. Create a new volume and specify whether encryption is enabled on the volume:
+. Create a new volume and specify whether encryption is enabled on the volume. If the new volume is in an NAE aggregate, by default the volume will be an NAE volume:
 +
 [cols="25,75"]
 |===
 h| To create... h| Use this command...
 a| An NAE volume 
-a| `volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_` +
-[NOTE] 
-In ONTAP 9.6, you must enable NAE at the aggregate-level to create an NAE volume.
+a| `volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_`
 a|
 An NVE volume
 a|
-`volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_` +
+`volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -encrypt true` +
 [NOTE]
-If you are using ONTAP 9.6 and earlier versions, add `-encrypt true` to the command. Using this parameter in ONTAP 9.7 or later with NAE encryption on the aggregate, the volume will use NVE.
+In ONTAP 9.6 and earlier where NAE is not supported, `-encrypt true` specifies that the volume should be encrypted with NVE. In ONTAP 9.7 and later where volumes are created in NAE aggregates, `-encrypt true` overrides the default encryption type of NAE to create an NVE volume instead. 
 a| A plain text volume
 a| `volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -encrypt false`
 |===

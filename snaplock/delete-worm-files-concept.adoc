@@ -1,0 +1,84 @@
+---
+permalink: snaplock/delete-worm-files-concept.html
+sidebar: sidebar
+keywords: delete, worm, file, privileged, delete, enterprise, mode, retention, period, overview
+summary: "You can delete Enterprise-mode WORM files during the retention period using the privileged delete feature. Before you can use this feature, you must create a SnapLock administrator account and then using the account, enable the feature."
+---
+= Delete WORM files overview
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can delete Enterprise-mode WORM files during the retention period using the privileged delete feature. 
+Before you can use this feature, you must create a SnapLock administrator account and then using the account, enable the feature. 
+
+== Create a SnapLock administrator account
+
+You must have SnapLock administrator privileges to perform a privileged delete. These privileges are defined in the vsadmin-snaplock role. If you have not already been assigned that role, you can ask your cluster administrator to create an SVM administrator account with the SnapLock administrator role.
+
+.What you'll need
+
+* You must be a cluster administrator to perform this task.
+* You must have logged in on a secure connection (SSH, console, or ZAPI).
+
+.Steps
+
+. Create an SVM administrator account with the SnapLock administrator role:
++
+`*security login create -vserver _SVM_name_ -user-or-group-name _user_or_group_name_ -application _application_ -authmethod _authentication_method_ -role _role_ -comment _comment_*`
++
+The following command enables the SVM administrator account `SnapLockAdmin` with the predefined `vsadmin-snaplock` role to access `SVM1` using a password:
++
+----
+cluster1::> security login create -vserver SVM1 -user-or-group-name SnapLockAdmin -application ssh -authmethod password -role vsadmin-snaplock
+----
+
+== Enable the privileged delete feature
+
+You must explicitly enable the privileged delete feature on the Enterprise volume that contains the WORM files you want to delete.
+
+.About this task
+
+The value of the `-privileged-delete` option determines whether privileged delete is enabled. Possible values are `enabled`, `disabled`, and `permanently-disabled`.
+
+[NOTE]
+====
+`permanently-disabled` is the terminal state. You cannot enable privileged delete on the volume after you set the state to `permanently-disabled`.
+====
+
+.Steps
+
+. Enable privileged delete for a SnapLock Enterprise volume:
++
+`*volume snaplock modify -vserver _SVM_name_ -volume _volume_name_ -privileged-delete disabled|enabled|permanently-disabled*`
++
+The following command enables the privileged delete feature for the Enterprise volume `dataVol` on `SVM1`:
++
+----
+SVM1::> volume snaplock modify -vserver SVM1 -volume dataVol -privileged-delete enabled
+----
+
+== Delete Enterprise-mode WORM files
+
+You can use the privileged delete feature to delete Enterprise-mode WORM files during the retention period.
+
+.What you'll need
+
+* You must be a SnapLock administrator to perform this task.
+* You must have created a SnapLock audit log and enabled the privileged delete feature on the Enterprise volume.
+
+.About this task
+
+You cannot use a privileged delete operation to delete an expired WORM file. You can use the `volume file retention show` command to view the retention time of the WORM file that you want to delete. For more information, see the man page for the command.
+
+.Step
+
+. Delete a WORM file on an Enterprise volume:
++
+`*volume file privileged-delete -vserver _SVM_name_ -file _file_path_*`
++
+The following command deletes the file `/vol/dataVol/f1` on the SVM``SVM1``:
++
+----
+SVM1::> volume file privileged-delete -file /vol/dataVol/f1
+----
