@@ -2,7 +2,7 @@
 permalink: authentication/setup-ssh-multifactor-authentication-task.html
 sidebar: sidebar
 keywords: enable, ssh, multifactor authentication, mfa, hardware authentication device
-summary: "Beginning with ONTAP 9.3, you can use the security login create command to enhance security by requiring that administrators log in to an admin or data SVM with both an SSH public key and a user password."
+summary: "Multifactor authentication (MFA) allows you to enhance security by requiring users to provide two authentication methods to log in to an admin or data SVM. "
 ---
 = Enable multifactor authentication
 :icons: font
@@ -17,7 +17,7 @@ Multifactor authentication (MFA) allows you to enhance security by requiring use
 +
 link:modify-role-assigned-administrator-task.html[Modifying the role assigned to an administrator]
 
-* If you are using a public key for authenticatio, you must associate the public key with the account before the account can access the SVM.
+* If you are using a public key for authentication, you must associate the public key with the account before the account can access the SVM.
 +
 link:manage-public-key-authentication-concept.html[Associate a public key with a user account]
 +
@@ -27,11 +27,14 @@ You can perform this task before or after you enable account access.
 
 == Enable MFA with SSH public key and user password
 
-Beginning with ONTAP 9.3, you can use the `security login create` command to enhance security by requiring that administrators log in to an admin or data SVM with both an SSH public key and a user password.
+Beginning with ONTAP 9.3, you can set up local administrator accounts to log in with MFA using an SSH public key and a user password.
 
-. Require local administrator accounts to access an SVM using SSH MFA:
+. Enable MFA on local administrator account with SSH public key and user password:
 +
-`security login create -vserver _SVM_ -user-or-group-name _user_name_ -application ssh -authentication-method password|publickey -role admin -second-authentication-method password|publickey`
+[source,cli]
+----
+security login create -vserver <svm> -user-or-group-name <user_name> -application ssh -authentication-method <password|publickey> -role admin -second-authentication-method <password|publickey>
+----
 +
 The following command requires the SVM administrator account `admin2` with the predefined `admin` role to log in to the SVM``engData1`` with both an SSH public key and a user password:
 +
@@ -45,10 +48,10 @@ Warning: To use public-key authentication, you must create a public key for user
 
 == Enable MFA with TOTP
 
-Beginning with ONTAP 9.13.1 you can enhance security by requiring administrators to log in to an admin or data SVM with both an SSH public key or user password and a time-based one-time password (TOTP).
+Beginning with ONTAP 9.13.1, you can enhance security by requiring administrators to log in to an admin or data SVM with both an SSH public key or user password and a time-based one-time password (TOTP).
 
 
-(TOTP) is a computer algorithm that uses the current time to generate a one-time password.  If TOTP is used, it is always the second form of authentication after the SSH public key or user password.
+TOTP is a computer algorithm that uses the current time to generate a one-time password.  If TOTP is used, it is always the second form of authentication after the SSH public key or the user password.
 
 .Before you begin
 
@@ -60,7 +63,7 @@ You must be a cluster administrator to perform these tasks.
 +
 *For new user accounts*
 +
-[cols="20,20,60", options="header"]
+[cols="2,2,4a", options="header"]
 |===
 
 |First authentication method
@@ -69,17 +72,25 @@ You must be a cluster administrator to perform these tasks.
 
 |User password
 |TOTP
-|security login create -vserver SVM_name -user-or-group-name user_or_group_name -application ssh -authentication-method password -second-authentication-method totp -role role -comment comment
+|
+[source,cli]
+----
+security login create -vserver <svm_name> -user-or-group-name <user_or_group_name> -application ssh -authentication-method password -second-authentication-method totp -role <role> -comment <comment>
+----
 
 |SSH public key
 |TOTP
-|security login create -vserver SVM_name -user-or-group-name user_or_group_name -application ssh -authentication-method publickey -second-authentication-method totp -role role -comment comment
+|
+[source,cli]
+----
+security login create -vserver <svm_name> -user-or-group-name <user_or_group_name> -application ssh -authentication-method publickey -second-authentication-method totp -role <role> -comment <comment>
+----
 |===
 
 +
 *For exisiting user accounts*
 +
-[cols="20,20,60", options="header"]
+[cols="20,20,60a", options="header"]
 |===
 
 |First authentication method
@@ -88,17 +99,28 @@ You must be a cluster administrator to perform these tasks.
 
 |User password
 |TOTP
-|security login modify -vserver SVM_name -user-or-group-name <user_or_group_name> -application <ssh> -authentication-method password -second-authentication-method totp -role role -comment comment
+|
+[source,cli]
+----
+security login modify -vserver <svm_name> -user-or-group-name <user_or_group_name> -application ssh -authentication-method password -second-authentication-method totp -role <role> -comment <comment>
+----
 
 |SSH public key
 |TOTP
-|security login modify -vserver SVM_name -user-or-group-name user_or_group_name -application ssh -authentication-method publickey -second-authentication-method totp -role role -comment comment
+|
+[source,cli]
+----
+security login modify -vserver <svm_name> -user-or-group-name <user_or_group_name> -application ssh -authentication-method publickey -second-authentication-method totp -role <role> -comment <comment>
+----
 
 |===
 
 . Verify that MFA with TOTP is enabled:
 +
+[source,cli]
+----
 security login show
+----
 
 .After you finish
 
