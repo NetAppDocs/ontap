@@ -19,8 +19,6 @@ Capacity on an SVM is calculated as the sum of FlexVols, FlexGroup volumes, Flex
 
 * Storage limits cannot be configured for any SVM that contains data protection volumes, volumes in a SnapMirror relationship, or in a MetroCluster configuration.
 
-* Once you set the capacity limit, you cannot modify the limit to a value less than the currently allocated capacity. You can disable the limit.  
-
 * When you migrate an SVM, the source SVM cannot have a storage limit enabled. To complete the migrate operation, disable the storage limit on the source then complete the migration. 
 
 * SVM capacity is distinct from xref:../volumes/quotas-concept.html[quotas]. Quotas cannot exceed the max size. 
@@ -44,6 +42,8 @@ When you reach the capacity limit, the following operations will fail:
 ====
 .System Manager
 --
+
+
 .Steps
 . Select *Storage VMs* then *+Add* to create an SVM.
 . Name the SVM and select an *Access protocol*.
@@ -55,9 +55,48 @@ Provide a maximum capacity size for the SVM.
 
 .CLI
 --
+.Steps
 . Create the SVM. To set a storage limit, provide a `storage-limit` value. To set a threshold alert for the storage limit, provide a percentage value for `-storage-limit-threshold-alert`.
 +
 `vserver create -vserver _vserver_name_ -aggregate _aggregate_name_ ‑rootvolume _root_volume_name_ -rootvolume-security-style {unix|ntfs|mixed} -storage-limit _value_ [GiB|TIB] -storage-limit-threshold-alert _percentage_[-ipspace IPspace_name] [-language <language>] [-snapshot-policy _snapshot_policy_name_] [-quota-policy _quota_policy_name_] [-comment _comment_]`
++
+If you do not provide threshold value, you will have a default alert at 90% capacity. To disable the threshold alert, provide a value of zero. 
+. Confirm the SVM was created successfully:
++
+`vserver show -vserver _vserver_name_`
+. If you wish to disable the storage limit, modify the SVM with `-storage-limit` set to zero:
++
+`vserver modify -vserver _vserver_name_ -storage-limit 0`
+--
+====
+
+== Set or modify a capacity limit on an existing SVM 
+
+You can set a capacity limit and threshold alert on an existing SVM or disable a capacity limit. 
+
+Once you set the capacity limit, you cannot modify the limit to a value less than the currently allocated capacity. 
+
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+.Steps
+. Select *Storage VMs*.
+. Select the SVM you want to modify then *Edit*. 
+. To enable a capacity limit, select the box next to *Enable capacity limit*. Enter a value for the *Maximum capacity* and a percentage value for *Alert threshold*.
++
+If you wish to disable the capacity limit, uncheck the box in step 2 then *Save*. 
+. Select *Save*.
+--
+
+.CLI
+--
+.Steps
+. On the cluster hosting the SVM, issue the `vserver modify` command. Provide a numerical value for `-storage-limit` and a percentage value for `-storage-limit-threshold-alert`.
++
+`vserver modify -vserver _vserver_name_ -storage-limit _value_ [GiB|TIB] -storage-limit-threshold-alert _percentage_`
 +
 If you do not provide threshold value, you will have a default alert at 90% capacity. To disable the threshold alert, provide a value of zero. 
 . Confirm the SVM was created successfully:
