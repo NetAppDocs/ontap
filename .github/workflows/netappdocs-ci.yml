@@ -20,6 +20,13 @@ env:
   MT_PSWD: ${{ secrets.MT_PSWD }}
   MAESTRO_USERNAME: ${{ secrets.MAESTRO_USERNAME }}
   MAESTRO_PASSWORD: ${{ secrets.MAESTRO_PASSWORD }}
+  TERM_CHECK_TOKEN: ${{ secrets.TERM_CHECK }}
+  LIPIDB_URL: ${{ secrets.LIPIDB_URL }}
+  LIPIDB_USERNAME: ${{ secrets.LIPIDB_USERNAME }}
+  LIPIDB_PASSWORD: ${{ secrets.LIPIDB_PASSWORD }}
+  CONTENT_SYNDICATION_URL: ${{ endsWith(github.event.repository.name, '-internal') &&  secrets.CONTENT_SYNDICATION_URL_INTERNAL || secrets.CONTENT_SYNDICATION_URL_PROD }}
+  CONTENT_SYNDICATION_USERNAME: ${{ endsWith(github.event.repository.name, '-internal') &&  secrets.CONTENT_SYNDICATION_USERNAME_INTERNAL || secrets.CONTENT_SYNDICATION_USERNAME_PROD }}
+  CONTENT_SYNDICATION_PASSWORD: ${{ endsWith(github.event.repository.name, '-internal') &&  secrets.CONTENT_SYNDICATION_PASSWORD_INTERNAL || secrets.CONTENT_SYNDICATION_PASSWORD_PROD }}
 
 
 jobs:
@@ -45,12 +52,20 @@ jobs:
       - name: "Lipi Adoc syntax check"
         if: ${{ env.LIPI_ENABLED == 'true' }}
         uses: ./dependencies/jekyll/.ci/actions/lipi-adoc
+      
+      - name: "Term Check"
+        if: ${{ env.TERMCHECK_ENABLED == 'true' }}
+        uses: ./dependencies/jekyll/.ci/actions/term-check 
 
       - name: "Generate HTML"
         uses: ./dependencies/jekyll/.ci/actions/jekyll
 
       - name: "Generate PDF"
         uses: ./dependencies/jekyll/.ci/actions/jekyll-pdf
+
+      - name: "Link Check"
+        if: ${{ env.LINKCHECK_ENABLED == 'true' }}
+        uses: ./dependencies/jekyll/.ci/actions/link-check 
         
       - name: "Lipi Doc site check"
         if: ${{ env.LIPI_ENABLED == 'true' }}
