@@ -9,13 +9,13 @@ summary: "Beginning with ONTAP 9.12.1, you can lock a Snapshot copy on a non-Sna
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.12.1, you can lock a Snapshot copy on a non-SnapLock volume to provide protection from ransomware attacks. Locking Snapshot copies ensures that they can't be deleted accidentally or maliciously.
+Beginning with ONTAP 9.12.1, you can lock a Snapshot copy on a non-SnapLock volume to provide protection from ransomware attacks. Locking Snapshot copies ensures that they can't be deleted accidentally or maliciously.  Beginning with ONTAP 9.13.1, you can use System Manager to enable Snapshot copy locking.
 
 You use the SnapLock compliance clock feature to lock Snapshot copies for a specified period so that they cannot be deleted until the expiration time is reached. Locking Snapshot copies makes them tamperproof, protecting them from ransomware threats. You can use locked Snapshot copies to recover data if a volume is compromised by a ransomware attack.
 
 .Tamperproof Snapshot copy requirements and considerations
 
-* All nodes in the cluster must be running ONTAP 9.12.1 or later.
+* If you are using the ONTAP CLI, all nodes in the cluster must be running ONTAP 9.12.1 or later. If you are using System Manager, you must be running ONTAP 9.13.1 or later.
 * The SnapLock license must be installed on the cluster.
 +
 For details, see link:https://docs.netapp.com/us-en/ontap/snaplock/install-license-task.html[Installing the SnapLock license ].
@@ -27,7 +27,7 @@ For details, see link:https://docs.netapp.com/us-en/ontap/snaplock/initialize-co
 * The retention period for locked Snapshot copies takes precedence over the Snapshot copy keep count, which means the keep count limit is not honored if the Snapshot copy retention period for locked Snapshot copies has not expired.
 * In a SnapMirror relationship, you can set a retention period on a mirror-vault policy rule, and the retention period is applied for Snapshot copies replicated to the destination if the destination volume has Snapshot copy locking enabled. The retention period takes precedence over keep count; for example, Snapshot copies that have not passed their expiry will be retained even if the keep count is exceeded. 
 * You can rename a Snapshot copy on a non-SnapLock volume. Snapshot rename operations on the primary volume of a SnapMirror relationship are reflected on the secondary volume only if the policy is MirrorAllSnapshots. For other policy types, the renamed Snapshot copy is not propagated during updates. 
-* You can restore a locked Snapshot copy with the `volume snapshot restore` command only if the locked Snapshot copy is the most recent. If there are any unexpired Snapshot copies later than the one being restored, the Snapshot copy restore operation fails.
+* If you are using the ONTAP CLI, you can restore a locked Snapshot copy with the `volume snapshot restore` command only if the locked Snapshot copy is the most recent. If there are any unexpired Snapshot copies later than the one being restored, the Snapshot copy restore operation fails.
 
 .Features supported with tamperproof Snapshot copies
 
@@ -57,12 +57,26 @@ The following features currently are not supported with tamperproof Snapshot cop
 * SnapCenter 
 * SnapMirror Business Continuity (SM-BC)
 * SnapMirror Synchronous
+* SVM data mobility 
 
 == Enable Snapshot copy locking when creating a volume
 
 
-Beginning with ONTAP 9.12.1, you can enable Snapshot copy locking when you create a new volume or when you modify an existing volume by using the `-snapshot-locking-enabled` option with the `volume create` and `volume modify` commands.
+Beginning with ONTAP 9.12.1, you can enable Snapshot copy locking when you create a new volume or when you modify an existing volume by using the `-snapshot-locking-enabled` option with the `volume create` and `volume modify` commands in the CLI. Beginning with ONTAP 9.13.1, you can use System Manager to enable Snapshot copy locking.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Navigate to *Storage > Volumes* and select *Add*.
+. In the *Add Volume* window, choose *More Options*.
+. Enter the volume name, size, export policy and share name.
+. Select *Enable Snapshot locking*. This selection is not displayed if the SnapLock license is not installed.
+. If it is not already enabled, select *Initialize SnapLock Compliance Clock*.
+--
+
+.CLI
+--
 . To create a new volume and enable Snapshot copy locking, enter the following command: 
 +
 `volume create -vserver _vserver_name_ -volume _volume_name_ -snapshot-locking-enabled true`
@@ -75,19 +89,51 @@ Warning: Snapshot copy locking is being enabled on volume “vol1” in Vserver 
 Do you want to continue: {yes|no}: y
 [Job 32] Job succeeded: Successful
 ----
+--
+====
 
 == Enable Snapshot copy locking on an existing volume
 
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Navigate to *Storage > Volumes*.
+. Select image:icon_kabob.gif[alt=Menu Options] and choose *Edit > Volume*. 
+. In the *Edit Volume* window, locate the Snapshot Copies (Local) Settings section and select *Enable Snapshot locking*. 
++
+This selection is not displayed if the SnapLock license is not installed.
+. If it is not already enabled, select *Initialize SnapLock Compliance Clock*.
+--
+
+.CLI
+--
 . To modify an existing volume to enable Snapshot copy locking, enter the following command: 
 +
 `volume modify -vserver _vserver_name_ -volume _volume_name_ -snapshot-locking-enabled true`
+--
+====
 
 == Create a locked Snapshot copy
 
 Beginning with ONTAP 9.12.1, you can create Snapshot copy policies to apply a Snapshot copy retention period and apply the policy to a volume to lock Snapshot copies for the specified period. You can also lock a Snapshot copy by manually setting a retention period.
 
-.Create a Snapshot copy locking policy
+=== Create a Snapshot copy locking policy
 
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Navigate to *Storage > Storage VMs* and select a storage VM.
+. Select *Settings*.
+. Locate *Snapshot Policies* and select image:icon_arrow.gif[alt=arrow].
+. In the *Add Snapshot Policy* window, enter the Snapshot copy name.
+. Select image:icon_add.gif[alt=Add].
+. Enter the Snapshot copy schedule details.
+--
+
+.CLI
+--
 . To create a Snapshot copy policy, enter the following command: 
 +
 `volume snapshot policy create -policy policy_name -enabled true -schedule1 _schedule1_name_ -count1 _maximum_Snapshot_copies -retention-period1 _retention_period_`
@@ -97,15 +143,47 @@ The following command creates a Snapshot copy locking policy:
 ----
 cluster1> volume snapshot policy create -policy policy_name -enabled true -schedule1 5min -count1 5 -retention-period1 "1 months"
 ----
+--
+====
 
-.Apply a locking policy to a volume
+=== Apply a locking policy to a volume
 
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Navigate to *Storage > Volumes*.
+. Select image:icon_kabob.gif[alt=Menu Options] and choose *Edit > Volume*.
+. In the *Edit Volume* window, select *Schedule Snapshot copies*.
+. Select the locking Snapshot copy policy from the list.
+. If it's not already enabled, select *Enable Snapshot locking*. 
+--
+
+.CLI
+--
 . To apply a Snapshot copy locking policy to an existing volume, enter the following command:
 +
 `volume modify -volume volume_name -vserver vserver_name -snapshot-policy policy_name`
+--
+====
 
-.Apply retention period during manual Snapshot copy creation
+=== Apply retention period during manual Snapshot copy creation
 
+You can apply a Snapshot copy retention period when you manually create a Snapshot copy. Snapshot copy locking must be enabled on the volume, otherwise, the retention period setting is ignored.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Navigate to *Storage > Volumes* and select a volume.
+. In the volume details page, select the *Snapshot copies* tab.
+. Select image:icon_add.gif[alt=Add icon]. 
+. Enter the Snapshot copy name and the SnapLock expiration time.
+
+--
+
+.CLI
+--
 . To create a Snapshot copy manually and apply a locking retention period, enter the following command:
 +
 `volume snapshot create -volume _volume_name_ -snapshot _snapshot_copy_name_ -snaplock-expiry-time _expiration_date_time_`
@@ -115,9 +193,22 @@ The following command creates a new Snapshot copy and sets the retention period:
 ----
 cluster1> volume snapshot create -vserver vs1 -volume vol1 -snapshot snap1 -snaplock-expiry-time "11/10/2022 09:00:00"
 ----
+--
+====
 
-.Apply retention period to an existing Snapshot copy
+=== Apply retention period to an existing Snapshot copy
 
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Navigate to *Storage > Volumes* and select a volume.
+. In the volume details page, select the *Snapshot copies* tab.
+. Select the Snapshot copy, select image:icon_kabob.gif[alt=Menu Options], and choose *Modify SnapLock Expiration Time*. 
+--
+
+.CLI
+--
 . To manually apply a retention period to an existing Snapshot copy, enter the following command:
 +
 `volume snapshot modify-snaplock-expiry-time -volume _volume_name_ -snapshot _snapshot_copy_name_ -expiry-time _expiration_date_time_`
@@ -127,8 +218,10 @@ The following example applies a retention period to an existing Snapshot copy:
 ----
 cluster1> volume snapshot modify-snaplock-expiry-time -volume vol1 -snapshot snap2 -expiry-time "11/10/2022 09:00:00"
 ----
+--
+====
 
-
+// 2023-Mar-28, ONTAPDOC-870
 // 2023-Feb-27, issue# 825
 // 2023-Jan-18, issue# 732
 // 2022-Dec-7, issue# 731
