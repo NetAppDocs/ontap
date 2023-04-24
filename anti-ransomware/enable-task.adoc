@@ -26,24 +26,24 @@ Beginning with ONTAP 9.10.1, Autonomous Ransomware Protection (ARP) can be enabl
 |===
 | ONTAP releases| License
 a|
-ONTAP 9.8-9.10.1
+ONTAP 9.10.1
 a|
 MT_EK_MGMT (Multi-Tenant Key Management)
 a| ONTAP 9.11.1 and later
 a| Anti_ransomware
 |===
 *	An NAS workload with clients configured.
-*	The volume to be protected must have an active junction-path.
+*	The volume to be protected must have an active link:../concepts/namespaces-junction-points-concept.html[junction path^].
 *	Optional but recommended: The EMS system is configured to send email notifications, which will include notices of ARP activity. For more information, see link:../error-messages/configure-ems-events-send-email-task.html[Configure EMS events to send email notifications].
-* Optional but recommended: Beginning in ONTAP 9.13.1, you can enable multi-admin verification (MAV) so that two or more authenticated user admins are required for anti-ransomware operations. link:../multi-admin-verify/enable-disable-task.html[Learn more^].
+* Optional but recommended: Beginning in ONTAP 9.13.1, you can enable multi-admin verification (MAV) so that two or more authenticated user admins are required for Autonomous Ransomware Protection (ARP) configuration. link:../multi-admin-verify/enable-disable-task.html[Learn more^].
 
 .About this task
 
-NetApp ARP includes an initial learning period (also known as “dry run”), in which an ONTAP system learns which file extensions are valid and uses the analyzed data to develop alert profiles. After running ARP in learning mode for enough time to assess workload characteristics, you can switch to active mode and start protecting your data. Beginning with ONTAP 9.13.1, adaptive learning has been added to ARP analytics so that the switch from learning mode to active mode is done automatically. 
+NetApp ARP includes an initial learning period (also known as “dry run”), in which an ONTAP system learns which file extensions are valid and uses the analyzed data to develop alert profiles. After running ARP in learning mode for enough time to assess workload characteristics, you can switch to active mode and start protecting your data. Beginning with ONTAP 9.13.1, adaptive learning has been added to ARP analytics and the switch from learning mode to active mode is done automatically. 
 
 Although you can switch from learning to active mode anytime, a learning period of 30 days is recommended. Switching early may lead to too many false positives. The adaptive learning introduced in ONTAP 9.13.1 might determine that a shorter period is sufficient. In the ONTAP CLI, you can use the `security anti-ransomware volume workload-behavior show` command to show file extensions detected to date. It is recommended that you not use this tool to shorten the learning period.
 
-In active mode, if a file extension is flagged as abnormal, but then you evaluate it and mark it as a false positive, the alert profile is refined to so that the extension is not flagged as abnormal in future alerts.
+In active mode, if a file extension is flagged as abnormal, but then you evaluate it and mark it as a false positive, the alert profile is updated so that the extension is not flagged as abnormal in future alerts.
 
 [NOTE]
 In existing volumes, learning and active modes only apply to newly-written data, not to already existing data in the volume. The existing data is not scanned and analyzed, because the characteristics of earlier normal data traffic are assumed based on the new data after the volume is enabled for ARP.
@@ -61,7 +61,7 @@ To manage this feature in the ONTAP CLI, you can use the `security anti-ransomwa
 . When the learning period is over, switch ARP to active mode.
 +
 //verify volume route works. Example is Storage VM route
-NOTE: Beginning with ONTAP 9.13.1, you can choose *Switch automatically from learning to active mode after sufficient learning* to allow ARP to determine the optimal learning period interval and automate the switch. 
+NOTE: If you have upgraded to ONTAP 9.13.1, the *Switch automatically from learning to active mode after sufficient learning* setting is enabled automatically. This allows ARP to determine the optimal learning period interval and automate the switch. 
 
 .. Click *Storage > Volumes* and then select the volume that is ready for active mode.
 .. In the *Security* tab of the *Volumes* overview, click *Switch* to active mode in the Anti-ransomware box.
@@ -87,9 +87,9 @@ At the CLI, you can also create a new volume with anti-ransomware protection ena
 You should always enable ARP initially in the dry-run (learning mode) state. Beginning with the active state can lead to excessive false positive reports.
 
 +
-Optionally, for ONTAP 9.13.1 or later, you can enable adaptive learning so that the change to active state is done automatically:
+If you upgraded to ONTAP 9.13.1 or later, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, use the following command:
 +
-`vserver modify _svm_name_ -anti-ransomware-auto-switch-from-learning-to-enabled true`
+`vserver modify _svm_name_ -anti-ransomware-auto-switch-from-learning-to-enabled false`
 
 . When the learning period is over, modify the protected volume to switch to active mode if not already done automatically:
 +
