@@ -179,9 +179,88 @@ CGroup: /system.slice/ontap_mediator.service
 ----
 
 
-== Uninstall SCST to perform host maintenance
+== Manually uninstall SCST to perform host maintenance
+To uninstall SCST, you need the SCST tar bundle that is used for the installed version of ONTAP Mediator.
+
+.Steps
+
+. Download the appropriate SCST bundle (as shown in the following table) and untar it.
++
+[[scst-bundle-table]]
+[cols="50,50"]
+|===
+
+h| For this version ...  h| Use this tar bundle...
+
+a| ONTAP Mediator 1.0      a| scst-3.3.0.tar.bz2
+a| ONTAP Mediator 1.1      a| scst-3.4.0.tar.bz2
+a| ONTAP Mediator 1.2      a| scst-3.4.0.tar.bz2
+a| ONTAP Mediator 1.3      a| scst-3.5.0.tar.bz2
+a| ONTAP Mediator 1.4      a| scst-3.6.0.tar.bz2
+a| ONTAP Mediator 1.5      a| scst-3.6.0.tar.bz2
+a| ONTAP Mediator 1.6      a| scst-3.7.0.tar.bz2
+
+|===
+
+. Issue the following commands in the "scst" directory:
+.. `systemctl stop mediator-scst`
+.. `make scstadm_uninstall`
+.. `make iscsi_uninstall`
+.. `make usr_uninstall`
+.. `make scst_uninstall`
+.. `depmod`
 
 == Manually install SCST to perform host maintenance
+To manually install SCST, you need the SCST tar bundle that is used for the installed version of ONTAP Mediator (see the <<scst-bundle-table,table above>>).
+
+. Issue the following commands in the "scst" directory:
+.. `make 2release`
+.. `make scst_install`
+.. `make usr_install`
+.. `make iscsi_install`
+.. `make scstadm_install`
+.. `depmod`
+.. `cp scst/src/certs/scst_module_key.der /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/.`
+.. `cp scst/src/certs/scst_module_key.der /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/.`
+.. `patch /etc/init.d/scst < /opt/netapp/lib/ontap_mediator/systemd/scst.patch`
+
+. (Optional) If Secure Boot is enabled, before you reboot, perform the following steps:
+.. Determine each file name for "scst_vdisk", "scst", and "iscsi_scst" modules. 
++
+....
+`[root@localhost ~]# modinfo -n scst_vdisk`
+`[root@localhost ~]# modinfo -n scst`
+`[root@localhost ~]# modinfo -n iscst_scst_vdisk`
+....
+
+.. Determine the kernel release.
++
+....
+[root@localhost ~]# uname -r
+....
+
+.. Sign each file with the kernel.
++
+....
+[root@localhost ~]# /usr/src/kernels/<KERNEL-RELEASE>/scripts/sign-file \sha256 \
+/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/scst_module_key.priv \
+/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/scst_module_key.der \
+_module-filename_
+....
+
+.. Install correct key with the UEFI firmware.
++ 
+Instructions for installing the UEFI key are located at:
++
+`/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/README.module-signing`
++
+The generated UEFI key is located at:
++
+`/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/scst_module_key.der`
+
+. Perform a reboot.
++
+`reboot`
 
 == Uninstall the ONTAP Mediator service
 
