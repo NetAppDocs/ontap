@@ -1,0 +1,108 @@
+---
+permalink: mediator/post-install-config-concept.html
+sidebar: sidebar
+keywords: mediator, new, release, update, install, configuration, post-installation, after installation, metrocluster ip, snapmirror business continuity
+summary: "After the ONTAP Mediator service is installed and running, additional configuration tasks must be performed in the ONTAP storage system to use the Mediator features."
+---
+
+= Post-installation configuration 
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+After the ONTAP Mediator service is installed and running, additional configuration tasks must be performed in the ONTAP storage system to use the Mediator features:
+
+* To use the ONTAP Mediator service in a MetroCluster IP configuration, see link:https://docs.netapp.com/us-en/ontap-metrocluster/install-ip/task_configuring_the_ontap_mediator_service_from_a_metrocluster_ip_configuration.html[Configuring the ONTAP Mediator service from a MetroCluster IP configuration^].
+* To use SnapMirror Business Continuity, see link:https://docs.netapp.com/us-en/ontap/smbc/smbc_install_confirm_ontap_cluster.html[Install ONTAP Mediator Service and confirm the ONTAP cluster configuration^].
+
+////
+== Install third-party host SSL certificates
+
+???  NEED CONTENT HERE  ???   Same as first bullet below?
+////
+
+== Configure ONTAP Mediator security policies
+
+The ONTAP Mediator server supports several configurable security settings.  The default values for all settings are provide in a low_space_threshold_mib: 10read-only file: 
+
+`/opt/netapp/lib/ontap_mediator/server_config/ontap_mediator.user_config.yaml`
+
+All values that are placed in the `ontap_mediator.user_config.yaml` will override the default values and be maintained across all ONTAP Mediator upgrades.
+
+After you modify `ontap_mediator.user_config.yaml`, restart the ONTAP Mediator service:
+
+`systemctl restart ontap_mediator`
+
+The following attributes can be configured:
+NOTE: Other default values in the `ontap_mediator.config.yaml` should not be modified.
+
+* *Settings used to install third-party SSL certificates as replacements for the default self-signed certificates*
++
+....
+cert_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.crt'
+key_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.key'
+ca_cert_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.crt'
+ca_key_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.key'
+ca_serial_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.srl'
+cert_valid_days: '1095'                   # Used to set the expiration on client certs to 3 years
+x509_passin_pwd: 'pass:ontap'             # passphrase for the signed client cert
+....
+
+* *Settings that provide protections against brute-force password guessing attacks* 
++
+To enable the feature, set a value for the `window_seconds` and the `retry_limit`
++
+Examples:
++
+--
+** Provide a 5-minute window for guesses, and then reset the count to zero failures:
++
+`authentication_lock_window_seconds: 300`
+
+** Lock the account if five failures occur within the window timeframe:
++
+`authentication_retry_limit: 5`
+
+** Reduce the impact of brute-force password guessing attacks by setting a delay that occurs prior to rejecting each attempt, which slows the attacks.
++
+`authentication_failure_delay_seconds: 5`
++
+....
+authentication_failure_delay_seconds: 0   # seconds (float) to delay failed auth attempts prior to response, 0 = no delay
+authentication_lock_window_seconds: null  # seconds (int) since the oldest failure before resetting the retry counter, null = no window
+authentication_retry_limit: null          # number of retries to allow before locking API access, null = unlimited
+....
+-- 
+
+* *Fields that control the password complexity rules of the ONTAP Mediator API user account*
++
+....
+password_min_length: 8
+
+password_max_length: 64
+
+password_uppercase_chars: 0    # min. uppercase characters
+
+password_lowercase_chars: 1    # min. lowercase character
+
+password_special_chars: 1      # min. non-letter, non-digit
+
+password_nonletter_chars: 2    # min. non-letter characters (digits, specials, anything)
+....
+
+* *Setting that controls the required free space on the `/opt/netapp/lib/ontap_mediator` disk.*
++
+If the space is lower than the set threshold, the service will issue a warning event.
++
+....
+low_space_threshold_mib: 10
+....
+
+
+// 2021-04-21 ONTAPEX-133437
+// 2021-05-05 review comment in IDR-67
+// ontap-metrocluster issue #146, 7 march 2022
+// 2022-04-28, BURT 1470656
+// january 2022 ontap-metrocluster/issues/35
+// 19 july 2022, ontap-issues-564
+// ONTAPDOC-955, 2023 May 05
