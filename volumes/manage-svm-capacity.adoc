@@ -1,0 +1,130 @@
+---
+permalink: volumes/manage-svm-capacity.html
+sidebar: sidebar
+keywords: svm capacity, size, auto size, auto size alert
+summary: "Beginning with ONTAP 9.13.1, you can set maximum capacity limits for an SVM."
+---
+= Manage SVM capacity limits
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.13.1, you can set a maximum capacity for a storage VM (SVM). You can also configure alerts when the SVM approaches a threshold capacity level. 
+
+.About this task 
+
+Capacity on an SVM is calculated as the sum of FlexVols, FlexGroup volumes, FlexClones, FlexCache volumes. Volumes impact capacity calculation even if they are restricted, offline, or in the recovery queue after deletion. If you have volumes configured with auto-grow, the maximum autosize value of the volume will be calculated toward the SVM size; without auto-grow, the actual size of the volume will be calculated. 
+
+The following table captures how `autosize-mode` parameters impact the capacity calculation. 
+
+|===
+| `autosize-mode off` | Size parameter will be used for computation
+| `autosize-mode grow` | The `max-autosize` parameter will be used for computation
+| `autosize-mode grow-shrink`| The `max-autosize` parameter will be used for computation
+|===
+
+.Before you begin
+
+* You must be a cluster administrator to set an SVM limit. 
+
+* Storage limits cannot be configured for any SVM that contains data protection volumes, volumes in a SnapMirror relationship, or in a MetroCluster configuration.
+
+* When you migrate an SVM, the source SVM cannot have a storage limit enabled. To complete the migrate operation, disable the storage limit on the source then complete the migration. 
+
+* SVM capacity is distinct from xref:../volumes/quotas-concept.html[quotas]. Quotas cannot exceed the max size. 
+
+* You cannot set a storage limit when other operations are in progress on the SVM. Use the `job show vservser _svm_name_` command to see existing jobs. Try running the command again when any jobs have been completed. 
+
+== Capacity impact
+
+When you reach the capacity limit, the following operations will fail: 
+
+* Creating a LUN, namespace, or volume
+* Cloning a LUN, namespace, or volume
+* Modifying a LUN, namespace, or volume
+* Increasing the size of a LUN, namespace, or volume
+* Expanding a LUN, namespace, or volume
+* Rehosting a LUN, namespace, or volume
+
+== Set a capacity limit on a new SVM
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Steps
+. Select *Storage* > *Storage VMs*.
+. Select image:icon_add_blue_bg.gif[add icon] to create the SVM.
+. Name the SVM and select an *Access protocol*.
+. Under *Storage VM settings*, select *Enable maximum capacity limit*.
++
+Provide a maximum capacity size for the SVM.
+. Select *Save*.
+--
+
+.CLI
+--
+.Steps
+. Create the SVM. To set a storage limit, provide a `storage-limit` value. To set a threshold alert for the storage limit, provide a percentage value for `-storage-limit-threshold-alert`.
++
+`vserver create -vserver _vserver_name_ -aggregate _aggregate_name_ -rootvolume _root_volume_name_ -rootvolume-security-style {unix|ntfs|mixed} -storage-limit _value_ [GiB|TIB] -storage-limit-threshold-alert _percentage_ [-ipspace IPspace_name] [-language <language>] [-snapshot-policy _snapshot_policy_name_] [-quota-policy _quota_policy_name_] [-comment _comment_]`
++
+If you do not provide threshold value, by default an alert will be triggered when the SVM is at 90% capacity. To disable the threshold alert, provide a value of zero. 
+. Confirm the SVM was created successfully:
++
+`vserver show -vserver _vserver_name_`
+. If you wish to disable the storage limit, modify the SVM with `-storage-limit` parameter set to zero:
++
+`vserver modify -vserver _vserver_name_ -storage-limit 0`
+--
+====
+
+== Set or modify a capacity limit on an existing SVM 
+
+You can set a capacity limit and threshold alert on an existing SVM or disable a capacity limit. 
+
+Once you set the capacity limit, you cannot modify the limit to a value less than the currently allocated capacity. 
+
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+.Steps
+. Select *Storage* > *Storage VMs*.
+. Select the SVM you want to modify. Next to the name of the SVM, select image:icon_kabob.gif[kebab icon] then *Edit*. 
+. To enable a capacity limit, select the box next to *Enable capacity limit*. Enter a value for the *Maximum capacity* and a percentage value for *Alert threshold*.
++
+If you wish to disable the capacity limit, uncheck the box next *Enable capacity limit*. 
+. Select *Save*.
+--
+
+.CLI
+--
+.Steps
+. On the cluster hosting the SVM, issue the `vserver modify` command. Provide a numerical value for `-storage-limit` and a percent value for `-storage-limit-threshold-alert`.
++
+`vserver modify -vserver _vserver_name_ -storage-limit _value_ [GiB|TIB] -storage-limit-threshold-alert _percentage_`
++
+If you do not provide threshold value, you will have a default alert at 90% capacity. To disable the threshold alert, provide a value of zero. 
+. If you wish to disable the storage limit, modify the SVM with `-storage-limit` set to zero:
++
+`vserver modify -vserver _vserver_name_ -storage-limit 0`
+--
+====
+
+== Reaching capacity limits
+
+When you reach the maximum capacity or the alert threshold, you can consult the `vserver.storage.threshold` EMS messages or use the *Insights* page in System Manager to learn about possible actions. Possible resolutions include:
+
+* Editing the SVM maximum capacity limits 
+* Purging the volumes recovery queue to free up space
+* Delete snapshot to provide space for the volume
+
+.Additional information 
+
+* xref:../concepts/capacity-measurements-in-sm-concept.adoc[Capacity measurements in System Manager]
+* xref:../task_admin_monitor_capacity_in_sm.html[Monitor capacity in System Manager]
+
+// ontapdoc-863, 9 april 2023

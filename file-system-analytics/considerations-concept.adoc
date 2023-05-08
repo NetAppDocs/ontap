@@ -11,7 +11,6 @@ summary: File System Analytics is designed to provide visibility on volumes with
 [.lead]
 You should be aware of certain usage limits and potential performance impacts associated with implementing File System Analytics.
 
-
 == SVM-protected relationships
 
 If you have enabled File System Analytics on volumes whose containing SVM is in a protection relationship, the analytics data is not replicated to the destination SVM. If the source SVM must be resynchronized in a recovery operation, you must manually reenable analytics on desired volumes after recovery.
@@ -22,7 +21,35 @@ In some cases, enabling File System Analytics could negatively impact performanc
 
 If you experience a notable increase in latency, refer to the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/High_or_fluctuating_latency_after_turning_on_NetApp_ONTAP_File_System_Analytics[High or fluctuating latency after turning on NetApp ONTAP File System Analytics^].
 
+== Scan considerations
 
+When you enable capacity analytics, ONTAP conducts an initialization scan. The scan accesses metadata for all files in volumes for which capacity analytics is enabled. No file data is read during the scan. 
+
+After the scan completes, File System Analytics is continuously updated in real time as the filesystem changes without the need to run the scan again. 
+
+The time required for the scan is proportional to the number of directories and files on the volume. Because the scan collects metadata, file size does not impact the scan time. 
+
+For more information about the initialization scan, see link:https://www.netapp.com/pdf.html?item=/media/20707-tr-4867.pdf[TR-4867: Best practice guidelines for File System Analytics^].
+
+=== Best practices
+
+You should start the scan on volumes that do not share aggregates. You can see which aggregates are currently hosting which volumes using the command:
+
+`volume show -volume _comma-separated-list_of_volumes_ -fields aggr-list`
+
+While the scan runs, volumes continue to serve client traffic. It's recommended you start the scan during periods where you anticipate lower client traffic. 
+
+If client traffic increases, it will consume system resources and cause the scan to take longer. 
+
+Beginning in ONTAP 9.12.1, you can pause data collection in System Manager and with the ONTAP CLI. 
+
+* If you are using the ONTAP CLI:
+** You can pause data collection with the command: `volume analytics initialization pause -vserver _svm_name_ -volume _volume_name_`
+** Once client traffic has slowed, you can resume data collection with the command: `volume analytics initialization resume -vserver _svm_name_ -volume _volume_name_`
+* If you are using System Manager, in the *Explorer* view of the volume menu, you use the *Pause Data Collection* and *Resume Data Collection* buttons to manage the scan. 
+
+
+// 31 march 2023, ontapdoc-974 (pending TR link)
 // created 7 December 2021 from FSA overview
 // 25 april 2022, BURT 1413512
-// 2022 september 6, issue #346
+// 2022 september 6, ontap-issues-346
