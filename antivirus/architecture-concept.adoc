@@ -2,56 +2,55 @@
 permalink: antivirus/architecture-concept.html
 sidebar: sidebar
 keywords: antivirus, architecture
-summary: "The NetApp antivirus architecture consists of a Vscan server and a set of ONTAP configurables."
+summary: "The NetApp antivirus architecture consists of Vscan server software and associated settings."
 ---
 = Antivirus architecture
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-The NetApp antivirus architecture consists of a Vscan server and a set of ONTAP configurables.
+The NetApp antivirus architecture consists of Vscan server software and associated settings.
 
-== Vscan server components
+== Vscan server software
 
-You must install the following components on the Vscan server.
+You must install this software on the Vscan server.
 
 * *ONTAP Antivirus Connector*
 +
-The ONTAP Antivirus Connector provided by NetApp handles communication between ONTAP and the Vscan server.
+This is NetApp-provided software that handles scan request and response communication between the SVMs and antivirus software. It can run on a virtual machine, but for best performance use a physical machine. You can download this software from the NetApp Support Site (requires login).
 
 * *Antivirus software*
 +
-ONTAP-compliant third-party antivirus software scans files for viruses or other malicious code. You specify the remedial actions to be taken on infected files when you configure the software.
+This is partner-provided software that scans files for viruses or other malicious code. You specify the remedial actions to be taken on infected files when you configure the software.
 
-== ONTAP configurables
+== Vscan software settings
 
-You must configure the following items on the NetApp storage system.
+You must configure these software settings on the Vscan server.
 
 * *Scanner pool*
 +
-A scanner pool defines the Vscan servers and privileged users that can connect to SVMs. It also defines a scan request timeout period, after which the scan request is sent to an alternative Vscan server if one is available.
+This setting defines the Vscan servers and privileged users that can connect to SVMs. It also defines a scan request timeout period, after which the scan request is sent to an alternative Vscan server if one is available.
 +
 [NOTE]
 ====
-It is a best practice to set the timeout period in the antivirus software on the Vscan server to five seconds less than the scanner-pool request timeout period, to avoid situations in which file access is delayed or denied altogether because the timeout period on the software is greater than the timeout period for the scan request.
+You should set the timeout period in the antivirus software on the Vscan server to five seconds less than the scanner-pool scan-request timeout period. This will avoid situations in which file access is delayed or denied altogether because the timeout period on the software is greater than the timeout period for the scan request.
 ====
 
 * *Privileged user*
 +
-A privileged user is a domain user account that a Vscan server uses to connect to the SVM. The account must be included in the list of privileged users defined in the scanner pool.
+This setting is a domain user account that a Vscan server uses to connect to the SVM. The account must exist in the list of privileged users in the scanner pool.
 
 * *Scanner policy*
 +
-A scanner policy determines whether a scanner pool is active. A scanner policy can have one of the following values:
+This setting determines whether a scanner pool is active. Scanner policies are system-defined, so you cannot create custom scanner policies. Only these three policies are available: 
 
  ** `Primary` specifies that the scanner pool is active.
- ** `Secondary` specifies that the scanner pool is active only if none of the Vscan servers in the primary scanner pool is connected.
+ ** `Secondary` specifies that the scanner pool is active, only when none of the Vscan servers in the primary scanner pool are connected.
  ** `Idle` specifies that the scanner pool is inactive.
-Scanner policies are system-defined. You cannot create a custom scanner policy.
 
 * *On-access policy*
 +
-An on-access policy defines the scope of an on-access scan. You can specify the maximum size of the files to be scanned, the extensions of the files to be included in the scan, and the extensions and paths of the files to be excluded from the scan.
+This setting defines the scope of an on-access scan. You can specify the maximum file size to scan, file extensions and paths to include in the scan, and file extensions and paths to exclude from the scan.
 +
 By default, only read-write volumes are scanned. You can specify filters that enable scanning of read-only volumes or that restrict scanning to files opened with execute access:
 
@@ -60,39 +59,42 @@ By default, only read-write volumes are scanned. You can specify filters that en
 +
 [NOTE]
 ====
-"`Execute access`" is not identical with "`execute permission.`" A given client will have "`execute access`" on an executable file only if the file was opened with "`execute intent.`"
+"`Execute access`" is different from "`execute permission.`" A given client will have "`execute access`" on an executable file only if the file was opened with "`execute intent.`"
 ====
 
 +
-You can set the `scan-mandatory` option to off to specify that file access is allowed when no Vscan servers are available for virus scanning.
+You can set the `scan-mandatory` option to off to specify that file access is allowed when no Vscan servers are available for virus scanning. Within on-access mode you can choose from these two mutually-exclusive options:
+
+ ** Mandatory: With this option, Vscan tries to deliver the scan request to the server until the timeout period expires. If the scan request is not accepted by the server, then the client access request is denied.
+ ** Non-Mandatory: With this option, Vscan always allows client access, whether or not a Vscan server was available for virus scanning.
 
 * *On-demand task*
 +
-An on-demand task defines the scope of an on-demand scan. You can specify the maximum size of the files to be scanned, the extensions and paths of the files to be included in the scan, and the extensions and paths of the files to be excluded from the scan. Files in subdirectories are scanned by default.
+This setting defines the scope of an on-demand scan. You can specify the maximum file size to scan, file extensions and paths to include in the scan, and file extensions and paths to exclude from the scan. Files in subdirectories are scanned by default.
 +
 You use a cron schedule to specify when the task runs. You can use the `vserver vscan on-demand-task run` command to run the task immediately.
 
 * *Vscan file-operations profile (on-access scanning only)*
 +
-The `-vscan-fileop-profile` parameter for the `vserver cifs share create` command defines which operations on a SMB share can trigger virus scanning. By default, the parameter is set to `standard`, which is the NetApp best practice.
-+
-You can adjust this parameter as necessary when you create or modify a SMB share:
+The `vscan-fileop-profile` parameter for the `vserver cifs share create` command defines which SMB file operations trigger virus scanning. By default, the parameter is set to `standard`, which is NetApp best practice. You can adjust this parameter as necessary when you create or modify an SMB share:
 
  ** `no-scan` specifies that virus scans are never triggered for the share.
- ** `standard` specifies that virus scans can be triggered by open, close, and rename operations.
- ** `strict` specifies that virus scans can be triggered by open, read, close, and rename operations.
+ ** `standard` specifies that virus scans are triggered by open, close, and rename operations.
+ ** `strict` specifies that virus scans are triggered by open, read, close, and rename operations.
 +
 The `strict` profile provides enhanced security for situations in which multiple clients access a file simultaneously. If one client closes a file after writing a virus to it, and the same file remains open on a second client, `strict` ensures that a read operation on the second client triggers a scan before the file is closed.
 +
-You should be careful to restrict the `strict` profile to shares containing files that you anticipate will be accessed simultaneously. Because the profile generates more scan requests than the others, it may affect performance adversely.
+You should be careful to restrict the `strict`` profile to shares containing files that you anticipate will be accessed simultaneously. Since this profile generates more scan requests, it may impact performance.
 
- ** `writes-only` specifies that virus scans can be triggered only when a file that has been modified is closed.
+ ** `writes-only` specifies that virus scans are triggered only when modified files are closed.
 +
+Since `writes-only` generates fewer scan requests, it typically improves performance.
++
+If you use this profile, the scanner must be configured to delete or quarantine unrepairable infected files, so they cannot be accessed. If, for example, a client closes a file after writing a virus to it, and the file is not repaired, deleted, or quarantined, any client that accesses the file `without` writing to it will be infected.
+
 [NOTE]
 ====
 If a client application performs a rename operation, the file is closed with the new name and is not scanned. If such operations pose a security concern in your environment, you should use the `standard` or `strict` profile.
 ====
-+
-Because `writes-only` generates fewer scan requests than the other profiles (except `no-scan`), it typically improves performance.
-+
-Keep in mind, though, that if you use this profile for a share, the scanner must be configured to delete or quarantine an unrepairable infected file, so that it cannot be accessed by clients later. If, for example, a client closes a file after writing a virus to it, and the file is not repaired, deleted, or quarantined, any client that accesses the file _without_ writing to it will be infected.
+
+// 2023 May 09, vscan-overview-update
