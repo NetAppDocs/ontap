@@ -12,7 +12,7 @@ summary: There are several additional restrictions and limitations when using th
 :imagesdir: ../media/
 
 [.lead]
-There are restrictions and limitations to consider using the SnapMirror Business Continuity solution.
+There are considerations and limitations to be aware of when using SnapMirror Business Continuity.
 
 == Object limits
 
@@ -41,7 +41,7 @@ The maximum number of volumes per consistency group with SM-BC is platform indep
 
 === Volumes
 
-Limits in SM-BC are calculated based on the number of endpoints, not the number of relationships. A consistency group with 12 volumes contributes 12 endpoints on both the source and destination. Both SM-BC and SnapMirror Synchronous relationships contribute to the total number of endpoints.
+Volume limits in SM-BC are calculated based on the number of endpoints, not the number of relationships. A consistency group with 12 volumes contributes 12 endpoints on both the source and destination. Both SM-BC and SnapMirror Synchronous relationships contribute to the total number of endpoints.
 
 The maximum endpoints per platform are included in the following table.
 
@@ -74,7 +74,7 @@ The maximum endpoints per platform are included in the following table.
 SAN object limits are included in the following table and apply regardless of the platform.
 
 |===
-|Limits of objects in an SM-BC relationship |Count
+|Object in an SM-BC relationship |Count
 
 |LUNs per volume
 |256
@@ -92,14 +92,17 @@ SAN object limits are included in the following table and apply regardless of th
 
 == Supported configurations and features
 
-SM-BC is supported with numerous operating systems and ONTAP features, including: 
+SM-BC is supported with numerous operating systems, including: 
 
 * AIX (beginning ONTAP 9.11.1)
-* Fan-out configurations
 * HP-UX (beginning ONTAP 9.10.1)
+* Solaris 11.4 (beginning ONTAP 9.10.1)
+
+SM-BC also offers support for other features in ONTAP, including:
+
+* Fan-out configurations
 * NDMP copy (beginning ONTAP 9.13.1)
 * Partial file restore (beginning ONTAP 9.12.1)
-* Solaris 11.4 (beginning ONTAP 9.10.1)
 
 === AIX
 
@@ -109,9 +112,13 @@ In an AIX configuration, failovers are disruptive. With each failover, you will 
 
 To configure for AIX host with SM-BC, refer to the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_configure_an_AIX_host_for_SnapMirror_Business_Continuity_(SM-BC)[How to configure an AIX host for SnapMirror Business Continuity (SM-BC)].
 
-=== HP-UX known issues and limitations for SM-BC configuration
+=== HP-UX
 
-Beginning in ONTAP 9.10.1, SM-BC for HP-UX is supported. If an automatic unplanned failover (AUFO) event occurs on the isolated master cluster in the SM-BC configuration, it might take more than 120 seconds for I/O to resume on the HP-UX host. Depending on the applications that are running, this might not lead to any I/O disruption or error messages. If an AUFO event on the isolated master cluster occurs, you must restart applications on the HP-UX host that have a disruption tolerance of less than 120 seconds.
+Beginning in ONTAP 9.10.1, SM-BC for HP-UX is supported.
+
+==== Limitations with HP-UX
+
+If an automatic unplanned failover (AUFO) event occurs on the isolated master cluster in the SM-BC configuration, it might take more than 120 seconds for I/O to resume on the HP-UX host. Depending on the applications that are running, this might not lead to any I/O disruption or error messages. If an AUFO event on the isolated master cluster occurs, you must restart applications on the HP-UX host that have a disruption tolerance of less than 120 seconds.
 
 An AUFO event on the isolated master cluster might cause dual event failure when the connection between the primary and the secondary cluster is lost and the connection between the primary cluster and the mediator is also lost. This is considered a rare event, unlike other AUFO events.
 
@@ -137,30 +144,9 @@ Beginning in ONTAP 9.12.1, partial LUN restore is supported for SM-BC volumes. F
 
 === Solaris Host setting recommendation for SM-BC configuration
 
-Beginning with ONTAP 9.10.1, SM-BC supports Solaris 11.4. To ensure the Solaris client applications are non-disruptive when an unplanned site failover switchover occurs in an SM-BC environment, you must configure the Solaris 11.4 Host with the `f_tpgs` parameter.
+Beginning with ONTAP 9.10.1, SM-BC supports Solaris 11.4.
 
-Follow these steps to configure the override parameter:
-
-. Create configuration file `/etc/driver/drv/scsi_vhci.conf` with an entry similar to the following for the NetApp storage type connected to the host:
-+
-----
-scsi-vhci-failover-override =
-"NETAPP  LUN","f_tpgs"
-----
-. Use `devprop` and `mdb` commands to verify the override has been successfully applied:
-+
-----
-root@host-A:~# devprop -v -n /scsi_vhci scsi-vhci-failover-override scsi-vhci-failover-override=NETAPP  LUN + f_tpgs
-root@host-A:~# echo "*scsi_vhci_dip::print -x struct dev_info devi_child | ::list struct dev_info devi_sibling| ::print struct dev_info devi_mdi_client| ::print mdi_client_t ct_vprivate| ::print struct scsi_vhci_lun svl_lun_wwn svl_fops_name"| mdb -k`
-----
-+
-----
-svl_lun_wwn = 0xa002a1c8960 "600a098038313477543f524539787938"
-svl_fops_name = 0xa00298d69e0 "conf f_tpgs"
-----
-
-NOTE: `conf` will be added to the `svl_fops_name` when a `scsi-vhci-failover-override` has been applied.
-For additional information and recommended changes to default settings, refer to NetApp KB article https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/Solaris_Host_support_recommended_settings_in_SnapMirror_Business_Continuity_(SM-BC)_configuration[Solaris Host support recommended settings in SnapMirror Business Continuity (SM-BC) configuration].
+To ensure the Solaris client applications are non-disruptive when an unplanned site failover switchover occurs in an SM-BC environment, modify the default Solaris OS settings. To configure Solaris with the recommended settings, see the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/Solaris_Host_support_recommended_settings_in_SnapMirror_Business_Continuity_(SM-BC)_configuration[Solaris Host support recommended settings in SnapMirror Business Continuity (SM-BC) configuration^].
 
 .Related information 
 * link:https://hwu.netapp.com/[Hardware Universe^]
