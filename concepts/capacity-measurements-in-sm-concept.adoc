@@ -2,7 +2,7 @@
 sidebar: sidebar
 permalink: concepts/capacity-measurements-in-sm-concept.html
 keywords: capacity, measurement, physical, logical, storage, used storage, local tier capacity, aggregate capacity, block, capacity concern, add capacity, volume, used capacity, available capacity, total capacity, inactive capacity, static insights, dynamic insights, snapshot copy, snapshot copies, inactive data, overprovision, overflows, snapshot copy policy, snapshot copy reserves, reserves, policy, top volumes
-summary: "System capacity can be measured as physical space or logical space. Recent versions of System Manager use measurements of both physical and logical capacity."
+summary: "System capacity can be measured as either physical space or logical space. Beginning with ONTAP 9.7, System Manager provides measurements of both physical and logical capacity."
 ---
 = Capacity measurements in System Manager
 
@@ -15,8 +15,7 @@ summary: "System capacity can be measured as physical space or logical space. Re
 :imagesdir: ../media/
 
 [.lead]
-
-System capacity can be measured as physical space or logical space. Recent versions of System Manager use measurements of both physical and logical capacity.
+System capacity can be measured as either physical space or logical space. Beginning with ONTAP 9.7, System Manager provides measurements of both physical and logical capacity.
 
 The differences between the two measurements are explained in the following descriptions:
 
@@ -25,10 +24,6 @@ The differences between the two measurements are explained in the following desc
 * *Logical capacity*: Logical space refers to the usable space (the logical blocks) in a volume or local tier. Logical space refers to how theoretical space can be used, without accounting for results of deduplication or compression.  The value for logical space used is derived from the amount of physical space used plus the savings from storage efficiency features (such as deduplication and compression) that have been configured.  This measurement often appears larger than the physical used capacity because it includes Snapshot copies, clones, and other components, and it does not reflect the data compression and other reductions in the physical space. Thus, the total logical capacity could be higher than the provisioned space.
 
 NOTE: In System Manager, capacity representations do not account for root storage tier (aggregate) capacities. 
-
-.Additional information
-
-You can monitor the capacity of a cluster, local tiers, and storage VMs in System Manager.  Refer to link:../task_admin_monitor_capacity_in_sm.html[Monitor capacity in System Manager]. 
 
 [[measurements-used-cap]]
 
@@ -62,7 +57,6 @@ a|Logical space used
 == Capacity measurement terms
 The following terms are used when describing capacity:
 
-
 * *Allocated capacity*:  The amount of space that has been allocated for volumes in a storage VM.
 * *Available*: The amount of physical space available to store data or to provision volumes in a storage VM or on a local tier.
 * *Capacity across volumes*: The sum of the used storage and available storage of all the volumes on a storage VM.
@@ -80,18 +74,32 @@ The following terms are used when describing capacity:
 * *Used*: The amount of space that contains data.
 * *Used and reserved*: The sum of physical used and reserved space.
 
-[[cap-x-vols-max-cap]]
+[[cap-calc-svm]]
 
-== Capacity across volumes and maximum capacity
+== Capacity of a storage VM
 
-Beginning with 9.13.1, you can link:../task_admin_monitor_capacity_in_sm.html#enable-max-cap[enable the maximum capacity limit of a storage VM]. An explanation of how the measurement of the capacity across volumes relates to the maximum capacity limit is shown in the following chart.
+The maximum capacity of a storage VM is determined by the total allocated space for volumes plus the remaining unallocated space. 
 
-image:max-cap-limit-cap-x-volumes.gif[graphic that shows maximum capacity limit comprised of allocated space and available space and that the capacity across volumes occupies only the allocated space.]
+* The allocated space for volumes is the sum of the used capacity and the sum of available capacity of FlexVol volumes, FlexGroup volumes, and FlexCache volumes. 
+
+* The capacity of volumes is included in the sums, even when they are restricted, offline, or in the recovery queue after deletion.  
+
+* If volumes are configured with auto-grow, the maximum autosize value of the volume is used in the sums.  Without auto-grow, the actual capacity of the volume is used in the sums.  
+
+The following chart explains how the measurement of the capacity across volumes relates to the maximum capacity limit.
+
+image:max-cap-limit-cap-x-volumes.gif[Maximum capacity limit comprises allocated space and available space and the capacity across volumes occupies only the allocated space.]
+
+Beginning with ONTAP 9.13.1, cluster administrators can link:../manage-max-cap-limit-svm-in-sm-task.html[enable a maximum capacity limit for a storage VM]. However, storage limits cannot be set for a storage VM that contains volumes that are for data protection, in a SnapMirror relationship, or in a MetroCluster configuration. Also, quotas cannot be configured to exceed the maximum capacity of a storage VM.
+
+After the maximum capacity limit is set, it cannot be changed to a size that is less than the currently allocated capacity.
+
+When a storage VM reaches its maximum capacity limit, certain operations cannot be performed. System Manager provides suggestions for next steps in link:../insights-system-optimization-task.html[*Insights* ].  
 
 [[cap-measurement-units]]
 
 == Capacity measurement units
-System Manager calculates storage capacity based on binary units of 1024 (2^10^) bytes.  In ONTAP 9.10.0 and earlier, these units were displayed in System Manager as KB, MB, GB, TB, and PB.  Beginning with ONTAP 9.10.1, they are displayed in System Manager as KiB, MiB, GiB, TiB, and PiB.
+System Manager calculates storage capacity based on binary units of 1024 (2^10^) bytes. In ONTAP 9.10.0 and earlier, these units were displayed in System Manager as KB, MB, GB, TB, and PB. Beginning with ONTAP 9.10.1, they are displayed in System Manager as KiB, MiB, GiB, TiB, and PiB.
 
 NOTE:  The units used in System Manager for throughput continue to be KB/s, MB/s, GB/s, TB/s, and PB/s for all releases of ONTAP.
 
@@ -130,8 +138,12 @@ a| 1,125,899,906,842,624 bytes
 
 |===
 
-.Additional information:
+.Related information
+
+link:../task_admin_monitor_capacity_in_sm.html[Monitor capacity in System Manager]
+
 link:../volumes/logical-space-reporting-enforcement-concept.html[Logical space reporting and enforcement for volumes]
+
 
 // 2021 Mar 31, JIRA IE-230
 // 2021 Jun 24, TN-0060

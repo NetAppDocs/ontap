@@ -1,0 +1,91 @@
+---
+permalink: s3-config/create-bucket-lifecycle-rule-task.html
+sidebar: sidebar
+keywords: s3, bucket, cli, lifecycle, rule 
+summary: "Beginning with ONTAP 9.13.1, you can implement S3 object expiration."
+---
+
+= Create a bucket lifecycle management rule
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.13.1, you can implement S3 object expiration. Expiration actions define when objects in a bucket expire. This capability enables you to manage object versions so you can meet retention requirements and manage overall S3 object storage effectively.
+
+.Before you begin
+
+An S3-enabled SVM containing an S3 server and a bucket must already exist. See link:create-svm-s3-task.html[Create an SVM for S3] for more information.
+
+.About this task
+
+When creating your bucket lifecycle management rule, you must choose one of the three following expiration action types:
+
+* `Expiration` – The expiration action expires objects identified by the rule. If case versioning is enabled on the bucket, S3 makes all expired objects unavailable. If versioning is not enabled, this rule will delete the object permanently. 
+* `NoncurrentVersionExpiration` – This action is used to specify when S3 permanently removes non-current objects. These deleted objects cannot be recovered.
+* `AbortIncompleteMultipartUpload` – The administrator can use this element to set a maximum time (in days) that they want to allow multipart uploads to remain in progress
+
+You need to define the required fields for each expiration action type when creating a bucket lifecycle management rule. These fields can be modified after initial creation. The following table displays the unique fields for each action type.  
+
+[cols="30,70"]
+|===
+
+h| Action type h| Unique fields
+
+a|
+NonCurrentVersionExpiration
+a|
+* `-non-curr-days` - Number of days after which non-current versions will be deleted
+* `-new-non-curr-versions` - Number of latest non-current versions to be retained
+a|
+Expiration
+a|
+* `-obj-age-days` - Number of days since creation, after which current version of objects can be deleted
+* `-obj-exp-date` - Specific date when the objects should expire
+* `-expired-obj-del-markers` - Cleanup object delete markers
+a|
+AbortIncompleteMultipartUpload
+a|
+* `-after-initiation-days` - Number of days of initiation, after which upload can be aborted
+a|
+|===
+
+In order for the bucket lifecycle management rule to only be applied to a specific subset of objects, admins must set each filter when creating the rule. If these filters are not set when creating the rule, the rule will be applied to all objects within the bucket.  
+
+All filters can be modified after initial creation _except_ for the following: +
+
+* `-prefix`
+* `-tags`
+* `-obj-size-greater-than`
+* `-obj-size-less-than`
+
+
+.Steps
+. Use the `vserver object-store-server bucket lifecycle-management-rule create` command with required fields for your expiration action type to create your bucket lifecycle management rule.
+
+.Example
+
+The following command creates a NonCurrentVersionExpiration bucket lifecycle management rule:
+
+----
+vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action NonCurrentVersionExpiration -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -new-non-curr-versions <integer> -non-curr-days <integer>
+----
+
+
+.Example
+
+The following command creates an Expiration bucket lifecycle management rule:
+
+----
+vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action Expiration -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -obj-age-days <integer> -obj-exp-date <"MM/DD/YYYY HH:MM:SS"> -expired-obj-del-marker {true|false}
+----
+
+
+.Example
+
+The following command creates an AbortIncompleteMultipartUpload bucket lifecycle management rule:
+
+----
+vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action AbortIncompleteMultipartUpload -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -after-initiation-days <integer>
+----
+
+// 2023 Apr 13, Jira IDR-228
