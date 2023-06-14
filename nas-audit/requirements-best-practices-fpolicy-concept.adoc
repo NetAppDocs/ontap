@@ -36,16 +36,16 @@ Privileged data access is accomplished using SMB connections.
 This includes the LIFs used for passthrough-read connections.
 
 == Best practices and recommendations when setting up FPolicy
-When setting up FPolicy on storage virtual machines (SVMs), you need to be familiar with the general configuration best practices and recommendations to ensure that your FPolicy configuration provides robust monitoring performance and results that meet your requirements.
+When setting up FPolicy on storage virtual machines (SVMs), you must be familiar with the general configuration best practices and recommendations to ensure that your FPolicy configuration provides robust monitoring performance and results that meet your requirements.
 
 For specific guidelines related to performance, sizing, and configuration, work with your FPolicy partner application
 
 === Policy configuration 
-Configuration of FPolicy external engine, events, and scope for SVMs can improve your overall experience and security.
+Configuration of the FPolicy external engine, events, and scope for SVMs can improve your overall experience and security.
 
-* Configuration of FPolicy external engine for SVMs:
+* Configuration of the FPolicy external engine for SVMs:
 
-** Providing additional security comes with a performance cost. Enabling Secure Sockets Layer (SSL) communication has a performance effect on SMB.  
+** Providing additional security comes with a performance cost. Enabling Secure Sockets Layer (SSL) communication has a performance effect on accessing shares.  
 ** The FPolicy external engine should be configured with more than one FPolicy server to provide resiliency and high availability of FPolicy server notification processing.
 
 * Configuration of FPolicy events for SVMs:
@@ -53,20 +53,20 @@ Configuration of FPolicy external engine, events, and scope for SVMs can improve
 Monitoring file operations influences your overall experience. For example, filtering unwanted file operations on the storage side improves your experience. NetApp recommends setting up the following configuration:
 +
 ** Monitoring the minimum types of file operations and enabling the maximum number of filters without breaking the use case. 
-** Using filters for getattr, read, write, open, and close operations. The SMB home directory environment has a high percentage of these operations. 
+** Using filters for getattr, read, write, open, and close operations. The CIFS and NFS home directory environments have a high percentage of these operations. 
 
 * Configuration of FPolicy scope for SVMs: 
 +
-Restrict the scope of the policies to the relevant storage objects, such as shares, volumes, and exports, instead of enabling them across the entire SVM. NetApp recommends checking the directory extensions. When the `is-file-extension-check-on-directories-enabled` parameter is set to `true`, directory objects are subjected to the same extension checks as regular files. 
+Restrict the scope of the policies to the relevant storage objects, such as shares, volumes, and exports, instead of enabling them across the entire SVM. NetApp recommends checking the directory extensions. If the `is-file-extension-check-on-directories-enabled` parameter is set to `true`, directory objects will be subjected to the same extension checks as regular files. 
 
 
 === Network configuration 
 
 Network connectivity between the FPolicy server and the controller should be of low latency. NetApp recommends separating FPolicy traffic from client traffic by using a private network. 
 
-In addition, external FPolicy servers (FPolicy servers) should be placed in close proximity to the cluster with high-bandwidth connectivity to provide minimal latency and high-bandwidth connectivity.
+In addition, you should place external FPolicy servers (FPolicy servers) in close proximity to the cluster with high-bandwidth connectivity to provide minimal latency and high-bandwidth connectivity.
 
-NOTE: For a scenario in which the LIF for FPolicy traffic is configured on a different port than the LIF for client traffic, the FPolicy LIF might fail over to the other node because of a port failure. As a result, the FPolicy server becomes unreachable from the node which causes the FPolicy notifications for file operations on the node to fail. To avoid this issue, verify that the FPolicy server can be reached through at least one LIF on the node to process FPolicy requests for the file operations performed on that node. 
+NOTE: For a scenario in which the LIF for FPolicy traffic is configured on a different port to the LIF for client traffic, the FPolicy LIF might fail over to the other node because of a port failure. As a result, the FPolicy server becomes unreachable from the node which causes the FPolicy notifications for file operations on the node to fail. To avoid this issue, verify that the FPolicy server can be reached through at least one LIF on the node to process FPolicy requests for the file operations performed on that node. 
 
 === Hardware configuration 
 
@@ -80,15 +80,15 @@ The FPolicy policy for native blocking has the highest priority, irrespective of
 
 === Size considerations 
 
-FPolicy performs in-line monitoring of SMB operations, sends notifications to the external server, and waits for a response, depending on the mode of external engine communication (synchronous or asynchronous). This process affects the performance of SMB access and CPU resources.  
+FPolicy performs in-line monitoring of CIFS and NFS operations, sends notifications to the external server, and waits for a response, depending on the mode of external engine communication (synchronous or asynchronous). This process affects the performance of CIFS and NFS access and CPU resources.  
 
-To mitigate any issues, NetApp recommends working with partners to assess and size the environment before enabling FPolicy. Performance is affected by several factors including the number of users, workload characteristics, such as operations per user and the data size, network latency, and failure or server slowness. 
+To mitigate any issues, NetApp recommends working with partners to assess and size the environment before enabling FPolicy. Performance is affected by several factors including the number of users, workload characteristics, such as operations per user and data size, network latency, and failure or server slowness. 
 
 == Monitor performance  
 
 FPolicy is a notification-based system. Notifications are sent to an external server for processing and to generate a response back to ONTAP. This round-trip process increases latency for client access. 
 
-Monitoring the performance counters on the FPolicy server and in ONTAP gives you the capability to identify bottlenecks in the solution and to tune the parameters as necessary for an optimal solution. For example, an increase in FPolicy latency has a cascading effect on SMB latency. Therefore, you should monitor both workload (SMB) and FPolicy latency. In addition, you can use quality-of-service policies in ONTAP to set up a workload for each volume or SVM that is enabled for FPolicy.
+Monitoring the performance counters on the FPolicy server and in ONTAP gives you the capability to identify bottlenecks in the solution and to tune the parameters as necessary for an optimal solution. For example, an increase in FPolicy latency has a cascading effect on CIFS and NFS access latency. Therefore, you should monitor both workload (CIFS and NFS) and FPolicy latency. In addition, you can use quality-of-service policies in ONTAP to set up a workload for each volume or SVM that is enabled for FPolicy.
 
 NetApp recommends running the `statistics show –object workload` command to display workload statistics. In addition, you should monitor the following parameters:
 
@@ -96,7 +96,7 @@ NetApp recommends running the `statistics show –object workload` command to di
 * Total number of operations
 * Read and write counters 
 
-You can monitor the performance of FPolicy subsystems by using the following FPolicy counters: 
+You can monitor the performance of FPolicy subsystems by using the following FPolicy counters. 
 
 NOTE: You must be in diagnostic mode to collect statistics related to FPolicy. 
 
