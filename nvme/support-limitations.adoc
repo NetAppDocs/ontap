@@ -34,42 +34,83 @@ Support for NVMe-oF protocol varies by platform and configuration.  For details 
 
 NOTE: Beginning with ONTAP 9.12.1, 4-node MetroCluster IP configurations are supported on NVMe/FC.  MetroCluster configurations are not supported for NVMe prior to 9.12.1.
 
-[cols=2*]
+[cols=3*]
 |===
 
-h| Beginning with ONTAP... h| Platforms
+h| Beginning with ONTAP... h| Platforms h| Max nodes per cluster
 
 | 9.12.1
 a| * FAS
 * All Flash FAS (AFF)
 * All SAN Array (ASA) platforms
+|12
+
+| 9.11.1
+a| * AFF
+* ASA
+|12
 
 | 9.9.1
 a| * AFF
 * ASA
+| 4
 
 | 9.4
 | AFF platforms only
+| 4
 |===
 
 == Namespace support and limitations
 
-To set up the NVMe protocol in your SAN environment, you must configure an SVM for NVMe, create namespaces and subsystems, configure an NVMe/FC LIF, and then map the namespaces to the subsystems. When working with NVMe namespaces you should be aware of the following:
+NVMe namespace support varies based on your version on ONTAP. 
 
-* Beginning with ONTAP 9.10.1, you can xref:../nvme/resize-namespace-task.html[resize a namespace]. Resizing a namespace is not supported in releases prior to ONTAP 9.10.1.
-* Beginning with ONTAP 9.6, namespaces support 512 byte blocks and 4096 byte blocks.
+[cols=2*]
+|===
+
+h| Beginning with ONTAP... h| NVMe namespaces support...
+
+| 9.10.1 
+|xref:../nvme/resize-namespace-task.html[Resizing]. 
+
+Resizing a namespace is not supported in releases prior to ONTAP 9.10.1.
+
+|9.6
+a| * 512 byte blocks and 4096 byte blocks
 +
 4096 is the default value. 512 should only be used if the host operating system does not support 4096 byte blocks.
+
+* Volume move with mapped namespaces
+
+|===
+
+Also, when working with NVMe namespaces, you should be aware of the following:
+
 * If you lose data in a LUN, it cannot be restored from a namespace, or vice versa.
 * The space guarantee for namespaces is the same as the space guarantee of the containing volume.
+* You cannot create a namespace on a volume transition from Data ONTAP operating in 7-mode.
 * Namespaces do not support the following:
- ** Renaming
+** Renaming
 +
 You cannot rename a namespace.
 
- ** Inter-volume move
- ** Inter-volume copy
+** Inter-volume move
+** Inter-volume copy
+** Copy on Demand
 
+== Multipath HA pair failover/giveback
+
+Beginning with ONTAP 9.5, NVMe supports multipath HA pair failover/giveback.
+
+== Additional limitations
+
+The following ONTAP features are not supported by NVMe configurations:
+
+* Sync
+* Virtual Storage Console
+
+See the https://hwu.netapp.com[NetApp Hardware Universe^] for a complete list of NVMe limits.
+
+// 2023 June 21, ONTAPDOC 1109
 // 2023 May 02, IDR-217
 // 2022 Nov 18, Issue 705
 // 2022 oct 7, IE-631
