@@ -1,0 +1,92 @@
+---
+permalink: volumes/storage-efficiency-behavior-snapmirror-reference.html
+sidebar: sidebar
+keywords: storage, efficiency, temperature, change, efficient, snapmirror, volume, move
+summary: "The way storage efficiency is applied to a volume when performing a volume move or SnapMirror operation and what happens after you manually enable temperature-sensitive storage efficiency depends on the type of efficiency on the source volume."
+---
+= Storage efficiency behavior with volume move and SnapMirror operations
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+How storage efficiency behaves on a volume when you perform a volume move or SnapMirror operation and what happens when you perform a SnapMirror break and manually enable temperature-sensitive storage efficiency depends on the type of efficiency on the source volume.
+
+The following table describes the behavior of a source volume and destination volume when you perform a volume move or SnapMirror operation with different storage efficiency types, as well as the behavior when you manually enable temperature-sensitive storage efficiency (TSSE). 
+
+[cols="1,1,1,2,1,1,2"]
+
+|===
+
+h| Source volume efficiency 3+h| Destination volume default behavior 3+h| Default behavior after manually enabling TSSE (after SnapMirror break)
+
+| 
+| *Storage efficiency type*
+| *New writes*
+| *Cold data compression*
+| *Storage efficiency type*
+| *New writes*
+| *Cold data compression*
+
+| No storage efficiency (likely FAS)
+| File compression
+| File compression is attempted inline on newly written data
+| No cold data compression, data remains as it is
+| TSSE with cold data scan algorithm as ZSTD
+| 8k inline compression is attempted in TSSE format
+| *File compressed data*: N/A
+   +
+   *Uncompressed data*: 32K compression attempted after threshold days met
+   +
+   *Newly written data*: 32K compression attempted after threshold days met
+
+| No storage efficiency (likely FAS)
+| File compression on C-Series platforms using ONTAP 9.11.1P10 or ONTAP 9.12.1P3
+| No TSSE-enabled cold data compression
+| *File compressed data*: N/A
+| TSSE with cold data scan algorithm as ZSTD
+| 8K inline compression
+| *File compressed data*: N/A
+   +
+   *Uncompressed data*: 32K compression attempted after threshold days met
+   +
+   *Newly written data*: 32K compression attempted after threshold days met
+
+| No storage efficiency (likely FAS)
+| TSSE on C-Series platforms using ONTAP 9.12.1P4 and later or ONTAP 9.13.1 and later
+| 8K inline compression is attempted in TSSE format
+| *File compressed data*: N/A
+   +
+   *Uncompressed data*: 32K compression attempted after threshold days met
+   +
+   *Newly written data*: 32K compression attempted after threshold days met
+| TSSE with cold data scan algorithm as ZSTD
+| 8K inline compression is attempted in TSSE format
+| *File compressed data*: N/A
+   +
+   *Uncompressed data*: 32K compression attempted after threshold days met
+   +
+   *Newly written data*: 32K compression attempted after threshold days met
+
+| File compression group
+| Same as source
+| File compression is attempted inline on newly written data
+| No cold data compression, data remains as it is
+| TSSE with cold data scan algorithm as ZSTD
+| 8k inline compression is attempted in TSSE format
+| *File compressed data*: Not compressed
+  +
+  *Uncompressed data*: 32K compression is attempted after threshold days met
+  +
+  *Newly written data*: 32K compression is attempted after threshold days met
+
+| TSSE cold data scan 
+| TSSE using the same compression algorithm as source volume (LZOPro->LZOPro and ZSTD->ZSTD)
+| 8K inline compression attempted in TSSE format
+| 32K compression attempted with LzoPro after threshold days based coldness is met on both existing data and newly written data.
+| TSSE is enabled. NOTE: LZOPro cold data scan algorithm can be changed to ZSTD.
+| 8K inline compression is attempted in TSSE format
+| 32K compression is attempted after threshold days coldness is met on both existing data and newly written data.
+
+|===
+
+// 2023-June-20, ONTAPDOC-1018
