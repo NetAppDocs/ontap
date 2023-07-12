@@ -11,6 +11,10 @@ summary: "Before you set up cluster peering, you should confirm that the connect
 [.lead]
 Before you set up cluster peering, you should confirm that the connectivity, port, IP address, subnet, firewall, and cluster-naming requirements are met.
 
+[NOTE]
+Beginning with ONTAP 9.6, cluster peer encryption provides TLS 1.2 AES-256 GCM encryption support for data replication.
+"PSK-AES256-GCM-SHA384" security ciphers are required for cluster peering to work even if encryption is disabled.
+
 == Connectivity requirements
 
 Every intercluster LIF on the local cluster must be able to communicate with every intercluster LIF on the remote cluster.
@@ -21,15 +25,13 @@ Although it is not required, it is typically simpler to configure the IP address
 * The subnet must have enough IP addresses available to allocate to one intercluster LIF per node.
 +
 For example, in a four-node cluster, the subnet used for intercluster communication must have four available IP addresses.
-//GH issue #115 01/17/2022
+
 Each node must have an intercluster LIF with an IP address on the intercluster network.
 
 Intercluster LIFs can have an IPv4 address or an IPv6 address.
 
 [NOTE]
-====
-ONTAP 9 enables you to migrate your peering networks from IPv4 to IPv6 by optionally allowing both protocols to be present simultaneously on the intercluster LIFs. In earlier releases, all intercluster relationships for an entire cluster were either IPv4 or IPv6. This meant that changing protocols was a potentially disruptive event.
-====
+ONTAP enables you to migrate your peering networks from IPv4 to IPv6 by optionally allowing both protocols to be present simultaneously on the intercluster LIFs. In earlier releases, all intercluster relationships for an entire cluster were either IPv4 or IPv6. This meant that changing protocols was a potentially disruptive event.
 
 == Port requirements
 
@@ -49,6 +51,9 @@ Ports added to a broadcast domain can be physical network ports, VLANs, or inter
 
 == Firewall requirements
 
+[NOTE]
+Beginning with ONTAP 9.10.1, firewall policies are deprecated and wholly replaced with LIF service policies. For more information, see link:../networking/configure_firewall_policies_for_lifs.html[Configure firewall policies for LIFs].
+
 Firewalls and the intercluster firewall policy must allow the following protocols:
 
 * ICMP service
@@ -59,12 +64,12 @@ Although HTTPS is not required when you set up cluster peering using the CLI, HT
 
 The default `intercluster` firewall policy allows access through the HTTPS protocol and from all IP addresses (0.0.0.0/0). You can modify or replace the policy if necessary.
 
-NOTE: Beginning with ONTAP 9.10.1, firewall policies are deprecated and wholly replaced with LIF service policies. For more information, see link:../networking/configure_firewall_policies_for_lifs.html[Configure firewall policies for LIFs].
-
 == Cluster requirement
 
 Clusters must meet the following requirement:
 
 * A cluster cannot be in a peer relationship with more than 255 clusters.
 
+// 12 July 2023, ontap-issues-980
 // 2023 Jan 10, Jira ONTAPDOC-716
+//ontap-issue #115 01/17/2022
