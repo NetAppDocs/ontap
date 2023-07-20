@@ -10,66 +10,135 @@ summary: "NVMe support varies based on your version of ONTAP, your platform and 
 
 [.lead]
 
-NVMe support and limitations varies based on your version of ONTAP, your platform and your configuration. 
+NVMe support and limitations vary based on your version of ONTAP, your platform and your configuration. For details on your specific configuration, see the link:https://imt.netapp.com/matrix/[NetApp Interoperability Matrix Tool].
 
-== Protocol support
+
+Protocol support
 
 [cols=3*]
 |===
 
-h| Protocol h| Beginning with ... h| Allowed by...
+h| Protocol h| Beginning with ONTAP... h| Allowed by...
 
-| TCP
-| ONTAP 9.10.1
-| Default
+|TCP
+|9.10.1
+|Default
 
-| FC
-| ONTAP 9.4
-| Default
+|FC
+|9.4
+|Default
+
 |===
+
+Beginning with ONTAP 9.8, you can configure SCSI, NAS and NVMe protocols on the same storage virtual machine (SVM). 
+In ONTAP 9.7 and earlier, NVMe can be the only protocol on the SVM.
 
 == Platform and configuration support and limitations
 
-Support for NVMe-oF protocol varies by platform and configuration.  For details on your specific configuration, see the link:https://imt.netapp.com/matrix/[NetApp Interoperability Matrix Tool].
+NVMe/FC and NVMe/TCP protocols are supported as follows.  NVME/FC is supported on the platforms listed below only with 32GB FC HBAs. 
 
-NOTE: Beginning with ONTAP 9.12.1, 4-node MetroCluster IP configurations are supported on NVMe/FC.  MetroCluster configurations are not supported for NVMe prior to 9.12.1.
+[NOTE]
+====
+* Beginning with ONTAP 9.12.1, 4-node MetroCluster IP configurations are supported on NVMe/FC.  
+* MetroCluster configurations are not supported on NVMe/TCP.  
+* MetroCluster configurations are not supported for NVMe prior to 9.12.1.
+====
+
+[cols=3*]
+|===
+
+h| Beginning with ONTAP... h| Platforms h|Max nodes per cluster
+
+| 9.12.1
+a| * AFF
+* ASA
+|12
+
+| 9.10.1
+a| * AFF
+* ASA
+| 4
+
+| 9.9.1
+a| * AFF 
+* ASA 
+| 4
+
+| 9.4
+| AFF only
+| 4
+|===
+
+
+== Namespace support and limitations
+
+NVMe namespace support varies based on your version of ONTAP. 
 
 [cols=2*]
 |===
 
-h| Beginning with ONTAP... h| Platforms
+h| Beginning with ONTAP... h| NVMe namespaces support...
 
-| 9.12.1
-a| * FAS
-* All Flash FAS (AFF)
-* All SAN Array (ASA) platforms
+| 9.10.1 
+|xref:../nvme/resize-namespace-task.html[Resizing] 
 
-| 9.9.1
-a| * AFF
-* ASA
+Resizing a namespace is not supported in releases prior to ONTAP 9.10.1.
 
-| 9.4
-| AFF platforms only
-|===
+| 9.8
+| LUNs and namespaces can be mixed on the same volume.
 
-== Namespace support and limitations
 
-To set up the NVMe protocol in your SAN environment, you must configure an SVM for NVMe, create namespaces and subsystems, configure an NVMe/FC LIF, and then map the namespaces to the subsystems. When working with NVMe namespaces you should be aware of the following:
-
-* Beginning with ONTAP 9.10.1, you can xref:../nvme/resize-namespace-task.html[resize a namespace]. Resizing a namespace is not supported in releases prior to ONTAP 9.10.1.
-* Beginning with ONTAP 9.6, namespaces support 512 byte blocks and 4096 byte blocks.
+|9.6
+a| * 512 byte blocks and 4096 byte blocks
 +
 4096 is the default value. 512 should only be used if the host operating system does not support 4096 byte blocks.
+
+* Volume move with mapped namespaces
+
+|===
+
+
+Also, when working with NVMe namespaces, you should be aware of the following:
+
 * If you lose data in a LUN, it cannot be restored from a namespace, or vice versa.
 * The space guarantee for namespaces is the same as the space guarantee of the containing volume.
+* You cannot create a namespace on a volume transition from Data ONTAP operating in 7-mode.
 * Namespaces do not support the following:
- ** Renaming
+** Renaming
 +
 You cannot rename a namespace.
 
- ** Inter-volume move
- ** Inter-volume copy
+** Inter-volume move
+** Inter-volume copy
+** Copy on Demand
 
+
+== Multipath HA pair failover/giveback
+
+Beginning with ONTAP 9.5, NVMe supports multipath HA pair failover/giveback.
+
+== Additional limitations
+
+
+
+* The following ONTAP features are not supported by NVMe configurations:
+
+** Sync
+** Virtual Storage Console
+
+* The following applies only to nodes running ONTAP 9.4:
+
+** NVMe LIFs and namespaces must be hosted on the same node.
+** The NVMe service must be created before the NVMe LIF is created.
+
+See the https://hwu.netapp.com[NetApp Hardware Universe^] for a complete list of NVMe limits.
+
+.Related information
+
+link:https://www.netapp.com/pdf.html?item=/media/10680-tr4080.pdf[Best practices for modern SAN]
+
+// 2023 Jul 7, Git Issue 976
+// 2023 June 23, ONTAPDOC 1109
 // 2023 May 02, IDR-217
 // 2022 Nov 18, Issue 705
 // 2022 oct 7, IE-631
