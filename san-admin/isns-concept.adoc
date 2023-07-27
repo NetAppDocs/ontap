@@ -1,10 +1,10 @@
 ---
 permalink: san-admin/isns-concept.html
 sidebar: sidebar
-keywords: what, isns
+keywords: isns, isns server, internet storage name service, iscsi, iqn
 summary: "The Internet Storage Name Service (iSNS) is a protocol that enables automated discovery and management of iSCSI devices on a TCP/IP storage network. An iSNS server maintains information about active iSCSI devices on the network, including their IP addresses, iSCSI node names IQN’s, and portal groups."
 ---
-= What iSNS is
+= Internet Storage Name Service (iSNS)
 :icons: font
 :imagesdir: ../media/
 
@@ -24,3 +24,67 @@ An iSNS server uses the Internet Storage Name Service (iSNS) protocol to maintai
 The iSNS protocol enables automated discovery and management of iSCSI devices on an IP storage network. An iSCSI initiator can query the iSNS server to discover iSCSI target devices.
 
 NetApp does not supply or resell iSNS servers. You can obtain these servers from a vendor supported by NetApp.
+
+== How SVMs interact with an iSNS server
+
+The iSNS server communicates with each storage virtual machine (SVM) through the SVM management LIF. The management LIF registers all iSCSI target node name, alias, and portal information with the iSNS service for a specific SVM.
+
+In the following example, SVM "`VS1`" uses SVM management LIF "`VS1_mgmt_lif`" to register with the iSNS server. During iSNS registration, an SVM sends all the iSCSI LIFs through the SVM management LIF to the iSNS Server. After the iSNS registration is complete, the iSNS server has a list of all the LIFs serving iSCSI in "`VS1`". If a cluster contains multiple SVMs, each SVM must register individually with the iSNS server to use the iSNS service.
+
+image::../media/bsag_c-mode_iSNS_register.png[]
+
+In the next example, after the iSNS server completes the registration with the target, Host A can discover all the LIFs for "`VS1`" through the iSNS server as indicated in Step 1. After Host A completes the discovery of the LIFs for "`VS1`", Host A can establish a connection with any of the LIFs in "`VS1`" as shown in Step 2. Host A is not aware of any of the LIFs in "`VS2`" until management LIF "`VS2_mgmt_LIF`" for "`VS2`" registers with the iSNS server.
+
+image::../media/bsag_c-mode_iSNS_connect.png[]
+
+However, if you define the interface access lists, the host can only use the defined LIFs in the interface access list to access the target.
+
+After iSNS is initially configured, ONTAP automatically updates the iSNS server when the SVM configuration settings change.
+
+A delay of a few minutes might occur between the time you make the configuration changes and when ONTAP sends the update to the iSNS server. Force an immediate update of the iSNS information on the iSNS server: `vserver iscsi isns update`
+
+== Commands for managing iSNS
+
+ONTAP provides commands to manage your iSNS service.
+
+|===
+
+h| If you want to... h| Use this command...
+
+a|
+Configure an iSNS service
+a|
+`vserver iscsi isns create`
+a|
+Start an iSNS service
+a|
+`vserver iscsi isns start`
+a|
+Modify an iSNS service
+a|
+`vserver iscsi isns modify`
+a|
+Display iSNS service configuration
+a|
+`vserver iscsi isns show`
+a|
+Force an update of registered iSNS information
+a|
+`vserver iscsi isns update`
+a|
+Stop an iSNS service
+a|
+`vserver iscsi isns stop`
+a|
+Remove an iSNS service
+a|
+`vserver iscsi isns delete`
+a|
+View the man page for a command
+a|
+`man _command name_`
+|===
+
+See the man page for each command for more information.
+
+// 2023 Jul 26, ONTAPDOC-1097
