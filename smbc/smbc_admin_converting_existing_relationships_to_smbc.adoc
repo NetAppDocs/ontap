@@ -13,24 +13,25 @@ summary: You can convert an existing zero recovery point protection (zero RPO) S
 :imagesdir: ../media/
 
 [.lead]
-You can convert an existing zero recovery point protection (zero RPO) Synchronous SnapMirror relationship to an SM-BC zero RTO Synchronous SnapMirror consistency group relationship.
+If you have an existing Synchronous SnapMirror relationship between a source and destination cluster, you can convert it to an SM-BC relationship. This allows you to associate the mirrored volumes with a consistency group, ensuring zero RPO across a multi-volume workload. Additionally, you can retain existing SnapMirror snapshots if you need to revert to a point in time prior to establishing the SM-BC relationship. 
 
 .Before you begin
 
-* A zero RPO Synchronous SnapMirror relationship exists between the primary and secondary.
-* All LUNs on the destination volume are unmapped before the zero RTO SnapMirror relationship is created.
+* A zero RPO Synchronous SnapMirror relationship must exist between the primary and secondary cluster.
+* All LUNs on the destination volume must be unmapped before the zero RTO SnapMirror relationship can be created.
 * SM-BC only supports SAN protocols (not NFS/CIFS). Ensure no constituent of the consistency group is mounted for NAS access.
 
 .About this task
 
-* You must be a cluster and SVM administrator on the source and destination.
+* You must be a cluster and SVM administrator on the primary and secondary clusters.
 * You cannot convert zero RPO to zero RTO sync by changing the SnapMirror policy.
-* If existing LUNs on the secondary volume are mapped, `snapmirror create` with AutomatedFailover policy triggers an error.
-You must ensure the LUNs are unmapped before issuing the `snapmirror create` command.
+* You must ensure the LUNs are unmapped before issuing the `snapmirror create` command.
++
+If existing LUNs on the secondary volume are mapped and the `AutomatedFailover` policy is configured, the `snapmirror create` will trigger an error. 
 
 .Steps
 
-. Perform a SnapMirror update operation on the existing relationship:
+. From the secondary cluster, perform a SnapMirror update on the existing relationship:
 +
 `destination::>snapmirror update -destination-path vs1_dst:vol1`
 
@@ -60,7 +61,7 @@ You must ensure the LUNs are unmapped before issuing the `snapmirror create` com
 +
 `destination::> snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol1:@vol1,vol2:@vol2 -policy AutomatedFailover`
 
-. Resynchronize the zero RTO consistency group:
+. Resynchronize the consistency group:
 +
 `destination::> snapmirror resync -destination-path vs1_dst:/cg/cg_dst`
 

@@ -12,28 +12,29 @@ summary: Beginning with ONTAP 9.8, you can use the SnapMirror Business Continuit
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.8, you can use SnapMirror Business Continuity (SM-BC) to protect applications with LUNs, enabling applications to fail over transparently, ensuring business continuity in case of a disaster. SM-BC is supported on AFF clusters (including AFF C-Series) or All SAN Array (ASA) clusters, where the primary and secondary clusters can be either AFF or ASA. SM-BC protects applications with iSCSI or FCP LUNs.
+SnapMirror Business Continuity (SM-BC) enables business services to continue operating even through a complete site failure, supporting applications to fail over transparently using a secondary copy. Neither manual intervention nor additional scripting is required to trigger a failover with SM-BC. 
+
+SM-BC is available beginning with ONTAP 9.8. SM-BC is supported on AFF clusters or All SAN Array (ASA) clusters, where the primary and secondary clusters can be either AFF or ASA. SM-BC protects applications with iSCSI or FCP LUNs.
 
 == Benefits
 
-SnapMirror Business Continuity provides the following benefits:
+SM-BC provides the following benefits:
 
-* Provides continuous availability for business-critical applications
+* Continuous availability for business-critical applications
 * Ability to host critical applications alternately from primary and secondary site
 * Simplified application management using consistency groups for dependent write-order consistency
 * The ability to test failover for each application
 * Instantaneous creation of mirror clones without impacting application availability
 * Beginning in ONTAP 9.11.1, SM-BC supports xref:../data-protection/restore-single-file-snapshot-task.html[single-file SnapRestore]. 
+//* You are entitled to use SM-BC if you have the data protection or one-time premium bundle on both the source and destination storage clusters.
 
-== Typical use cases
+== Use cases
 
-=== Application deployment for zero RTO or Transparent Application Failover
+.Application deployment for zero recovery time object (RTO)
+In an SM-BC deployment, you will have a primary and secondary cluster. A LUN in the primary cluster (`1LP`) will have a mirror (`L1s`) on the secondary; both LUNs share the same serial ID and are reported as read-write LUNs to the host. Read and write operations, however, are only serviced to the primary LUN, `1LP`. Any writes to the mirror `L1S` are served by proxy. 
 
-Transparent Application Failover is based on host multipath I/O (MPIO) software-based path failover to achieve non-disruptive access to the storage. Both LUN copies, for example, primary(L1P) and mirror copy(L1S), have the same identity (serial number) and are reported as read-writable to the host. However, reads and writes are serviced only by the primary volume. I/Os issued to the mirror copy are proxied to the primary copy. The host's preferred path to L1 is VS1:N1 based on Asymmetric Logical Unit Access (ALUA) access state Active Optimized (A/O). Mediator is recommended as part of the deployment, primarily to perform failover in case of a storage outage on the primary.
-
-=== Disaster scenario
-
-The site hosting the primary cluster experiences a disaster. Host multipathing software marks all paths through the cluster as down and uses paths from the secondary cluster. The result is a non-disruptive failover to the mirror copy for LUN L1. L1S is converted from a mirror copy to an active copy of LUN L1. The failover happens automatically when an external Mediator is configured. The host's preferred path to L1 becomes VS2:N1.
+.Disaster scenario
+With SM-BC, you can synchronously replicate multiple volumes for an application between sites at geographically dispersed locations. You can automatically failover to the secondary copy in case of disruption of the primary, thus enabling business continuity for tier one applications.
 
 == Architecture
 
@@ -41,4 +42,11 @@ The following figure illustrates the operation of the SnapMirror Business Contin
 
 image:workflow_san_snapmirror_business_continuity.png[SnapMirror Business Continuity workflow]
 
+In section one of the diagram, an application is deployed on a SVM in the primary data center. The volumes that have been added to the primary consistency group are protected with SM-BC and are mirrored to secondary consistency group at a secondary data center. The volumes in the primary consistency group will failover to the mirrored consistency group in the event of a disruption. Volumes not in a mirrored consistency group are not served in the event of a failover. 
+
+== Further information 
+
+* link:https://www.netapp.com/pdf.html?item=/media/21888-tr-4878.pdf[TR-4878: SnapMirror Business Continuity^]
+
+// ontapdoc-883, 7 march 2023
 // 7 april 2022, BURT 1459617
