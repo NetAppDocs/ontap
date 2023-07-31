@@ -25,6 +25,10 @@ Beginning in ONTAP 9.13.1, you can add a new child consistency group to an exist
 * You cannot add a child consistency group to a single consistency group. You must first <<promote>> the consistency group, then you can add a child consistency group. 
 * Existing Snapshot copies of the consistency group captured before the expand operation will be considered partial. Any restore operation based on that snapshot copy will reflect the consistency group at the point-in-time of the Snapshot copy. 
  
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Steps 
 . Select *Storage > Consistency groups*.
 . Select the parent consistency group you want to which you want to add a child consistency group.
@@ -34,6 +38,26 @@ Beginning in ONTAP 9.13.1, you can add a new child consistency group to an exist
 .. If you are adding existing volumes, select **Existing volumes** then choose the volumes from the dropdown menu. 
 .. If you are adding new volumes, select **New volumes** then designate the number of volumes and their size. 
 . Select **Add**. 
+--
+
+.CLI
+--
+Beginning in ONTAP 9.14.1, you can add a child consistency group using the ONTAP CLI.
+
+.Add a child consistency group with new volumes
+. Create the new consistency group. Provide values for the consistency group name, volume prefix, number of volumes, volume size, storage service, and export policy name:
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency_group_ -parent-consistency-group _parent_consistency_group_ -volume-prefix _prefix_ -volume-count _number_ -size _size_ -storage-service _service_ -export-policy _policy_name_`
+
+
+
+.Add a child consistency group with existing volume
+. Create the new consistency group. The `volumes` parameter accepts a comma-separate list of volume names. 
++
+`consistency-group create -vserver _SVM_name_ -consistency-group newCg -parent-consistency-group _parent_consistency_group_ -volumes _volume_`
+
+--
+====
 
 [[detach, detach]]
 == Detach a child consistency group 
@@ -42,16 +66,33 @@ Beginning in ONTAP 9.13.1, you can remove a child consistency group from its par
 
 .Before you begin
 * Detaching a child consistency group causes the parent consistency group’s snapshots to become invalid and inaccessible. Volume granular snapshots remain valid.
-* Existing Snapshot copies of the individual consistency group remain valid. 
+* Existing Snapshot copies of the individual consistency group remain valid.
+* This operation will fail if there is an existing single consistency group that has the same name as the child consistency group you intend to detach. If you encounter this scenario, you must rename the consistency group when you detach it. 
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Steps
 . Select *Storage > Consistency groups*.
 . Select the parent consistency group that contains the child you want to detach. 
 . Next to the child consistency group you want to detach, select **More** then **Detach from parent**.
 . Optionally, rename the consistency group and select an application type. 
 . Select **Detach**. 
+--
 
-== Move a single consistency group under a parent consistency group
+.CLI
+--
+Beginning in ONTAP 9.14.1, you can detach a consistency group using the ONTAP CLI.
+
+.Steps
+. Detach the consistency group. If you need to rename the detached consistency group, use the optional `-new-name` parameter and provide an unique name.
++
+`consistency-group remove -vserver _SVM_name_ -consistency-group _child_consistency_group_ -parent-consistency-group _parent_consistency_group [-new-name _new_name_]`
+--
+====
+
+== Move an existing single consistency group under a parent consistency group
 
 Beginning in ONTAP 9.13.1, you can convert an existing single consistency group to a child consistency group. You can either move the consistency group under an existing parent consistency group or create a new parent consistency group during the move operation. 
 
@@ -60,6 +101,10 @@ Beginning in ONTAP 9.13.1, you can convert an existing single consistency group 
 * Existing snapshot copies of the _parent_ consistency group captured before this operation will be considered partial. Any restore operation based on one of those Snapshot copies will reflect the consistency group at the point-in-time of the Snapshot copy. 
 * Existing consistency group snapshots of the single consistency group remain valid.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Steps
 . Select *Storage > Consistency groups*.
 . Select the consistency group you want to convert. 
@@ -69,6 +114,23 @@ Beginning in ONTAP 9.13.1, you can convert an existing single consistency group 
 .. To migrate to an existing parent consistency group, select **Existing consistency group** then choose the consistency group from the dropdown menu.
 .. To create a new parent consistency group, select **New consistency group** then provide a name for the new consistency group.
 . Select **Move**.
+--
+
+.CLI
+--
+Beginning in ONTAP 9.14.1, you can move a single consistency group under a parent consistency group using the ONTAP CLI.
+
+.Move under a new parent consistency group
+. Create the new parent consistency group. The `-consistency-groups` parameter will migrate any existing consistency groups to the new parent.
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _parent_consistency_group_ -consistency-groups _child_consistency_group_`
+
+.Move under an existing consistency group
+. Move the consistency group:
++
+`consistency-group add -vserver _SVM_name_ -consistency-group _consistency_group_ -parent-consistency-group _parent_consistency_group_`
+--
+====
 
 [[promote, promote]]
 == Promote a child consistency group
@@ -79,12 +141,28 @@ Beginning in ONTAP 9.13.1, you can promote a single consistency group to a paren
 * If you want to convert a child consistency group to a parent consistency group, you must first <<detach>> the child consistency group then follow this procedure. 
 * Existing Snapshot copies of the consistency group remain valid after you promote the consistency group. 
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Steps
 . Select *Storage > Consistency groups*.
 . Select the consistency group you want to promote. 
 . Select **More** then **Promote to parent consistency group**.
 . Enter a **Name** and select a **Component type** for the child consistency group.
 . Select **Promote**. 
+--
+
+.CLI
+--
+Beginning in ONTAP 9.14.1, you can move a single consistency group under a parent consistency group using the ONTAP CLI.
+
+.Steps
+. Promote the consistency group. This command will create one parent and one child consistency group.
++
+`consistency-group promote -vserver _SVM_name_ -consistency-group _existing_consistency_group_ -new-name _new_child_consistency_group_`
+--
+====
 
 == Demote a parent to a single consistency group
 
@@ -93,10 +171,27 @@ Beginning in ONTAP 9.13.1, you can demote a parent consistency group to a single
 .Before you begin
 * Existing Snapshot copies of the parent consistency group remain valid after you demote it to a single consistency. Existing Snapshot copies of any of the associated child consistency groups of that parent will become invalid, but the individual volume snapshots within them continue to be accessible as volume-granular Snapshots.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Steps
 . Select *Storage > Consistency groups*.
 . Select the parent consistency group you want to demote.
 . Select **More** then **Demote to single consistency group**.
-. A warning will advise you that all associated child consistency groups will be deleted and their volumes will be moved under the new, single consistency group. Select **Demote** to confirm you understand the impact.
+. A warning will advise you that all associated child consistency groups will be deleted and their volumes will be moved under the new single consistency group. Select **Demote** to confirm you understand the impact.
+--
 
+.CLI
+--
+Beginning with ONTAP 9.14.1, you can demote a consistency group using the ONTAP CLI.
+
+.Steps
+. Demote the consistency group. Use the optional `new-name` parameter to rename the consistency group. 
++ 
+`consistency-group demote -vserver _SVM_name_ -consistency-group _parent_consistency_group_ [-new-name _new_consistency_group_name_]`
+--
+====
+
+// 31 july 2023, ontapdoc-1088
 // 13 MAR 2023, ONTAPDOC-755
