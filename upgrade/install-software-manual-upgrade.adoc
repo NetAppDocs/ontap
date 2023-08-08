@@ -1,0 +1,81 @@
+---
+permalink: upgrade/install-software-manual-upgrade.html
+sidebar: sidebar
+keywords: ontap, software, image, download, downloading, install, installing
+summary: 'After you have downloaded the ONTAP software package for an upgrade, you must install it locally before you begin your upgrade'
+---
+= Install the ONTAP software package for manual upgrades
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+
+After you have downloaded the ONTAP software package for an upgrade, you must install it locally before you begin your upgrade.
+
+.Steps
+
+. Set the privilege level to advanced, entering *y* when prompted to continue: `set -privilege advanced`
++
+The advanced prompt (`*>`) appears.
+
+. Install the image.
++
+[cols="2", options="header"]
+|===
+
+| If you have the following configuration...
+| Use this command...
+
+a|
+* Non-MetroCluster
+* 2-node MetroCluster
+a|
+`system node image update -node * -package _location_ -replace-package true -setdefault true -background true`
+
+_location_ can be a web server or a local folder, depending on the ONTAP version. See the `system node image update` man page for details.
+
+This command installs the software image on all of the nodes simultaneously. To install the image on each node one at a time, do not specify the `-background` parameter.
+
+a| 
+* 4-node MetroCluster
+* 8-node MetroCluster configuration
+a|
+`system node image update -node * -package location -replace-package true -background true -setdefault false`
+
+You must issue this command on both clusters.
+
+This command uses an extended query to change the target software image, which is installed as the alternate image on each node.
+|===
+
+. Enter `y` to continue when prompted.
+
+. Verify that the software image is installed on each node.
++
+`system node image show-update-progress -node *`
++
+This command displays the current status of the software image installation. You should continue to run this command until all nodes report a *Run Status* of *Exited*, and an *Exit Status* of *Success*.
++
+The system node image update command can fail and display error or warning messages. After resolving any errors or warnings, you can run the command again.
++
+This example shows a two-node cluster in which the software image is installed successfully on both nodes:
++
+----
+cluster1::*> system node image show-update-progress -node *
+There is no update/install in progress
+Status of most recent operation:
+        Run Status:     Exited
+        Exit Status:    Success
+        Phase:          Run Script
+        Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node0.
+There is no update/install in progress
+Status of most recent operation:
+        Run Status:     Exited
+        Exit Status:    Success
+        Phase:          Run Script
+        Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node1.
+2 entries were acted on.
+----
+
+// 2023 Aug 08, Jira 1256
+// 2023 March 03, Issue 833
+// 2022-01-17, ontap-issue-189
