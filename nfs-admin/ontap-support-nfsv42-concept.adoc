@@ -1,34 +1,43 @@
 ---
 permalink: nfs-admin/ontap-support-nfsv42-concept.html
 sidebar: sidebar
-keywords: ontap, support, nfsv4.2
-summary: "Beginning with ONTAP 9.8, the NFSv4.2 protocol is supported to allow access for NFSv4.2 clients."
+keywords: ontap, support, nfsv4.2, MAC-labelled NFS, extended attributes, xattrs
+summary: "Beginning with ONTAP 9.8, the NFSv4.2 protocol is supported to allow access for NFSv4.2-enabled clients."
 ---
 = ONTAP support for NFSv4.2
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.8, the NFSv4.2 protocol is supported to allow access for NFSv4.2 clients.
+Beginning with ONTAP 9.8, the NFSv4.2 protocol is supported to allow access for NFSv4.2-enabled clients.
 
 NFSv4.2 is enabled by default in ONTAP 9.9.1 and later. In ONTAP 9.8, you can enable v4.2 by specifying the `-v4.1` option and setting it to `enabled` when creating an NFS server on the storage virtual machine (SVM). Enabling NFSv4.1 also enables clients to use the NFSv4.1 features while mounted as v4.2.
 
 The following NFSv4.2 optional features are supported:
 
-* Beginning with ONTAP 9.9.1, Mandatory Access Control (MAC) labelled NFS is supported when NFSv4.2 is enabled.
-* Additional NFSv4.2 optional features will be added in a later ONTAP release.
+[cols="2*",options="header"]
+|===
+| Feature | Supported beginning with ...
+a|
+Mandatory Access Control (MAC) labelled NFS
+a|
+ONTAP 9.9.1
+a|
+NFS extended attributes
+a|
+ONTAP 9.12.1
+|===
+
+Additional NFSv4.2 optional features will be added in a later ONTAP release.
 
 == Enable NFS v4.2 security labels
 Beginning with ONTAP 9.9.1, NFS security labels can be enabled. They are disabled by default.
 
 With NFS v4.2 security labels, ONTAP NFS servers are Mandatory Access Control (MAC) aware, storing and retrieving sec_label attributes sent by clients.
 
-For more information, see https://tools.ietf.org/html/rfc7204[RFC7240]
+For more information, see link:https://tools.ietf.org/html/rfc7204[RFC 7240^]
 
-[NOTE]
-====
-NFS v4.2 security labels are not currently supported for NDMP dump operations. If security labels are encountered on files or directories, the dump fails.
-====
+Beginning with ONTAP 9.12.1, NFS v4.2 security labels are supported for NDMP dump operations. If security labels are encountered on files or directories in earlier releases, the dump fails.
 
 .Steps
 
@@ -37,4 +46,15 @@ NFS v4.2 security labels are not currently supported for NDMP dump operations. I
 ``set -privilege advanced``
 . Enable security labels:
 +
-``vserver nfs modify -vserver svm_name -v4.2-seclabel enabled``
+``vserver nfs modify -vserver _svm_name_ -v4.2-seclabel enabled``
+
+== Enable NFS extended attributes
+Beginning with ONTAP 9.12.1, NFS extended attributes (xattrs) are enabled by default.
+
+Extended attributes are standard NFS attributes defined by https://tools.ietf.org/html/rfc8276[RFC 8276^] and enabled in modern NFS clients. They can be used to attach user-defined metadata to file system objects, and are of interest in advanced security deployments.
+
+NFS extended attributes are not currently supported for NDMP dump operations. If extended attributes are encountered on files or directories, the dump proceeds but does not back up the extended attributes on those files or directories.
+
+If you need to disable extended attributes, use the ``vserver nfs modify -v4.2-xattrs disabled`` command.
+
+// 2023 Jan 27, ONTAPDOC-693

@@ -1,7 +1,7 @@
 ---
 permalink: snaplock/move-snaplock-volume-concept.html
 sidebar: sidebar
-keywords: move, snaplock, volume, aggregate, security, role, enterprise, compliance
+keywords: move, snaplock, volume, aggregate, security, role, enterprise, compliance, create, administrator, support, user, cluster, destination, command
 summary: "Beginning with ONTAP 9.8, you can move a SnapLock volume to a destination aggregate of the same type, either Enterprise to Enterprise, or Compliance to Compliance. You must be assigned the SnapLock security role to move a SnapLock volume."
 ---
 = Move a SnapLock volume
@@ -12,3 +12,59 @@ summary: "Beginning with ONTAP 9.8, you can move a SnapLock volume to a destinat
 Beginning with ONTAP 9.8, you can move a SnapLock volume to a destination aggregate of the same type, either Enterprise to Enterprise, or Compliance to Compliance. You must be assigned the SnapLock security role to move a SnapLock volume.
 
 // 09 DEC 2021, BURT 1430515
+
+== Create a SnapLock security administrator account
+
+You must have SnapLock security administrator privileges to perform a SnapLock volume move. This privilege is granted to you with the _snaplock_ role, introduced in ONTAP 9.8. If you have not already been assigned that role, you can ask your cluster administrator to create a SnapLock security user with this SnapLock security role.
+
+.What you'll need
+
+* You must be a cluster administrator to perform this task.
+* You must have logged in on a secure connection (SSH, console, or ZAPI).
+
+.About this task
+
+The snaplock role is associated with the admin SVM, unlike the vsadmin-snaplock role, which is associated with the data SVM.
+
+.Step
+
+. Create an SVM administrator account with the SnapLock administrator role:
++
+`*security login create -vserver _SVM_name_ -user-or-group-name _user_or_group_name_ -application _application_ -authmethod _authentication_method_ -role _role_ -comment _comment_*`
++
+The following command enables the SVM administrator account `SnapLockAdmin` with the predefined `snaplock` role to access admin SVM `cluster1` using a password:
++
+----
+cluster1::> security login create -vserver cluster1 -user-or-group-name SnapLockAdmin -application ssh -authmethod password -role snaplock
+----
+
+// 2022-2-28. issue 385
+
+== Move a SnapLock volume
+
+You can use the `volume move` command to move a SnapLock volume to a destination aggregate.
+
+.What you'll need
+
+* You must have created a SnapLock-protected audit log before performing SnapLock volume move.
++
+link:create-audit-log-task.html[Create an audit log].
+
+* If you are using a version of ONTAP earlier than ONTAP 9.10.1, the destination aggregate must be the same SnapLock type as the SnapLock volume you want to move; either Compliance to Compliance or Enterprise to Enterprise. Beginning with ONTAP 9.10.1, this restriction is removed and an aggregate can include both Compliance and Enterprise SnapLock volumes, as well as non-SnapLock volumes.
+* You must be a user with the SnapLock security role.
+
+.Steps
+
+. Using a secure connection, log in to the ONTAP cluster management LIF:
++
+`*ssh snaplock_user@cluster_mgmt_ip*`
+. Move a SnapLock volume:
++
+`*volume move start -vserver _SVM_name_ -volume _SnapLock_volume_name_ -destination-aggregate _destination_aggregate_name_*`
+. Check the status of the volume move operation:
++
+`*volume move show -volume _SnapLock_volume_name_ -vserver _SVM_name_ -fields volume,phase,vserver*`
+
+// 2022-7-12, issue 569
+// 09 DEC 2021, BURT 1430515
+// 2022-1-31, issue 349

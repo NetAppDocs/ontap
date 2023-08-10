@@ -1,7 +1,7 @@
 ---
 permalink: encryption-at-rest/enable-encryption-new-volume-task.html
 sidebar: sidebar
-keywords: enabling, encryption, new, volume
+keywords: encryption, new volume, NAE, NVE, volume create
 summary: "You can use the volume create command to enable encryption on a new volume."
 ---
 = Enable encryption on a new volume
@@ -13,98 +13,48 @@ You can use the `volume create` command to enable encryption on a new volume.
 
 .About this task
 
-Beginning with ONTAP 9.2, you can enable encryption on a SnapLock volume.
+You can encrypt volumes using NetApp Volume Encryption (NVE) and, beginning with ONTAP 9.6, NetApp Aggregate Encryption (NAE). To learn more about NAE and NVE, refer to the xref:configure-netapp-volume-encryption-concept.html[volume encryption overview].
 
-Beginning with ONTAP 9.4, if you enable "`cc-mode`" when you set up the Onboard Key Manager, volumes you create with the `volume create` command are automatically encrypted, whether or not you specify `-encrypt true`.
+The procedure to enable encryption on a new volume in ONTAP varies based on the version of ONTAP you are using and your specific configuration:
 
-Beginning with ONTAP 9.6, you can use aggregate-level encryption to assign keys to the containing aggregate for the volumes to be encrypted. Volumes you create in the aggregate are encrypted by default. You can use the `-encrypt` option to override the default when you create the volume.
+* Beginning with ONTAP 9.4, if you enable `cc-mode` when you set up the Onboard Key M anager, volumes you create with the `volume create` command are automatically encrypted, whether or not you specify `-encrypt true`.
+* In ONTAP 9.6 and earlier releases, you must use `-encrypt true` with `volume create` commands to enable encryption (provided you did not enable `cc-mode`).
+* If you want to create an NAE volume in ONTAP 9.6, you must enable NAE at the aggregate level. Refer to xref:enable-aggregate-level-encryption-nve-license-task.html[Enable aggregate-level encryption with the VE license] for more details on this task. 
+* Beginning with ONTAP 9.7, newly created volumes are encrypted by default when you have the VE license and onboard or external key management. By default, new volumes created in an NAE aggregate will be of type NAE rather than NVE. 
+** In ONTAP 9.7 and later releases, if you add `-encrypt true` to the `volume create` command to create a volume in an NAE aggregate, the volume will have NVE encryption instead of NAE. All volumes in an NAE aggregate must be encrypted with either NVE or NAE.
 
-Beginning with ONTAP 9.7, newly created volumes are encrypted by default when you have the VE license and onboard or external key management.
-
-A volume encrypted with a unique key is called an _NVE volume_. A volume encrypted with an aggregate-level key is called an _NAE aggregate_ (for NetApp Aggregate Encryption). Plaintext volumes are not supported in NAE aggregates.
+[NOTE]
+Plaintext volumes are not supported in NAE aggregates.
 
 .Steps
-
-. Create a new volume and specify whether encryption is enabled on the volume:
+. Create a new volume and specify whether encryption is enabled on the volume. If the new volume is in an NAE aggregate, by default the volume will be an NAE volume:
 +
 [cols="25,75"]
 |===
-
 h| To create... h| Use this command...
-
+a| An NAE volume 
+a| `volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_`
 a|
-An ONTAP 9.7 or later NAE volume
+An NVE volume
 a|
-`volume create -vserver SVM_name -volume volume_name -aggregate aggregate_name`
-a|
-An ONTAP 9.6 NAE volume (assuming aggregate-level encryption is enabled)
-a|
-`volume create -vserver SVM_name -volume volume_name -aggregate aggregate_name`
-a|
-An ONTAP 9.7 or later NVE volume
-a|
-`volume create -vserver SVM_name -volume volume_name -aggregate aggregate_name`
-a|
-An ONTAP 9.6 or earlier NVE volume
-a|
-`volume create -vserver SVM_name -volume volume_name -aggregate aggregate_name -encrypt true`
-a|
-A plain text volume
-a|
-`volume create -vserver SVM_name -volume volume_name -aggregate aggregate_name -encrypt false`
+`volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -encrypt true` +
+[NOTE]
+In ONTAP 9.6 and earlier where NAE is not supported, `-encrypt true` specifies that the volume should be encrypted with NVE. In ONTAP 9.7 and later where volumes are created in NAE aggregates, `-encrypt true` overrides the default encryption type of NAE to create an NVE volume instead. 
+a| A plain text volume
+a| `volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -encrypt false`
 |===
-
 +
-For complete command syntax, see the man page for the command.
-+
-Beginning with ONTAP 9.7 or later, the following command creates an NAE volume named `vol1` on `aggr1`:
-+
-----
-cluster1::> volume create -vserver vs1 -volume vol1 -aggregate aggr1
-----
-+
-Using ONTAP 9.6, assuming aggregate-level encryption is enabled, the following command creates an NAE volume named `vol1` on `aggr1`:
-+
-----
-cluster1::> volume create -vserver vs1 -volume vol1 -aggregate aggr1
-----
-+
-Beginning with ONTAP 9.7 or later, the following command creates an NVE volume named `vol2` on `aggr1`:
-+
-----
-cluster1::> volume create -vserver vs1 -volume vol2 -aggregate aggr1
-----
-+
-Using ONTAP 9.6 or earlier, the following command creates an NVE volume named `vol2` on `aggr1`:
-+
-----
-cluster1::> volume create -vserver vs1 -volume vol2 -aggregate aggr1 -encrypt true
-----
-+
-The following command creates a plaintext volume named `vol3` on `aggr1`:
-+
-----
-cluster1::> volume create -vserver vs1 -volume vol3 -aggregate aggr1 -encrypt false
-----
+For complete command syntax, refer to the command reference page for link:https://docs.netapp.com/us-en/ontap-cli-9131/volume-create.html[`volume create`^].
 
 . Verify that volumes are enabled for encryption:
 +
 `volume show -is-encrypted true`
 +
-For complete command syntax, see the man page for the command.
-+
-The following command displays the encrypted volumes on `cluster2`:
-+
-----
-cluster2::> volume show -is-encrypted true
-
-Vserver  Volume  Aggregate  State  Type  Size  Available  Used
--------  ------  ---------  -----  ----  -----  --------- ----
-vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
-----
+For complete command syntax, see the link:https://docs.netapp.com/us-en/ontap-cli-9131/volume-show.html[command reference^].
 
 .Result
 
-If you are using a KMIP server to store the encryption keys for a node, ONTAP automatically "`pushes`" an encryption key to the server when you encrypt a volume.
+If you are using a KMIP server to store the encryption keys for a node, ONTAP automatically "pushes" an encryption key to the server when you encrypt a volume.
 
-// BURT 1374208, 09 NOV 2021
+// 14 NOV 2022, BURT 1510942
+//  09 NOV 2021, BURT 1374208

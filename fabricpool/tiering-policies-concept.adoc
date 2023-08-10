@@ -15,6 +15,15 @@ FabricPool tiering policies enable you to move data efficiently across tiers as 
 
 FabricPool tiering policies determine when or whether the user data blocks of a volume in FabricPool are moved to the cloud tier, based on the volume "`temperature`" of hot (active) or cold (inactive). The volume "`temperature`" increases when it is accessed frequently and decreases when it is not. Some tiering policies have an associated tiering minimum cooling period, which sets the time that user data in a volume of FabricPool must remain inactive for the data to be considered "`cold`" and moved to the cloud tier.
 
+After a block has been identified as cold, it is marked as eligible to be tiered.  A daily background tiering scan looks for cold blocks. When enough 4KB blocks from the same volume have been collected, they are concatenated into a 4MB object and moved to the cloud tier based on the volume tiering policy.
+
+[NOTE] 
+====
+Data in volumes using the `all` tiering policy is immediately marked as cold and begins tiering to the cloud tier as soon as possible. It does not need to wait for the daily tiering scan to run.
+====
+
+You can use the `volume object-store tiering show` command to view the tiering status of a FabricPool volume. For more information, see the link:https://docs.netapp.com/us-en/ontap-cli-9131/[Command Reference].
+
 The FabricPool tiering policy is specified at the volume level. Four options are available:
 
 * The `snapshot-only` tiering policy (the default) moves user data blocks of the volume Snapshot copies that are not associated with the active file system to the cloud tier.
@@ -27,13 +36,19 @@ The default tiering minimum cooling period is 31 days and applies to the entire 
 +
 You can modify the default setting for the tiering minimum cooling period with the `-tiering-minimum-cooling-days` parameter in the advanced privilege level of the `volume create` and `volume modify` commands. Valid values are 2 to 183 days.
 
-* The `all` tiering policy, supported only on ONTAP 9.6 and later, moves all user data blocks in both the active file system and Snapshot copies to the cloud tier. It replaces the `backup` tiering policy.
+* The `all` tiering policy, supported only with ONTAP 9.6 and later, moves all user data blocks in both the active file system and Snapshot copies to the cloud tier. It replaces the `backup` tiering policy. 
 +
-The tiering minimum cooling period does not apply because the data moves the cloud tier as soon as the tiering scan runs, and you cannot modify the setting.
+The `all` volume tiering policy should not be used on read/write volumes that have normal client traffic.
++
+The tiering minimum cooling period does not apply because the data moves to the cloud tier as soon as the tiering scan runs, and you cannot modify the setting. 
 
-* The `none` tiering policy keeps data of a volume in the performance tier, preventing it from being moved to the cloud tier.
+* The `none` tiering policy keeps a volume's data in the performance tier and does not move cold to the cloud tier.
++
+Setting the tiering policy to `none` prevents new tiering. Volume data that has previously been moved to the cloud tier remains in the cloud tier until it becomes hot and is automatically moved back to the local tier.
 +
 The tiering minimum cooling period does not apply because the data never moves to the cloud tier, and you cannot modify the setting.
++
+When cold blocks in a volume with a tiering policy set to `none` are read, they are made hot and written to the local tier.
 
 The `volume show` command output shows the tiering policy of a volume. A volume that has never been used with FabricPool shows the `none` tiering policy in the output.
 
@@ -176,4 +191,7 @@ a|
 
 |===
 
+
+// 2023-July-20, BURT 1566325
+// 2023-Apr-24, issue# 832
 // 08 DEC 2021, BURT 1430515

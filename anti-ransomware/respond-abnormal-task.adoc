@@ -1,11 +1,11 @@
 ---
 sidebar: sidebar
 permalink: anti-ransomware/respond-abnormal-task.html
-keywords: Respond to abnormal activity, anti-ransomware abnormal activity, data entropy, unusual file extensions, potential ransomware attack, false positive, suspected ransomware attack, abnormal activity notification, security, ransomware alert message, detected abnormal volume, suspected file types, attack report, anti-ransomware attack, autonomous, ransomware, protection, arp
+keywords: abnormal activity, data entropy, unusual file extensions, potential ransomware attack, false positive, ransomware attack, abnormal activity notification, ransomware alert, detected abnormal volume, suspected file types, attack report, anti-ransomware attack, ransomware ems
 summary: When Autonomous Ransomware Protection (ARP) detects abnormal activity in a protected volume, it issues a warning. You should evaluate the notification to determine whether the activity is expected and acceptable, or whether an attack is under way.
 ---
 
-= Respond to abnormal activity.
+= Respond to abnormal activity
 :toc: macro
 :toclevels: 1
 :hardbreaks:
@@ -16,10 +16,6 @@ summary: When Autonomous Ransomware Protection (ARP) detects abnormal activity i
 
 [.lead]
 When Autonomous Ransomware Protection (ARP) detects abnormal activity in a protected volume, it issues a warning. You should evaluate the notification to determine whether the activity is expected and acceptable, or whether an attack is under way.
-
-.What you’ll need
-
-* ARP is running in active mode.
 
 .About this task
 
@@ -34,9 +30,16 @@ The identified file type is expected in your workload and can be ignored.
 +
 The identified file type is unexpected in your workload and should be treated as a potential attack.
 
-In both cases, normal monitoring resumes after updating and clearing the notices; ARP records your evaluation, logs are updated with the new file types and using them for future analysis. However, in the case of a suspected attack, you must determine whether it is an attack, respond to it if it is, and restore protected data before clearing the notices. link:index.html#how-to-recover-hdata-in-ontap-after-a-ransomware-attack[Learn more about how to recover from a ransomware attack].
+In both cases, normal monitoring resumes after updating and clearing the notices. ARP record your evaluation to its threat assessment, updated logs with the new file types, and uses them for future analysis.
 
-NOTE: There are no notices to clear if you restored an entire volume.
+In the case of a suspected attack, you must determine whether it is an attack, respond to it if it is, and restore protected data before clearing the notices. link:index.html#how-to-recover-data-in-ontap-after-a-ransomware-attack[Learn more about how to recover from a ransomware attack].
+
+[NOTE]
+There are no notices to clear if you restored an entire volume.
+
+.Before you begin 
+
+* ARP must be running in active mode.
 
 .Steps
 
@@ -59,7 +62,10 @@ In the *Security* tab, click View *Suspected File Types*.
 
 h| If you selected this value... h| Take this action…
 
-| False Positive | Click *Update* and *Clear Suspect File Types* to record your decision and resume normal anti-ransomware monitoring.
+| False Positive a| Click *Update* and *Clear Suspect File Types* to record your decision and resume normal ARP monitoring.
+
+NOTE: Beginning with ONTAP 9.13.1, if you are using MAV to protect your ARP settings, the clear-suspect operation prompts you to obtain the approval of one or more additional administrators. link:../multi-admin-verify/request-operation-task.html[Approval must be received from all administrators] associated with the MAV approval group or the operation will fail.
+
 | Potential Ransomware Attack | Respond to the attack and restore protected data. Then click *Update* and *Clear Suspect File Types* to record your decision and resume normal ARP monitoring. +
 There are no suspect file types to clear if you restored an entire volume.
 |===
@@ -108,7 +114,7 @@ Sample output:
 
 **	False positive
 +
-Enter the following command to record your decision – adding the new extension to the list of those allowed – and resume normal anti-ransomware monitoring:
+Enter the following command to record your decision, adding the new extension to the list of those allowed, and resume normal anti-ransomware monitoring:
 `anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive true`
 +
 Use one of the following parameters to identify the extensions:
@@ -118,7 +124,7 @@ Use one of the following parameters to identify the extensions:
 
 ** Potential ransomware attack
 +
-Respond to the attack and restore data. Then enter the following command to record your decision and resume normal ARP monitoring:
+Respond to the attack and link:../anti-ransomware/recover-data-task.html[recover data from the ARP-created backup snapshot]. After the data is recovered, enter the following command to record your decision and resume normal ARP monitoring:
 +
 `anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive false`
 +
@@ -127,10 +133,32 @@ Use one of the following parameters to identify the extensions:
 `[-extension _text_, … ]` File extension
 `[-start-time _date_time_ -end-time _date_time_]` Starting and ending times for the range of files to be cleared, in the form "MM/DD/YYYY HH:MM:SS".
 +
-There are no suspect file types to clear if you restored an entire volume.
+There are no suspect file types to clear if you restored an entire volume. The ARP-created backup snapshot will be removed and the attack report will be cleared.
+
+. If you are using MAV and an expected `clear-suspect` operation needs additional approvals, each MAV group approver does the following:
+
+.. Show the request:
++
+`security multi-admin-verify request show`
+
+.. Approve the request to resume normal anti-ransomware monitoring:
++
+`security multi-admin-verify request approve -index[_number returned from show request_]`
++
+The response for the last group approver indicates that the volume has been modified and a false positive is recorded.
+
+. If you are using MAV and you are a MAV group approver, you can also reject a clear-suspect request:
++
+`security multi-admin-verify request veto -index[_number returned from show request_]`
+
 --
 ====
 
+.More information 
+* link:https://kb.netapp.com/onprem%2Fontap%2Fda%2FNAS%2FUnderstanding_Autonomous_Ransomware_Protection_attacks_and_the_Autonomous_Ransomware_Protection_snapshot#[KB: Understanding Autonomous Ransomware Protection attacks and the Autonomous Ransomware Protection snapshot^].
+
+
+// 2023-04-21, ONTAPDOC-931
 // 2022-08-25, BURT 1499112
 // 2022-06-02, ontap-issues-436
 // 2021-10-29, Jira IE-353

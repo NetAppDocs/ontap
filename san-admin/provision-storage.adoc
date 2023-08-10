@@ -16,8 +16,6 @@ summary: Create LUNs to provide storage for your host using the FC or iSCSI SAN 
 
 [.lead]
 
-If a procedure for your specific host is not available, you can use these steps to provision storage for any support SAN host.  
-
 This procedure creates new LUNs on an existing storage VM which already has the FC or iSCSI protocol configured.
 
 If you need to create a new storage VM and configure the FC or iSCSI protocol, see link:configure-svm-fc-task.html[Configure an SVM for FC] or link:configure-svm-iscsi-task.html[Configure an SVM for iSCSI].
@@ -59,6 +57,10 @@ include::_include/san_add_lun_more_options.adoc[]
 . For FC, zone your FC switches by WWPN. Use one zone per initiator and include all target ports in each zone.
 
 . Discover LUNs on your host.
++
+For VMware vSphere, use Virtual Storage Console (VSC) to discover and initialize your LUNs.
+
+. Initialize the LUNs and optionally, create file systems.
 
 . Verify that the host can write and read data on the LUN.
 
@@ -68,9 +70,12 @@ include::_include/san_add_lun_more_options.adoc[]
 --
 Create LUNs to provide storage for a SAN host using the FC or iSCSI protocol with the ONTAP CLI.
 
-. Use the `system license show` command to verify that you have a license for FC or iSCSI.
+. Verify that you have a license for FC or iSCSI.
 +
-`system license show`
+[source,cli]
+----
+system license show
+----
 +
 ----
 
@@ -85,27 +90,49 @@ Package           Type    Description           Expiration
 
 . If you do not have a license for FC or iSCSI, use the `license add` command.
 +
-`license add -license-code _your_license_code_`
+[source,cli]
+----
+license add -license-code <your_license_code>
+----
 
 . Enable your protocol service on the SVM:
 +
-*For iSCSI:* `vserver iscsi create -vserver _vserver_name_ -target-alias _vserver_name_`
+*For iSCSI:* 
 +
-*For FC:* `vserver fcp create -vserver _vserver_name_ -status-admin up`
+[source,cli]
+----
+vserver iscsi create -vserver <svm_name> -target-alias <svm_name>
+----
++
+*For FC:* 
++
+[source,cli]
+----
+vserver fcp create -vserver <svm_name> -status-admin up
+----
 
 . Create two LIFs for the SVMs on each node:
 +
-`network interface create -vserver _vserver_name_ -lif _lif_name_ -role data -data-protocol iscsi|fc -home-node _node_name_ -home-port _port_name_ -address _ip_address_ -netmask netmask`
+[source,cli]
+----
+network interface create -vserver <svm_name> -lif <lif_name> -role data -data-protocol <iscsi|fc> -home-node <node_name> -home-port <port_name> -address <ip_address> -netmask <netmask>
+----
 +
 NetApp supports a minimum of one iSCSI or FC LIF per node for each SVM serving data. However, two LIFS per node are required for redundancy.
 
 . Verify that your LIFs have been created and that their operational status is `online`:
 +
-`network interface show -vserver _vserver_name_ _lif_name_`
+[source,cli]
+----
+network interface show -vserver <svm_name> <lif_name>
+----
 
 . Create your LUNs:
 +
-`lun create -vserver vserver_name -volume _volume_name_ -lun _lun_name_ -size _lun_size_ -ostype linux -space-reserve enabled|disabled`
+[source,cli]
+----
+lun create -vserver <svm_name> -volume <volume_name> -lun <lun_name> -size <lun_size> -ostype linux -space-reserve <enabled|disabled>
+----
 +
 Your LUN name cannot exceed 255 characters and cannot contain spaces.
 +
@@ -114,18 +141,28 @@ The NVFAIL option is automatically enabled when a LUN is created in a volume.
 
 . Create your igroups:
 +
-`igroup create -vserver _vserver_name_ -igroup _igroup_name_ -protocol fcp|iscsi|mixed -ostype linux -initiator _initiator_name_`
+[source,cli]
+----
+igroup create -vserver <svm_name> -igroup <igroup_name> -protocol <fcp|iscsi|mixed> -ostype linux -initiator <initiator_name>
+----
 
 . Map your LUNs to igroups:
 +
-`lun mapping create -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -igroup _igroup_name_`
+[source,cli]
+----
+lun mapping create -vserver <svm__name> -volume <volume_name> -lun <lun_name> -igroup <igroup_name>
+----
+
 . Verify that your LUNs are configured correctly:
 +
-`lun show -vserver _vserver_name_`
+[source,cli]
+----
+lun show -vserver <svm_name>
 
-. link:create-port-sets-binding-igroups-task.html[Create a port set and bind to an igroup] (optional).
+. Optionally, link:create-port-sets-binding-igroups-task.html[Create a port set and bind to an igroup].
 
 . Follow steps in your host documentation for enabling block access on your specific hosts.
+
 . Use the Host Utilities to complete the FC or iSCSI mapping and to discover your LUNs on the host.
 
 --
@@ -140,7 +177,7 @@ https://docs.netapp.com/us-en/ontap/san-admin/manage-san-initiators-task.html[Vi
 http://www.netapp.com/us/media/tr-4017.pdf[NetApp Technical Report 4017: Fibre Channel SAN Best Practices]
 
 
-
+// 2023 May 02, IDR-217
 // BURT 1416961, 21 DEC 2021
 // BURT 1448684, 10 JAN 2022
 

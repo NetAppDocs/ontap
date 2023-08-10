@@ -147,9 +147,6 @@ a|
 
 The following table describes how parameter combinations of the `storage failover modify` command affect automatic giveback in panic situations.
 
-NOTE: Be aware that takeover can occur for other reasons in the event of a node panic. For example, if a node panics but the panic packet is not received by its partner, the partner might perform a heartbeat loss takeover. In this case, giveback would not be controlled by the `-auto-giveback-after-panic` parameter but would instead be controlled by the `-onfailure` parameter.
-
-
 [cols="60,40"]
 |===
 
@@ -176,32 +173,17 @@ If `-onpanic` is set to `false`, takeover/giveback does not occur, regardless of
 |No
 |===
 
-[NOTE]
-====
-If you modify the default settings, the `-onpanic` parameter can override automatic giveback, as shown in the table above.
+NOTE: A takeover can result from a failure not associated with a panic.  A _failure_ is experienced when communication is lost between a node and its partner, also called a _heartbeat loss_. If a takeover occurs because of a failure, giveback is controlled by the `-onfailure` parameter instead of the `-auto-giveback-after-panic parameter`. 
 
-* If the `-onpanic` parameter is set to `true`, automatic giveback is always performed if a panic occurs unless you have changed the default settings for the `-auto-giveback` and `-auto-giveback-after-panic` parameters. If both of these parameters are changed from their default (`true`) to `false`, then an automatic giveback will not occur after a panic, even if the `-onpanic` parameter is set to `true`.
+NOTE: When a node panics, it sends a panic packet to its partner node.  If for any reason the panic packet is not received by the partner node, the panic can be misinterpreted as a failure.  Without receipt of the panic packet, the partner node knows only that communication has been lost, and does not know that a panic has occurred.  In this case, the partner node processes the loss of communication as a failure instead of a panic, and giveback is controlled by the `-onfailure` parameter (and not by the `-auto-giveback-after-panic parameter`). 
 
-*  If the `-onpanic` parameter is set to `false`, a takeover does not occur and clients experience a disruption in ONTAP data services. Therefore, automatic giveback cannot occur, even if the `-auto-giveback-after-panic` parameter is set to `true`.
-====
+For details on all `storage failover modify` parameters, see the link:https://docs.netapp.com/us-en/ontap-cli-9131/storage-failover-modify.html[ONTAP manual pages].
 
-// Start snippet: complex admonition - sample with bulleted list
-// 1 placeholder: LABEL (all caps)
-
-[NOTE]
-====
-* Takeover might occur for other reasons during node panic.  In such cases, giveback is not controlled by the `auto-giveback-after-panic` setting.
-* If the `-onpanic` parameter is set to `true`, automatic giveback is always performed if a panic occurs unless you have changed the default settings for the `-auto-giveback` and `-auto-giveback-after-panic` parameters. If both of these parameters are changed from their default (`true`) to `false`, then an automatic giveback will not occur after a panic, even if the `-onpanic` parameter is set to `true`.
-* If the `-onpanic` parameter is set to `false`, takeover does not occur. Therefore, automatic giveback cannot occur, even if the `-auto-giveback-after-panic` parameter is set to `true`. A client disruption occurs.
-====
-// End snippet
-
-
-//
 // This file was created with NDAC Version 2.0 (August 17, 2020)
 //
 // 2021-04-14 10:46:21.398175
 //
+// 2022 Nov 29, issue 633, BURT 1105680
 // 2022-09-15, BURT 1105680
 // 2022-08-08, BURT 1488610
 // 2022-26-01, issue #322

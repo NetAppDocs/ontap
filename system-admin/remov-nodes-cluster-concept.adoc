@@ -19,9 +19,9 @@ The following conditions must be satisfied before removing nodes from the cluste
 * All of the data on the node that you want to remove must have been evacuated.
 ** This might include link:../encryption-at-rest/secure-purge-data-encrypted-volume-concept.html[purging data from an encrypted volume].
 
-* All volumes have been link:../volumes/move-volume-task.html[moved] or link:../volumes/delete-flexvol-task.html[deleted] from aggregates owned by the node.
+* All non-root volumes have been link:../volumes/move-volume-task.html[moved] from aggregates owned by the node.
 
-* All aggregates have been link:../disks-aggregates/commands-manage-aggregates-reference.html[deleted] from the node.
+* All non-root aggregates have been link:../disks-aggregates/commands-manage-aggregates-reference.html[deleted] from the node.
 
 * If the node owns Federal Information Processing Standards (FIPS) disks or self-encrypting disks (SEDs), link:../encryption-at-rest/return-seds-unprotected-mode-task.html[disk encryption has been removed] by returning the disks to unprotected mode.
 ** You might also want to link:../encryption-at-rest/sanitize-fips-drive-sed-task.html[sanitize FIPS drives or SEDs].
@@ -39,24 +39,40 @@ The following conditions must be satisfied before removing nodes from the cluste
 
 * All VLANs on the node have been link:../networking/configure_vlans_over_physical_ports.html#delete-a-vlan[deleted].
 
+* If you have LUNs on the node to be removed, you should link:https://docs.netapp.com/us-en/ontap/san-admin/modify-slm-reporting-nodes-task.html[modify the Selective LUN Map (SLM) reporting-nodes list] before you remove the node.
++
+If you do not remove the node and its HA partner from the SLM reporting-nodes list, access to the LUNs previously on the node can be lost even though the volumes containing the LUNs were moved to another node.
+
 It is recommended that you issue an AutoSupport message to notify NetApp technical support that node removal is underway.
 
 *Note:* You must not perform operations such as `cluster remove-node`, `cluster unjoin`, and `node rename` when an automated ONTAP upgrade is in progress.
 
 .About this task
 
-If you are running a mixed-version cluster, you can remove the last low-version node by using one of the advanced privilege commands beginning with ONTAP 9.3:
+* If you are running a mixed-version cluster, you can remove the last low-version node by using one of the advanced privilege commands beginning with ONTAP 9.3:
 
-* ONTAP 9.3: `cluster unjoin -skip-last-low-version-node-check`
-* ONTAP 9.4 and later: `cluster remove-node -skip-last-low-version-node-check`
+** ONTAP 9.3: `cluster unjoin -skip-last-low-version-node-check`
+** ONTAP 9.4 and later: `cluster remove-node -skip-last-low-version-node-check`
 
-*Note:* All system and user data, from all disks that are connected to the node, must be made inaccessible to users before removing a node from the cluster. If a node was incorrectly unjoined from a cluster, contact NetApp Support for assistance with options for recovery.
+* If you unjoin 2 nodes from a 4-node cluster, cluster HA is automatically enabled on the two remaining nodes.
+
+NOTE: All system and user data, from all disks that are connected to the node, must be made inaccessible to users before removing a node from the cluster. If a node was incorrectly unjoined from a cluster, contact NetApp Support for assistance with options for recovery.
+
+
 
 .Steps
 
 . Change the privilege level to advanced:
 +
 `*set -privilege advanced*`
+
+. Verify if a nodes on the cluster holds epsilon:
++
+`*cluster show -epsilon true*`
+
+.. If a node holds epsilon, change its eligibility to false.
++
+`*cluster modify -node <node_name> -eligibility false*`
 
 . If the node you want to remove is the current master node, then enable another node in the cluster to be elected as the master node by changing the master node's cluster eligibility to `false`:
 +
@@ -67,6 +83,8 @@ The master node is the node that holds processes such as "`mgmt`", "`vldb`", "`v
 ----
 cluster::*> cluster modify -node node1 -eligibility false
 ----
+
+. Log into the remote node management LIF or the cluster-management LIF on a node other than the one that is being removed.
 
 . Remove the node from the cluster:
 +
@@ -109,5 +127,9 @@ The node is automatically rebooted after it is successfully removed from the clu
 
 If you removed nodes to have a single-node cluster, you should modify the cluster ports to serve data traffic by modifying the cluster ports to be data ports, and then creating data LIFs on the data ports.
 
+// 2023 Apr 17, Git Issue 750
+// 2023 Apr 17, Git Issue 849
+// 2023 Apr 10, Git Issue 863
+// 2023 Jan 12, Git Issue 755
 // 2022-06-29, BURT 1485042
 // 2022-03-10, BURT 1453521

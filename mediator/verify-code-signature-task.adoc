@@ -1,0 +1,200 @@
+---
+permalink: mediator/verify-code-signature-task.html
+sidebar: sidebar
+keywords: mediator, new, release, update, install, verify, code, signature
+summary: "You should verify the ONTAP Mediator code signature before installing the Mediator installation package."
+---
+
+= Verify the ONTAP Mediator code signature
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You should verify the ONTAP Mediator code signature before installing the Mediator installation package.
+
+.Before you begin
+
+Before verifying the Mediator code signature, your system must meet the following requirements.
+
+** openssl versions 1.0.2 to 3.0 for basic verification
+** openssl version 1.1.0 or later for Time Stamping Authority (TSA) operations
+** Public internet access for OCSP verification
+
+NOTE: The following files are included in the download package:
+
+[cols="50,50"]
+|===
+
+h| File  h| Description
+
+a| `ONTAP-Mediator-development.pub`     a| The public key used to verify the signature
+a| `csc-prod-chain-ONTAP-Mediator.pem`  a| The public certification CA chain of trust
+a| `csc-prod-ONTAP-Mediator.pem`        a| The certificate used to generate the key
+a| `ontap-mediator-1.6.0`               a| The product installation executable for version 1.6.0
+a| `ontap-mediator-1.6.0.sig`           a| The SHA-256 hashed, then RSA-signed using the csc-prod key, signature for the installer
+a| `ontap-mediator-1.6.0.sig.tsr`       a| The revocation request for use by OCSCP for the installer’s signature
+a| `tsa-prod-ONTAP-Mediator.pem`        a| The public certificate for the TSR
+a| `tsa-prod-chain-ONTAP-Mediator.pem`  a| The public certificate CA Chain for the TSR
+
+|===
+
+.Steps
+
+. Perform the revocation check on `csc-prod-ONTAP-Mediator.pem` by using Online Certificate Status Protocol (OCSP).
+
+.. Find the OCSP URL used to register the certificate because developer certificates might not provide a uri.
++
+----
+openssl x509 -noout -ocsp_uri -in csc-prod-chain-ONTAP-Mediator.pem
+----
+.. Generate an OCSP request for the certificate. 
++
+----
+openssl ocsp -issuer csc-prod-chain-ONTAP-Mediator.pem -CAfile csc-prod-chain-ONTAP-Mediator.pem -cert csc-prod-ONTAP-Mediator.pem  -reqout req.der
+----
+	
+.. Connect to the OCSP Manager to send the OCSP request: 
++
+----
+openssl ocsp -issuer csc-prod-chain-ONTAP-Mediator.pem -CAfile csc-prod-chain-ONTAP-Mediator.pem -cert csc-prod-ONTAP-Mediator.pem  -url ${ocsp_uri} -resp_text -respout resp.der -verify_other csc-prod-chain-ONTAP-Mediator.pem
+----
+
+
+. Verify the trust chain of the CSC and expiration dates against the local host: 
++
+`openssl verify`
++
+NOTE: The `openssl` version from the PATH must have a valid `cert.pem` (not self-signed).
++
+----
+openssl verify -untrusted csc-prod-chain-ONTAP-Mediator.pem -CApath ${OPENSSLDIR} csc-prod-ONTAP-Mediator.pem  # Failure action: The Code-Signature-Check certificate has expired or is invalid. Download a newer version of the ONTAP Mediator.
+openssl verify -untrusted tsa-prod-chain-ONTAP-Mediator.pem -CApath ${OPENSSLDIR} tsa-prod-ONTAP-Mediator.pem  # Failure action: The Time-Stamp certificate has expired or is invalid. Download a newer version of the ONTAP Mediator.
+----
+    
+. Verify the `ontap-mediator-1.5.0.sig.tsr` and `ontap-mediator-1.6.0.tsr` files using the associated certificates: 
++
+`openssl ts -verify`
+
++
+NOTE: `.tsr` files contain the time stamp response associated with the installer and the code signature. Processing confirms that the time stamp has a valid signature from TSA and that your input file has not changed.
+The verification is performed locally on your machine. Independently, there is no need to access TSA servers.
++
+----
+openssl ts -verify -data ontap-mediator-1.6.0.sig -in ontap-mediator-1.6.0.sig.tsr -CAfile tsa-prod-chain-ONTAP-Mediator.pem -untrusted tsa-prod-ONTAP-Mediator.pem
+openssl ts -verify -data ontap-mediator-1.6.0 -in ontap-mediator-1.6.0.tsr -CAfile tsa-prod-chain-ONTAP-Mediator.pem -untrusted tsa-prod-ONTAP-Mediator.pem
+----
+
+. Verify signatures against the key:  
++
+`openssl -dgst -verify`
++
+----
+openssl dgst -sha256 -verify ONTAP-Mediator-production.pub -signature ontap-mediator-1.6.0.sig ontap-mediator-1.6.0
+----
+
+.Example of Verifying the ONTAP Mediator code signature (console output)
+[%collapsible]
+====
+----
+[root@scspa2695423001 ontap-mediator-1.6.0]# pwd
+/root/ontap-mediator-1.6.0
+[root@scspa2695423001 ontap-mediator-1.6.0]# ls -l
+total 63660
+-r--r--r-- 1 root root     8582 Feb 19 15:02 csc-prod-chain-ONTAP-Mediator.pem
+-r--r--r-- 1 root root     2373 Feb 19 15:02 csc-prod-ONTAP-Mediator.pem
+-r-xr-xr-- 1 root root 65132818 Feb 20 15:17 ontap-mediator-1.6.0
+-rw-r--r-- 1 root root      384 Feb 20 15:17 ontap-mediator-1.6.0.sig
+-rw-r--r-- 1 root root     5437 Feb 20 15:17 ontap-mediator-1.6.0.sig.tsr
+-rw-r--r-- 1 root root     5436 Feb 20 15:17 ontap-mediator-1.6.0.tsr
+-r--r--r-- 1 root root      625 Feb 19 15:02 ONTAP-Mediator-production.pub
+-r--r--r-- 1 root root     3323 Feb 19 15:02 tsa-prod-chain-ONTAP-Mediator.pem
+-r--r--r-- 1 root root     1740 Feb 19 15:02 tsa-prod-ONTAP-Mediator.pem
+[root@scspa2695423001 ontap-mediator-1.6.0]#
+[root@scspa2695423001 ontap-mediator-1.6.0]# /root/verify_ontap_mediator_signatures.sh
+++ openssl version -d
+++ cut -d '"' -f2
++ OPENSSLDIR=/etc/pki/tls
++ openssl version
+OpenSSL 1.1.1k  FIPS 25 Mar 2021
+++ openssl x509 -noout -ocsp_uri -in csc-prod-chain-ONTAP-Mediator.pem
++ ocsp_uri=http://ocsp.entrust.net
++ echo http://ocsp.entrust.net
+http://ocsp.entrust.net
++ openssl ocsp -issuer csc-prod-chain-ONTAP-Mediator.pem -CAfile csc-prod-chain-ONTAP-Mediator.pem -cert csc-prod-ONTAP-Mediator.pem -reqout req.der
++ openssl ocsp -issuer csc-prod-chain-ONTAP-Mediator.pem -CAfile csc-prod-chain-ONTAP-Mediator.pem -cert csc-prod-ONTAP-Mediator.pem -url http://ocsp.entrust.net -resp_text -respout resp.der -verify_other csc-prod-chain-ONTAP-Mediator.pem
+OCSP Response Data:
+    OCSP Response Status: successful (0x0)
+    Response Type: Basic OCSP Response
+    Version: 1 (0x0)
+    Responder Id: C = US, O = "Entrust, Inc.", CN = Entrust Extended Validation Code Signing CA - EVCS2
+    Produced At: Feb 28 05:01:00 2023 GMT
+    Responses:
+    Certificate ID:
+      Hash Algorithm: sha1
+      Issuer Name Hash: 69FA640329AB84E27220FE0927647B8194B91F2A
+      Issuer Key Hash: CE894F8251AA15A28462CA312361D261FBF8FE78
+      Serial Number: 511A542B57522AEB7295A640DC6200E5
+    Cert Status: good
+    This Update: Feb 28 05:00:00 2023 GMT
+    Next Update: Mar  4 04:59:59 2023 GMT
+
+    Signature Algorithm: sha512WithRSAEncryption
+         3c:1d:49:b0:93:62:37:3e:c7:38:e3:9f:9f:62:82:73:ed:f4:
+         ea:00:6b:f1:01:cd:79:57:92:f1:9d:5d:85:9b:60:59:f8:6c:
+         e6:f4:50:51:f3:4c:8a:51:dd:50:68:16:8f:20:24:7e:39:b0:
+         44:94:8d:b0:61:da:b9:08:36:74:2d:44:55:62:fb:92:be:4a:
+         e7:6c:8c:49:dd:0c:fd:d8:ce:20:08:0d:0f:5a:29:a3:19:03:
+         9f:d3:df:41:f4:89:0f:73:18:3f:ac:bb:a7:a3:96:7d:c5:70:
+         4c:57:cd:17:17:c6:8a:60:d1:37:c9:2d:81:07:2a:d7:a6:02:
+         ee:ce:88:16:22:db:e3:43:64:1e:9b:0d:4d:31:66:fa:ab:a5:
+         52:99:94:4a:4a:d0:52:c5:34:f5:18:c7:15:5b:ce:74:c2:fc:
+         61:ea:55:aa:f1:2f:82:a3:6a:95:8d:7e:2b:38:49:4f:bf:b1:
+         68:7b:1b:24:8b:1f:4d:c5:77:f0:71:af:9c:34:c8:7a:82:50:
+         09:a2:19:6e:c6:30:4f:da:a2:79:08:f9:d0:ff:85:d9:2a:84:
+         cf:0c:aa:75:8f:72:c9:a7:a2:83:e8:8b:cf:ed:0c:69:75:b6:
+         2a:7b:6b:58:99:01:d8:34:ad:e1:89:25:27:1b:fa:d9:6d:32:
+         97:3a:0b:0a:8e:a3:9e:e3:f4:e0:d6:1a:c9:b5:14:8c:3e:54:
+         3b:37:17:1a:93:44:84:8b:4a:87:97:1e:76:43:3e:d3:ec:8b:
+         7e:56:4a:3f:01:31:c0:e5:58:fb:50:ce:6f:b1:e7:35:f9:b7:
+         a3:ef:6b:3b:21:95:37:a6:5b:8f:f0:15:18:36:65:89:a1:9c:
+         9b:69:00:b4:b1:65:6a:bc:11:2d:d4:9b:b4:97:cc:cb:7a:0c:
+         16:11:c1:75:58:7e:13:ab:56:3c:3f:93:5b:95:24:c6:54:52:
+         1f:86:a9:16:ce:d9:ea:8b:3a:f3:4f:c4:8f:ad:de:e8:3e:3c:
+         d2:51:51:ad:33:7f:d8:c5:33:24:26:f1:2d:9d:0e:9f:55:d0:
+         68:bf:af:bd:68:4a:40:08:bc:92:a0:62:54:7d:16:7b:36:29:
+         15:b1:cd:58:8e:fb:4a:f2:3e:94:8b:fe:56:95:cc:24:32:af:
+         5f:71:99:18:ed:0c:64:94:f7:54:48:87:48:d0:6d:b3:42:04:
+         96:03:73:a2:8e:8a:6a:b2:af:ee:56:19:a1:c6:35:12:59:ad:
+         19:6a:fe:e0:f1:27:cc:96:4e:f0:4f:fb:6a:bd:ce:05:2c:aa:
+         79:7c:df:02:5c:ca:53:7d:60:12:88:7c:ce:15:c7:d4:02:27:
+         c1:ab:cf:71:30:1e:14:ba
+WARNING: no nonce in response
+Response verify OK
+csc-prod-ONTAP-Mediator.pem: good
+        This Update: Feb 28 05:00:00 2023 GMT
+        Next Update: Mar  4 04:59:59 2023 GMT
++ openssl verify -untrusted csc-prod-chain-ONTAP-Mediator.pem -CApath /etc/pki/tls csc-prod-ONTAP-Mediator.pem
+csc-prod-ONTAP-Mediator.pem: OK
++ openssl verify -untrusted tsa-prod-chain-ONTAP-Mediator.pem -CApath /etc/pki/tls tsa-prod-ONTAP-Mediator.pem
+tsa-prod-ONTAP-Mediator.pem: OK
++ openssl ts -verify -data ontap-mediator-1.6.0.sig -in ontap-mediator-1.6.0.sig.tsr -CAfile tsa-prod-chain-ONTAP-Mediator.pem -untrusted tsa-prod-ONTAP-Mediator.pem
+Using configuration from /etc/pki/tls/openssl.cnf
+Verification: OK
++ openssl ts -verify -data ontap-mediator-1.6.0 -in ontap-mediator-1.6.0.tsr -CAfile tsa-prod-chain-ONTAP-Mediator.pem -untrusted tsa-prod-ONTAP-Mediator.pem
+Using configuration from /etc/pki/tls/openssl.cnf
+Verification: OK
++ openssl dgst -sha256 -verify ONTAP-Mediator-production.pub -signature ontap-mediator-1.6.0.sig ontap-mediator-1.6.0
+Verified OK
+[root@scspa2695423001 ontap-mediator-1.6.0]#
+
+----
+====
+
+// 2021 Apr 21, ONTAPEX-133437
+// 2021 May 05, review comment in IDR-67
+// 2022 Mar 07, ontap-metrocluster issue #146
+// 2022 Apr 28, BURT 1470656
+// 2022 Jan 15, ontap-metrocluster/issues/35
+// 2022 Jul 19, ontap-issues-564
+// 2023 May 05, ONTAPDOC-955
+// 2023 Jun 02, ONTAPDOC-1064

@@ -1,10 +1,10 @@
 ---
 sidebar: sidebar
 permalink: smbc/considerations-limits.html
-keywords: SM-BC, SMBC, restrictions, consistency group, endpoint limits, solaris, aix
+keywords: SM-BC, SMBC, restrictions, consistency group, endpoint limits, solaris, aix, hp-ux, fanout
 summary: There are several additional restrictions and limitations when using the SnapMirror Business Continuity solution.
 ---
-= Considerations and limits
+= Object limits for SnapMirror Business Continuity
 :hardbreaks:
 :nofooter:
 :icons: font
@@ -12,11 +12,10 @@ summary: There are several additional restrictions and limitations when using th
 :imagesdir: ../media/
 
 [.lead]
-There are several considerations, restrictions, and limitations to consider using the SnapMirror Business Continuity solution.
+When preparing to use and managing SnapMirror Business Continuity, be aware of the following limitations. 
 
-== Object limits
+== Consistency groups in a cluster
 
-=== Consistency groups in a cluster
 Consistency group limits for a cluster with SM-BC are calculated based on relationships and depend on the version of ONTAP used. Limits are platform-independent. 
 
 [options="header"]
@@ -24,16 +23,23 @@ Consistency group limits for a cluster with SM-BC are calculated based on relati
 | ONTAP version | Maximum number of relationships
 | ONTAP 9.8-9.9.1 | 5
 | ONTAP 9.10.1 | 20
-| ONTAP 9.11.1 | 50
+| ONTAP 9.11.1 and later | 50
 |===
 
-=== Volumes per consistency group
+== Volumes per consistency group
 
-From ONTAP 9.8 to 9.9.1, the maximum number of volumes supported per SM-BC consistency group relationship is twelve, a limit which is platform-independent. Beginning with ONTAP 9.10.1, the maximum number of volumes supported per SM-BC relationship is sixteen.
+The maximum number of volumes per consistency group with SM-BC is platform independent. 
 
-=== Volumes
+[options="header"]
+|===
+| ONTAP version | Maximum number of volumes supported in a consistency group relationship
+| ONTAP 9.8-9.9.1 | 12 
+| ONTAP 9.10.1 and later | 16 
+|===
 
-Limits in SM-BC are calculated based on the number of endpoints, not the number of relationships. A consistency group with 12 volumes contributes 12 endpoints on both the source and destination. Both SM-BC and SnapMirror Synchronous relationships contribute to the total number of endpoints.
+== Volumes
+
+Volume limits in SM-BC are calculated based on the number of endpoints, not the number of relationships. A consistency group with 12 volumes contributes 12 endpoints on both the primary and secondary cluster. Both SM-BC and SnapMirror Synchronous relationships contribute to the total number of endpoints.
 
 The maximum endpoints per platform are included in the following table.
 
@@ -42,7 +48,7 @@ The maximum endpoints per platform are included in the following table.
 | S. No |Platform 3+| Endpoints per HA for SM-BC 3+| Overall sync and SM-BC endpoints per HA
 |
 |
-|ONTAP 9.8-9.9.1 |ONTAP 9.10.1 |ONTAP 9.11.1 |ONTAP 9.8-9.9.1 |ONTAP 9.10.1 |ONTAP 9.11.1
+|ONTAP 9.8-9.9.1 |ONTAP 9.10.1 |ONTAP 9.11.1 and later |ONTAP 9.8-9.9.1 |ONTAP 9.10.1 |ONTAP 9.11.1 and later
 |1
 |AFF
 |60
@@ -61,12 +67,12 @@ The maximum endpoints per platform are included in the following table.
 |400
 |===
 
-=== SAN object limits
+== SAN object limits
 
-The following SAN object limits are included in the following table and apply regardless of the platform.
+SAN object limits are included in the following table. The limits apply regardless of the platform.
 
 |===
-|Limits of objects in an SM-BC relationship |Count
+|Object in an SM-BC relationship |Count
 
 |LUNs per volume
 |256
@@ -74,7 +80,7 @@ The following SAN object limits are included in the following table and apply re
 |2048
 |LUN maps per cluster
 |4096
-|LIFs per VServer (with at least one volume in an SM-BC relationship)
+|LIFs per SVM (with at least one volume in an SM-BC relationship)
 |256
 |Inter-cluster LIFs per node
 |4
@@ -82,63 +88,17 @@ The following SAN object limits are included in the following table and apply re
 |8
 |===
 
-== Supported configurations and features
+.Related information 
+* link:https://hwu.netapp.com/[Hardware Universe^]
+* link:../consistency-groups/limits.html[Consistency group limits^]
 
-=== Partial file restore
-
-Beginning in ONTAP 9.12.1, partial LUN restore is supported for SM-BC volumes. For information on this process, refer to link:../data-protection/restore-part-file-snapshot-task.html[Restore part of a file from a Snapshot copy].
-
-=== Fan-out configurations
-
-SM-BC supports xref:../data-protection/supported-deployment-config-concept.html[fan-out configurations] with the `MirrorAllSnapshots` policy and, beginning in ONTAP 9.11.1, the the `MirrorAndVault` policy. Fan-out configurations are not supported in SM-BC with the `XDPDefault` policy. 
-
-If you experience a failover on the SM-BC destination in a fan-out configuration, you will have to manually xref:resume-protection-fan-out-configuration.html[resume protection in the fan-out configuration].
-
-=== AIX
-
-Beginning with ONTAP 9.11.1, AIX is supported with SM-BC. With an AIX configuration, the primary cluster is the "active" cluster.
-
-In an AIX configuration, failovers are disruptive. With each failover, you will need to perform a re-scan on the host for I/O operations to resume. 
-
-To configure for AIX host with SM-BC, refer to the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_configure_an_AIX_host_for_SnapMirror_Business_Continuity_(SM-BC)[How to configure an AIX host for SnapMirror Business Continuity (SM-BC)].
-
-=== Solaris Host setting recommendation for SM-BC configuration
-
-Beginning with ONTAP 9.10.1, SM-BC supports Solaris 11.4. To ensure the Solaris client applications are non-disruptive when an unplanned site failover switchover occurs in an SM-BC environment, you must configure the Solaris 11.4 Host with the `f_tpgs` parameter.
-
-Follow these steps to configure the override parameter:
-
-. Create configuration file `/etc/driver/drv/scsi_vhci.conf` with an entry similar to the following for the NetApp storage type connected to the host:
-+
-----
-scsi-vhci-failover-override =
-"NETAPP  LUN","f_tpgs"
-----
-. Use `devprop` and `mdb` commands to verify the override has been successfully applied:
-+
-----
-root@host-A:~# devprop -v -n /scsi_vhci scsi-vhci-failover-override scsi-vhci-failover-override=NETAPP  LUN + f_tpgs
-root@host-A:~# echo "*scsi_vhci_dip::print -x struct dev_info devi_child | ::list struct dev_info devi_sibling| ::print struct dev_info devi_mdi_client| ::print mdi_client_t ct_vprivate| ::print struct scsi_vhci_lun svl_lun_wwn svl_fops_name"| mdb -k`
-----
-+
-----
-svl_lun_wwn = 0xa002a1c8960 "600a098038313477543f524539787938"
-svl_fops_name = 0xa00298d69e0 "conf f_tpgs"
-----
-
-NOTE: `conf` will be added to the `svl_fops_name` when a `scsi-vhci-failover-override` has been applied.
-For additional information and recommended changes to default settings, refer to NetApp KB article https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/Solaris_Host_support_recommended_settings_in_SnapMirror_Business_Continuity_(SM-BC)_configuration[Solaris Host support recommended settings in SnapMirror Business Continuity (SM-BC) configuration].
-
-=== HP-UX Known issues and limitations for SM-BC configuration
-
-Beginning in ONTAP 9.10.1, SM-BC for HP-UX is supported. If an automatic unplanned failover (AUFO) event occurs on the isolated master cluster in the SM-BC configuration, it might take more than 120 seconds for I/O to resume on the HP-UX host. Depending on the applications that are running, this might not lead to any I/O disruption or error messages. If an AUFO event on the isolated master cluster occurs, you must restart applications on the HP-UX host that have a disruption tolerance of less than 120 seconds.
-
-An AUFO event on the isolated master cluster might cause dual event failure when the connection between the primary and the secondary cluster is lost and the connection between the primary cluster and the mediator is also lost. This is considered a rare event, unlike other AUFO events.
-
+// ontapdoc-915, 16 april 2023
+// ontapdoc-804, 1 april 2023
 // BURT 1451494, 2022-02-11
 // BURT 1387138
 // BURT 1431859, 1 dec 2021
 // issue #326, 19 dec 2022
 // BURT 1449057, 27 JAN 2022
 // BURT 1459617 and 1451134, 10 March 2022
-// ontap-issues-#604, 31 august 2022, 
+// ontap-issues-#604, 31 august 2022
+// ONTAPDOC-883, 6 march 2023

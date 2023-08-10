@@ -4,7 +4,7 @@ permalink: smbc/smbc_admin_add_and_remove_volumes_in_consistency_groups.html
 keywords: SM-BC, SMBC, volume, consistency group, remove volume, add volume
 summary: If you want to change the composition of the consistency group by adding or removing a volume, you must first delete the original relationship and then create the consistency group again with the new composition.
 ---
-= Add and remove volumes in a consistency group
+= Add or remove volumes to a consistency group
 :hardbreaks:
 :nofooter:
 :icons: font
@@ -12,24 +12,34 @@ summary: If you want to change the composition of the consistency group by addin
 :imagesdir: ../media/
 
 [.lead]
-If you want to change the composition of the consistency group by adding or removing a volume, you must first delete the original relationship and then create the consistency group again with the new composition.
+As your application workload requirements change, you may need to add or remove volumes from a consistency group to ensure business continuity. The process of adding and removing volumes in an an active SM-BC relationship depends on the version of ONTAP you are using.
 
-[NOTE]
-This workflow applies to ONTAP 9.8 and 9.9.1. Beginning with ONTAP 9.10.1, it is recommended that you manage link:../consistency-groups/index.html[consistency groups] through System Manager or with the ONTAP REST API.
-Beginning in ONTAP 9.12.1, you can add or remove volumes to a consistency group using System Manager or the ONTAP REST API. You will have to break the SM-BC relationship before you can modify the consistency group and then restore SM-BC protection. For more information about this process, refer to xref:../consistency-groups/modify-task.html[Modify a consistency group].
+In most instances, this is a disruptive process requiring you to break the SnapMirror relationship, modify the consistency group, then resume protection. Beginning with ONTAP 9.13.1, adding volumes to a consistency group with an active SM-BC relationship is a non-disruptive operation.
 
 .About this task
+* In ONTAP 9.8 through 9.9.1, you can add or remove volumes to a consistency group using the ONTAP CLI. 
+* Beginning with ONTAP 9.10.1, it is recommended that you manage link:../consistency-groups/index.html[consistency groups] through System Manager or with the ONTAP REST API.
++
+If you want to change the composition of the consistency group by adding or removing a volume, you must first delete the original relationship and then create the consistency group again with the new composition.
+* Beginning in ONTAP 9.13.1, you can non-disruptively add volumes to a consistency group with an active SM-BC relationship from the source or destination.
++
+Removing volumes is a disruptive operation. You must break the SnapMirror relationship before proceeding removing volumes. 
 
-* The composition change is not allowed when the consistency group is in the “InSync” state.
+[role="tabbed-block"]
+====
+.ONTAP 9.8-9.13.0
+--
+.Before you begin
+
+* You cannot begin to modify the consistency group while it is in the `InSync` state.
 * The destination volume should be of type DP.
-
-NOTE: The new volume you add to expand the consistency group must have a pair of common Snapshot copies between the source and destination volumes.
+* The new volume you add to expand the consistency group must have a pair of common Snapshot copies between the source and destination volumes.
 
 .Steps
 
-This procedure assumes that there are two volume mappings: vol_src1 <--> vol_dst1 and vol_src2 <--> vol_dst2, in a consistency group relationship between the end points vs1_src:/cg/cg_src and vs1_dst:/cg/cg_dst.
+The examples shown in two volume mappings: `vol_src1` <--> `vol_dst1` and `vol_src2` <--> `vol_dst2`, in a consistency group relationship between the end points `vs1_src:/cg/cg_src` and `vs1_dst:/cg/cg_dst`.
 
-. Verify that a common Snapshot copy exists between the source and destination volumes on both the source and destination cluster:
+. On the source and destination clusters, verify there is a common Snapshot between the source and destination clusters with the command `snapshot show -vserver _svm_name_ -volume _volume_name_ -snapshot _snapmirror_`
 +
 `source::>snapshot show -vserver vs1_src -volume vol_src3 -snapshot snapmirror*`
 +
@@ -39,7 +49,7 @@ This procedure assumes that there are two volume mappings: vol_src1 <--> vol_dst
 +
 `destination::>snapmirror initialize -source-path vs1_src:vol_src3 -destination-path vs1_dst:vol_dst3`
 
-. Delete the zero RTO consistency group relationship:
+. Delete the consistency group relationship:
 +
 `destination::>snapmirror delete -destination-path vs1_dst:vol_dst3`
 
@@ -57,7 +67,7 @@ NOTE: The destination LUNs are unmapped, while the LUNs on the primary copy cont
 +
 `source::>snapmirror release -destination-path vs1_dst:/cg/cg_dst -relationship-info-only true`
 
-. **If you are using ONTAP 9.10.1 or later,** delete and recreate and the consistency group on the source with the correct composition. Follow the steps in xref:../consistency-groups/delete-task.html[Delete a consistency group] and then xref:../consistency-groups/configure-task.html[Configure a single consistency group]. In ONTAP 9.10.1 and later, you must perform the delete and create operations in System Manager or with the ONTAP REST API; there is no CLI procedure.
+. **If you are using ONTAP 9.10.1 through 9.13.0,** delete and recreate and the consistency group on the source with the correct composition. Follow the steps in xref:../consistency-groups/delete-task.html[Delete a consistency group] and then xref:../consistency-groups/configure-task.html[Configure a single consistency group]. In ONTAP 9.10.1 and later, you must perform the delete and create operations in System Manager or with the ONTAP REST API; there is no CLI procedure.
 +
 **If you are using ONTAP 9.8, 9.0, or 9.9.1, skip to the next step.**
 
@@ -71,9 +81,25 @@ NOTE: The destination LUNs are unmapped, while the LUNs on the primary copy cont
 
 . Remap the LUNs that you unmapped in Step 5:
 +
-`destination::> lun map -vserver vs1_dst -path <lun_path> -igroup <igroup_name>`
+`destination::> lun map -vserver vs1_dst -path _lun_path_ -igroup _igroup_name_`
 
 . Rescan host LUN I/O paths to restore all paths to the LUNs.
+--
 
+.ONTAP 9.13.1 and later
+--
+Beginning in ONTAP 9.13.1, you can non-disruptively add volumes to a consistency group with an active SM-BC relationship. SM-BC supports adding volumes from both the source or destination. 
+
+For details on adding volumes from the source consistency group, see xref:../consistency-groups/modify-task.html[Modify a consistency group].
+
+.Add a volume from the destination cluster
+. On the destination cluster, select **Protection** > **Relationships**. 
+. Find the SM-BC relationship you want to add volumes to. Select image:icon_kabob.gif[kebab icon] then **Expand**. 
+. Select the volume relationships whose volumes are to be added to consistency group
+. Select **Expand**. 
+--
+====
+
+// ontapdoc-915, 13 april 2023
 // BURT 1449057, 27 JAN 2022
 // BURT 1506684, 11 OCT 2022

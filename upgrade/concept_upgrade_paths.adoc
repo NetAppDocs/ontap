@@ -12,7 +12,7 @@ summary: The version of ONTAP that you can upgrade to varies based on your hardw
 [.lead]
 The version of ONTAP that you can upgrade to varies based on your hardware platform and the version of ONTAP currently running on your cluster's nodes. See https://hwu.netapp.com[NetApp Hardware Universe^] to verify that your platform is supported for the target upgrade release.
 
-These guidelines refer only to on-premises ONTAP releases. For information about upgrading ONTAP in the cloud, see https://docs.netapp.com/us-en/occm/task_updating_ontap_cloud.html[Upgrading Cloud Volumes ONTAP software^].
+You can use these guidelines to upgrade on-premises ONTAP and ONTAP select.  For more information on ONTAP select see the general procedure for link:https://docs.netapp.com/us-en/ontap-select/concept_adm_upgrading_nodes.html#general-procedure[Upgrading the ONTAP Select nodes].  For information about upgrading ONTAP in the cloud, see https://docs.netapp.com/us-en/occm/task_updating_ontap_cloud.html[Upgrading Cloud Volumes ONTAP software^].
 
 To determine your current ONTAP version:
 
@@ -29,7 +29,7 @@ You can always upgrade directly to the next adjacent ONTAP release family using 
 +
 For example, you can use the direct update path from 9.8 to 9.9.1, or from 9.8 to 9.10.1.
 +
-*Note:* Beginning with ONTAP 9.11.1, software images support upgrading directly to releases that are three releases higher than the running release. For example, you can use the direct upgrade path from 9.8 to 9.11.1.
+*Note:* Beginning with ONTAP 9.11.1, software images support upgrading directly to releases that are three or more releases higher than the running release. For example, you can use the direct upgrade path from 9.8 to 9.11.1.
 
 *	_direct multi-hop_ +
 For some automated nondisruptive upgrades (ANDU) to non-adjacent releases, you can install the software image for an intermediate release as well the target release. The automated upgrade process uses the intermediate image in the background to complete the update to the target release.
@@ -43,14 +43,16 @@ For example, if you are currently running 9.6 and you want to upgrade to 9.11.1,
 +
 *Note:* Before beginning multi-stage upgrades, be sure your target release is supported on your hardware platform.
 
-If you are planning an ONTAP upgrade from an older ONTAP version (such as 9.3), it is a best practice to upgrade first to the latest patch release in the same ONTAP release family and only then upgrade to the next supported major release. This will ensure that any issues in the older version are resolved before upgrading.
+It is a best practice to upgrade first to the latest patch release in the same ONTAP release family and then upgrade to the next supported major release. This will ensure that any issues in your current version of ONTAP are resolved before upgrading.
 
-For example, if your system is running ONTAP 9.3P9 and you are planning to upgrade to 9.9.1P7, follow this upgrade path:
-     9.3P9 -> 9.3P21 -> 9.7P18 -> 9.9.1P7
+For example, if your system is running ONTAP 9.3P9 and you are planning to upgrade to 9.11.1, you should first upgrade to the latest 9.3 patch release, then follow the upgrade path from 9.3 to 9.11.1.
 
 Learn about https://kb.netapp.com/Support_Bulletins/Customer_Bulletins/SU2[Minimum Recommended ONTAP releases on the NetApp Support Site^].
 
-== Supported upgrade paths
+== Supported upgrade paths for on-premises ONTAP and ONTAP select
+
+[NOTE] 
+These upgrade paths apply to on-premises ONTAP and ONTAP select.  For more information on ONTAP select see the general procedure for link:https://docs.netapp.com/us-en/ontap-select/concept_adm_upgrading_nodes.html#general-procedure[Upgrading the ONTAP Select nodes].  For information about upgrading ONTAP in the cloud, see https://docs.netapp.com/us-en/occm/task_updating_ontap_cloud.html[Upgrading Cloud Volumes ONTAP software^].
 
 Detailed upgrade paths are available for the following scenarios:
 
@@ -69,13 +71,24 @@ Upgrade images for some earlier releases are no longer available.
 |===
 |If your current ONTAP release is… |And your target ONTAP release is… |Your ANDU upgrade path is…
 
+// 9.12.1 ANDU
+|9.12.1
+|9.13.1
+|direct
+
 // 9.11.1 ANDU
-|9.11.1
+.2+|9.11.1
+|9.13.1
+|direct
+
 |9.12.1
 |direct
 
 // 9.10.1 ANDU
-.2+|9.10.1
+.3+|9.10.1
+|9.13.1
+|direct
+
 |9.12.1
 |direct
 
@@ -83,7 +96,10 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.9.1 ANDU
-.3+|9.9.1
+.4+|9.9.1
+|9.13.1
+|direct
+
 |9.12.1
 |direct
 
@@ -94,7 +110,10 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.8 ANDU
-.4+|9.8
+.5+|9.8
+|9.13.1
+|direct multi-hop (requires images for 9.12.1 & 9.13.1)
+
 |9.12.1
 |direct
 
@@ -102,15 +121,32 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 |9.10.1
-|direct
+a|direct
+
+*Attention Metrocluster configurations*: 
+If you are upgrading a MetroCluster IP configuration from 9.8 to 9.10.1 on any of the following platforms, you must upgrade to 9.9.1 before you upgrade to 9.10.1.  
+
+* FAS2750
+* FAS500f
+* AFF A220
+* AFF A250
+
+MetroCluster IP configurations on these platforms, cannot upgrade from 9.8 directly to 9.10.1.
 
 |9.9.1
 |direct
 
 // 9.7 ANDU
-.5+|9.7
+.6+|9.7
+|9.13.1
+|multi-stage
+-9.7 -> 9.8
+-9.8 -> 9.13.1
+
 |9.12.1
-|direct multi-hop (requires images for 9.8 & 9.12.1)
+|multi-stage
+-9.7 -> 9.8
+-9.8 -> 9.12.1
 
 |9.11.1
 |direct multi-hop (requires images for 9.8 & 9.11.1)
@@ -125,7 +161,12 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.6 ANDU
-.6+|9.6
+.7+|9.6
+|9.13.1
+|multi-stage
+-9.6 -> 9.8
+-9.8 -> 9.13.1 (direct multi-hop, requires images for 9.12.1 & 9.13.1)
+
 |9.12.1
 |multi-stage
 - 9.6 -> 9.8
@@ -151,7 +192,12 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.5 ANDU
-.7+|9.5
+.8+|9.5
+|9.13.1
+|multi-stage
+- 9.5 -> 9.9.1 (direct multi-hop, requires images for 9.7 & 9.9.1)
+- 9.9.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.5 -> 9.9.1 (direct multi-hop, requires images for 9.7 & 9.9.1)
@@ -182,7 +228,13 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.4 ANDU
-.8+|9.4
+.9+|9.4
+|9.13.1
+|multi-stage
+- 9.4 -> 9.5
+- 9.5 -> 9.9.1 (direct multi-hop, requires images for 9.7 & 9.9.1)
+- 9.9.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.4 -> 9.5
@@ -225,7 +277,13 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.3 ANDU
-.9+|9.3
+.10+|9.3
+|9.13.1
+|multi-stage
+- 9.3 -> 9.7 (direct multi-hop, requires images for 9.5 & 9.7)
+- 9.7 -> 9.9.1
+- 9.9.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.3 -> 9.7 (direct multi-hop, requires images for 9.5 & 9.7)
@@ -268,7 +326,14 @@ Upgrade images for some earlier releases are no longer available.
 |not available
 
 // 9.2 ANDU
-.10+|9.2
+.11+|9.2
+|9.13.1
+|multi-stage
+- 9.2 -> 9.3
+- 9.3 -> 9.7 (direct multi-hop, requires images for 9.5 & 9.7)
+- 9.7 -> 9.9.1 (direct multi-hop, requires images for 9.8 & 9.9.1)
+- 9.9.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.2 -> 9.3
@@ -323,13 +388,19 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.1 ANDU
-.11+|9.1
-|9.12.1
+.12+|9.1
+|9.13.1
 |multi-stage
 - 9.1 -> 9.3
 - 9.3 -> 9.7 (direct multi-hop, requires images for 9.5 & 9.7)
 - 9.7 -> 9.9.1
-- 9.9.1 -> 9.12.1
+- 9.9.1 -> 9.13.1
+
+|9.12.1
+|multi-stage
+- 9.1 -> 9.3
+- 9.3 -> 9.7 (direct multi-hop, requires images for 9.5 & 9.7)
+- 9.7 -> 9.12.1 (direct multi-hop, requires images for 9.8 & 9.12.1)
 
 |9.11.1
 |multi-stage
@@ -381,7 +452,16 @@ Upgrade images for some earlier releases are no longer available.
 |not available
 
 // 9.0 ANDU
-.12+|9.0
+.13+|9.0
+
+|9.13.1
+|multi-stage
+- 9.0 -> 9.1
+- 9.1 -> 9.3
+- 9.3 -> 9.7 (direct multi-hop, requires images for 9.5 & 9.7)
+- 9.7 -> 9.9.1
+- 9.9.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.0 -> 9.1
@@ -459,8 +539,26 @@ Upgrade images for some earlier releases are no longer available.
 [cols="25,25,50", options="header"]
 |===
 |If your current ONTAP release is… |And your target ONTAP release is… |Your manual upgrade path is…
+
+// 9.12.1 Manual
+|9.12.1
+|9.13.1
+|direct
+
+// 9.11.1 Manual
+.2+|9.11.1
+|9.13.1
+|direct
+
+|9.12.1
+|direct
+
 // 9.10.1 Manual
-.2+|9.10.1
+.3+|9.10.1
+
+|9.13.1
+|direct
+
 |9.12.1
 |direct
 
@@ -468,7 +566,10 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.9.1 Manual
-.3+|9.9.1
+.4+|9.9.1
+|9.13.1
+|direct
+
 |9.12.1
 |direct
 
@@ -479,7 +580,12 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.8 Manual
-.4+|9.8
+.5+|9.8
+
+|9.13.1
+|multi-stage
+- 9.8 -> 9.12.1
+- 9.12.1 -> 9.13.1
 |9.12.1
 |direct
 
@@ -488,26 +594,42 @@ Upgrade images for some earlier releases are no longer available.
 
 |9.10.1
 |direct
+
+*Attention Metrocluster configurations*: 
+If you are upgrading a MetroCluster IP configuration from 9.8 to 9.10.1 on any of the following platforms, you must upgrade to 9.9.1 before you upgrade to 9.10.1.  
+
+* FAS2750
+* FAS500f
+* AFF A220
+* AFF A250
+
+MetroCluster IP configurations on these platforms, cannot upgrade from 9.8 directly to 9.10.1.
 
 |9.9.1
 |direct
 
 // 9.7 Manual
-.5+|9.7
+.6+|9.7
+
+|9.13.1
+|multi-stage
+- 9.7 -> 9.8
+- 9.8 -> 9.13.1
+
 |9.12.1
 |multi-stage
-- 9.7 -> 9.9.1
-- 9.9.1 -> 9.12.1
+- 9.7 -> 9.8
+- 9.8 -> 9.12.1
 
 |9.11.1
 |multi-stage
-- 9.7 -> 9.9.1
-- 9.9.1 -> 9.11.1
+- 9.7 -> 9.8
+- 9.8 -> 9.11.1
 
 |9.10.1
 |multi-stage
-- 9.7 -> 9.9.1
-- 9.9.1 -> 9.10.1
+- 9.7 -> 9.8
+- 9.8 -> 9.10.1
 
 |9.9.1
 |direct
@@ -516,7 +638,14 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.6 Manual
-.6+|9.6
+.7+|9.6
+
+|9.13.1
+|multi-stage
+- 9.6 -> 9.8
+- 9.8 -> 9.12.1
+- 9.12.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.6 -> 9.8
@@ -544,7 +673,15 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.5 Manual
-.7+|9.5
+.8+|9.5
+
+|9.13.1
+|multi-stage
+- 9.5 -> 9.7
+- 9.7 -> 9.9.1
+- 9.9.1 -> 9.12.1
+- 9.12.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.5 -> 9.7
@@ -580,7 +717,15 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.4 Manual
-.8+|9.4
+.9+|9.4
+
+|9.13.1
+|multi-stage
+- 9.4 -> 9.5
+- 9.5 -> 9.7
+- 9.7 -> 9.9.1
+- 9.12.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.4 -> 9.5
@@ -628,7 +773,16 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.3 Manual 
-.9+|9.3
+.10+|9.3
+
+|9.13.1
+|multi-stage
+- 9.3 -> 9.5
+- 9.5 -> 9.7
+- 9.7 -> 9.9.1
+- 9.9.1 -> 9.12.1
+- 9.12.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.3 -> 9.5
@@ -679,7 +833,17 @@ Upgrade images for some earlier releases are no longer available.
 |not available
 
 // 9.2 Manual
-.10+|9.2
+.11+|9.2
+
+|9.13.1
+|multi-stage
+- 9.2 -> 9.3
+- 9.3 -> 9.5
+- 9.5 -> 9.7
+- 9.7 -> 9.9.1
+- 9.9.1 -> 9.12.1
+- 9.12.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.2 -> 9.3
@@ -742,7 +906,17 @@ Upgrade images for some earlier releases are no longer available.
 |direct
 
 // 9.1 Manual
-.11+|9.1
+.12+|9.1
+
+|9.13.1
+|multi-stage
+- 9.1 -> 9.3
+- 9.3 -> 9.5
+- 9.5 -> 9.7
+- 9.7 -> 9.9.1
+- 9.9.1 -> 9.12.1
+- 9.12.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.1 -> 9.3
@@ -808,7 +982,18 @@ Upgrade images for some earlier releases are no longer available.
 |not available
 
 // 9.0 Manual
-.12+|9.0
+.13+|9.0
+
+|9.13.1
+|multi-stage
+- 9.0 -> 9.1
+- 9.1 -> 9.3
+- 9.3 -> 9.5
+- 9.5 -> 9.7
+- 9.7 -> 9.9.1
+- 9.9.1 -> 9.12.1
+- 9.12.1 -> 9.13.1
+
 |9.12.1
 |multi-stage
 - 9.0 -> 9.1
@@ -902,6 +1087,15 @@ You must first upgrade to Data ONTAP 8.3.x, then upgrade to ONTAP 9.1, then upgr
 --
 ====
 
+// 2023 July 12, BURT 1554656
+// 2023 July 10, BURT 1554656
+// 2023 Jul 07, Git Issue 988
+// 2023 May 22, Git Issue 928
+// 2023 May 04, Issue 903
+// 2023, May 02, 9.13.1 paths
+// 2023 Apr 10, Issue 866
+// 2023 Feb 10, Issue 746
+// 2022-11-22, Issue 685
 // 2022-08-01, ontap-issues-598
 // 2022-06-16, BURT 1485389
 // 2022-04-26, ontap-issues-472

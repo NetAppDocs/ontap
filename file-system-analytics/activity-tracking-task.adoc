@@ -2,14 +2,14 @@
 permalink: file-system-analytics/activity-tracking-task.html
 sidebar: sidebar
 keywords: monitor, volume, ontap, FSA, File System Analytics, 
-summary: "Activity Tracking to view hot files, directories, clients, and users in a specified volume for real-time performance troubleshooting with"
+summary: "Activity Tracking feature that allows you to identify hot objects and download them as a CSV file."
 ---
 = Enable Activity Tracking
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.10.1, File System Analytics includes an Activity Tracking feature that allows you to identify hot objects and download them as a CSV file. Beginning with ONTAP 9.11.1, Activity Tracking is expanded to the SVM scope. Also beginning in ONTAP 9.11.1, System Manager features a timeline for Activity Tracking, allowing you to look through up to five minutes of Activity Tracking data.
+Beginning with ONTAP 9.10.1, File System Analytics includes an Activity Tracking feature that allows you to identify hot objects and download the data as a CSV file. Beginning with ONTAP 9.11.1, Activity Tracking is expanded to the SVM scope. Also beginning in ONTAP 9.11.1, System Manager features a timeline for Activity Tracking, allowing you to look through up to five minutes of Activity Tracking data.
 
 Activity Tracking enables monitoring in four categories:
 
@@ -28,10 +28,10 @@ With the timeline feature available beginning in ONTAP 9.11.1, you can keep a re
 
 == Enable Activity Tracking for a single volume
 
-You can enable Activity Tracking with ONTAP System Manager or the ONTAP CLI.
+You can enable Activity Tracking with ONTAP System Manager or the CLI.
 
 .About this task
-If you use RBAC with the ONTAP REST API or System Manager, you will need to create custom roles to manage access to Activity Tracking. See <<Role-based access control (RBAC) and Activity Tracking>> for this process. 
+If you use RBAC with the ONTAP REST API or System Manager, you will need to create custom roles to manage access to Activity Tracking. See xref:role-based-access-control-task.html[Role-based access control] for this process. 
 
 [role="tabbed-block"]
 ====
@@ -53,7 +53,7 @@ If you use RBAC with the ONTAP REST API or System Manager, you will need to crea
 +
 `volume activity-tracking on -vsverver _svm_name_ -volume _volume_name_`
 
-. You can check if the Activity Tracking state for a volume is on or off with the command: 
+. Check if the Activity Tracking state for a volume is on or off with the command: 
 +
 `volume activity-tracking show -vsverver _svm_name_ -volume _volume_name_ -state`
 
@@ -66,69 +66,47 @@ If you use RBAC with the ONTAP REST API or System Manager, you will need to crea
 You can enable Activity Tracking for multiple volumes at once with System Manager. 
 
 .About this task
-If you use RBAC with the ONTAP REST API or System Manager, you will need to create custom roles to manage access to Activity Tracking. See <<Role-based access control (RBAC) and Activity Tracking>> for this process. 
+If you use RBAC with the ONTAP REST API or System Manager, you will need to create custom roles to manage access to Activity Tracking. See xref:role-based-access-control-task.html[Role-based access control] for this process. 
 
 
 [role="tabbed-block"]
 ====
 
-.For specific volumes
+.System Manager
 --
-.Steps
-
+.Enable for specific volumes
 . Select *Storage > Volumes*. Select the desired volume. From the individual volume menu, select File System and then select the Activity tab. 
-
 . Select the volumes that you want to enable Activity Tracking on. At the top of the volume list, select the *More Options* button. Select *Enable Activity Tracking*.
-
 . To view Activity Tracking at the SVM level, select the specific SVM you would like to view from *Storage > Volumes*. Navigate to the File System tab then Activity and you will see data for the volumes that have Activity Tracking enabled.
---
 
-.For all volumes in an SVM
---
-.Steps
-
+.Enable for all volumes
 . Select *Storage > Volumes*. Select an SVM from the menu. 
 
-.	Navigate to the *File System* tab, choose the *More* tab to enable Activity Tracking on all volumes in the SVM. 
+.	Navigate to the *File System* tab, choose the *More* tab to enable Activity Tracking on all volumes in the SVM.
+--
+
+.CLI
+--
+Beginning in ONTAP 9.13.1, you can enable Activity Tracking for multiple volumes using the ONTAP CLI. 
+
+.Steps
+. Enable Activity Tracking:
++
+`volume activity-tracking on -vserver _svm_name_ -volume [*|!_volume_names_]`
++
+Use `*` to enable Activity Tracking for all volumes on the specified storage VM. 
++
+Use `!` followed by volume names to enable Activity Tracking for all volumes on the SVM except the named volumes.
++
+. Confirm the operation succeeded:
++
+`volume show -fields activity-tracking-state`
+. Once enabled, use ONTAP System Manager or the ONTAP REST API to display Activity Tracking data.
+
 --
 ====
 
-== Role-based access control (RBAC) and Activity Tracking
-
-If you use xref:../concepts/administrator-authentication-rbac-concept.html[role-based access control] (RBAC) in System Manager or the ONTAP REST API, you will need to create a dedicated role to moderate access to Activity Tracking in File System Analytics. 
-
-.Control access to Activity Tracking
-
-.Steps
-
-. Create a default role to have access to all features. 
-+
-This needs to be done before creating the restrictive role to ensure the role is only restrictive on the Activity Tracking:
-+
-`security login role create -cmddirname DEFAULT -access all -role storageAdmin`
-. Create the restrictive role:
-+
-`security login role create -cmddirname "volume file show-disk-usage" -access none -role storageAdmin`
-. Authorize roles to access the SVM's web services:
-    * `rest` for REST API calls
-    * `security` for password protection
-    * `sysmgr` for System Manager access
-+
-`vserver services web access create -vserver _svm-name_ -name_ -name rest -role storageAdmin`
-+
-`vserver services web access create -vserver _svm-name_ -name security -role storageAdmin`
-+
-`vserver services web access create -vserver _svm-name_ -name sysmgr -role storageAdmin`
-
-. Create a user. 
-+
-You must issue a distinct create command for each application you would like to apply to the user. Calling create multiple times on the same user simply applies all the applications to that one user and does not create a new user each time. The `http` parameter for application type applies for the ONTAP REST API and System Manager.
-+
-`security login create -user-or-group-name storageUser -authentication-method password -application http -role storageAdmin`
-. With the new user credentials, you can now log in to System Manager or use the ONTAP REST API to access File Systems Analytics data. 
-
-link:https://docs.netapp.com/us-en/ontap-automation/rest/rbac_overview.html[Learn more about RBAC roles and the ONTAP REST API^]
-
-
+// 28 march 2023, ontapdoc-971
+// 7 February 2022, ONTAPDOC-875
 //2021-10-29, IE-422
 //2022-03-22, IE-509

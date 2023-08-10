@@ -1,0 +1,67 @@
+---
+permalink: disks-aggregates/disk-autoassignment-policy-concept.html
+sidebar: sidebar
+keywords: disk, auto-assign, spare, policy, automatic, assignment, disk ownership
+summary: "The automatic assignment of unowned disks is enabled by default. Automatic disk ownership assignments occur 10 minutes after system initialization and every five minutes during normal system operation."
+---
+= About automatic assignment of disk ownership
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+The automatic assignment of unowned disks is enabled by default. Automatic disk ownership assignments occur 10 minutes after system initialization and every five minutes during normal system operation.
+
+When you add new disks to a system – for example, when replacing failed disks, responding to a low spares message, or adding capacity – the default auto-assignment policy assigns ownership of the disk to a node as a spare. You can disable automatic assignment or select a different auto-assignment policy using the `storage disk option modify` command. 
+
+The default auto-assignment policy is based on platform-specific characteristics, but it uses one of the following methods to assign disk ownership:
+
+|===
+
+h| Assignment method h| Effect on node assignments h| Platforms
+
+a| 
+bay	
+a|
+Even-numbered bays are assigned to node A and odd-numbered bays to node B.	
+a|
+Entry-level systems in an HA configuration with a single, shared shelf.
+
+a|
+shelf
+a|
+All disks in the shelf are assigned to node A.
+a|
+Entry-level systems in an HA configuration with one stack of two or more shelves, and MetroCluster configurations with one stack per node, two or more shelves.
+
+a|
+split shelf
+a|
+Disks on the left side of the shelf are assigned to node A and on the right side to Node B. Partial shelves on new systems are shipped from the factory with disks populated from the shelf edge toward the center.
+a|
+AFF C190 systems and some MetroCluster configurations.
+
+a|
+stack
+a|
+All disks in the stack are assigned to node A.
+a|
+Stand-alone entry-level systems and all other configurations.
+
+|===
+
+If the default assignment method is not desirable in your environment, you can specify the bay, shelf, or stack assignment method using the `-autoassign-policy` parameter to the `storage disk option modify` command. Note the following rules:
+
+* If you try to use the `bay autoassign-policy` for a non-entry level platform, it will fail.
+* There is no corresponding non-default policy for specifying the split-shelf method.
+
+You can also manage disk assignment manually using the `storage disk assign` command.
+
+* If you disable auto-assignment, new disks are not available as spares until they are assigned to a node with the `storage disk assign` command. 
+* If you want disks to be auto-assigned and you have multiple stacks or shelves that must have different ownership, one disk must have been manually assigned on each stack or shelf so that automatic ownership assignment works on each stack or shelf.
+* If auto-assignment is enabled and you manually assign a single drive to a node that isn’t specified in the active policy, auto-assignment stops working and an EMS message is displayed.
+
+Learn more about link:manual-assign-ownership-partitioned-disks-task.html[manually assigning disk ownership].
+
+You can display the current auto-assignment settings with the `storage disk option show` command.
+
+// 2022 Nov 23, BURT 1352610

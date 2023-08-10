@@ -1,51 +1,85 @@
 ---
 permalink: consistency-groups/modify-task.html
 sidebar: sidebar
-keywords: consistency groups, consistency group protection, shrink, expand, add volumes, remove volumes
-summary: "Consistency groups support the adding and subtraction of volumes beginning in ONTAP 9.12.1"
+keywords: consistency groups, shrink, expand, add volumes, remove volumes, move volumes, smbc
+summary: "You can modify a consistency group by adding or removing volumes or moving volumes between child consistency groups." 
 ---
-= Modify a consistency group
+= Modify member volumes in a consistency group
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Beginning in ONTAP 9.12.1, you modify a consistency group in System Manager by removing volumes or adding existing volumes (expanding the consistency group). The expand and remove functionalities allow you to modify the constituent members of a consistency group and to combine new volumes with existing volumes. 
+Beginning in ONTAP 9.12.1, you can modify a consistency group by removing volumes or adding existing volumes (expanding the consistency group). Beginning in ONTAP 9.13.1, you can move volumes between child consistency groups if they share a common parent. 
 
 == Add volumes to a consistency group
 
-When expanding a consistency group, Snapshot copies of the consistency group captured before the expand operation will be considered partial.
+Beginning in ONTAP 9.12.1, you can non-disruptively add volumes to a consistency group. 
 
-.Considerations
-* When expanding a consistency group, you cannot add volumes associated with another consistency group.
-* Consistency groups support NAS, SAN, and NVMe protocols. For more information about consistency groups, refer to the xref:index.html[Consistency groups overview].
-* You can add up to 16 volumes at a time to a consistency group, provided that adjustments are within the overall xref:index.html#consistency-group-object-limits[consistency group object limits].
-* You cannot add volumes to a consistency group in a SnapMirror Business Continuity (SM-BC) relationship. You must first break the SM-BC relationship to modify the consistency group.
-* The ONTAP REST API supports adding _new_ or existing volumes to a consistency group. For more information about the ONTAP REST API, refer to [ONTAP REST API reference documentation](https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation). 
-* If you are using ONTAP 9.10.1 through 9.11.1, you cannot modify a consistency group. To change the configuration of a consistency group in ONTAP 9.10.1 or 9.11.1, you must delete the consistency group and create a new consistency group with the desire member volumes. 
+.Before you begin
+* You cannot add volumes associated with another consistency group.
+* Consistency groups support NAS, SAN, and NVMe protocols.
+* You can add up to 16 volumes at a time to a consistency group if the adjustments are within the overall xref:limits.html[consistency group limits].
+* Beginning in ONTAP 9.13.1, you can non-disruptively add volumes to a consistency group with an active SnapMirror Business Continuity (SM-BC) or asynchronous SnapMirror protection policy.
+    * When you add volumes to a consistency group protected by SM-BC, the status of the SM-BC relationship status will change to "Expanding" until mirroring and protection are configured for the new volume. If a disaster occurs on the primary cluster before this process completes, the consistency group reverts back to its original composition as part of the failover operation.
+* In ONTAP 9.12.1, you _cannot_ add volumes to a consistency group in an SM-BC relationship. You must first break the SM-BC relationship, modify the consistency group, then restore protection with SM-BC.
+* Beginning in ONTAP 9.12.1, the ONTAP REST API supports adding _new_ or existing volumes to a consistency group. For more information about the ONTAP REST API, refer to link:https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation[ONTAP REST API reference documentation^]. 
++
+Beginning in ONTAP 9.13.1, this functionality is supported in System Manager.
+* When expanding a consistency group, Snapshot copies of the consistency group captured before the modification will be considered partial. Any restore operation based on that Snapshot copy will reflect the consistency group at the point-in-time of the snapshot.
+* If you are using ONTAP 9.10.1 through 9.11.1, you cannot modify a consistency group. To change the configuration of a consistency group in ONTAP 9.10.1 or 9.11.1, you must delete the consistency group, then create a new consistency group with the volumes you want to include.
 
 .Steps
-. Go to the *Consistency Group* tab in System Manager. Select the consistency group that you want to modify to view the volumes associated with that consistency group. 
+. Select *Storage > Consistency groups*.
+. Select the consistency group that you want to modify.
 . If you are modifying a single consistency group, at the top of the *Volumes* menu, select *More* and then *Expand* to add a volume.
 +
 If you are modifying a child consistency group, identify the parent consistency group you want to modify. Select the *>* button to view the child consistency groups, then select image:../media/icon_kabob.gif[three vertically stacked dots] next to the name of the child consistency group you want to modify. From that menu, select *Expand*.
-. Select the volume(s) you want to add to the consistency group. You can add up to 16 volumes at a time.
-. Select *Save*. When the operation completes, you can view the newly added volume(s) in the consistency group's *Volumes* menu. 
+. Select up to 16 volumes to add to the consistency group.
+. Select *Save*. When the operation completes, view the newly added volumes in the consistency group's *Volumes* menu. 
 
 == Remove volumes from a consistency group
 
-Volumes removed from a consistency group will no longer exist in the consistency group, but will not be deleted; they will still exist in the cluster. 
+Volumes removed from a consistency group are not deleted. They remain active in the cluster. 
 
-.Considerations
-* You cannot remove volumes from a consistency group in a SnapMirror Business Continuity (SM-BC) relationship. You must first break the SM-BC relationship to modify the consistency group.
+.Before you begin
+* You cannot remove volumes from a consistency group in a SnapMirror Business Continuity (SM-BC) relationship. You must first break the SM-BC relationship to modify the consistency group and then reestablish the relationship.
 * If a consistency group has no volumes in it following the remove operation, the consistency group will be deleted.
-* When a volume is removed from a consistency group, existing Snapshots of the consistency group remain but are invalid and cannot be used to restore the contents of the consistency group. Volume-granular Snapshots remain valid. 
+* When a volume is removed from a consistency group, existing Snapshots of the consistency group remain but are considered invalid. The existing Snapshots cannot be used to restore the contents of the consistency group. Volume-granular Snapshots remain valid. 
 * If you delete a volume from the cluster, it is automatically removed from the consistency group. 
-* If you are using ONTAP 9.10.1 or 9.11.1, you can only remove volumes from a consistency group by deleting the volume from the cluster. To change the configuration of a consistency group in ONTAP 9.10.1 or 9.11.1, you must delete the consistency group and create a new consistency group with the desire member volumes. 
+* To change the configuration of a consistency group in ONTAP 9.10.1 or 9.11.1, you must delete the consistency group then create a new consistency group with the desired member volumes.
+* Deleting a volume from the cluster will automatically remove it the consistency group. 
 
 .Steps
-. Go to the *Consistency Group* tab in System Manager. Select the single or child consistency group that you want to modify. 
-. In the *Volumes* menu, select the checkboxes next to the individual volume(s) you want to remove from the consistency group. 
+. Select *Storage > Consistency groups*.
+. Select the single or child consistency group that you want to modify. 
+. In the *Volumes* menu, select the checkboxes next to the individual volumes you want to remove from the consistency group. 
 . Select *Remove volumes from the consistency group*.
 . Confirm that you understand removing the volumes will cause all Snapshot copies of the consistency group to become invalid and select *Remove*. 
 
+== Move volumes between consistency groups
+
+Beginning in ONTAP 9.13.1, you can move volumes between child consistency groups that share a parent. 
+
+.Before you begin
+* You can only move volumes between consistency groups nested under the same parent consistency group. 
+* Existing consistency group Snapshots become invalid and no longer accessible as consistency group snapshots. Individual volume Snapshots remain valid.
+* Snapshot copies of the parent consistency group remain valid. 
+* If you move all volumes out of a child consistency group, that consistency group will be deleted. 
+* Modifications to a consistency group must abide by xref:limits.html[consistency group limits].
+
+.Steps
+. Select *Storage > Consistency groups*.
+. Select the parent consistency group that contains the volumes you want to move. Find the child consistency group and then expand the **Volumes** menu. Select the volumes you want to move.
+. Select **Move**. 
+. Choose whether you want to move the volumes to a new consistency group or an existing group. 
+.. To move to an existing consistency group, select **Existing child consistency group** then choose the consistency group's name from the dropdown menu. 
+.. To move to a new consistency group, select **New child consistency group**. Enter a name for the new child consistency group and select a component type. 
+. Select **Move**.
+
+.Related information
+* xref:limits.html[Consistency group limits]
+* xref:clone-task.html[Clone a consistency group]
+
+// 13 MAR 2023, ONTAPDOC-755,  ontapdoc-915
+// 9 Feb 2023, ONTAPDOC-880
 // 17 OCT 2022, ONTAPDOC-612

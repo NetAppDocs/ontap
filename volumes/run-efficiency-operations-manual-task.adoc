@@ -1,7 +1,7 @@
 ---
 permalink: volumes/run-efficiency-operations-manual-task.html
 sidebar: sidebar
-keywords: starting deduplication manually, starting data compression manually, efficiency, run
+keywords: starting deduplication manually, starting data compression manually, efficiency, run, sequential packing
 summary: "You can run efficiency operations manually on a volume by using the volume efficiency start command."
 ---
 = Run efficiency operations manually
@@ -17,18 +17,44 @@ Depending on the efficiency operation you want to run manually, you must have en
 
 .About this task
 
-If deduplication and data compression are enabled on a volume, data compression is run initially followed by deduplication.
+When temperature-sensitive storage efficiency is enabled on a volume, deduplication is run initially followed by data compression.
 
 Deduplication is a background process that consumes system resources while it is running. If the data does not change often in a volume, it is best to run deduplication less frequently. Multiple concurrent deduplication operations running on a storage system lead to a higher consumption of system resources.
 
 You can run a maximum of eight concurrent deduplication or data compression operations per node. If any more efficiency operations are scheduled, the operations are queued.
 
+Beginning with ONTAP 9.13.1, if temperature-sensitive storage efficiency is enabled on a volume, you can run volume efficiency on existing data to take advantage of sequential packing to further improve storage efficiency. 
+
+== Run efficiency manually
+
 .Step
 
-. Use the `volume efficiency start` command to start the efficiency operation on a volume.
-
+. Start the efficiency operation on a volume: `volume efficiency start` 
++
 .Example
++
+The following command allows you to manually start only deduplication or deduplication followed by logical compression and container compression on the volume VolA
++
+----
+volume efficiency start -vserver vs1 -volume VolA
+----
 
-The following command allows you to manually start only deduplication or data compression followed by deduplication on the volume VolA:
+== Repack existing data
 
-`volume efficiency start -vserver vs1 -volume VolA`
+To take advantage of sequential data packing introduced in ONTAP 9.13.1 on volumes with temperature-sensitive storage efficiency enabled, you can repack existing data. You must be in advanced privilege mode to use this command.
+
+.Step
+
+. Set the privilege level: `set -privilege advanced`
+
+. Repack existing data: `volume efficiency inactive-data-compression start -vserver _vserver_name_ -volume _volume_name_ -scan-mode extended_recompression`
+
++
+.Example
++
+----
+volume efficiency inactive-data-compression start -vserver vs1 -volume vol1 -scan-mode extended_recompression
+----
+
+// 20223-Apr-21, IDR-225
+// 2023-Apr-10, ONTAPDOC-877

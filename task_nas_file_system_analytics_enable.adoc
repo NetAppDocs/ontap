@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar
 permalink: task_nas_file_system_analytics_enable.html
-keywords: capacity analytics, data visualization, File System Analytics, System Manager, storage, explorer
+keywords: capacity analytics, data visualization, File System Analytics
 summary: To collect and display usage data such as capacity analytics, you have to enable File System Analytics. 
 ---
 = Enable File System Analytics
@@ -16,11 +16,13 @@ summary: To collect and display usage data such as capacity analytics, you have 
 [.lead]
 To collect and display usage data such as capacity analytics, you need to enable File System Analytics on a volume.
 
-Beginning with ONTAP 9.8, you can enable File System Analytics on a new or existing volume. If you upgrade a system to ONTAP 9.8 or later, ensure that all upgrade processes have completed before you enable File System Analytics.
+.About this task
+* Beginning with ONTAP 9.8, you can enable File System Analytics on a new or existing volume. If you upgrade a system to ONTAP 9.8 or later, ensure that all upgrade processes have completed before you enable File System Analytics.
+* Depending on the size and contents of the volume, enabling analytics may take time while ONTAP processes existing data in the volume. System Manager displays progress and presents analytics data when complete. If you need more precise information about initialization progress, you can use the ONTAP CLI command `volume analytics show`.
++
+For additional considerations related to the initialization scan, see xref:./file-system-analytics/considerations-concept.html#scan-considerations[Scan considerations].
 
 .Steps 
-
-Depending on the size and contents of the volume, enabling analytics may take time while ONTAP processes existing data in the volume. System Manager displays progress and presents analytics data when complete. If you need more precise information about initialization progress, you can use the ONTAP CLI command `volume analytics show`.
 
 You can enable File System Analytics with ONTAP System Manager or the CLI. 
 
@@ -43,13 +45,53 @@ You can enable File System Analytics with ONTAP System Manager or the CLI.
 
 .CLI
 --
-.To enable File System Analytics with the CLI:
+.Enable File System Analytics with the CLI
 . Run the following command:
 `volume analytics on -vserver _svm_name_ -volume _volume_name_ [-foreground {true|false}]`
 By default, the command runs in the foreground; ONTAP displays progress and presents analytics data when complete. If you need more precise information, you can run the command in the background by using the `-foreground false` option and then use the `volume analytics show` command to display initialization progress in the CLI.
-. After successfully enabling File System Analytics, use ONTAP System Manager to display the analytic data.
+. After successfully enabling File System Analytics, use System Manager or the ONTAP REST API to display the analytic data.
 --
 ====
 
+
+[[modify]]
+== Modify default File System Analytics settings
+
+Beginning in ONTAP 9.13.1, you can modify SVM or clusters settings to enable File System Analytics by default on new volumes.
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+If you are using System Manager, you can modify the storage VM or cluster settings to enable capacity analytics and Activity Tracking at volume creation by default. Default enablement only applies to volumes created after you modify the settings, not existing volumes. 
+
+.Modify File System Analytics settings on a cluster
+. In System Manager, navigate to **Cluster settings**.
+. In **Cluster settings**, review the File System Settings tab. To modify the settings, select the image:icon_gear.gif[Settings gear] icon.
+. In the **Activity Tracking** field, enter the names of the SVMs to enable Activity Tracking for by default. Leaving the field blank will leave Activity Tracking disabled on all SVMs. 
++
+Uncheck the **Enable on new storage VMs** box to disable Activity Tracking by default on new storage VMs.
+. In the **Analytics** field, enter the names of the storage VMs you want capacity analytics enabled for by default. Leaving the field blank will leave capacity analytics disabled on all SVMs. 
++
+Uncheck the **Enable on new storage VMs** box to disable capacity analytics by default on new storage VMs.
+. Select **Save**.
+
+.Modify File System Analytics settings on an SVM 
+. Select the SVM you want to modify then **Storage VM settings**.
+. In the **File System Analytics** card, use the toggles to enable or disable Activity Tracking and capacity analytics for all new volumes on the storage VM.
+--
+
+.CLI
+--
+You can configure the storage VM to enable File System Analytics by default on new volumes using the ONTAP CLI.
+
+.Enable File System Analytics by default on an SVM
+. Modify the SVM to enable capacity analytics and Activity Tracking by default on all newly created volumes:
+`vserver modify -vserver _svm_name_ -auto-enable-activity-tracking true -auto-enable-analytics true`
+--
+====
+
+// 31 march 2023, ontapdoc-974
+// 28 march 2023, ontapdoc-971
 //28 Sep 2020, BURT 1289113, forry
-//19 Dec 2021, added CLI from FlexGroup

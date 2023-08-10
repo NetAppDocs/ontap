@@ -1,108 +1,29 @@
-[.lead]
-You must be aware of certain considerations when using SAN configurations in a MetroCluster environment.
 
 * MetroCluster configurations do not support front-end FC fabric "`routed`" vSAN configurations.
 
-* MetroCluster configurations do not support front-end NVMe host connectivity.
+* Beginning with ONTAP 9.12.1, four-node MetroCluster IP configurations are supported on NVMe/FC. MetroCluster configurations are not supported on NVMe/TCP. MetroCluster configurations are not supported for NVMe prior to ONTAP 9.12.1.
 
-* Other SAN protocols are supported on MetroCluster configurations.
+* Other SAN protocols such as iSCSI, FC, and FCoE are supported on MetroCluster configurations.
 
-* When using SAN client configurations, you must check whether any special considerations for MetroCluster configurations are included in the notes that are provided in the Interoperability Matrix Tool (IMT).
+* When using SAN client configurations, you must check whether any special considerations for MetroCluster configurations are included in the notes that are provided in the link:https://mysupport.netapp.com/matrix[NetApp Interoperability Matrix Tool^] (IMT).
 
 * Operating systems and applications must provide an I/O resiliency of 120 seconds to support MetroCluster automatic unplanned switchover and Tiebreaker or Mediator-initiated switchover.
 
 * The MetroCluster is using the same WWPNs on both sides of the front-end SAN.
 //BURT 1460239  08/03/2022
 
-NOTE: During switchover, the FC port on the surviving site might log in to the fabric before the fabric has detected that the FC port on the disaster site is offline and has removed this port from the name and directory services. If the FC port on the disaster is not yet removed, the fabric login attempt of the FC port at the surviving site might be rejected due to a duplicate WWPN. This behavior of the FC switches can be changed to honor the login of the previous device and not the existing one. You should verify the effects of this behavior on other fabric devices. Contact the switch vendor for more information.
 
-To learn more, see:
 
-* link:https://docs.netapp.com/us-en/ontap-metrocluster/manage/concept_understanding_mcc_data_protection_and_disaster_recovery.html[Understanding MetroCluster data protection and disaster recovery]
-
-* link:https://docs.netapp.com/us-en/ontap-metrocluster/manage/task_perform_switchover_for_tests_or_maintenance.html[Performing switchover for tests or maintenance]
-
-.Steps
-
-To avoid overlap when the old port goes offline and the new port comes online, use the following steps to configure the front-end switches:
-
-[cols="20,80"]
-|===
-
-h| For a...  h| Use these steps:
-
-a|
-Cisco switch
-a|
-. Connect to the switch and log in.
-
-. Enter configuration mode:
-+
-....
-switch# config t
-switch(config)#
-....
-
-. Overwrite the first device entry in the name server database with the new device:
-+
-----
-switch(config)# no fcns reject-duplicate-pwwn vsan 1
-----
-
-. In switches that are running NX-OS 8.x, confirm that the flogi quiesce timeout is set to zero:
-.. Display the quiesce timerval:
-+
-`switch(config)# show flogi interval info \| i quiesce`
-+
-....
- Stats:  fs flogi quiesce timerval:  0
-....
-+
-.. If the output in the previous step does not indicate that the
-timerval is zero, then set it to zero:
-+
-`switch(config)# flogi scale enable`
-+
-`switch(config)$ flogi quiesce timeout 0`
-
-a|
-Brocade switch
-
-a|
-. Connect to the switch and log in.
-
-. Enter the `switchDisable` command.
-
-. Enter the `configure` command, and press `y` at the prompt.
-+
-....
- F-Port login parameters (yes, y, no, n): [no] y
-....
-
-. Choose setting 1:
-+
-....
-- 0: First login take precedence over the second login (default)
-- 1: Second login overrides first login.
-- 2: the port type determines the behavior
-Enforce FLOGI/FDISC login: (0..2) [0] 1
-....
-
-. Respond to the remaining prompts, or press *Ctrl + D*.
-
-. Enter the `switchEnable` command.
-
-|===
-
-For further MetroCluster-specific host information, refer to the following NetApp Knowledge Base articles:
-
-https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/MetroCluster/What_are_AIX_Host_support_considerations_in_a_MetroCluster_configuration%3F[What are AIX Host support considerations in a MetroCluster configuration?]
-
-https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/MetroCluster/Solaris_host_support_considerations_in_a_MetroCluster_configuration[Solaris host support considerations in a MetroCluster configuration]
 
 .Related information
 
-https://mysupport.netapp.com/matrix[NetApp Interoperability Matrix Tool^]
+* link:https://docs.netapp.com/us-en/ontap-metrocluster/manage/concept_understanding_mcc_data_protection_and_disaster_recovery.html[Understanding MetroCluster data protection and disaster recovery^]
+* https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/MetroCluster/What_are_AIX_Host_support_considerations_in_a_MetroCluster_configuration%3F[Knowledge based article: What are AIX Host support considerations in a MetroCluster configuration?^]
+* https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/MetroCluster/Solaris_host_support_considerations_in_a_MetroCluster_configuration[Knowledge based article: Solaris host support considerations in a MetroCluster configuration^]
 
+
+
+// 2023 Jul 07, Git Issue 976
 // BURT 1363621, 18 NOV 2021
 // BURT 1443621, 25 MAR 2022
+//2023-JAN-23, GH issue 770

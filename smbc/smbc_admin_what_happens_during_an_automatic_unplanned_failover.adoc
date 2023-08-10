@@ -5,23 +5,76 @@ keywords:
 summary: An automatic unplanned failover (AUFO) operation occurs when the primary cluster is down or isolated.  When this occurs, the secondary cluster is converted to the primary and begins serving clients.
 ---
 
-= Automatic unplanned failover operations
+= Recover from automatic unplanned failover operations
 :hardbreaks:
 :nofooter:
 :icons: font
 :linkattrs:
 :imagesdir: ../media/
 
-//
-// This file was created with NDAC Version 2.0 (August 17, 2020)
-//
-// 2020-11-04 11:20:04.594523
-//
-
 [.lead]
-An automatic unplanned failover (AUFO) operation occurs when the primary cluster is down or isolated.  When this occurs, the secondary cluster is converted to the primary and begins serving clients. This operation is performed only with assistance from the ONTAP Mediator.
+An automatic unplanned failover (AUFO) operation occurs when the primary cluster is down or isolated. The ONTAP Mediator detects when a failover occurs and, and executes an automatic unplanned failover to the the secondary cluster. The secondary cluster is converted to the primary and begins serving clients. This operation is performed only with assistance from the ONTAP Mediator.
 
 [NOTE]
 After the automatic unplanned failover, it is important to rescan the host LUN I/O paths so that there is no loss of I/O paths.
 
-You can monitor the status of the automatic unplanned failover by using the `snapmirror failover show` command.
+== Reestablish the protection relationship after an unplanned failover
+
+You can reestablish the protection relationship using System Manager or the ONTAP CLI. 
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+.Steps
+. Navigate to *Protection > Relationships* and wait for the relationship state to show “InSync.”
+. To resume operations on the original source cluster, click image:icon_kabob.gif[kabob icon] and select *Failover*.
+--
+
+.CLI
+--
+You can monitor the status of the automatic unplanned failover using the `snapmirror failover show` command.
+
+For example:
+
+....
+ClusterB::> snapmirror failover show -instance
+Start Time: 9/23/2020 22:03:29
+         Source Path: vs1:/cg/scg3
+    Destination Path: vs3:/cg/dcg3
+     Failover Status: completed
+        Error Reason:
+            End Time: 9/23/2020 22:03:30
+Primary Data Cluster: cluster-2
+Last Progress Update: -
+       Failover Type: unplanned
+  Error Reason codes: -
+....
+
+Refer to the link:https://docs.netapp.com/us-en/ontap-ems-9131/smbc-aufo-events.html[EMS reference^] to learn about event messages and about corrective actions. 
+
+--
+====
+
+== Resume protection in a fan-out configuration after failover
+
+If you experience a failover on the secondary cluster in the SM-BC relationship, the asynchronous SnapMirror destination will become unhealthy, and you must manually restore protection by deleting and recreating the relationship with the asynchronous SnapMirror endpoint.  
+
+.Steps
+. Verify the failover has completed successfully:
+`snapmirror failover show`
+. On the asynchronous Snapmirror endpoint, delete the fan-out endpoint: 
+`snapmirror delete -destination-path _destination_path_`
+. On the third site, create an asynchronous SnapMirror relationships between the new SM-BC primary volume and the async fan-out destination volume: 
+`snapmirror create -source-path _source_path_ -destination-path _destination_path_ -policy MirrorAllSnapshots -schedule _schedule_`
+. Resynchronize the relationship: 
+`snapmirror resync -destination-path _destination_path_`
+. Verify the relationship status and heath: 
+`snapmirror show`
+
+// BURT 1459339, 22 feb 2022
+// BURT 1459617, 10 march 2022
+// BURT 1451134, 7 april 2022
+
+// ontapdoc-883, 7 march 2023

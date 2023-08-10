@@ -1,0 +1,81 @@
+---
+permalink: software_setup/convert-ipv4-to-ipv6-task.html
+sidebar: sidebar
+keywords: software, setup, ontap, covert, converting, ipv4, ipv6
+summary: 'Beginning in ONTAP 9.13.1, you can assign IPv6 addresses for management LIFs on A800 nd FAS8700 platforms.  For ONTAP releases earlier than 9.13.1, for 9.13.1 and later on other platforms, you must assign IPv4 addresses for management LIFs then convert IPv6 addresses after you complete cluster setup.'
+---
+= Convert management LIFs from IPv4 to IPv6
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning in ONTAP 9.13.1, you can assign IPv6 addresses to management LIFs on A800 and FAS8700 platforms during the initial cluster setup.  For ONTAP releases earlier than 9.13.1, or for 9.13.1 and later on other platforms, you must first assign IPv4 addresses to management LIFs, and then convert to IPv6 addresses after you complete cluster setup.
+
+.Steps
+ 
+. Enable IPv6 for the cluster:  
++
+[source, cli]
+----
+network options ipv6 modify -enable true
+----
+
+. Set privilege to advanced: 
++
+[source, cli]
+----
+set priv advanced
+----
+
+. View the list of RA prefixes learned on various interfaces:
++
+[source, cli]
+----
+network ndp prefix show
+----
+
+. Create an IPv6 management LIF:
++
+Use the format `prefix::id` in the address parameter to construct the IPv6 address manually.
++ 
+[source, cli]
+----
+network interface create -vserver <svm_name> -lif <LIF> -home-node <home_node> -home-port <home_port> -address <IPv6prefix::id> -netmask-length <netmask_length> -failover-policy <policy> -service-policy <service_policy> -auto-revert true
+----
+
+. Verify that the LIF was created: 
++ 
+[source, cli]
+----
+network interface show
+----
+
+. Verify that the configured IP address is reachable: 
++ 
+[source, cli]
+----
+network ping6
+----
+
+. Mark the IPv4 LIF as administratively down:
++
+[source, cli]
+----
+network interface modify -vserver <svm_name> -lif <lif_name> -status-admin down
+----
+
+. Delete the IPv4 management LIF:
++
+[source, cli]
+----
+network interface delete -vserver <svm_name> -lif <lif_name>
+----
+
+. Confirm that the IPv4 management LIF is deleted:
++
+[source, cli]
+----
+network interface show
+----
+
+// 2023 May 03, Jira 782

@@ -22,7 +22,9 @@ You should be aware of how FlexGroup rebalancing works and how it interacts with
 
 * FlexVol to FlexGroup conversion
 +
-It is recommended that you do _not_ use automatic FlexGroup rebalancing after a FlexVol to FlexGroup conversion. Instead, you can use the disruptive retroactive file move feature available in ONTAP 9.10.1 and later, by entering the `volume rebalance file-move` command. For command syntax, see the `volume rebalance file-move start` man page.
+It is recommended that you _not_ use automatic FlexGroup rebalancing after a FlexVol to FlexGroup conversion. Instead, you can use the disruptive retroactive file move feature available in ONTAP 9.10.1 and later, by entering the `volume rebalance file-move` command. For command syntax, see the `volume rebalance file-move start` man page.
++
+Rebalancing with the non-disruptive retroactive file move feature can degrade performance when moving large numbers of files, like when you perform a FlexVol to FlexGroup conversion, and as much as 50 to 85% of the data on the FlexVol volume is moved to a new constituent. 
 
 * Minimum and maximum file size
 +
@@ -55,8 +57,14 @@ If file rebalancing is in progress when a FlexClone volume is created, the rebal
 +
 When a file is moved during a FlexGroup rebalancing operation, the file size is reported as part of quota accounting on both the source and destination constituents.  Once the move is completed, quota accounting returns to normal, and the file size is only reported on the new destination.
 
+* Autonomous Ransomware Protection
++
+Beginning with ONTAP 9.13.1, Autonomous Ransomware Protection can be copied between inodes for both disruptive and non-disruptive rebalance operations.
+
 == Enable FlexGroup rebalancing
 Beginning with ONTAP 9.12.1, you can enable automatic nondisruptive FlexGroup volume rebalancing to redistribute files between FlexGroup constituents. 
+
+Beginning with ONTAP 9.13.1, you can schedule a single FlexGroup rebalancing operation to begin at a date and time in the future.
 
 .Before you begin
 You must have enabled the `granular-data` option on the FlexGroup volume before enabling FlexGroup rebalancing. You can enable it by using one of these methods:
@@ -75,9 +83,10 @@ You can manage FlexGroup rebalancing by using ONTAP System Manager or the ONTAP 
 .Steps
 
 . Navigate to *Storage > Volumes* and locate the FlexGroup volume to rebalance.
-. Click image:icon_dropdown_arrow.gif[Show details icon] to view the volume details.
-. Click *Rebalance*.
-
+. Select image:icon_dropdown_arrow.gif[Show details icon] to view the volume details.
+. Select *Rebalance*.
+. In the *Rebalance Volume* window, change the default settings as needed.
+. To schedule the rebalancing operation, select *Rebalance Later* and enter the date and time.
 --
 
 .CLI
@@ -86,12 +95,20 @@ You can manage FlexGroup rebalancing by using ONTAP System Manager or the ONTAP 
 . Start automatic rebalancing: `volume rebalance start -vserver _SVM_name_ -volume _volume_name_`
 +
 Optionally, you can specify the following options:
-    [[-max-runtime] <time interval>]    Maximum Runtime
-    [-max-threshold <percent>]    Maximum Imbalance Threshold per Constituent
-    [-min-threshold <percent>]     Minimum Imbalance Threshold per Constituent
-    [-max-file-moves <integer>]    Maximum Concurrent File Moves per Constituent
-    [-min-file-size {<integer>[KB|MB|GB|TB|PB]}]    Minimum file size
-    [-exclude-snapshots {true|false}]    Exclude files stuck in Snapshot copies
++
+[[-max-runtime] <time interval>]    Maximum Runtime
++
+[-max-threshold <percent>]    Maximum Imbalance Threshold per Constituent
++
+[-min-threshold <percent>]     Minimum Imbalance Threshold per Constituent
++
+[-max-file-moves <integer>]    Maximum Concurrent File Moves per Constituent
++
+[-min-file-size {<integer>[KB|MB|GB|TB|PB]}]    Minimum file size
++
+[-start-time <mm/dd/yyyy-00:00:00>]    Schedule rebalance start date and time
++
+[-exclude-snapshots {true|false}]    Exclude files stuck in Snapshot copies
 +
 Example: 
 +
@@ -99,15 +116,12 @@ Example:
 volume rebalance start -vserver vs0 -volume fg1
 ----
 
-. In the *Rebalance Volume* window, change the default settings if necessary.
-. Click *Save* to accept the default settings.
-
 --
 ====
 
 == Modify FlexGroup rebalance configurations 
 
-You can change a FlexGroup rebalancing configuration to update the imbalance threshold, number of concurrent files moves minimum file size, maximum runtime, and to include or exclude Snapshot copies.
+You can change a FlexGroup rebalancing configuration to update the imbalance threshold, number of concurrent files moves minimum file size, maximum runtime, and to include or exclude Snapshot copies. Options to modify your FlexGroup rebalancing schedule are available beginning with ONTAP 9.13.1.
 
 [role="tabbed-block"]
 ====
@@ -116,10 +130,9 @@ You can change a FlexGroup rebalancing configuration to update the imbalance thr
 --
 .Steps
 . Navigate to *Storage > Volumes* and locate the FlexGroup volume to rebalance.
-. Click image:icon_dropdown_arrow.gif[Show details icon] to view the volume details.
-. Click *Rebalance*.
+. Select image:icon_dropdown_arrow.gif[Show details icon] to view the volume details.
+. Select *Rebalance*.
 . In the *Rebalance Volume* window, change the default settings as needed.
-. Click *Save*.
 
 --
 
@@ -129,18 +142,26 @@ You can change a FlexGroup rebalancing configuration to update the imbalance thr
 . Modify automatic rebalancing: `volume rebalance modify -vserver _SVM_name_ -volume _volume_name_`
 +
 You can specify one or more of the following options:
-    [[-max-runtime] <time interval>]    Maximum Runtime
-    [-max-threshold <percent>]    Maximum Imbalance Threshold per Constituent
-    [-min-threshold <percent>]     Minimum Imbalance Threshold per Constituent
-    [-max-file-moves <integer>]    Maximum Concurrent File Moves per Constituent
-    [-min-file-size {<integer>[KB|MB|GB|TB|PB]}]    Minimum file size
-    [-exclude-snapshots {true|false}]    Exclude files stuck in Snapshot copies
++
+[[-max-runtime] <time interval>]    Maximum Runtime
++
+[-max-threshold <percent>]    Maximum Imbalance Threshold per Constituent
++
+[-min-threshold <percent>]     Minimum Imbalance Threshold per Constituent
++
+[-max-file-moves <integer>]    Maximum Concurrent File Moves per Constituent
++
+[-min-file-size {<integer>[KB|MB|GB|TB|PB]}]    Minimum file size
++
+[-start-time <mm/dd/yyyy-00:00:00>]    Schedule rebalance start date and time
++
+[-exclude-snapshots {true|false}]    Exclude files stuck in Snapshot copies
 
 --
 ====
 
 == Stop FlexGroup rebalance
-After FlexGroup rebalancing is enabled, you can stop it at any time.
+After FlexGroup rebalancing is enabled or scheduled, you can stop it at any time.
 
 [role="tabbed-block"]
 ====
@@ -149,8 +170,8 @@ After FlexGroup rebalancing is enabled, you can stop it at any time.
 --
 .Steps
 . Navigate to *Storage > Volumes* and locate the FlexGroup volume.
-. Click image:icon_dropdown_arrow.gif[Show details icon] to view the volume details.
-. Click *Stop Rebalance*.
+. Select image:icon_dropdown_arrow.gif[Show details icon] to view the volume details.
+. Select *Stop Rebalance*.
 --
 
 .CLI
@@ -170,9 +191,9 @@ You can display the status about a FlexGroup rebalance operation, the FlexGroup 
 --
 .Steps
 . Navigate to *Storage > Volumes* and locate the FlexGroup volume.
-. Click image:icon_dropdown_arrow.gif[Show details icon] to view the FlexGroup details.
+. Select image:icon_dropdown_arrow.gif[Show details icon] to view the FlexGroup details.
 . *FlexGroup Balance Status* is displayed near the bottom of the details pane. 
-. To view information about the last rebalance operation, click *Last Volume Rebalance Status*.
+. To view information about the last rebalance operation, select *Last Volume Rebalance Status*.
 
 
 --
@@ -243,4 +264,6 @@ Example of rebalance instance details:
 --
 ====
 
+// 2023-Mar-29, ONTAPDOC-873
+// 2023-Jan-30, issue# 763
 // 2022-Oct-7, IE-532

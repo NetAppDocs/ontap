@@ -15,9 +15,9 @@ You must have completed the revert link:task_things_to_verify_before_revert.html
 
 Reverting a cluster requires you to take the cluster offline for the duration of the reversion.
 
-. Set the privilege level to advanced, entering *y* when prompted to continue: `set -privilege advanced`
+. Set the privilege level to advanced: `set -privilege advanced`
 +
-The advanced prompt (`*>`) appears.
+Enter *y* when prompted to continue.
 
 . Verify that the target ONTAP software is installed: `system image show`
 +
@@ -38,12 +38,14 @@ node1
 ----
 
 . Disable all of the data LIFs in the cluster: `network interface modify {-role data} -status-admin down`
-. [[step-5]]If the cluster consists of only two nodes, disable cluster HA: `cluster ha modify -configured false`
-. [[step-6]]Disable storage failover for the nodes in the HA pair from either node: `storage failover modify -node nodename -enabled false`
+. Determine if you have inter-cluster flexcache relationships: `flexcache origin show-caches -relationship-type inter-cluster`
+. If inter-cluster flexcaches are present, disable the data lifs on the cache cluster: `network interface modify -vserver vserver_name -lif lif_name -status-admin down`
+. If the cluster consists of only two nodes, disable cluster HA: `cluster ha modify -configured false`
+. [[step-5]]Disable storage failover for the nodes in the HA pair from either node: `storage failover modify -node nodename -enabled false`
 +
 You only need to disable storage failover once for the HA pair. When you disable storage failover for a node, storage failover is also disabled on the node's partner.
 
-. Log in to the node that you want to revert.
+. [[step-6]]Log in to the node that you want to revert.
 +
 To revert a node, you must be logged in to the cluster through the node's node management LIF.
 
@@ -130,15 +132,16 @@ node1
 4 entries were displayed.
 ----
 
-. Verify that the revert status is complete for each node: `system node upgrade-revert show -node nodename`
+. [[step-16]]Verify that the revert status is complete for each node: `system node upgrade-revert show -node nodename`
 +
 The status should be listed as complete.
 
-. Repeat <<step-5>> through <<step-17>> on the other node in the HA pair.
+. Repeat <<step-6>> through <<step-16>> on the other node in the HA pair.
 . If the cluster consists of only two nodes, reenable cluster HA: `cluster ha modify -configured true`
-. [[step-18]]Reenable storage failover on both nodes if it was previously disabled: `storage failover modify -node nodename -enabled true`
-. Repeat <<step-6>> through <<step-18>> for each additional HA pair and both the clusters in MetroCluster Configuration.
+. [[step-19]]Reenable storage failover on both nodes if it was previously disabled: `storage failover modify -node nodename -enabled true`
+. Repeat <<step-5>> through <<step-19>> for each additional HA pair and both the clusters in MetroCluster Configuration.
 
+//2023 Mar 6, BURT 1521738
 //2022-oct-07, IE-615
 // 2022-oct-06, IE-618
 // 2022-06-27, BURT 1485042

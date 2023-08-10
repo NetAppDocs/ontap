@@ -2,34 +2,43 @@
 permalink: ndmp/configure-backup-user-cluster-task.html
 sidebar: sidebar
 keywords: configure, backup, user, cluster
-summary: "To authenticate NDMP from the backup application, you must create a local backup user, or an NIS or LDAP user for the cluster with the admin or backup role, and generate an NDMP password for the backup user."
+summary: "To authenticate SVM-scoped NDMP from the backup application, there must be an administrative user with sufficient privileges and an NDMP password."
 ---
-= Configure a backup user for the cluster
+= Enable a backup user for NDMP authentication
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-To authenticate NDMP from the backup application, you must create a local backup user, or an NIS or LDAP user for the cluster with the admin or backup role, and generate an NDMP password for the backup user.
+To authenticate SVM-scoped NDMP from the backup application, there must be an administrative user with sufficient privileges and an NDMP password. 
 
-.What you'll need
+.About this task
 
-If you are using an NIS or LDAP user, the user must be created on the respective server. You cannot use an Active Directory user.
+You must generate an NDMP password for backup admin users. You can enable backup admin users at the cluster or SVM level, and if necessary, you can create a new user. By default, the users with the following roles can authenticate for NDMP backup:
+
+* Cluster-wide: `admin` or `backup`
+* Individual SVMs: `vsadmin` or `vsadmin-backup`
+
+If you are using an NIS or LDAP user, the user must exist on the respective server. You cannot use an Active Directory user.
 
 .Steps
 
-. Create a backup user with the `admin` or `backup` role by using the `security login create` command.
+. Display the current admin users and permissions:
++
+`security login show`
+
+. If needed, create a new NDMP backup user with the `security login create` command and the appropriate role for cluster-wide or individual SVM privileges.
 +
 You can specify a local backup user name or an NIS or LDAP user name for the `-user-or-group-name` parameter.
 +
-The following command creates the backup user backup_admin1 with the `backup` role:
+The following command creates the backup user `backup_admin1` with the `backup` role for the entire cluster:
 +
-----
-cluster1::> security login create -user-or-group-name backup_admin1 -application ssh
--authmethod password -role backup
-
-Please enter a password for user 'backup_admin1':
-Please enter it again:
-----
+`cluster1::> security login create -user-or-group-name backup_admin1 -application ssh -authmethod password -role backup`
++
+The following command creates the backup user `vsbackup_admin1` with the `vsadmin-backup` role for an individual SVM:
++
+`cluster1::> security login create -user-or-group-name vsbackup_admin1 -application ssh -authmethod password -role vsadmin-backup`
++
+Enter a password for the new user and confirm.
 
 . Generate a password for the admin SVM by using the `vserver services ndmp generate password` command.
 +
@@ -42,3 +51,4 @@ cluster1::> vserver services ndmp generate-password -vserver cluster1 -user back
     User: backup_admin1
 Password: qG5CqQHYxw7tE57g
 ----
+// 2022-Oct-05, BURT 1430459
