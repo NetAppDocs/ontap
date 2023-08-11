@@ -4,12 +4,36 @@ sidebar: sidebar
 keywords: ontap, upgrade, snapmirror, operations, quisce
 summary: 'It is recommended that you quiesce your SnapMirror operations before performing a nondisruptive upgrade of ONTAP.'
 ---
-= Prepare SnapMirror relationships for a nondisruptive upgrade
+= Prepare SnapMirror relationships for an ONTAP upgrade
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Before you upgrade, it is recommended that you quiesce your SnapMirror operations.
+
+Before you upgrade a cluster that is running SnapMirror, SnapMirror operations must be quiesced for each node that contains destination volumes, and each peered SVM must have a unique name across the clusters. It is best practice to use a unique fully qualified domain name (FQDN) for each SVM, for example, "`dataVerser.HQ`" or "`mirrorVserver.Offsite`". 
+
+You should also be aware that if you are upgrading clusters with DP SnapMirror relationships, you must upgrade the destination nodes before you upgrade the source nodes.
+
+== Quiesce SnapMirror operations before upgrading ONTAP
+
+To prevent SnapMirror transfers from failing, you must quiesce SnapMirror operations. Alternatively, you can quiesce SnapMirror transfers on a particular destination volume and upgrade the owning destination node before upgrading source nodes so the SnapMirror transfers for all other destination volumes can continue. The following table describes the two options for suspending SnapMirror operations.
++
+[cols=3*,options="header"]
+|===
+| Option| Description| Upgrade destination nodes before source nodes?
+a|
+Suspend SnapMirror operations for the duration of the NDU (nondisruptive upgrade).
+a|
+The simplest method for upgrading in a SnapMirror environment is to suspend all SnapMirror operations, perform the upgrade, and then resume the SnapMirror operations. However, no SnapMirror transfers will occur during the entire NDU. You must use this method if your cluster contains nodes that are mirroring volumes to each other.
+a|
+No, the nodes can be upgraded in any order.
+a|
+Suspend SnapMirror operations one destination volume at a time.
+a|
+You can suspend SnapMirror transfers for a particular destination volume, upgrade the node (or HA pair) that contains the destination volume, upgrade the node (or HA pair) that contains the source volume, and then resume the SnapMirror transfers for the destination volume. By using this method, SnapMirror transfers for all other destination volumes can continue while the nodes that contain the original destination and source volumes are upgraded.
+a|
+Yes.
+|===
 
 .Steps
 
@@ -58,8 +82,5 @@ a|
 This command stops the SnapMirror transfer and restores the destination volume to the last Snapshot copy that was successfully transferred. The relationship is set to "Quiesced" status.
 |===
 
-.Related information
-
-xref:concept_upgrade_requirements_for_snapmirror.adoc[Upgrade requirements for SnapMirror]
-
+// 2023
 // 2023 Aug 07, Jira 1183
