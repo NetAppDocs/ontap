@@ -1,15 +1,244 @@
 ---
 permalink: software_setup/index.html
 sidebar: sidebar
-keywords: home, software, setup, ontap, documentation
+keywords: ontap, software, setup, deciding, decide, if, whether, use, cli, cluster, System Manager, IPv6, HA, root volumes, FlexArray
 summary: 'Software Setup'
 ---
-= Software Setup
+= Get started with ONTAP cluster set up
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You can set up a new cluster with System Manager or with the ONTAP CLI. Click link:https://docs.netapp.com/us-en/ontap/task_configure_ontap.html[here] to learn more. 
+NetApp recommends that you link:../task_configure_ontap.html[use System Manager to set up new clusters].  
 
+System Manager provides a simple and easy workflow for cluster set and configuration including assigning a node management IP address, initializing the cluster, creating a local tier, configuring protocols and provisioning initial storage. For example, suppose you have completed the installation of a new AFF C-series system.  You can use System Manager to setup a new cluster, enable iSCSI or FC for SAN access, and provision LUNs for storage. 
 
-// 2022 Dec 06, Jira 717
+NetApp recommends link:task_create_the_cluster_on_the_first_node.html[using the ONTAP Command Line Interface (CLI) to set up a new cluster] under the following conditions:
+
+* Your version of System Manager does not support initial cluster setup for your configuration.
+* You are running ONTAP 9.7 or earlier on a MetroCluster configuration.
+* You are running ONTAP 9.13.1 or later on the A800 or FAS8700 platforms and you need to setup an IPv6 network.
++
+Beginning in ONTAP 9.13.1, on the A800 and FAS8700 platforms, you can use the ONTAP CLI to create and configure new clusters in IPv6-only networking environments.  If you need to use IPv6 addresses in ONTAP 9.13.0 and earlier, or on other platforms in ONTAP 9.13.1 and later, you must create new clusters using IPv4 and then link:convert-ipv4-to-ipv6-task.html[convert to IPv6]. In such cases, you can link:../task_configure_ontap.html[use System Manager to set up new clusters], then use the CLI to convert from IPv4 to IPv6.
+
+If you are configuring a FlexArray on non-NetApp disks, you need to use the ONTAP CLI to configure root volumes on the array LUNs, and then use the Cluster Setup wizard to set up your cluster.
+For more information, see the link:https://docs.netapp.com/us-en/ontap-flexarray/install/concept_flexarray_virtualization_technology_overview_using_array_luns_for_storage.html[FlexArray Virtualization installation and requirements] documentation.
+
+== What you'll need for cluster set up
+
+[.lead]
+Setting up the cluster involves gathering the information needed to configure setting up each node, creating the cluster on the first node, and joining any remaining nodes to the cluster.
+
+Get started by gathering all the relevant information in the cluster setup worksheets.
+
+The cluster setup worksheet enables you to record the values that you need during the cluster setup process. If a default value is provided, you can use that value or else enter your own.
+
+=== System defaults
+
+The system defaults are the default values for the private cluster network. It is best to use these default values. However, if they do not meet your requirements, you can use the table to record your own values.
+
+NOTE: For clusters configured to use network switches, each cluster switch must use the 9000 MTU size.
+
+[cols=2*,options="header"]
+|===
+|Types of information| Your values
+
+|Private cluster network ports
+|
+
+|Cluster network netmask
+|
+
+|Cluster interface IP addresses (for each cluster network port on each node)
+
+The IP addresses for each node must be on the same subnet.
+|
+
+|===
+
+=== Cluster information
+
+[cols=2*,options="header"]
+|===
+|Types of information| Your values
+
+|Cluster name
+
+The name must begin with a letter, and it must be fewer than 44 characters. The name can include the following special characters:
+
+`.` `-` `_`
+
+|
+
+|===
+
+=== Feature license keys
+
+You can find license keys for your initial or add-on software orders at the NetApp Support Site under *My Support* > *Software Licenses*.
+
+[cols=2*,options="header"]
+|===
+|Types of information| Your values
+
+|Feature license keys
+|
+
+|===
+
+=== Admin storage virtual machine (SVM)
+
+[cols=2*,options="header"]
+|===
+|Types of information| Your values
+
+a|Cluster administrator password
+
+The password for the admin account that the cluster requires before granting cluster administrator access to the console or through a secure protocol.
+
+NOTE: For security purposes, recording passwords in this worksheet is not recommended.
+
+The default rules for passwords are as follows:
+
+* A password must be at least eight characters long.
+* A password must contain at least one letter and one number.
+
+a|
+
+a|Cluster management interface port
+
+The physical port that is connected to the data network and enables the cluster administrator to manage the cluster.
+
+a|
+
+a|
+Cluster management interface IP address
+
+A unique IPv4 or IPv6 address for the cluster management interface. The cluster administrator uses this address to access the admin SVM and manage the cluster. Typically, this address should be on the data network.
+
+You can obtain this IP address from the administrator responsible for assigning IP addresses in your organization.
+
+Example: 192.0.2.66
+
+a|
+
+a|Cluster management interface netmask (IPv4)
+
+The subnet mask that defines the range of valid IPv4 addresses on the cluster management network.
+
+Example: 255.255.255.0
+
+a|
+
+a|
+Cluster management interface netmask length (IPv6)
+
+If the cluster management interface uses an IPv6 address, then this value represents the prefix length that defines the range of valid IPv6 addresses on the cluster management network.
+
+Example: 64
+
+a|
+
+a|
+Cluster management interface default gateway
+
+The IP address for the router on the cluster management network.
+
+a|
+
+a|
+DNS domain name
+
+The name of your network's DNS domain.
+
+The domain name must consist of alphanumeric characters. To enter multiple DNS domain names, separate each name with either a comma or a space.
+
+a|
+
+a|
+Name server IP addresses
+
+The IP addresses of the DNS name servers. Separate each address with either a comma or a space.
+
+a|
+
+|===
+
+=== Node information (for each node in the cluster)
+
+[cols=2*,options="header"]
+|===
+|Types of information| Your values
+
+a|
+Physical location of the controller (optional)
+
+A description of the physical location of the controller. Use a description that identifies where to find this node in the cluster (for example, "`Lab 5, Row 7, Rack B`").
+
+a|
+
+a|
+Node management interface port
+
+The physical port that is connected to the node management network and enables the cluster administrator to manage the node.
+
+a|
+
+a|
+Node management interface IP address
+
+A unique IPv4 or IPv6 address for the node management interface on the management network. If you defined the node management interface port to be a data port, then this IP address should be a unique IP address on the data network.
+
+You can obtain this IP address from the administrator responsible for assigning IP addresses in your organization.
+
+Example: 192.0.2.66
+
+a|
+
+a|
+Node management interface netmask (IPv4)
+
+The subnet mask that defines the range of valid IP addresses on the node management network.
+
+If you defined the node management interface port to be a data port, then the netmask should be the subnet mask for the data network.
+
+Example: 255.255.255.0
+
+a|
+
+a|
+Node management interface netmask length (IPv6)
+
+If the node management interface uses an IPv6 address, then this value represents the prefix length that defines the range of valid IPv6 addresses on the node management network.
+
+Example: 64
+
+a|
+
+a|
+Node management interface default gateway
+
+The IP address for the router on the node management network.
+
+a|
+
+|===
+
+=== NTP server information
+
+[cols=2*,options="header"]
+|===
+|Types of information| Your values
+
+a|
+NTP server addresses
+
+The IP addresses of the Network Time Protocol (NTP) servers at your site. These servers are used to synchronize the time across the cluster.
+
+a|
+
+|===
+
+// 2023 Aug 11, Jira 1283
+// 2023 May 02, Jira 782
+
+// 2023 May 02, Jira 782
