@@ -1,14 +1,85 @@
 ---
 permalink: encryption-at-rest/encrypt-existing-volume-task.html
 sidebar: sidebar
-keywords: enabling, encryption, existing, volume, volume move start, command
-summary: "You can use the volume move start command to enable encryption by moving an existing volume. You must use volume move start in ONTAP 9.2 and earlier. You can use the same aggregate or a different aggregate."
+keywords: enabling, encryption, existing, volume, volume move start, command, volume encryption conversion start
+summary: "You can use either of two methods to enable encryption on an existing volume--using the volume move start command or using the volume encryption conversion start command. 
 ---
-= Enable encryption on an existing volume with the volume move start command
-:icons: font
-:imagesdir: ../media/
+= Enable encryption on an existing volume
 
 [.lead]
+You can use either of two methods to enable encryption on an existing volume&mdash;using the `volume move start command` or using the `volume encryption conversion start` command. 
+
+.About this task
+
+* Beginning with ONTAP 9.3, you can use the `volume encryption conversion start` command to enable encryption of an existing volume "in place," without having to move the volume to a different location. ALternatively, you can use the `volume move start` command.
+* For ONTAP 9.2 and earlier, you can use only the `volume move start` command to enable encryption by moving an existing volume.
+
+
+== Enable encryption on an existing volume with the volume encryption conversion start command
+
+Beginning with ONTAP 9.3, you can use the `volume encryption conversion start` command to enable encryption of an existing volume "in place," without having to move the volume to a different location.
+
+After you start a conversion operation, it must completed. If you encounter a performance issue during the operation, you can run the `volume encryption conversion pause` command to pause the operation, and the `volume encryption conversion resume` command to resume the operation.
+
+[NOTE]
+====
+You can't use `volume encryption conversion start` to convert a SnapLock volume.
+====
+
+.Steps
+
+. Enable encryption on an existing volume:
++
+`volume encryption conversion start -vserver SVM_name -volume volume_name`
++
+For the entire command syntax, see the man page for the command.
++
+The following command enables encryption on existing volume `vol1`:
++
+----
+cluster1::> volume encryption conversion start -vserver vs1 -volume vol1
+----
++
+The system creates an encryption key for the volume. The data on the volume is encrypted.
+
+. Verify the status of the conversion operation:
++
+`volume encryption conversion show`
++
+For the entire command syntax, see the man page for the command.
++
+The following command displays the status of the conversion operation:
++
+----
+cluster1::> volume encryption conversion show
+
+Vserver   Volume   Start Time           Status
+-------   ------   ------------------   ---------------------------
+vs1       vol1     9/18/2017 17:51:41   Phase 2 of 2 is in progress.
+----
+
+. When the conversion operation is completed, verify that the volume is enabled for encryption:
++
+`volume show -is-encrypted true`
++
+For the entire command syntax, see the man page for the command.
++
+The following command displays the encrypted volumes on `cluster1`:
++
+----
+cluster1::> volume show -is-encrypted true
+
+Vserver  Volume  Aggregate  State  Type  Size  Available  Used
+-------  ------  ---------  -----  ----  -----  --------- ----
+vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
+----
+
+.Result
+
+If you are using a KMIP server to store the encryption keys for a node, ONTAP automatically "`pushes`" an encryption key to the server when you encrypt a volume.
+
+== Enable encryption on an existing volume with the volume move start command 
+
 You can use the `volume move start` command to enable encryption by moving an existing volume. You must use `volume move start` in ONTAP 9.2 and earlier. You can use the same aggregate or a different aggregate.
 
 .What you'll need
@@ -19,11 +90,11 @@ link:delegate-volume-encryption-svm-administrator-task.html[Delegating authority
 
 .About this task
 
-Beginning with ONTAP 9.8, you can use `volume move start` to enable encryption on a SnapLock or FlexGroup volume.
+* Beginning with ONTAP 9.8, you can use `volume move start` to enable encryption on a SnapLock or FlexGroup volume.
 
-Beginning with ONTAP 9.4, if you enable "`cc-mode`" when you set up the Onboard Key Manager, volumes you create with the `volume move start` command are automatically encrypted. You need not specify `-encrypt-destination true`.
+* Beginning with ONTAP 9.6, you can use aggregate-level encryption to assign keys to the containing aggregate for the volumes to be moved. A volume encrypted with a unique key is called an _NVE volume_. A volume encrypted with an aggregate-level key is called an _NAE volume_ (for NetApp Aggregate Encryption). Plaintext volumes are not supported in NAE aggregates.
 
-Beginning with ONTAP 9.6, you can use aggregate-level encryption to assign keys to the containing aggregate for the volumes to be moved. A volume encrypted with a unique key is called an _NVE volume_. A volume encrypted with an aggregate-level key is called an _NAE volume_ (for NetApp Aggregate Encryption). Plaintext volumes are not supported in NAE aggregates.
+* Beginning with ONTAP 9.4, if you enable "`cc-mode`" when you set up the Onboard Key Manager, volumes you create with the `volume move start` command are automatically encrypted. You need not specify `-encrypt-destination true`.
 
 .Steps
 
@@ -57,7 +128,7 @@ a|
 |===
 
 +
-For complete command syntax, see the man page for the command.
+For the entire command syntax, see the man page for the command.
 +
 The following command converts a plaintext volume named `vol1` to an NVE volume:
 +
@@ -95,7 +166,7 @@ cluster1::> volume move start -vserver vs1 -volume vol2 -destination-aggregate a
 +
 The `encryption-type` field is available in ONTAP 9.6 and later.
 +
-For complete command syntax, see the man page for the command.
+For the entire command syntax, see the man page for the command.
 +
 The following command displays the encryption type of volumes in `cluster2`:
 +
@@ -113,7 +184,7 @@ vs3      vol3    aggregate
 +
 `volume show -is-encrypted true`
 +
-For complete command syntax, see the man page for the command.
+For the entire command syntax, see the man page for the command.
 +
 The following command displays the encrypted volumes on `cluster2`:
 +
@@ -129,4 +200,5 @@ vs1      vol1    aggr2     online    RW  200GB    160.0GB  20%
 
 If you are using a KMIP server to store the encryption keys for a node, ONTAP automatically "`pushes`" an encryption key to the server when you encrypt a volume.
 
-//2022-3-17, Issue #409
+// 2022 Mar 17, Issue #409
+// 2023 Aug 15, ONTAPDOC-1015
