@@ -1,0 +1,65 @@
+---
+permalink: antivirus/create-on-demand-task-task.html
+sidebar: sidebar
+keywords: create, on-demand, task
+summary: "An on-demand task defines the scope of an on-demand scan. You can specify the maximum size of the files to be scanned, the extensions and paths of the files to be included in the scan, and the extensions and paths of the files to be excluded from the scan. Files in subdirectories are scanned by default."
+---
+= Create an on-demand task
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+An on-demand task defines the scope of an on-demand scan. You can specify the maximum size of the files to be scanned, the extensions and paths of the files to be included in the scan, and the extensions and paths of the files to be excluded from the scan. Files in subdirectories are scanned by default.
+
+.Steps
+
+. Create an on-demand task:
++
+`vserver vscan on-demand-task create -vserver data_SVM -task-name task_name -scan-paths paths_of_files_to_scan -report-directory report_directory_path -report-expiry-time expiration_time_for_report -schedule cron_schedule -max-file-size max_size_of_files_to_scan -paths-to-exclude paths_of_files_to_exclude -file-ext-to-exclude extensions_of_files_to_exclude -file-ext-to-include extensions_of_files_to_include -scan-files-with-no-ext true|false -directory-recursion true|false`
++
+ ** The `-file-ext-to-exclude` setting overrides the `-file-ext-to-include` setting.
+ ** Set `-scan-files-with-no-ext` to true to scan files without extensions.
+For a complete list of options, see the man page for the command.
+
++
+The following command creates an on-access task named `Task1` on the ``vs1``SVM:
++
+----
+cluster1::> vserver vscan on-demand-task create -vserver vs1 -task-name Task1 -scan-paths "/vol1/","/vol2/cifs/" -report-directory "/report" -schedule daily -max-file-size 5GB -paths-to-exclude "/vol1/cold-files/" -file-ext-to-include "vmdk?","mp*" -file-ext-to-exclude "mp3","mp4" -scan-files-with-no-ext false
+[Job 126]: Vscan On-Demand job is queued. Use the "job show -id 126" command to view the status.
+----
++
+[NOTE]
+====
+You can use the `job show` command to view the status of the job. You can use the `job pause` and `job resume` commands to pause and restart the job, or the `job stop` command to end the job.
+====
+. Verify that the on-demand task has been created: `vserver vscan on-demand-task show -instance data_SVM -task-name task_name`
++
+For a complete list of options, see the man page for the command.
++
+The following command displays the details for the `Task1` task:
++
+----
+cluster1::> vserver vscan on-demand-task show -instance vs1 -task-name Task1
+
+                           Vserver: vs1
+                         Task Name: Task1
+                List of Scan Paths: /vol1/, /vol2/cifs/
+             Report Directory Path: /report
+                      Job Schedule: daily
+Max File Size Allowed for Scanning: 5GB
+            File Paths Not to Scan: /vol1/cold-files/
+       File Extensions Not to Scan: mp3, mp4
+           File Extensions to Scan: vmdk?, mp*
+      Scan Files with No Extension: false
+           Request Service Timeout: 5m
+                    Cross Junction: true
+               Directory Recursion: true
+                     Scan Priority: low
+                  Report Log Level: info
+        Expiration Time for Report: -
+----
+
+.After you finish
+
+You must enable scanning on the SVM before the task is scheduled to run.
