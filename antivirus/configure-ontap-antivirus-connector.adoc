@@ -1,65 +1,180 @@
 ---
-permalink: antivirus/create-on-demand-task-task.html
+permalink: antivirus/configure-ontap-antivirus-connector.html
 sidebar: sidebar
-keywords: create, on-demand, task
-summary: "An on-demand task defines the scope of an on-demand scan. You can specify the maximum size of the files to be scanned, the extensions and paths of the files to be included in the scan, and the extensions and paths of the files to be excluded from the scan. Files in subdirectories are scanned by default."
+keywords: configure, antivirus connector, task, SVM's, connections
+summary: "You must configure the Antivirus Connector to specify one or more storage virtual machines (SVMs) that you want to connect to by either entering the ONTAP Management LIF, poll information, and the ONTAP admin account credentials, or just the Data LIF."
 ---
-= Create an on-demand task
+= Configure the ONTAP Antivirus Connector
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-An on-demand task defines the scope of an on-demand scan. You can specify the maximum size of the files to be scanned, the extensions and paths of the files to be included in the scan, and the extensions and paths of the files to be excluded from the scan. Files in subdirectories are scanned by default.
+You must configure the Antivirus Connector to specify one or more storage virtual machines (SVMs) that you want to connect to by either entering the
+ONTAP Management LIF, poll information, and the ONTAP admin account credentials, or just the Data LIF. You can also modify the details of an SVM connection or remove an SVM connection. By default, the Antivirus Connector invokes REST APIs for retrieving the list of Data LIFs if ONTAP Management LIF is configured.
+
+== Add an SVM to the Antivirus Connector
+
+You can add a storage virtual machine (SVM) to an Antivirus Connector by adding either an ONTAP Management LIF, which is polled to retrieve the list of data LIFs, or by directly configuring the data LIF or LIFs.
+
+You must also provide the poll information and the ONTAP admin account credentials if ONTAP Management LIF is configured..Steps
+
+.Before you begin
+
+* Verify that the Management LIF or the IP address of the SVM is enabled for "management-https". This is not required when you are only configuring data LIFs.
+* Verify that you have created a user account for http application and assigned a role which has (at least read-only) access to the REST API "/api/network/ip/interfaces".
+For more information about creating a user, see the "security login role create" and "security login create" ONTAP man pages.
+
+[NOTE]
+You can also use the domain user as an account by adding an authentication tunnel SVM for an administrative SVM. For more information, see the "security login domaintunnel create" ONTAP man page or use the REST APIs (/api/security/acccounts and /api/security/roles) to configure the admin account and role.
 
 .Steps
 
-. Create an on-demand task:
-+
-`vserver vscan on-demand-task create -vserver data_SVM -task-name task_name -scan-paths paths_of_files_to_scan -report-directory report_directory_path -report-expiry-time expiration_time_for_report -schedule cron_schedule -max-file-size max_size_of_files_to_scan -paths-to-exclude paths_of_files_to_exclude -file-ext-to-exclude extensions_of_files_to_exclude -file-ext-to-include extensions_of_files_to_include -scan-files-with-no-ext true|false -directory-recursion true|false`
-+
- ** The `-file-ext-to-exclude` setting overrides the `-file-ext-to-include` setting.
- ** Set `-scan-files-with-no-ext` to true to scan files without extensions.
-For a complete list of options, see the man page for the command.
+. Right-click on the "Configure ONTAP LIFs" icon, which was saved on your desktop when you completed the Antivirus Connector installation, and then select "run as administrator".
+. In the "Configure ONTAP LIFs" dialog box, perform the following actions after selecting the preferred configuration type:
+* For "Data LIF configuration", if you have an existing Data LIF or IP address, enter the Data LIF or IP address of the SVM that you want to add.
+* For "Data LIF configuration", if you want to create a Data LIF, create a Data LIF with "role" set to "data", "data protocol" set to "cifs", and "firewall policy" set to "data".
+* For "Management LIF configuration", if you have an existing Management LIF or IP address, enter the Management LIF or IP address of the SVM that you want to add.
+* For "Management LIF configuration", if you want to create a Management LIF, create a Management LIF with "role" set to "data", "data protocol" set to "none", and "firewall policy" set to "mgmt".
 
-+
-The following command creates an on-access task named `Task1` on the ``vs1``SVM:
-+
-----
-cluster1::> vserver vscan on-demand-task create -vserver vs1 -task-name Task1 -scan-paths "/vol1/","/vol2/cifs/" -report-directory "/report" -schedule daily -max-file-size 5GB -paths-to-exclude "/vol1/cold-files/" -file-ext-to-include "vmdk?","mp*" -file-ext-to-exclude "mp3","mp4" -scan-files-with-no-ext false
-[Job 126]: Vscan On-Demand job is queued. Use the "job show -id 126" command to view the status.
-----
-+
+Read more about link: https://docs.netapp.com/us-en/ontap/networking/create_a_lif.html[creating a LIF]. After you create a LIF, enter the Data or Management LIF, or IP address of the SVM that you want to add. You can also enter the cluster Management LIF. If you specify the cluster Management LIF, all SVMs within that cluster that are serving SMB can
+use the Vscan server.
+
 [NOTE]
-====
-You can use the `job show` command to view the status of the job. You can use the `job pause` and `job resume` commands to pause and restart the job, or the `job stop` command to end the job.
-====
-. Verify that the on-demand task has been created: `vserver vscan on-demand-task show -instance data_SVM -task-name task_name`
-+
-For a complete list of options, see the man page for the command.
-+
-The following command displays the details for the `Task1` task:
-+
-----
-cluster1::> vserver vscan on-demand-task show -instance vs1 -task-name Task1
+When Kerberos authentication is required for Vscan servers, each SVM data LIF must have a unique DNS name, and you must register that name as a server principal name (SPN) with the Windows Active Directory. When a unique DNS name is not available for each data LIF or registered as an SPN, the Vscan server uses the NT LAN Manager mechanism for authentication. In addition, if you add or modify the DNS names and SPNs after the Vscan server is connected, you must restart the Antivirus Connector service on the Vscan server for the changes to take effect.
 
-                           Vserver: vs1
-                         Task Name: Task1
-                List of Scan Paths: /vol1/, /vol2/cifs/
-             Report Directory Path: /report
-                      Job Schedule: daily
-Max File Size Allowed for Scanning: 5GB
-            File Paths Not to Scan: /vol1/cold-files/
-       File Extensions Not to Scan: mp3, mp4
-           File Extensions to Scan: vmdk?, mp*
-      Scan Files with No Extension: false
-           Request Service Timeout: 5m
-                    Cross Junction: true
-               Directory Recursion: true
-                     Scan Priority: low
-                  Report Log Level: info
-        Expiration Time for Report: -
-----
+. For "Management LIF configuration", enter the poll duration, in seconds. The poll duration is the frequency at which the Antivirus Connector checks for changes to the SVMs or the cluster's LIF configuration. The default poll interval is 60 seconds.
+. For "Management LIF configuration", enter the ONTAP admin account name and password.
+. Click "Test" to check the connectivity and verify the authentication. Authentication is verified only for a Management LIF configuration.
+. Click "Update" to add the LIF to the list of LIFs to poll or to connect to.
+. Click "Save" to save the connection to the registry.
+. Click "Export" if you want to export the list of connections to a registry import/export file.
+This is useful if multiple Vscan servers use the same set of Management or Data LIFs.
 
-.After you finish
+== Modify the details of an SVM connection
 
-You must enable scanning on the SVM before the task is scheduled to run.
+You can update the details of a storage virtual machine (SVM) connection, which has been added to the Antivirus Connector, by modifying the
+ONTAP Management LIF and the poll information. You cannot update Data LIFs after they have been added. To update data LIFs you must
+first remove them and then add them again with the new LIF or IP address.
+
+.Before you begin
+
+Verify that you have created a user account for http application and assigned a role which has (at least read-only) access to the REST API "/api/network/ip/interfaces".
+For more information about creating a user, see the link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-role-create.html#description["security login role create"] and link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-create.html[]"security login create"] ONTAP man pages.
+You can also use the domain user as an account by adding an authentication tunnel SVM for an administrative SVM.
+For more information, see the link:"https://docs.netapp.com/us-en/ontap-cli-9131//security-login-domain-tunnel-create.html[security login domain-tunnel create"] ONTAP man page.
+
+.Steps
+
+. Right-click the "Configure ONTAP LIFs" icon, which was saved on your desktop when you completed the Antivirus Connector installation, and then select "run as administrator". The "Configure ONTAP LIFs" dialog box opens.
+. Select the SVM IP address, and then click "Update".
+. Update the information, as required.
+. Click "Save" to update the connection details in the registry.
+. Click "Export" if you want to export the list of connections to a registry import/export file.
+This is useful if multiple Vscan servers use the same set of Management or Data LIFs.
+
+== Remove an SVM connection from the Antivirus Connector
+
+If you no longer require a storage virtual machine (SVM) connection, you can remove it.
+
+.Steps
+
+. Right-click the "Configure ONTAP LIFs" icon, which was saved on your desktop when you completed the Antivirus Connector installation, and then select "run as administrator". The "Configure ONTAP LIFs" dialog box opens.
+. Select one or more SVM IP addresses, and then click "Remove".
+. Click "Save" to update the connection details in the registry.
+. Click "Export" if you want to export the list of connections to a registry import/export file.
+This is useful if multiple Vscan servers use the same set of Management or Data LIFs.
+
+== Troubleshoot
+
+You can enable or disable Antivirus Connector logs for diagnostic purposes. By default, these logs are disabled. For better performance, you should keep the Antivirus Connector logs disabled and only enable for critical events.
+
+.Steps
+
+. Select Start, type regedit in the Start search box, and then select regedit.exe in the Programs list.
+. In Registry Editor, locate the following subkey for ONTAP Antivirus Connector:
+  HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Data ONTAP\Clustered Data ONTAP Antivirus Connector\v1.0
+. In the right-side pane, create a registry value of type "String" with the name "TracePath" (without quotes) and value "c:\avshim.log" (without quotes). This value could be any other valid path.
+. In the right-side pane, create one more registry value of type "DWORD" with the name "TraceLevel" (without quotes) and value "1" (without quotes) for critical logging, "2" (without quotes) or "3" (without quotes) for intermediate logging, or "4" (without quotes) for verbose logging.
+This enables Antivirus Connector logs that are saved at the path value provided in the "TracePath" in step 3.
+. For disabling Antivirus Connector logs, "Delete" the registry values created in Steps 3 and 4.
+. In the right-side pane, create a registry value of type "MULTI_SZ" with the name "LogRotation" (without quotes). In "LogRotation", provide "logFileSize:1" as an entry for Rotation Size (where 1 represents 1MB) and in the next line, provide "logFileCount:5" as an entry for Rotation Limit (where 5 is the Limit).
+
+[NOTE]
+These values are optional and if not provided, default values of 20MB and 10 will be taken for Rotation Size and Rotation Limit respectively. Provided integer values do not provide decimal or fraction values.
+If you provide values higher than the default values, it rebounds to the default values.
+
+. To disable user configured Log Rotation, "Delete" the registry values in Step 6.
+
+== Customizable Banner
+
+A custom banner allows you to place a legally binding statement and/or disclaimer about system access on Configure ONTAP LIF API Window.
+
+.Step
+
+. Modify the default banner by updating the contents in the banner.txt file in the install directory and then saving the changes.
+You must reopen the Configure ONTAP LIF API Window to see the changes reflected in the banner.
+
+.Secure (EO) Mode of Operation
+
+You can enable and disable Extended Ordinance (EO) mode for secure operation.
+
+.Steps
+
+. Select Start, type regedit in the Start search box, and then select regedit.exe in the Programs list.
+. In Registry Editor, locate the following subkey for ONTAP Antivirus Connector:
+HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Data ONTAP\Clustered Data ONTAP Antivirus Connector\v1.0
+. In the right-side pane, create a new registry value of type "DWORD" with the name "EO_Mode" (without quotes) and value "1" (without quotes) to enable EO_Mode or value "0" (without quotes) to disable EO_Mode.
+
+[NOTE]
+By default, if EO_Mode registry entry is not present, EO_mode is disabled.
+When you enable EO_mode, you must configure both External Syslog Server and Mutual Certificate Authentication.
+
+== External Syslog Server
+
+Configure External Syslog Server by performing the following steps.
+
+.Steps
+
+. Select Start, type regedit in the Start search box, and then select regedit.exe in the Programs list.
+. In Registry Editor, create the following subkey for ONTAP Antivirus Connector for syslog configuration:
+HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Data ONTAP\Clustered Data ONTAP Antivirus Connector\v1.0\syslog
+. In the right-side pane, create a registry value of type "DWORD" with the name "syslog_enabled" (without quotes) and value "1" (without quotes) to enable the syslog or value "0" (without quotes) to disable the syslog.
+. In the right-side pane, create a registry value of type "REG_SZ" with the name "Syslog_host" (without quotes) and for Value, provide the syslog host IP address or domain name.
+. In the right-side pane, create a registry value of type "REG_SZ" with the name "Syslog_port" (without quotes) and for Value, provide the port number on which the syslog server is running.
+. In the right-side pane, create a registry value of type "REG_SZ" with the name "Syslog_protocol" (without quotes) and for Value,
+provide the protocol that is in use on the syslog server, either "tcp" or "udp".
+. In the right-side pane, create one more registry value of type "DWORD" with the name "Syslog_level" (without quotes) and value "2"
+(without quotes) for LOG_CRIT, "5" (without quotes) for LOG_NOTICE, "6" (without quotes) for LOG_INFO, or "7" (without quotes) for LOG_DEBUG.
+. In the right-side pane, create a registry value of type "DWORD" with the name "syslog_tls" (without quotes) and value "1"
+(without quotes) to enable syslog with Transport Layer Security (TLS) or value "0" (without quotes) to disable syslog with TLS.
+
+=== Ensure a configured External Syslog Server runs smoothly
+
+* If the key is absent or has a null value, the protocol defaults to "tcp", the port defaults to 514 for plain "tcp/udp" and 6514 for TLS,
+and the Syslog level defaults to 5 (LOG_NOTICE).
+* To confirm that syslog is enabled, syslog_enabled must be 1. Irrespective of EO_Mode being enabled or disabled, when syslog_enabled
+is 1, you should be able log in to the configured remote server.
+* If EO_Mode is 1 and you change syslog_enabled from 1 to 0, the following applies:
+** If the service is started or restarted, it cannot start and shutdown.
+**  If the system is running in a steady state, a warning appears to say that syslog cannot be disabled in EO_Mode and syslog is forcefully set to 1, which you can see in the registry. In this case, you should first disable EO Mode and then disable syslog.
+* If syslog server is unable to run successfully when EO_Mode and syslog are enabled, the service stops running. This might occur for one
+of the following reasons:
+** An invalid or no syslog_host is configured.
+** An invalid protocol apart from UDP or TCP is configured.
+** An invalid port number.
+* For a TCP or TLS over TCP configuration, if the server is not listening on the IP port, the connection fails and the service shuts down.
+
+== Mutual Certificate Authentication
+
+X.509 certificate based mutual authentication is possible for the Secure Sockets Layer (SSL) communication between the Antivirus Connector and ONTAP in the management path.
+When operating in EO compliant mode, if the certificate is not found, the AV Connector will terminate.
+The following procedure is performed on the Antivirus Connector:
+
+. The Antivirus Connector looks for the Antivirus Connector client certificate and the certificate authority (CA) certificate for the NetApp server in a fixed location, which is the directory path from where the Antivirus Connector runs (the Antivirus connector install directory). The certificates must be copied into this fixed directory path.
+. The client certificate and its private key should be embedded in the PKCS12 format and named as "AV_client.P12".
+. The CA certificate (along with any intermediate signing authority up to the root CA) used to sign the certificate for the Netapp server should be in the Privacy Enhanced Mail (PEM) format and named "Ontap_CA.pem". It should also be placed in the Antivirus Connector install directory.
+On the NetApp ONTAP system, the CA certificate (along with any intermediate signing authority up to the root CA) used to sign the client certificate for the Antivirus  Connector should be installed at "Ontap" as a "client-ca" type certificate.
+
+
+
+// 2023 august 17, ONTAPDOC-1052
