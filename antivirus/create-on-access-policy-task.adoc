@@ -2,27 +2,32 @@
 permalink: antivirus/create-on-access-policy-task.html
 sidebar: sidebar
 keywords: create, on-access, policy
-summary: "An on-access policy defines the scope of an on-access scan. You can specify the maximum size of the files to be scanned, the extensions of the files to be included in the scan, and the extensions and paths of the files to be excluded from the scan. You can create an on-access policy for an individual SVM or for all the SVMs in a cluster."
+summary: "An on-access policy defines the scope of an on-access scan. You can create an on-access policy for an individual SVM or for all the SVMs in a cluster. If you created an on-access policy for all the SVMs in a cluster, you must enable the policy on each SVM individually."
 ---
 = Create an on-access policy
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-An on-access policy defines the scope of an on-access scan. You can specify the maximum size of the files to be scanned, the extensions of the files to be included in the scan, and the extensions and paths of the files to be excluded from the scan. You can create an on-access policy for an individual SVM or for all the SVMs in a cluster.
+An on-access policy defines the scope of an on-access scan. You can create an on-access policy for an individual SVM or for all the SVMs in a cluster. If you created an on-access policy for all the SVMs in a cluster, you must enable the policy on each SVM individually.
 
 .About this task
 
-By default, ONTAP creates an on-access policy named "`default_CIFS`" and enables it for all the SVMs in a cluster.
-
-You can set the `scan-mandatory` option to off to specify that file access is allowed when no Vscan servers are available for virus scanning. Keep in mind that any file that qualifies for scan exclusion based on the `paths-to-exclude`, `file-ext-to-exclude`, or `max-file-size` parameters is not considered for scanning even if the `scan-mandatory` option is set to on.
-
-[NOTE]
-====
-For potential issues related to the `scan-mandatory` option, see xref:vscan-server-connection-concept.adoc[Potential connectivity issues involving the scan-mandatory option].
-====
-
-By default, only read-write volumes are scanned. You can specify filters that enable scanning of read-only volumes or that restrict scanning to files opened with execute access.
+* You can specify the maximum file size to scan, file extensions and paths to include in the scan, and file extensions and paths to exclude from the scan.
+* You can set the `scan-mandatory` option to off to specify that file access is allowed when no Vscan servers are available for virus scanning.
+* By default, ONTAP creates an on-access policy named "default_CIFS" and enables it for all the SVMs in a cluster.
+* Any file that qualifies for scan exclusion based on the `paths-to-exclude`, `file-ext-to-exclude`, or `max-file-size` parameters is not considered for scanning, even if the `scan-mandatory` option is set to on. (Check this link:vscan-server-connection-concept.html[troubleshooting] section for connectivity issues related to the `scan-mandatory` option.)
+* By default, only read-write volumes are scanned. You can specify filters that enable scanning of read-only volumes or that restrict scanning to files opened with execute access.
+* Virus scanning is not performed on an SMB share for which the continuously-available parameter is set to Yes.
+* See the link:architecture-concept.html[Antivirus architecture] section for details about the _Vscan file-operations profile_.
+* You can create a maximum of ten (10) on-access policies per SVM. However, you can enable only one on-access policy at a time.
+** You can exclude a maximum of one hundred (100) paths and file extensions from virus scanning in an on-access policy.
+* Some file exclusion recommendations:
+** Consider excluding large files (file size can be specified) from virus scanning because they can result in a slow response or scan request timeouts for CIFS users. The default file size for exclusion is 2GB.
+** Consider excluding file extensions such as `.vhd` and `.tmp` because files with these extensions might not be appropriate for scanning.
+** Consider excluding file paths such as the quarantine directory or paths in which only virtual hard drives or databases are stored.
+** Verify that all exclusions are specified in the same policy, because only one policy can be enabled at a time. NetApp highly recommends having the same set of exclusions specified in the antivirus engine.
+* An on-access policy is required for an xref:create-on-demand-task-task.html[on-demand scan]. To avoid on-access scanning for, you should set `-scan-files-with-no-ext` to false and `-file-ext-to-exclude` to * to exclude all extensions.  
 
 .Steps
 
@@ -33,13 +38,13 @@ By default, only read-write volumes are scanned. You can specify filters that en
  ** Specify a data SVM for a policy defined for an individual SVM, a cluster admin SVM for a policy defined for all the SVMs in a cluster.
  ** The `-file-ext-to-exclude` setting overrides the `-file-ext-to-include` setting.
  ** Set `-scan-files-with-no-ext` to true to scan files without extensions.
-The following command creates an on-access policy named `Policy1` on the ``vs1``SVM:
+The following command creates an on-access policy named `Policy1` on the `vs1` SVM:
 
 +
 ----
 cluster1::> vserver vscan on-access-policy create -vserver vs1 -policy-name Policy1 -protocol CIFS -filters scan-ro-volume -max-file-size 3GB -file-ext-to-include “mp*”,"tx*" -file-ext-to-exclude "mp3","txt" -scan-files-with-no-ext false -paths-to-exclude "\vol\a b\","\vol\a,b\"
 ----
-. Verify that the on-access policy has been created: `vserver vscan on-access-policy show -instance _data_SVM|cluster_admin_SVM_ -policy-name policy_name`
+. Verify that the on-access policy has been created: `vserver vscan on-access-policy show -instance _data_SVM|cluster_admin_SVM_ -policy-name _name_`
 +
 For a complete list of options, see the man page for the command.
 +
@@ -61,3 +66,6 @@ Max File Size Allowed for Scanning: 3GB
            File Extensions to Scan: mp*, tx*
       Scan Files with No Extension: false
 ----
+
+// 10 august 2023, ontapdoc-790
+// 2023 May 09, vscan-overview-update

@@ -2,14 +2,14 @@
 permalink: flexgroup/move-constituents-task.html
 sidebar: sidebar
 keywords: constituents, flexgroup, volume, flex group, balancing, balance, traffic, free, space, aggregate, snapmirror, snap mirror, 
-summary: "You can move the constituents of a FlexGroup volume from one aggregate to another for balancing the load when certain constituents experience more traffic. Moving constituents also helps in freeing up space on an aggregate for resizing the existing constituents."
+summary: "You can move the constituents of a FlexGroup volume from one aggregate to another to balance the load when certain constituents experience more traffic. Moving constituents also helps in freeing up space on an aggregate for resizing the existing constituents."
 ---
 = Move the constituents of a FlexGroup volume
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You can move the constituents of a FlexGroup volume from one aggregate to another for balancing the load when certain constituents experience more traffic. Moving constituents also helps in freeing up space on an aggregate for resizing the existing constituents.
+You can move the constituents of a FlexGroup volume from one aggregate to another to balance the load when certain constituents experience more traffic. Moving constituents also helps in freeing up space on an aggregate for resizing the existing constituents.
 
 .What you'll need
 
@@ -21,10 +21,12 @@ You cannot perform a volume move operation while the constituents of the FlexGro
 
 .Steps
 
-. Identify the FlexGroup volume constituent that you want to move: `volume show -vserver svm_name -is-constituent *`
+. Identify the FlexGroup volume constituent that you want to move: 
++
+`volume show -vserver svm_name -is-constituent true`
 +
 ----
-cluster1::> volume show -vserver vs2 -is-constituent *
+cluster1::> volume show -vserver vs2 -is-constituent true
 Vserver   Volume       Aggregate    State      Type       Size  Available Used%
 --------- ------------ ------------ ---------- ---- ---------- ---------- -----
 vs2       fg1          -            online     RW        400TB    15.12TB   62%
@@ -33,7 +35,9 @@ vs2       fg1__0002    aggr2        online     RW         25TB     2.50TB   90%
 ...
 ----
 
-. Identify an aggregate to which you can move the FlexGroup volume constituent: `volume move target-aggr show -vserver svm_name -volume vol_constituent_name`
+. Identify an aggregate to which you can move the FlexGroup volume constituent: 
++
+`volume move target-aggr show -vserver svm_name -volume vol_constituent_name`
 +
 The available space in the aggregate that you select must be greater than the size of the FlexGroup volume constituent that you are moving.
 +
@@ -49,14 +53,18 @@ node12a_aggr4    100.36TB         hdd
 5 entries were displayed.
 ----
 
-. Verify that the FlexGroup volume constituent can be moved to the intended aggregate: `volume move start -vserver svm_name -volume vol_constituent_name -perform-validation-only true`
+. Verify that the FlexGroup volume constituent can be moved to the intended aggregate: 
++
+`volume move start -vserver svm_name -volume vol_constituent_name -destination-aggregate aggr_name -perform-validation-only true`
 +
 ----
 cluster1::> volume move start -vserver vs2 -volume fg1_0002 -destination-aggregate node12a_aggr3 -perform-validation-only true
 Validation succeeded.
 ----
 
-. Move the FlexGroup volume constituent: `volume move start -vserver svm_name -volume vol_constituent_name -destination-aggregate aggr_name [-allow-mixed-aggr-types {true|false}]`
+. Move the FlexGroup volume constituent: 
++
+`volume move start -vserver svm_name -volume vol_constituent_name -destination-aggregate aggr_name [-allow-mixed-aggr-types {true|false}]`
 +
 The volume move operation runs as a background process.
 +
@@ -76,7 +84,9 @@ cluster1::> volume move start -vserver vs2 -volume fg1_002 -destination-aggregat
 If the volume move operation fails due to an active SnapMirror operation, you should abort the SnapMirror operation by using the `snapmirror abort -h` command.     In some cases, the SnapMirror abort operation might also fail. In such situations, you should abort the volume move operation and retry later.
 ====
 
-. Verify the state of the volume move operation: `volume move show -volume vol_constituent_name`
+. Verify the state of the volume move operation: 
++
+`volume move show -volume vol_constituent_name`
 +
 The following example shows the state of a FlexGroup constituent volume that completed the replication phase and is in the cutover phase of the volume move operation:
 +
@@ -86,3 +96,5 @@ Vserver   Volume     State    Move Phase  Percent-Complete Time-To-Complete
 --------- ---------- -------- ----------  ---------------- ----------------
 vs2       fg1_002    healthy  cutover     -                -
 ----
+
+// 2023 Jul 2023, ONTAPDOC-1034

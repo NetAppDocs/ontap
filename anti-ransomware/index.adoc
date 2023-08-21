@@ -75,11 +75,11 @@ ARP has two modes:
 
 When you enable ARP, it runs in learning mode. In learning mode, the ONTAP system develops an alert profile based on the aforementioned analytic areas: entropy, file extension types, and file IOPS. After running ARP in learning mode for enough time to assess workload characteristics, you can switch to active mode and start protecting your data. Once ARP has switched to active mode, ONTAP will create ARP snapshots to protect the data if a threat is detected. 
 
-It's recommended you leave ARP in learning mode for a minimum of 30 days, though you can switch to active mode at any time. Switching early might lead to too many false positives. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning period interval and automates the switch, which may occur before 30 days. 
+It's recommended you leave ARP in learning mode for a minimum of 30 days, though you can switch to active mode at any time. Switching too early might lead to too many false positives. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning period interval and automates the switch, which may occur before 30 days. 
 
-In active mode, if a file extension is flagged as abnormal, you should evaluate the alert. You can act on the alert to protect your data or you can mark the alert as a false positive. When you mark a false positive, ONTAP will update the ARP alert profile so that the file extension is not subsequently flagged. The command `security anti-ransomware volume workload-behavior show` shows file extensions that have been detected in the volume. (If you run this command early in learning mode and it shows an accurate representation of file types, you should not use that data as a basis to move out of active mode, as ONTAP is still collecting other metrics.) 
+In active mode, if a file extension is flagged as abnormal, you should evaluate the alert. You can act on the alert to protect your data or you can mark the alert as a false positive. When you mark a false positive, ONTAP will update the ARP alert profile so that the file extension is not subsequently flagged. The command `security anti-ransomware volume workload-behavior show` shows file extensions that have been detected in the volume. (If you run this command early in learning mode and it shows an accurate representation of file types, you should not use that data as a basis to move to active mode, as ONTAP is still collecting other metrics.) 
 
-Beginning in ONTAP 9.11.1, you can customize the detection parameters for ARP using the `security anti-ransomware volume attack-detection-parameters modify` command. For example, if you expect multiple new file types to be used in your volume, you can disable alerts for never-before-seen file types. For more information about this command, see the link:https://docs.netapp.com/us-en/ontap-cli-9131/security-anti-ransomware-volume-attack-detection-parameters-modify.html[ONTAP command reference^].
+Beginning in ONTAP 9.11.1, you can customize the detection parameters for ARP. For more information, see xref:manage-parameters-task.html[manage ARP attack detection parameters].
 
 == Threat assessment and ARP Snapshots
 
@@ -87,11 +87,11 @@ In active mode, ARP assesses threat probability based on incoming data measured 
 
 * **Low**: this is assigned the first-time a new file extension is observed in the volume.
 * **Moderate**: multiple files with the same never-seen-before file extension are observed.
-    ** In ONTAP 9.10.1, the threshold for escalation to moderate is 100 or more files. Beginning with ONTAP 9.11.1, the file quantity is customizable; its default value is 20. 
+    ** In ONTAP 9.10.1, the threshold for escalation to moderate is 100 or more files. Beginning with ONTAP 9.11.1, the file quantity is modifiable; its default value is 20. 
 
-When the attack probability is low, it means ONTAP has detected an abnormality and will create a Snapshot of your volume in the background to create the best possible recovery point. The ARP Snapshot is identifiable by its name, for example `Anti_ransomware_backup.2022-12-20_1248`, and uses the tag `anti-ransomware-backup`. 
+In a low threat situation, ONTAP detects an abnormality and creates a Snapshot of the volume to create the best possible recovery point. The ARP Snapshot uses the `anti-ransomware-backup` tag and is identifiable by its name, for example `Anti_ransomware_backup.2022-12-20_1248`. 
 
-The threat escalates to moderate after ONTAP runs an analytics report determining if the abnormality matches a ransomware profile. Threats that remain at the low level are logged, but ONTAP does not send an alert about low threats. When the attack probability is moderate, ONTAP generates an EMS notification prompting you to assess the threat. For more information, see xref:respond-abnormal-task.html[Respond to abnormal activity].
+The threat escalates to moderate after ONTAP runs an analytics report determining if the abnormality matches a ransomware profile. Threats that remain at the low level are logged and visible in the **Events** section of System Manager, but ONTAP does not send an alert about low threats. When the attack probability is moderate, ONTAP generates an EMS notification prompting you to assess the threat. For more information, see xref:respond-abnormal-task.html[Respond to abnormal activity].
 
 You can view information about a threat, regardless of level, in System Manager's **Events** section or with the `security anti-ransomware volume show -vserver _svm_name_` command. 
 
@@ -107,12 +107,13 @@ With the knowledge of the affected files and the time of attack, it is possible 
 
 ARP thus builds on proven ONTAP data protection and disaster recovery technology to respond to ransomware attacks. See the following topics for more information on recovering data.
 
-** link:../task_dp_recover_snapshot.html[Recover from Snapshot copies (System Manager)]
+* link:../task_dp_recover_snapshot.html[Recover from Snapshot copies (System Manager)]
 
-** link:../data-protection/restore-contents-volume-snapshot-task.html[Restoring files from Snapshot copies (CLI)]
+* link:../data-protection/restore-contents-volume-snapshot-task.html[Restoring files from Snapshot copies (CLI)]
 
-** link:https://www.netapp.com/blog/smart-ransomware-recovery[Smart ransomware recovery^]
+* link:https://www.netapp.com/blog/smart-ransomware-recovery[Smart ransomware recovery^]
 
+// 6 august 2023, ontapdoc-840
 // 18 may 2023, ontapdoc-1046
 // 2022-08-25, BURT 1499112
 // 2022 June 2, BURT 1466313
