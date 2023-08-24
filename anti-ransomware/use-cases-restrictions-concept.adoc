@@ -4,7 +4,6 @@ permalink: anti-ransomware/use-cases-restrictions-concept.html
 keywords: anti-ransomware workloads, anti-ransomware requirements, anti-ransomware performance, volumes, anti-ransomware encryption, anti-ransomware system configurations, arp
 summary: In the current release, ransomware protection is most suitable in NAS environments. Support for other environments will be available in future releases.
 ---
-
 = Autonomous Ransomware Protection use cases and considerations
 :toc: macro
 :hardbreaks:
@@ -15,61 +14,51 @@ summary: In the current release, ransomware protection is most suitable in NAS e
 :imagesdir: ./media/
 
 [.lead]
-The availability of Autonomous Ransomware Protection features depends on the version of ONTAP you are using. 
+Autonomous Ransomwware Protection is available for NAS workloads beginning with ONTAP 9.10.1. Before deploying ARP, you should be aware of the recommended uses and supported configurations as well as performance implications. 
 
 == Supported and unsupported configurations 
 
-ONTAP platform support:
+When deciding to use ARP, it's important to ensure that your volume's workload is suited to ARP and that it meets required system configurations. 
 
-* The Autonomous Ransomware Protection (ARP) feature is available for all on-premises ONTAP systems beginning with ONTAP 9.10.1.
+=== Suitable workloads
 
-Suitable workloads:
+ARP is suited for: 
 
 * Databases on NFS storage
 * Windows or Linux home directories
 +
-Because users could create files with extensions that weren't detected in the learning period, there is greater possibility of false positives in this workload.
+Because users could create files with extensions that weren't detected in the learning period, there a is greater possibility of false positives in this workload.
 * Images and video
 +
-For example, health care records and Electronic Design Automation (EDA) data.
+For example, health care records and Electronic Design Automation (EDA) data
 
-Beginning with ONTAP 9.12.1, ARP is available for these configurations:
+=== Unsuitable workloads
 
-* Volumes protected with SnapMirror
-* SVMs protected with SnapMirror
-* SVMs enabled for migration (SVM data mobility)
+ARP is not suited for: 
 
-Unsuitable workloads:
-
-* Workloads with a high frequency of file create or delete (hundreds of thousands of files in few seconds; for example, test/dev workloads)
-* ARP depends on the ability to recognize an unusual surge in file create, rename, or delete activity. If the application itself is the source of the file activity, it cannot be effectively distinguished from ransomware activity
+* Workloads with a high frequency of file create or delete (hundreds of thousands of files in few seconds; for example, test/development workloads)
+* ARP's threat detection depends on its ability recognize an unusual surge in file create, rename, or delete activity. If the application itself is the source of the file activity, it cannot be effectively distinguished from ransomware activity.
 * Workloads where the application or the host encrypts data
 ARP depends on distinguishing incoming data as encrypted or unencrypted. If the application itself is encrypting the data, then the effectiveness of the feature is reduced. However, the feature can still work based on file activity (delete, overwrite, or create, or a create or rename with a new file extension) and file type.
 
-Unsupported system configurations:
+=== Supported configurations
 
-* SAN environments
-* ONTAP S3 environments
-* VMDKs on NFS
+ARP is available for NFS and SMB volumes in on-premises ONTAP systems beginning with ONTAP 9.10.1. 
 
-Volume requirements:
+Support for other configurations and volume types is available in the following ONTAP versions:
 
-* Less than 100% full
-* Junction path must be active
+[options="header"]
+|===
+| | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1
+| Volumes protected with Asynchronous SnapMirror | X | X | | 
+| SVMs protected with Asynchronous SnapMirror | X | X | | 
+| SVMs enabled for data migration | X | X | | 
+| FlexGroup volumes | X | | | 
+| Multi-admin verification | X | | | 
+|===
 
-Unsupported volume types:
-
-* Offline volumes
-* Restricted volumes
-* SnapLock volumes
-* FlexGroup volumes (beginning with ONTAP 9.13.1, FlexGroup volumes are supported)
-* FlexCache volumes (ARP is supported on origin FlexVol volumes but not on cache volumes)
-* Root volumes of storage VMs
-* SnapMirror Synchronous
-* SAN-only volumes
-* Volumes of stopped storage VMs
-
-== SnapMirror and ARP interoperability
+[[snapmirror]]
+.SnapMirror and ARP interoperability
 
 Beginning with ONTAP 9.12.1, ARP is supported on Asynchronous SnapMirror destination volumes. ARP is **not** supported with SnapMirror Synchronous.
 
@@ -78,6 +67,53 @@ If a SnapMirror source volume is ARP-enabled, the SnapMirror destination volume 
 While the destination volume consists of read-only (RO) Snapshot copies, no ARP processing is done on its data. However, when the SnapMirror destination volume is converted to read-write (RW), ARP is automatically enabled on the RW-converted destination volume. The destination volume does not require any additional learning procedure besides what is already recorded on the source volume.
 
 In ONTAP 9.10.1 and 9.11.1, SnapMirror does not transfer the ARP configuration state, training data, and Snapshot copies from source to destination volumes. Hence when the SnapMirror destination volume is converted to RW, ARP on the destination volume must be explicitly enabled in learning mode after conversion. 
+
+.ARP with VMDKs on NFS 
+[%collapsible]
+====
+If you plan to use ARP in a VMDK on NFS configuration, there are limitations to ARP's protection. ARP offers protection in VDMK on NFS configurations, however it is not recommended for workloads with high-entropy files inside the VM. 
+
+.Changes outside the VM 
+ARP can detect file extension changes on an NFS volume outside of the VM if a new extension enters the volume encrypted or a file extension changes. Detectable file extension changes are:
+
+* .vmx
+* .vmxf
+* .vmdk
+* -flat.vmdk
+* .nvram
+* .vmem
+* .vmsd
+* .vmsn
+* .vswp
+* .vmss
+* .log
+* -\#.log
+
+.Changes inside the VM
+If the ransomware attack targets the VM and files inside of the VM are altered without making changes outside the VM, ARP detects the threat if the default entropy of the VM is low (for example .txt, .docx, or .mp4 files). Although ARP will create a protective Snapshot in this scenario, it will not generate a threat alert because the file extensions outside of the VM have not been tampered with. 
+
+If, by default, the files are high-entropy (for example .gzip or password-protected files), ARP will not detect a change in baseline entropy and thus will not detect the threat. 
+====
+
+=== Unsupported configurations
+
+ARP is not supported in the following system configurations:
+
+* ONTAP S3 environments
+* SAN environments
+
+ARP does not support the following volume configurations:
+
+* FlexGroup volumes (in ONTAP 9.10.1 through 9.12.1. Beginning with ONTAP 9.13.1, FlexGroup volumes are supported)
+* FlexCache volumes (ARP is supported on origin FlexVol volumes but not on cache volumes)
+* Offline volumes
+* SAN-only volumes
+* SnapLock volumes
+* SnapMirror Synchronous 
+* Asynchronous SnapMirror (in ONTAP 9.10.1 through 9.12.1. Asynchronous SnapMirror is supported beginning with ONTAP 9.12.1. For more information, see <<snapmirror>>.)
+* Restricted volumes
+* Root volumes of storage VMs
+* Volumes of stopped storage VMs
 
 == ARP performance and frequency considerations
 
@@ -109,6 +145,7 @@ Beginning with ONTAP 9.13.1, you can enable multi-admin verification (MAV) for a
 
 You need to define administrators for a MAV group and create MAV rules for the `security anti-ransomware volume disable`, `security anti-ransomware volume pause`, and `security anti-ransomware volume attack clear-suspect` ARP commands you want to protect. Each administrator in the MAV group must approve each new rule request and link:../multi-admin-verify/enable-disable-task.html[add the MAV rule again^] within MAV settings.
 
+// 2023 august 11, ontap-issues-1043
 // 2023 june 30, ontapdoc-1131
 // 2023 18 may, ontapdoc-1046
 // 2023, May 17, ONTAPDOC 1043
