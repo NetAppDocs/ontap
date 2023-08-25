@@ -1,7 +1,7 @@
 ---
 permalink: system-admin/start-stop-storage-system-concept.html
 sidebar: sidebar
-keywords: start, stop, node, cli, ontap, troubleshoot, sp
+keywords: start, stop, node, cli, ontap, troubleshoot, sp, reboot, system, boot, compactflash, shut down, shutdown,  unresponsive, shut, down, node, unresponsive, support, personnel, direct, troubleshoot
 summary: "You might need to start or stop a node for maintenance or troubleshooting reasons. You can do so from the ONTAP CLI, the boot environment prompt, or the SP CLI."
 ---
 = Start or stop a node overview
@@ -12,3 +12,129 @@ summary: "You might need to start or stop a node for maintenance or troubleshoot
 You might need to start or stop a node for maintenance or troubleshooting reasons. You can do so from the ONTAP CLI, the boot environment prompt, or the SP CLI.
 
 Using the SP CLI command `system power off` or `system power cycle` to turn off or power-cycle a node might cause an improper shutdown of the node (also called a _dirty shutdown_) and is not a substitute for a graceful shutdown using the ONTAP `system node halt` command.
+
+== Reboot a node at the system prompt
+
+You can reboot a node in normal mode from the system prompt. A node is configured to boot from the boot device, such as a PC CompactFlash card.
+
+.Steps
+
+. If the cluster contains four or more nodes, verify that the node to be rebooted does not hold epsilon:
+.. Set the privilege level to advanced:
++
+`*set -privilege advanced*`
+.. Determine which node holds epsilon:
++
+`*cluster show*`
++
+The following example shows that "`node1`" holds epsilon:
++
+----
+cluster1::*> cluster show
+Node                 Health  Eligibility   Epsilon
+-------------------- ------- ------------  ------------
+node1                true    true          true
+node2                true    true          false
+node3                true    true          false
+node4                true    true          false
+4 entries were displayed.
+----
+
+.. If the node to be rebooted holds epsilon, then remove epsilon from the node:
++
+`*cluster modify -node _node_name_ -epsilon false*`
+.. Assign epsilon to a different node that will remain up:
++
+`*cluster modify -node _node_name_ -epsilon true*`
+.. Return to the admin privilege level:
++
+`*set -privilege admin*`
+. Use the `system node reboot` command to reboot the node.
++
+If you do not specify the `-skip-lif-migration` parameter, the command attempts to migrate data and cluster management LIFs synchronously to another node prior to the reboot. If the LIF migration fails or times out, the rebooting process is aborted, and ONTAP displays an error to indicate the LIF migration failure.
++
+----
+cluster1::> system node reboot -node node1 -reason "software upgrade"
+----
++
+The node begins the reboot process. The ONTAP login prompt appears, indicating that the reboot process is complete.
+
+== Boot ONTAP at the boot environment prompt
+
+You can boot the current release or the backup release of ONTAP when you are at the boot environment prompt of a node.
+
+.Steps
+
+. Access the boot environment prompt from the storage system prompt by using the `system node halt` command.
++
+The storage system console displays the boot environment prompt.
+
+. At the boot environment prompt, enter one of the following commands:
++
+[options="header"]
+|===
+| To boot...| Enter...
+a|
+The current release of ONTAP
+a|
+`boot_ontap`
+a|
+The ONTAP primary image from the boot device
+a|
+`boot_primary`
+a|
+The ONTAP backup image from the boot device
+a|
+`boot_backup`
+|===
+If you are unsure about which image to use, you should use `boot_ontap` in the first instance.
+
+== Shut down a node
+
+You can shut down a node if it becomes unresponsive or if support personnel direct you to do so as part of troubleshooting efforts.
+
+.Steps
+
+. If the cluster contains four or more nodes, verify that the node to be shut down does not hold epsilon:
+ .. Set the privilege level to advanced:
++
+`*set -privilege advanced*`
+ .. Determine which node holds epsilon:
++
+`*cluster show*`
++
+The following example shows that "`node1`" holds epsilon:
++
+----
+cluster1::*> cluster show
+Node                 Health  Eligibility   Epsilon
+-------------------- ------- ------------  ------------
+node1                true    true          true
+node2                true    true          false
+node3                true    true          false
+node4                true    true          false
+4 entries were displayed.
+----
+
+ .. If the node to be shut down holds epsilon, then remove epsilon from the node:
++
+`*cluster modify -node _node_name_ -epsilon false*`
+ .. Assign epsilon to a different node that will remain up:
++
+`*cluster modify -node _node_name_ -epsilon true*`
+ .. Return to the admin privilege level:
++
+`*set -privilege admin*`
+. Use the `system node halt` command to shut down the node.
++
+If you do not specify the `-skip-lif-migration` parameter, the command attempts to migrate data and cluster management LIFs synchronously to another node prior to the shutdown. If the LIF migration fails or times out, the shutdown process is aborted, and ONTAP displays an error to indicate the LIF migration failure.
++
+You can manually trigger a core dump with the shutdown by using both the `-dump` parameter.
++
+The following example shuts down the node named "`node1`" for hardware maintenance:
++
+----
+cluster1::> system node halt -node node1 -reason 'hardware maintenance'
+----
+
+// 2023 Aug 22, ONTAPDOC-1135
