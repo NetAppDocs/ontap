@@ -1,10 +1,10 @@
 ---
 permalink: nas-audit/fpolicy-external-fpolicy-servers-concept.html
 sidebar: sidebar
-keywords: fpolicy, works, external fpolicy servers
+keywords: fpolicy, works, external fpolicy servers, privileged data access, channels, synchronous communication, connection, credentials, super user
 summary: "After FPolicy is configured and enabled on the storage virtual machine (SVM), FPolicy runs on every node on which the SVM participates. FPolicy is responsible for establishing and maintaining connections with external FPolicy servers (FPolicy servers), for notification processing, and for managing notification messages to and from FPolicy servers."
 ---
-= How FPolicy works with external FPolicy servers overview 
+= How FPolicy works with external FPolicy servers 
 :icons: font
 :imagesdir: ../media/
 
@@ -18,3 +18,62 @@ Additionally, as part of connection management, FPolicy has the following respon
 * Attempts to reestablish the connection when a connection to an FPolicy server is broken.
 * Sends the notifications to FPolicy servers over an authenticated session.
 * Manages the passthrough-read data connection established by the FPolicy server for servicing client requests when passthrough-read is enabled.
+
+== How control channels are used for FPolicy communication
+
+FPolicy initiates a control channel connection to an external FPolicy server from the data LIFs of each node participating on a storage virtual machine (SVM). FPolicy uses control channels for transmitting file notifications; therefore, an FPolicy server might see multiple control channel connections based on SVM topology.
+
+== How privileged data access channels are used for synchronous communication
+
+With synchronous use cases, the FPolicy server accesses data residing on the storage virtual machine (SVM) through a privileged data access path. Access through the privileged path exposes the complete file system to the FPolicy server. It can access data files to collect information, to scan files, read files, or write into files.
+
+Because the external FPolicy server can access the entire file system from the root of the SVM through the privileged data channel, the privileged data channel connection must be secure.
+
+== How FPolicy connection credentials are used with privileged data access channels
+
+The FPolicy server makes privileged data access connections to cluster nodes by using a specific Windows user credential that is saved with the FPolicy configuration. SMB is the only supported protocol for making a privileged data access channel connection.
+
+If the FPolicy server requires privileged data access, the following conditions must be met:
+
+* A SMB license must be enabled on the cluster.
+* The FPolicy server must run under the credentials configured in the FPolicy configuration.
+
+When making a data channel connection, FPolicy uses the credential for the specified Windows user name. Data access is made over the admin share ONTAP_ADMIN$.
+
+== What granting super user credentials for privileged data access means
+
+ONTAP uses the combination of the IP address and the user credential configured in the FPolicy configuration to grant super user credentials to the FPolicy server.
+
+Super user status grants the following privileges when the FPolicy server accesses data:
+
+* Avoid permission checks
++
+The user avoids checks on files and directory access.
+
+* Special locking privileges
++
+ONTAP allows read, write, or modify access to any file regardless of existing locks. If the FPolicy server takes byte range locks on the file, it results in immediate removal of existing locks on the file.
+
+* Bypass any FPolicy checks
++
+Access does not generate any FPolicy notifications.
+
+== How FPolicy manages policy processing
+
+There might be multiple FPolicy policies assigned to your storage virtual machine (SVM); each with a different priority. To create an appropriate FPolicy configuration on the SVM, it is important to understand how FPolicy manages policy processing.
+
+Each file access request is initially evaluated to determine which policies are monitoring this event. If it is a monitored event, information about the monitored event along with interested policies is passed to FPolicy where it is evaluated. Each policy is evaluated in order of the assigned priority.
+
+You should consider the following recommendations when configuring policies:
+
+* When you want a policy to always be evaluated before other policies, configure that policy with a higher priority.
+* If the success of requested file access operation on a monitored event is a prerequisite for a file request that is evaluated against another policy, give the policy that controls the success or failure of the first file operation a higher priority.
++
+For example, if one policy manages FPolicy file archiving and restore functionality and a second policy manages file access operations on the online file, the policy that manages file restoration must have a higher priority so that the file is restored before the operation managed by the second policy can be allowed.
+
+* If you want all policies that might apply to a file access operation to be evaluated, give synchronous policies a lower priority.
+
+You can reorder policy priorities for existing policies by modifying the policy sequence number. However, to have FPolicy evaluate policies based on the modified priority order, you must disable and reenable the policy with the modified sequence number.
+
+// 2022 Feb 04, BURT 1451789 
+// 2023 Aug 18, ONTAPDOC-1015
