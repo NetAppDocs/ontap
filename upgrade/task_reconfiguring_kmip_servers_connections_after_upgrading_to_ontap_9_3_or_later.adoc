@@ -4,26 +4,75 @@ sidebar: sidebar
 keywords: ontap, upgrade, reconfigure, reconfiguring, kmip, server, connections, 9.3, later
 summary: 'After performing an upgrade to ONTAP 9.3 or later, you must reconfigure your external key management (KMIP) server connections.'
 ---
-= Reconfigure KMIP server connections after an upgrade to ONTAP 9.3 or later
+= Reconfigure KMIP server connections after an upgrade from ONTAP 9.2 or earlier
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-After you upgrade to ONTAP 9.3 or later, you must reconfigure your external key management (KMIP) server connections.
+After you upgrade from ONTAP 9.2 or earlier to ONTAP 9.3 or later, you need to reconfigure any external key management (KMIP) server connections.
 
-. Configure the key manager connectivity:``security key-manager setup``
-. Add your KMIP servers: `security key-manager add -address key_management_server_ip_address`
-. Verify that KMIP servers are connected: `security key-manager show -status`
-. Query the key servers: `security key-manager query`
-. Create a new authentication key and passphrase: `security key-manager create-key -prompt-for-key true`
+.Steps
+
+. Configure the key manager connectivity:
++
+[source,cli]
+----
+security key-manager setup
+----
+
+. Add your KMIP servers: 
++
+[source,cli]
+----
+security key-manager add -address key_management_server_ip_address
+----
+
+. Verify that KMIP servers are connected: 
++
+[source,cli]
+----
+security key-manager show -status
+----
+
+. Query the key servers: 
++
+[source,cli]
+----
+security key-manager query
+----
+
+. Create a new authentication key and passphrase: 
++
+[source,cli]
+----
+security key-manager create-key -prompt-for-key true
+----
 +
 The passphrase must have a minimum of 32 characters.
 
-. Query the new authentication key: `security key-manager query`
-. Assign the new authentication key to your self-encrypting disks (SEDs): `storage encryption disk modify -disk disk_ID -data-key-id key_ID`
+. Query the new authentication key: 
++
+[source,cli]
+----
+security key-manager query
+----
+
+. Assign the new authentication key to your self-encrypting disks (SEDs): 
++
+[source,cli]
+----
+storage encryption disk modify -disk disk_ID -data-key-id key_ID
+----
 +
 NOTE: Make sure you are using the new authentication key from your query.
 
-. If needed, assign a FIPS key to the SEDs: `storage encryption disk modify -disk disk_id -fips-key-id fips_authentication_key_id`
+. If needed, assign a FIPS key to the SEDs: 
++
+[source,cli]
+----
+storage encryption disk modify -disk disk_id -fips-key-id fips_authentication_key_id
+----
 +
 If your security setup requires you to use different keys for data authentication and FIPS 140-2 authentication, you should create a separate key for each. If that is not the case, you can use the same authentication key for FIPS compliance that you use for data access.
+
+// 2023 Aug 30, ONTAPDOC 1257
