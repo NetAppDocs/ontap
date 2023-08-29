@@ -11,23 +11,11 @@ summary: "You can rehost volumes that have mapped LUNs. After re-creating the in
 [.lead]
 You can rehost volumes that have mapped LUNs. After re-creating the initiator group (igroup) in the destination SVM, volume rehost can automatically remap the volume on the same SVM.
 
-.What you'll need
-
-* The volume must be online.
-* Volume management operations, such as volume moves or LUN moves, must not be running.
-* There must be no active I/O on the volumes or LUNs.
-* You must have verified that the destination SVM does not have igroup of the same name but different initiators.
-+
-If the igroup has the same name, then you must have renamed the igroup in either one of the SVMs (source or destination).
-
-* You must have enabled the `force-unmap-luns` option.
- ** The default value of the `force-unmap-luns` option is `false`.
- ** No warning or confirmation message is displayed when you set the `force-unmap-luns` option to `true`.
-
 .About this task
 
 * Rehosting is a disruptive operation.
 * If the rehosting operation fails, you might need to reconfigure the volume policies and the associated rules on the source volume.
+include::../_include/encypted-volume-rehost.adoc[]
 * After the rehost operation, the following volume policies, policy rules, and configurations are lost from the source volume and must be manually reconfigured on the rehosted volume:
  ** Antivirus policies
  ** Volume efficiency policy
@@ -36,18 +24,30 @@ If the igroup has the same name, then you must have renamed the igroup in either
  ** ns-switch and name services configuration export policy and rules
  ** User and group IDs
 
+.Before you begin
+
+* The volume must be online.
+* Volume management operations, such as volume moves or LUN moves, must not be running.
+* There must be no active I/O on the volumes or LUNs.
+* You must have verified that the destination SVM does not have igroup of the same name but different initiators.
++
+If the igroup has the same name, then you must have renamed the igroup in either one of the SVMs (source or destination).
+* You must have enabled the `force-unmap-luns` option.
+ ** The default value of the `force-unmap-luns` option is `false`.
+ ** No warning or confirmation message is displayed when you set the `force-unmap-luns` option to `true`.
+
 .Steps
 
 . Record LUN mapping information on target volume:
 +
-`lun mapping show–volume volume to be rehosted-vserver source vserver`
+`lun mapping show volume _volume_ vserver _source_svm_`
 +
 This is a precautionary step to avoid losing information about LUN mapping in case the volume rehost fails.
 
 . Delete igroups associated with the target volume.
 . Rehost the target volume to the destination SVM:
 +
-`volume rehost -vserver source_svm -volume vol_name -destination-vserver destination_svm`
+`volume rehost -vserver _source_svm_ -volume _volume_name_ -destination-vserver _destination_svm_`
 . Map LUNs on the target volume to appropriate igroups.
  ** Volume rehost preserves LUNs on the target volume; however, LUNs remain unmapped.
  ** Use the destination SVM port set while mapping LUNs.
