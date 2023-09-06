@@ -1,8 +1,8 @@
 ---
 permalink: system-admin/configure-saml-authentication-task.html
 sidebar: sidebar
-keywords: tdp, ldap, identity, provider, saml, security, assertion, markup, lanaguage, active, directory
-summary: "Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (SAML) authentication for web services. When SAML authentication is configured and enabled, users are authenticated by an external Identity Provider (IdP) instead of the directory service providers such as Active Directory and LDAP."
+keywords: tdp, ldap, identity, provider, saml, security, assertion, markup, lanaguage, active, directory, disable, authentication, idp, active directory, troubleshoot, repair
+summary: "Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (SAML) authentication for web services. When SAML authentication is configured and enabled, users are authenticated by an external Identity Provider (IdP) instead of the directory service providers such as Active Directory and LDAP. When SAML authentication is disabled, the configured directory service providers such as Active Directory and LDAP are used for authentication."
 ---
 = Configure SAML authentication
 :icons: font
@@ -23,6 +23,18 @@ Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (
 The `http` and `ontapi` applications are used by the following web services: Service Processor Infrastructure, ONTAP APIs, or System Manager.
 
 * SAML authentication is applicable only for accessing the admin SVM.
+
+The following IdPs have been validated with System Manager: 
+
+* Active Directory Federation Services
+* Cisco DUO (validated with the following ONTAP versions:)
+** 9.7P21 and later 9.7 releases (refer to the https://docs.netapp.com/us-en/ontap-sm-classic/online-help-96-97/task_setting_up_saml_authentication.html[System Manager Classic documentation^])
+** 9.8P17 and later 9.8 releases
+** 9.9.1P13 and later 9.9 releases
+** 9.10.1P9 and later 9.10 releases
+** 9.11.1P4 and later 9.11 releases
+** 9.12.1 and later releases
+* Shibboleth
 
 .Steps
 
@@ -90,11 +102,109 @@ admin          service-processor
                            password      admin            no     none
 admin          ssh         password      admin            no     none
 admin1         http        password      backup           no     none
-**admin1         http        saml          backup           -      none**
+**admin1       http        saml          backup           -      none**
 ----
+
+== Disable SAML authentication
+
+You can disable SAML authentication when you want to stop authenticating web users by using an external Identity Provider (IdP). When SAML authentication is disabled, the configured directory service providers such as Active Directory and LDAP are used for authentication.
+
+.What you'll need
+
+You must be logged in from the console.
+
+.Steps
+
+. Disable SAML authentication:
++
+`*security saml-sp modify -is-enabled false*`
+. If you no longer want to use SAML authentication or if you want to modify the IdP, delete the SAML configuration:
++
+`*security saml-sp delete*`
+
+== Troubleshoot issues with SAML configuration
+
+If configuring Security Assertion Markup Language (SAML) authentication fails, you can manually repair each node on which the SAML configuration failed and recover from the failure. During the repair process, the web server is restarted and any active HTTP connections or HTTPS connections are disrupted.
+
+.About this task
+
+When you configure SAML authentication, ONTAP applies SAML configuration on a per-node basis. When you enable SAML authentication, ONTAP automatically tries to repair each node if there are configuration issues. If there are issues with SAML configuration on any node, you can disable SAML authentication and then reenable SAML authentication. There can be situations when SAML configuration fails to apply on one or more nodes even after you reenable SAML authentication. You can identify the node on which SAML configuration has failed and then manually repair that node.
+
+.Steps
+
+. Log in to the advanced privilege level:
++
+`*set -privilege advanced*`
+. Identify the node on which SAML configuration failed:
++
+`*security saml-sp status show -instance*`
++
+----
+cluster_12::*> security saml-sp status show -instance
+
+                         Node: node1
+                Update Status: config-success
+               Database Epoch: 9
+   Database Transaction Count: 997
+                   Error Text:
+SAML Service Provider Enabled: false
+        ID of SAML Config Job: 179
+
+                         Node: node2
+                Update Status: config-failed
+               Database Epoch: 9
+   Database Transaction Count: 997
+                   Error Text: SAML job failed, Reason: Internal error. Failed to receive the SAML IDP Metadata file.
+SAML Service Provider Enabled: false
+        ID of SAML Config Job: 180
+2 entries were displayed.
+----
+
+. Repair the SAML configuration on the failed node:
++
+`*security saml-sp repair -node _node_name_*`
++
+----
+cluster_12::*> security saml-sp repair -node node2
+
+Warning: This restarts the web server. Any HTTP/S connections that are active
+         will be disrupted.
+Do you want to continue? {y|n}: y
+[Job 181] Job is running.
+[Job 181] Job success.
+----
++
+The web server is restarted and any active HTTP connections or HTTPS connections are disrupted.
+
+. Verify that SAML is successfully configured on all of the nodes:
++
+`*security saml-sp status show -instance*`
++
+----
+cluster_12::*> security saml-sp status show -instance
+
+                         Node: node1
+                Update Status: config-success
+               Database Epoch: 9
+   Database Transaction Count: 997
+                   Error Text:
+SAML Service Provider Enabled: false
+        ID of SAML Config Job: 179
+
+                         Node: node2
+                Update Status: **config-success**
+               Database Epoch: 9
+   Database Transaction Count: 997
+                   Error Text:
+SAML Service Provider Enabled: false
+        ID of SAML Config Job: 180
+2 entries were displayed.
+----
+
 
 .Related information
 
 http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html[ONTAP 9 Commands^]
 
-// 09 DEC 2021, BURT 1430515
+// 2021 DEC 09, BURT 1430515
+// 2023 Aug 23, ONTAPDOC-1135

@@ -2,7 +2,7 @@
 permalink: volumes/split-flexclone-from-parent-task.html
 sidebar: sidebar
 keywords: split, flexclone, volume, parent, volume, clone
-summary: If you want a read/write FlexClone volume to have its own disk space rather than using that of its parent volume, you can split the FlexClone volume from its parent volume.
+summary: You can split a FlexClone volume from its parent to make the clone a normal FlexVol volume.
 ---
 
 = Split a FlexClone volume from its parent volume
@@ -10,18 +10,29 @@ summary: If you want a read/write FlexClone volume to have its own disk space ra
 :imagesdir: ../media/
 
 [.lead]
-If you want a read/write FlexClone volume to have its own disk space rather than using that of its parent volume, you can split the FlexClone volume from its parent volume. 
+You can split a FlexClone volume from its parent to make the clone a normal FlexVol volume.
+
+The clone splitting operation takes place in the background. Data is accessible on the clone and the parent during the split. Beginning with ONTAP 9.4, space efficiency is preserved. The split process only updates metadata and requires minimal IO. No data blocks are copied.
 
 .About this task
 
-Splitting a FlexClone volume from its parent volume can result in the reservation of more space on the containing aggregate. If you do not have sufficient privileges to view the space available in your aggregate, you must contact your storage administrator to verify that there is sufficient space in the aggregate for the split operation to finish.
+* New Snapshot copies of the FlexClone volume cannot be created during the split operation.
+* A FlexClone volume cannot be split from the parent volume if it belongs to a data protection relationship or is part of a load-sharing mirror. 
+* If you take the FlexClone volume offline while splitting is in progress, the split operation is suspended; when you bring the FlexClone volume back online, the splitting operation resumes.
+* After the split, both the parent FlexVol volume and the clone require the full space allocation determined by their volume guarantees.
+* After a FlexClone volume is split from its parent the two cannot be rejoined.
+* Beginning with ONTAP 9.4, for non-guaranteed volumes on AFF systems, the split operation for FlexClone volumes shares the physical blocks and does not copy the data. Therefore, splitting of FlexClone volumes on AFF systems is faster than the FlexClone splitting operation in other FAS systems in ONTAP 9.4 and later. The improved FlexClone splitting operation on AFF systems has the following benefits:
+** Storage efficiency is preserved after splitting the clone from the parent.
+** Existing Snapshot copies are not deleted.
+** The operation is faster.
+** The FlexClone volume can be split from any point in the clone hierarchy.
 
-Beginning with ONTAP 9.4, for non-guaranteed volumes on AFF systems, the split operation for FlexClone volumes shares the physical blocks and does not copy the data. Therefore, splitting of FlexClone volumes on AFF systems is faster than the FlexClone splitting operation in other FAS systems in ONTAP 9.4 and later. The improved FlexClone splitting operation on AFF systems has the following benefits:
+.Before you begin
+* You must be a cluster administrator.
+* The FlexClone volume must be online when the split operation begins.
+* The parent volume must be online for the split to succeed.
 
-* Storage efficiency is preserved after splitting the clone from the parent.
-* Existing Snapshot copies are not deleted.
-* The operation is faster.
-* The FlexClone volume can be split from any point in the clone hierarchy.
+
 
 .Steps
 
@@ -90,6 +101,7 @@ vserver volume **clone-volume**
 vs1     clone1 **false**
 ----
 
+// 2023-Aug-30, issue# 1066
 // 2023 Jul 20, ONTAPDOC-1126
 // 2023 Jun 28, partial fix for issue# 956
 // 2021 Dec 09, BURT 1430515
