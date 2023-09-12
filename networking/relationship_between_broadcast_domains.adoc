@@ -1,0 +1,76 @@
+---
+sidebar: sidebar
+permalink: networking/relationship_between_broadcast_domains.html
+keywords: relationship, broadcast, domain, failover, fail, over, group, policy, policies, relationship between broadcast domains, failover groups, and failover policies, comparing broadcast domains, failover groups, and failover policies, port failover, network interface show -failover, decide which lif failover policy to use, failover policy decision tree, default failover policies by lif type, sfo-partner-only
+summary: Broadcast domains, failover groups, and failover policies work together to determine which port will take over in the event of a failure
+---
+= Relationship between broadcast domains, failover groups, and failover policies
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+//
+// Created with NDAC Version 2.0 (August 17, 2020)
+// restructured: March 2021
+// enhanced keywords May 2021
+// 1447715 sfo policy update as not deprecated
+//
+
+[.lead]
+Broadcast domains, failover groups, and failover policies work together to determine which port will take over when the node or port on which a LIF is configured fails.
+
+A broadcast domain lists all the ports reachable in the same layer 2 Ethernet network. An Ethernet broadcast packet sent from one of the ports is seen by all other ports in the broadcast domain. This common-reachability characteristic of a broadcast domain is important to LIFs because if a LIF were to fail over to any other port in the broadcast domain, it could still reach every local and remote host that was reachable from the original port.
+
+Failover groups define the ports within a broadcast domain that provide LIF failover coverage for each other. Each broadcast domain has one failover group that includes all its ports. This failover group containing all ports in the broadcast domain is the default and recommended failover group for the LIF. You can create failover groups with smaller subsets that you define, such as a failover group of ports that have the same link speed within a broadcast domain.
+
+A failover policy dictates how a LIF uses the ports of a failover group when a node or port goes down. Consider the failover policy as a type of filter that is applied to a failover group. The failover targets for a LIF (the set of ports to which a LIF can failover) is determined by applying the LIF's failover policy to the LIF's failover group in the broadcast domain.
+
+You can view the failover targets for a LIF using the following CLI command:
+
+....
+network interface show -failover
+....
+
+NetApp strongly recommends using the default failover policy for your LIF type.
+
+== Decide which LIF failover policy to use
+
+Decide whether to use the recommended, default failover policy or whether to change it based on your LIF type and environment.
+
+=== Failover policy decision tree
+
+image:LIF_failover_decision_tree.png[LIF failover decision tree image]
+
+=== Default failover policies by LIF type
+
+[cols="25,25,50"]
+|===
+
+h|LIF type h|Default failover policy h|Description
+
+|BGP LIFs
+|disabled
+|LIF does not fail over to another port.
+|Cluster LIFs
+|local-only
+|LIF fails over to ports on the same node only.
+|Cluster-mgmt LIF
+|broadcast-domain-wide
+|LIF fails over to ports in the same broadcast domain, on any and every node in the cluster.
+|Intercluster LIFs
+|local-only
+|LIF fails over to ports on the same node only.
+|NAS data LIFs
+|system-defined
+|LIF fails over to one other node that is not the HA partner.
+|Node management LIFs
+|local-only
+|LIF fails over to ports on the same node only.
+|SAN data LIFs
+|disabled
+|LIF does not fail over to another port.
+|===
+
+The "sfo-partner-only" failover policy is not a default, but can be used when you want the LIF to fail over to a port on the home node or SFO partner only.
