@@ -17,7 +17,7 @@ Beginning in ONTAP 9.11.1, you can configure connectivity to clustered external 
 External key servers can be used for NSE, NVE, NAE, and SED keys. An SVM can support up to four primary external KMIP servers. Each primary server can support up to three secondary key servers. 
 
 == Before you begin
-* link:install-ssl-certificates-hardware-task.html[KMIP key management is already enabled for the SVM]. 
+* link:install-ssl-certificates-hardware-task.html[KMIP key management must be enabled for the SVM]. 
 * This process only supports key servers that use KMIP. For a list of supported key servers, check the link:http://mysupport.netapp.com/matrix/[NetApp Interoperability Matrix Tool^]. 
 * All nodes in the cluster must be running ONTAP 9.11.1 or later.
 * The order of servers list arguments in the `-secondary-key-servers` parameter reflects the access order of the external key management (KMIP) servers.
@@ -32,18 +32,18 @@ The configuration procedure depends on whether or not you have configured a prim
 .Add primary and secondary key servers to an SVM
 --
 1. Confirm that no key management has been enabled for the cluster:
-`security key-manager external show -vserver _vserver_name_`
+`security key-manager external show -vserver _svm_name_`
 If the SVM already has the maximum of four primary key servers enabled, you must remove one of the existing primary key servers before adding a new one.  
 2. Enable the primary key manager: 
-`security key-manager external enable -vserver _vserver_name_ -key-servers _server_ip_ -client-cert _client_cert_name_ -server-ca-certs _server_ca_cert_names_`
+`security key-manager external enable -vserver _svm_name_ -key-servers _server_ip_ -client-cert _client_cert_name_ -server-ca-certs _server_ca_cert_names_`
 3. Modify the primary key server to add secondary key servers. The `-secondary-key-servers` parameter accepts a comma-separated list of up to three key servers. 
-`security key-manager external modify-server -vserver _vserver_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
+`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
 --
 
 .Add secondary key servers to an existing primary key server
 --
 1. Modify the primary key server to add secondary key servers. The `-secondary-key-servers` parameter accepts a comma-separated list of up to three key servers. 
-`security key-manager external modify-server -vserver _vserver_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
+`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
 For more information about secondary key servers, see  <<mod-secondary>>.
 --
 ====
@@ -52,13 +52,13 @@ For more information about secondary key servers, see  <<mod-secondary>>.
 
 You can modify external key servers clusters by changing the status (primary or secondary) of particular key servers, add and removing secondary key servers, or by changing the access order of secondary key servers.
 
-=== Converting primary and secondary key servers
+=== Convert primary and secondary key servers
 
 To convert a primary key server into a secondary key server, you must first remove it from the SVM with the `security key-manager external remove-servers` command. 
 
 To convert a secondary key server into a primary key server, you must first remove the secondary key server from its existing primary key server. See <<mod-secondary>>. If you convert a secondary key server to a primary server while removing an existing key, attempting to add a new server before completing the removal and conversion can result in the the duplication of keys. 
 
-=== Modifying secondary key servers [[mod-secondary]]
+=== Modify secondary key servers [[mod-secondary]]
 
 Secondary key servers are managed with the `-secondary-key-servers` parameter of the `security key-manager external modify-server` command. The `-secondary-key-servers` parameter accepts a comma-separated list. The specified order of the secondary key servers in the list determines the access sequence for the secondary key servers. The access order can be modified by running the command `security key-manager external modify-server` with the secondary key servers entered in a different sequence. 
 
