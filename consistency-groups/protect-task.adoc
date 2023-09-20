@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: application protection, two-phase commit, 2 phase, smbc, async snapmirror, local, remote, snapshot
 summary: "Protect your consistency group using local snapshot, SnapMirror Business Continuity (SM-BC) or asynchronous SnapMirror protection."
 ---
-= Protect a consistency group
+= Protect consistency groups
 :icons: font
 :imagesdir: ../media/
 :hardbreaks-option:
@@ -16,7 +16,9 @@ Creating a consistency group does not automatically enable protection. Protectio
 
 * Local Snapshot policies
 * SnapMirror Business Continuity (SM-BC)
+* xref:index.html#consistency-groups-in-MetroCluster-configurations[MetroCluster (beginning 9.11.1)]
 * Asynchronous SnapMirror (beginning 9.13.1)
+* Asynchronous SVM data replication (beginning 9.14.1)
 
 If you are utilizing nested consistency groups, you can set different protection policies for the parent and child consistency groups.
 
@@ -24,7 +26,7 @@ Beginning in ONTAP 9.11.1, consistency groups offer <<two-phase,two-phase consis
 
 Recovery can occur for an entire consistency group, a single consistency group in a hierarchical configuration, or for individual volumes within the consistency group. Recovery can be achieved by selecting the consistency group you want to recover from, selecting the Snapshot copy type, and then identifying the Snapshot copy to base the restoration on. For more information about this process, see link:../task_dp_restore_from_vault.html[Restore a volume from an earlier Snapshot copy].
 
-== Modify a local Snapshot protection policy
+== Set or modify a local Snapshot policy
 
 Setting a local snapshot protection policy allows you to create a policy spanning all volumes in a consistency group. 
 
@@ -48,7 +50,7 @@ Setting a local snapshot protection policy allows you to create a policy spannin
 Beginning with ONTAP 9.14.1, you can modify the protection policy of a consistency group using the CLI.
 
 .Step
-. Issue the following command to modify the protection policy:
+. Issue the following command to set or modify the protection policy:
 +
 If you are modifying the protection policy of a child consistency, you must identify the parent consistency group using the `-parent-consistency-group _parent_consistency_group_name_` parameter.
 +
@@ -89,20 +91,17 @@ Beginning in ONTAP 9.11.1, consistency groups support two-phase commits for cons
 
 Two-phase CG Snapshot creation is only available for Snapshot creation, not provisioning consistency groups or restoring consistency groups. 
 
-A two-phase CG Snapshot creation breaks the Snapshot creation process invoked with a POST request to the `/application/consistency-groups/{consistency_group_uuid}/snapshots` endpoint into a sequence of two phases:
+A two-phase CG Snapshot creation breaks the Snapshot creation process into two phases:
 
-. In the first phase initiated with a POST request, the API executes prechecks and triggers Snapshot creation. When you issue the post request, it includes a timeout parameter, designating the amount of time for the Snapshot to commit successfully. 
+. In the first phase initiated with a POST request, the API executes prechecks and triggers Snapshot creation. When you issue the POST request, it includes a timeout parameter, designating the amount of time for the Snapshot to commit successfully. 
 . If the POST request in phase one completes with a 201 status code, you can invoke the second phase within the designated interval from the first phase, committing the Snapshot to the appropriate endpoint.  
 
-For more information about the ONTAP REST API, refer to the link:https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html[API reference^] or visit the link:https://devnet.netapp.com/restapi.php[ONTAP REST API page^] at the NetApp Developer Network for a complete list of API endpoints. 
+For more information about the ONTAP REST API, see link:https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html[API reference^] or the link:https://devnet.netapp.com/restapi.php[ONTAP REST API page^] at the NetApp Developer Network for a complete list of API endpoints. 
 
 .Before you begin
 * To use two-phase CG Snapshot creation, all nodes in the cluster must be running ONTAP 9.11.1 or later. 
 * Only one active invocation of a consistency group Snapshot creation operation is supported on a consistency group instance at a time, whether it be a one-phase or two-phase. Attempting to invoke a Snapshot creation while another one is in progress will result in a failure. 
-* The two-phase consistency group Snapshot creation can be invoked with the `action=start` parameter.
-+
-You can additionally use the `action_timeout` parameter to specify the maximum number of seconds that the Snapshot creation process can take.
-The `action_timeout` parameter can be set equal to an integer between 5 and 120. The default value of `action_timeout` is 7. 
+* When you invoke the Snapshot, you can set an optional timeout value of between 5 and 120 seconds. If not timeout value is provided, the operation will timeout at the default of 7 seconds. In the API, set the timeout value with the `action_timeout` parameter. In the CLI, use the `-timeout` flag. 
 
 .Steps
 
@@ -133,7 +132,18 @@ curl -k -X PATCH 'https://<IP_address>/application/consistency-groups/<cg_uuid>/
 
 .CLI
 --
-Beginning with ONTAP 9.14.1, ONTAP introduced commands to create a two-phase Snapshot from the CLI. Invoking the Snapshot creation from the CLI does not return the Snapshot UUID that is required for the second step in the Snapshot creation. If you want to create a two-phase Snapshot using the CLI, you should initiate the operation in the REST API. When the post request succeeds, you can complete the Snapshot using the `consistency-group snapshot commit -vserver _svm_name_ -consistency-group _consistency_group_name_ -snapshot supersnap`
+Beginning with ONTAP 9.14.1, you can create a two-phase Snapshot using the CLI. 
+
+[NOTE]
+If you implement the two-phase Snapshot using the ONTAP API, you must complete it using the API as the API does not return all of the necessary information to complete the Snapshot using the CLI. 
+
+.Steps
+. Initiate the Snapshot:
++
+`consistency-group snapshot start -vserver _svm_name_ -consistency-group _consistency_group_name_ -snapshot supersnap [-timeout _time_in_seconds_ -write-fence {true|false}]`
+. Commit the Snapshot: 
++
+`consistency-group snapshot commit _svm_name_ -consistency-group _consistency_group_name_ -snapshot supersnap`
 --
 ====
 
@@ -143,7 +153,7 @@ Consistency groups offer remote protection through SM-BC and, beginning in ONTAP
 
 === Configure protection with SM-BC
 
-You can utilize SM-BC to ensure Snapshot copies of consistency groups created on your consistency group are copied to the destination. To learn more about SM-BC, refer to xref:../task_san_configure_protection_for_business_continuity.html[Configure protection for business continuity].
+You can utilize SM-BC to ensure Snapshot copies of consistency groups created on your consistency group are copied to the destination. To learn more about SM-BC or how to configure SM-BC using the CLI, see xref:../task_san_configure_protection_for_business_continuity.html[Configure protection for business continuity].
 
 .Before you begin
 * SM-BC relationships cannot be established on volumes mounted for NAS access.
