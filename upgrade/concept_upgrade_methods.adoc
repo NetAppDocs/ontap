@@ -4,80 +4,85 @@ sidebar: sidebar
 keywords: upgrade, methods, andu, ndu, automated, automatic, system manager, cli, nondisruptive, disruptive
 summary: 'The method you use to upgrade depends upon your configuration.  If available, the automated nondisruptive upgrade (ANDU) using System Manager is the preferred method.'
 ---
-= ONTAP upgrade methods
+= ONTAP software upgrade methods
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-The method you use to upgrade -- nondisruptive or disruptive, automated or manual -- depends upon your configuration.  Automated nondisruptive upgrade (ANDU) using System Manager is the preferred method, and it supports most configurations.
 
-*Nondisruptive upgrades* +
-Nondisruptive upgrades take advantage of ONTAP’s high-availability (HA) failover technology to ensure that clusters continue to serve data during the upgrade. There are two types of nondisruptive upgrade processes.
+You can perform an automated or manual nondisruptive upgrade of your ONTAP software.  The method you use to upgrade ONTAP depends upon your configuration, your current ONTAP version, and the number of nodes in your cluster.  For example, if you have a MetroCluster configuration with 4 nodes running ONTAP 9.3 or later, you should perform an automated nondisruptive upgrade (ANDU).  If you have a MetroCluster configuration with with 8 nodes running ONTAP 9.2 or earlier, you should perform a manual nondisruptive upgrade.
 
-*	_Batch_ updates +
-In a batch update, the cluster is divided into several batches, each of which contains multiple HA pairs.  In the first batch, half of the nodes are upgraded, followed by their HA partners. The process is then repeated sequentially for the remaining batches.
+ONTAP software upgrades can be performed using System Manager or the ONTAP command line interface (CLI).  ANDU using System Manager is the preferred upgrade method, if it is supported by your configuration.
 
-*	_Rolling_ updates +
-In a rolling update, a node is taken offline and upgraded while its partner takes over its storage. When the node upgrade is complete, the partner node gives control back to the original owning node and the process is repeated, this time on the partner node. Each additional HA pair is upgraded in sequence until all HA pairs are running the target release. +
-*Note:* The term _rolling upgrade_ is frequently used in the software industry for software upgrades that don't cause disruptions in service and hence is often synonymous with "nondisruptive upgrade". In ONTAP 9 upgrades, a _rolling update_ is one of the processes that can be used for nondisruptive upgrades.
+== Automated and manual nondisruptive ONTAP upgrades
 
-Nondisruptive upgrades can be performed using an _automated_ or _manual_ method.
+Nondisruptive upgrades take advantage of ONTAP’s high-availability (HA) failover technology to ensure that clusters continue to serve data during the upgrade.  
 
-* *Automated nondisruptive upgrade (ANDU)*
+ In the software industry, the terms _nondisruptive upgrade_ and _rolling upgrade_ are often used interchangeably to refer to upgrades that do not cause disruptions in service.  In ONTAP, a nondisruptive upgrade can refer to the rolling upgrade process or the batch upgrade process.
 
-**	When an administrator initiates an ANDU, ONTAP automatically installs the target ONTAP image on each node, validates the cluster components to ensure that the cluster can be upgraded nondisruptively, and then executes a batch or rolling update in the background.
-***	Batch updates are the default for clusters of 8 nodes or more.
-***	Rolling updates are the default for clusters with fewer than 8 nodes. Rolling updates can also be selected explicitly for clusters with 8 nodes or more.
+* *Rolling upgrade*
+In the rolling upgrade process, a node is taken offline and upgraded while its partner takes over its storage. When the node upgrade is complete, the partner node gives control back to the original owning node and the process is repeated on the partner node. Each additional HA pair is upgraded in sequence until all HA pairs are running the target release.  The rolling upgrade process is the default for clusters with fewer than 8 nodes. 
 
-**	An ANDU can be executed using System Manager or the ONTAP command line interface (CLI). If available for your configuration, ANDU using System Manager is the recommended method of upgrade.
+* *Batch upgrade*
+In the batch upgrade process, the cluster is divided into several batches, each of which contains multiple HA pairs.  In the first batch, half of the nodes are upgraded, followed by their HA partners. The process is then repeated sequentially for the remaining batches. The batch upgrade process is the default for clusters of 8 nodes or more.
 
-* *Manual nondisruptive upgrade*
+For ANDUs, ONTAP automatically installs the target ONTAP image on each node, validates the cluster components to ensure that the cluster can be upgraded nondisruptively, and then executes a batch or rolling upgrade in the background.  For manual nondisruptive upgrades, the administrator manually confirms that each node in the cluster is ready for upgrade, then manually executes the rolling upgrade process.
 
-**	An administrator must manually confirm upgrade readiness of the cluster components on each node, then manually perform rolling update process steps in the foreground.
-**	Manual nondisruptive upgrades are executed using the ONTAP CLI.
-**	You should only use a manual method if ANDU is not supported for your configuration.
 
-*Disruptive upgrades* +
-In a disruptive upgrade, storage failover is disabled for each HA pair, and then each node is rebooted one at a time. Disruptive upgrades can be performed more quickly than nondisruptive upgrades, and require fewer steps to complete. However, you should not perform a disruptive upgrade unless you can take the cluster offline for the duration of the upgrade. If you are operating in a SAN environment, you should be prepared to shut down or suspend all SAN clients before performing a disruptive upgrade. Disruptive upgrades are performed using the ONTAP CLI.
+== Recommended ONTAP upgrade methods based on configuration
 
-== Methods for non-MetroCluster configurations
+If supported by your configuration, ANDU using System Manager is the recommended ONTAP upgrade method.  ANDU using System Manager is also the recommended upgrade method for all patch upgrades regardless of configuration.  
 
-Clusters with 2 or more nodes can use any of the following upgrade methods, which are listed in order of recommended usage.
+Additional upgrade methods, if available for your configuration, are listed in order of recommended usage.
 
-* xref:task_upgrade_andu_sm.html[Automated nondisruptive using System Manager]
-* xref:task_upgrade_andu_cli.html[Automated nondisruptive using the CLI]
-* xref:task_upgrade_nondisruptive_manual_cli.html[Manual nondisruptive]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Manual disruptive]
-
-Single node clusters must use one of disruptive methods, although the automated method is recommended.
-
-* xref:task_upgrade_disruptive_automated_cli.html[Automated disruptive]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Manual disruptive]
-
-== Methods for MetroCluster configurations
-
-The upgrade methods available for each configuration are listed in order of recommended usage.
-
-[cols=3*,options="header"]
+[cols=4,options="header"]
 |===
+| Configuration
 | ONTAP version
 | Number of nodes
-| Upgrade method
+| Recommended upgrade method
 
-| 9.3 or later | 2,4 a| * xref:task_upgrade_andu_sm.html[Automated nondisruptive using System Manager]
+
+| Standard
+| 9.0 or later
+| 2 or more
+a| * xref:task_upgrade_andu_sm.html[Automated nondisruptive using System Manager]
 * xref:task_upgrade_andu_cli.html[Automated nondisruptive using the CLI]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Manual disruptive]
-| 9.3 or later | 8 a| * xref:task_upgrade_andu_cli.html[Automated nondisruptive using the CLI]
-* xref:task_updating_a_four_or_eight_node_mcc.html[Manual nondisruptive]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Manual disruptive]
-| 9.2 or earlier | 2 a| * xref:task_updating_a_two_node_metrocluster_configuration_in_ontap_9_2_and_earlier.html[Manual nondisruptive (for 2-node clusters)]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Manual disruptive using the CLI]
-| 9.2 or earlier | 4, 8 a| * xref:task_updating_a_four_or_eight_node_mcc.html[Manual nondisruptive]
-* xref:task_updating_an_ontap_cluster_disruptively.html[Manual disruptive]
-| 9.0 or later | 4, 8 (patch only) | xref:task_upgrade_andu_sm.html[Automated nondisruptive using System Manager]
-| 9.2 or earlier | 2, 4, 8 (patch only) | xref:task_upgrade_andu_sm.html[Automated nondisruptive using System Manager]
+
+
+| Standard
+| 9.0 or later
+| Single
+| xref:task_upgrade_disruptive_automated_cli.html[Automated disruptive]
+
+| MetroCluster
+| 9.3 or later
+| 8
+a| * xref:task_upgrade_andu_cli.html[Automated nondisruptive using the CLI]
+* xref:task_updating_a_four_or_eight_node_mcc.html[Manual nondisruptive for 4 or 8 node MetroCluster]
+
+| MetroCluster
+| 9.3 or later
+| 2,4
+a| * xref:task_upgrade_andu_sm.html[Automated nondisruptive using System Manager]
+* xref:task_upgrade_andu_cli.html[Automated nondisruptive using the CLI]
+
+| MetroCluster
+| 9.2 or earlier
+| 4, 8
+| xref:task_updating_a_four_or_eight_node_mcc.html[Manual nondisruptive for 4 or 8 node MetroCluster]
+
+| MetroCluster
+| 9.2 or earlier
+| 2
+| xref:task_updating_a_two_node_metrocluster_configuration_in_ontap_9_2_and_earlier.html[Manual nondisruptive for 2-node MetroCluster]
+
 |===
 
+[NOTE]
+A xref:task_updating_an_ontap_cluster_disruptively.html[manual disruptive upgrade] can be performed on any configuration.  Disruptive upgrades can be performed more quickly than nondisruptive upgrades, and require fewer steps to complete.   However, you should not perform a disruptive upgrade unless you can take the cluster offline for the duration of the upgrade. If you are operating in a SAN environment, you should be prepared to shut down or suspend all SAN clients before performing a disruptive upgrade. Disruptive upgrades are performed using the ONTAP CLI.
+
+// 2023 Sept 22, Jira 1327 
 // 2023 Aug 30, Jira 1257
 // 2022-03-07, BURT 1458608
 //2021-12-22, BURT 1447276
