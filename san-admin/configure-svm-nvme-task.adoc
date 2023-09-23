@@ -52,84 +52,120 @@ Configure an storage VM for NVMe with the ONTAP CLI.
 
 . If you do not want to use an existing SVM, create one:
 +
-`vserver create -vserver _SVM_name_`
+[source,cli]
+----
+vserver create -vserver <SVM_name>
+----
 
 .. Verify that the SVM is created:
 +
-`vserver show`
+[source,cli]
+----
+vserver show
+----
 
 . Verify that you have NVMe or TCP capable adapters installed in your cluster:
 +
-For NVMe: `network fcp adapter show -data-protocols-supported fc-nvme`
+For NVMe: 
 +
-For TCP: `network port show`
+[source,cli]
+----
+network fcp adapter show -data-protocols-supported fc-nvme
+----
++
+For TCP: 
++
+[source,cli]
+----
+network port show
+----
 
 . If you are running ONTAP 9.7 or earlier, remove all protocols from the SVM:
 +
-`vserver remove-protocols -vserver _SVM_name_ -protocols iscsi,fcp,nfs,cifs,ndmp`
+[source,cli]
+----
+vserver remove-protocols -vserver <SVM_name> -protocols iscsi,fcp,nfs,cifs,ndmp
+----
 +
 Beginning with ONTAP 9.8, it is not necessary to remove other protocols when adding NVMe.
 
 . Add the NVMe protocol to the SVM:
 +
-`vserver add-protocols -vserver _SVM_name_ -protocols nvme`
+[source,cli]
+----
+vserver add-protocols -vserver <SVM_name> -protocols nvme
+----
 
 . If you are running ONTAP 9.7 or earlier, verify that NVMe is the only protocol allowed on the SVM:
 +
-`vserver show -vserver _SVM_name_ -fields allowed-protocols`
+[source,cli]
+----
+vserver show -vserver <SVM_name> -fields allowed-protocols
+----
 +
 NVMe should be the only protocol displayed under the `allowed protocols` column.
 
 . Create the NVMe service:
 +
-`vserver nvme create -vserver _SVM_name_`
+[source,cli]
+----
+vserver nvme create -vserver <SVM_name>
+----
+
 . Verify that the NVMe service was created:
 +
-`vserver nvme show -vserver _SVM_name_`
+[source,cli]
+----
+vserver nvme show -vserver <SVM_name>
+----
 +
 The `Administrative Status` of the SVM should be listed as `up`.
 
 . Create an NVMe/FC LIF:
 +
-[cols=3*, options="header"]
-|===
-a| ONTAP version
-a| Applicable protocols
-a| Command
+* For ONTAP 9.9.1 or earlier, FC: 
++
+[source,cli]
+----
+network interface create -vserver <SVM_name> -lif <lif_name> -role data -data-protocol fc-nvme -home-node <home_node> -home-port <home_port>
+----
 
-a| ONTAP 9.9.1 or earlier
-a| FC
-a| `network interface create -vserver SVM_name -lif lif_name -role data -data-protocol fc-nvme -home-node home_node -home-port home_port`
-
-a| ONTAP 9.10.1
-a| FC or TCP
-a| `network interface create -vserver SVM_name -lif lif_name -service-policy {default-data-nvme-tcp \| default-data-nvme-fc} -home-node home_node -home-port home_port -status admin up -failover-policy disabled -firewall-policy data -auto-revert false -failover-group failover_group -is-dns-update-enabled false`
-|===
+* For ONTAP 9.10.1 or later, FC or TCP:
++
+[source,cli]
+----
+network interface create -vserver <SVM_name> -lif <lif_name> -service-policy <default-data-nvme-tcp | default-data-nvme-fc> -home-node <home_node> -home-port <home_port> -status admin up -failover-policy disabled -firewall-policy data -auto-revert false -failover-group <failover_group> -is-dns-update-enabled false
+----
 
 . Create an NVMe/FC LIF on the HA partner node:
 +
-[cols=3*, options="header"]
-|===
-a| ONTAP version
-a| Applicable protocols
-a| Command
+* For ONTAP 9.9.1 or earlier, FC:
++
+[source,cli]
+----
+network interface create -vserver <SVM_name> -lif <lif_name> -role data -data-protocol fc-nvme -home-node <home_node> -home-port <home_port>
+----
 
-a| ONTAP 9.9.1 or earlier
-a| FC
-a| `network interface create -vserver _SVM_name_ -lif _lif_name_ -role data -data-protocol fc-nvme -home-node _home_node_ -home-port _home_port_`
-
-a| ONTAP 9.10.1 or later
-a| FC or TCP
-a| `network interface create -vserver SVM_name -lif lif_name -service-policy {default-data-nvme-tcp \| default-data-nvme-fc} -home-node home_node -home-port home_port -status admin up -failover-policy disabled -firewall-policy data -auto-revert false -failover-group failover_group -is-dns-update-enabled false`
-|===
+* For ONTAP 9.10.1 or later, FC or TCP:
++
+[source,cli]
+----
+network interface create -vserver <SVM_name> -lif <lif_name> -service-policy <default-data-nvme-tcp | default-data-nvme-fc> -home-node <home_node> -home-port <home_port> -status admin up -failover-policy disabled -firewall-policy data -auto-revert false -failover-group <failover_group> -is-dns-update-enabled false
+----
 
 . Verify the NVMe/FC LIFs were created:
 +
-`network interface show -vserver _SVM_name_`
+[source,cli]
+----
+network interface show -vserver <SVM_name>
+----
 
 . Create volume on the same node as the LIF:
 +
-`vol create -vserver _SVM_name_ -volume _vol_name_ -aggregate _aggregate_name_ -size _volume_size_`
+[source,cli]
+----
+vol create -vserver <SVM_name> -volume <vol_name> -aggregate <aggregate_name> -size <volume_size>
+----
 +
 If a warning message is displayed about the auto efficiency policy, it can be safely ignored.
 
