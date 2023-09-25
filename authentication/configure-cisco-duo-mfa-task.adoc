@@ -1,0 +1,156 @@
+---
+permalink: authentication/configure-cisco-duo-mfa-task.html
+sidebar: sidebar
+keywords: enable, ssh, multifactor authentication, mfa, hardware authentication device, Cisco, Duo
+summary: "To take advantage of increased account security through multifactor authentication (MFA) with Cisco Duo for SSH, you must configure SSH for Cisco Duo use."
+---
+= Configure Cisco Duo MFA for SSH logins
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning in ONTAP 9.14.1, you can configure ONTAP to use Cisco Duo for multi-factor authentication (MFA)during SSH logins.  
+
+For guidance with installing Cisco Duo for UNIX, refer to the Cisco Duo https://duo.com/docs/duounix#overview[installation instructions^].
+
+If you enable Cisco Duo authentication for SSH logins, users will need to enroll a device the next time they log in using SSH. For enrollment information, refer to the Cisco Duo https://guide.duo.com/add-device[enrollment documentation^].
+
+You can use the ONTAP command line interface to perform the following tasks with Cisco Duo:
+
+* <<Configure Cisco Duo>>
+* <<Change Cisco Duo configuration>>
+* <<Remove Cisco Duo configuration>>
+* <<View Cisco Duo configuration>>
+* <<Remove a Duo group>>
+* <<View Duo groups>>
+* <<Bypass Duo authentication for users>>
+
+== Configure Cisco Duo
+You can create a Cisco Duo configuration for a specific Vserver using the `security login duo create` command. When you do this, Cisco Duo is enabled for SSH logins for this Vserver.
+
+.Steps
+
+. Log in to the Cisco Duo Admin Panel.
+. Go to *Applications > UNIX Application*.
+. Record your integration key, secret key, and API hostname.
+. Log in to your ONTAP account using SSH.
+. Enable Cisco Duo MFA authentication for this Vserver, substituting information from your environment for the values in brackets:
++
+[source,cli]
+----
+security login duo create \
+-vserver <VSERVER_NAME> \
+-integration-key <INTEGRATION_KEY> \
+-secret-key <SECRET_KEY> \
+-apihost <API_HOSTNAME>
+----
++
+For more information on the required and optional flags for this command, refer to link:config-worksheets-reference.html[Worksheets for administrator authentication and RBAC configuration^].
+
+== Change Cisco Duo configuration
+If you need to change the Cisco Duo configuration for a Vserver, you can use the `security login duo modify` command.
+
+.Steps
+
+. Log in to the Cisco Duo Admin Panel.
+. Go to *Applications > UNIX Application*.
+. Record your integration key, secret key, and API hostname.
+. Log in to your ONTAP account using SSH.
+. Change the Cisco Duo MFA configuration for this Vserver, substituting updated information from your environment for the values in brackets:
++
+[source,cli]
+----
+security login duo modify \
+-vserver <VSERVER_NAME> \
+-integration-key <INTEGRATION_KEY> \
+-secret-key <SECRET_KEY> \
+-apihost <API_HOSTNAME> \
+-pushinfo true|false \
+-http-proxy <HTTP_PROXY_URL> \
+-autopush true|false \
+-prompts 1|2|3 \
+-max-unenrolled-logins <NUM_LOGINS> \
+-is-enabled true|false \
+-fail-mode safe|secure
+----
+
+== Remove Cisco Duo configuration
+To remove the Cisco Duo configuration for a Vserver, you can use the `security login duo delete` command.
+
+.Steps
+
+. Log in to your ONTAP account using SSH.
+. Remove the Cisco Duo MFA configuration for this Vserver, substituting your Vserver name for <VSERVER_NAME>. All parameters except `vserver` are optional:
++
+[source,cli]
+----
+security login duo delete  -vserver <VSERVER_NAME>
+----
++
+This permanently deletes the Cisco Duo configuration for this Vserver.
+
+
+== View Cisco Duo configuration
+You can view the existing Cisco Duo configuration for a Vserver by using the `security login duo show` command.
+
+.Steps
+
+. Log in to your ONTAP account using SSH.
+. Show the Cisco Duo MFA configuration for this Vserver. Optionally, you can use the `vserver` parameter to specify a Vserver, substituting the Vserver name for <VSERVER_NAME>:
++
+[source,cli]
+----
+security login duo show [-vserver <VSERVER_NAME>]
+----
++
+Example output:
++
+[source,cli]
+----
+Vserver: testcluster
+Enabled: true
+
+Status: ok
+INTEGRATION-KEY: DI89811J9JWMJCCO7IOH
+SKEY SHA Fingerprint:
+b79ffa4b1c50b1c747fbacdb34g671d4814
+API Host: api-host.duosecurity.com
+Autopush: true
+Push info: true
+Failmode: safe
+Http-proxy: 192.168.0.1:3128
+Prompts: 1
+Comments: -
+----
+
+== Remove a Duo group
+You can remove a Duo group entry using the `security login duo group delete` command.
+
+.Steps
+
+== View Duo groups
+You can view existing Cisco Duo group entries by using the `security login duo group show` command.
+
+.Steps
+
+== Bypass Duo authentication for users
+You can exclude certain types of users from the Duo SSH authentication process.
+
+=== Exclude all Duo users
+You can disable Cisco Duo for SSH logins for all users.
+
+
+.Steps
+
+security login duo -vserver <vserver> -is-duo-enabled-false
+
+=== Exclude group Duo users
+You can exclude only certain groups from using Duo authentication.
+
+.Steps
+
+security login group modify -group-name <Group1> -exclude-users <user1, user2>
+
+== Exclude local Duo users
+You can exclude specific local users from using Duo authentication by using the Cisco Duo Admin Panel. For instructions, refer to the https://duo.com/docs/administration-users#changing-user-status[Cisco Duo documentation^].
+
