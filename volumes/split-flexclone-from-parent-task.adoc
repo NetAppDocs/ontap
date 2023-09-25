@@ -1,34 +1,46 @@
 ---
 permalink: volumes/split-flexclone-from-parent-task.html
 sidebar: sidebar
-keywords: split, flexclone, volume, parent, volume
-summary: "If you want a read-write FlexClone volume to have its own disk space rather than using that of its parent volume, you can split the FlexClone volume from its parent volume. Because this operation creates a copy of the data that is currently shared between the parent volume and the FlexClone volume, the operation can take some time to complete."
+keywords: split, flexclone, volume, parent, volume, clone
+summary: You can split a FlexClone volume from its parent to make the clone a normal FlexVol volume.
 ---
+
 = Split a FlexClone volume from its parent volume
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-If you want a read-write FlexClone volume to have its own disk space rather than using that of its parent volume, you can split the FlexClone volume from its parent volume. Because this operation creates a copy of the data that is currently shared between the parent volume and the FlexClone volume, the operation can take some time to complete.
+You can split a FlexClone volume from its parent to make the clone a normal FlexVol volume.
+
+The clone splitting operation takes place in the background. Data is accessible on the clone and the parent during the split. Beginning with ONTAP 9.4, space efficiency is preserved. The split process only updates metadata and requires minimal IO. No data blocks are copied.
 
 .About this task
 
-Splitting a FlexClone volume from its parent volume consumes free space from the containing aggregate. If you do not have sufficient privileges to view the space available in your aggregate, you must contact your storage administrator to verify that there is sufficient space in the aggregate for the split operation to finish.
+* New Snapshot copies of the FlexClone volume cannot be created during the split operation.
+* A FlexClone volume cannot be split from the parent volume if it belongs to a data protection relationship or is part of a load-sharing mirror. 
+* If you take the FlexClone volume offline while splitting is in progress, the split operation is suspended; when you bring the FlexClone volume back online, the splitting operation resumes.
+* After the split, both the parent FlexVol volume and the clone require the full space allocation determined by their volume guarantees.
+* After a FlexClone volume is split from its parent the two cannot be rejoined.
+* Beginning with ONTAP 9.4, for non-guaranteed volumes on AFF systems, the split operation for FlexClone volumes shares the physical blocks and does not copy the data. Therefore, splitting of FlexClone volumes on AFF systems is faster than the FlexClone splitting operation in other FAS systems in ONTAP 9.4 and later. The improved FlexClone splitting operation on AFF systems has the following benefits:
+** Storage efficiency is preserved after splitting the clone from the parent.
+** Existing Snapshot copies are not deleted.
+** The operation is faster.
+** The FlexClone volume can be split from any point in the clone hierarchy.
 
-Beginning with ONTAP 9.4, for non-guaranteed volumes on AFF systems, the split operation for FlexClone volumes shares the physical blocks and does not copy the data. Therefore, splitting of FlexClone volumes on AFF systems is faster than the FlexClone splitting operation in other FAS systems in ONTAP 9.4. The improved FlexClone splitting operation on AFF systems has the following benefits:
+.Before you begin
+* You must be a cluster administrator.
+* The FlexClone volume must be online when the split operation begins.
+* The parent volume must be online for the split to succeed.
 
-* Storage efficiency is preserved after splitting the clone from the parent.
-* Existing Snapshot copies are not deleted.
-* The operation is faster.
-* The FlexClone volume can be split from any point in the clone hierarchy.
+
 
 .Steps
 
 . Determine the amount of free space required to complete the split operation:
 +
-`volume clone show -estimate -vserver vserver_name -flexclone clone_volume_name -parent-volume parent_vol_name`
+`volume clone show -estimate -vserver _vserver_name_ -flexclone _clone_volume_name_ -parent-volume _parent_vol_name_`
 +
-The following example provides information about the free space required to split a FlexClone volume clone1 from its parent volume vol1:
+The following example provides information about the free space required to split FlexClone volume "`clone1`" from its parent volume "`vol1`":
 +
 ----
 cluster1::> volume clone show -estimate -vserver vs1 -flexclone clone1 -parent-volume volume1
@@ -49,7 +61,7 @@ vs1       clone1           40.73MB
 +
 `volume clone split start -vserver _vserver_name_ -flexclone _clone_volume_name_`
 +
-The following example shows how you can initiate the process to split the FlexClone volume clone1 from its parent volume vol1:
+The following example shows how you can initiate the process to split FlexClone volume "`clone1`" from its parent volume "`vol1`":
 +
 ----
 cluster1::> volume clone split start -vserver vs1 -flexclone clone1
@@ -76,11 +88,11 @@ vs1       clone1        0         0       411247   153600         0        37
 
 . Verify that the split volume is no longer a FlexClone volume:
 +
-`volume show -volume _volume_name_ -fields _clone-volume_`
+`volume show -volume _volume_name_ -fields clone-volume`
 +
-The value of the `clone-volume` option is `false` for a volume that is not a FlexClone volume.
+The value of the `clone-volume` option is "`false`" for a volume that is not a FlexClone volume.
 +
-The following example shows how you can verify whether the volume clone1 that is split from its parent is not a FlexClone volume.
+The following example shows how you can verify whether volume "`clone1`" that is split from its parent is not a FlexClone volume.
 +
 ----
 cluster1::> volume show -volume clone1 -fields clone-volume
@@ -89,4 +101,7 @@ vserver volume **clone-volume**
 vs1     clone1 **false**
 ----
 
-// 09 DEC 2021, BURT 1430515
+// 2023-Aug-30, issue# 1066
+// 2023 Jul 20, ONTAPDOC-1126
+// 2023 Jun 28, partial fix for issue# 956
+// 2021 Dec 09, BURT 1430515

@@ -5,7 +5,7 @@ keywords: SM-BC, SMBC, troubleshooting, link down, Mediator
 summary: Mediator connectivity from Site B shows as unreachable.
 ---
 
-= Link between Site B and Mediator down and Site A down
+= Link between Site B and mediator down and Site A down
 :hardbreaks:
 :nofooter:
 :icons: font
@@ -13,7 +13,7 @@ summary: Mediator connectivity from Site B shows as unreachable.
 :imagesdir: ../media/
 
 [.lead]
-To check on the connection of the Mediator, use the `snapmirror mediator show` command. If the connection status is unreachable and Site B is unable to reach Site B, you will have an output similar to the one below. Follow the steps in the solution to restore connection
+To check on the connection of the ONTAP Mediator, use the `snapmirror mediator show` command. If the connection status is unreachable and Site B is unable to reach Site A, you will have an output similar to the one below. Follow the steps in the solution to restore connection
 
 .Example:
 
@@ -44,15 +44,13 @@ C1_cluster 			  1-80-000011           Unavailable    ok
 
 .Solution
 
-Force a failover to enable I/O from Site B and then establish a zero RTO relationship from Site B to Site A.
-
-Complete the following steps to perform a forced failover on Site B.
+Force a failover to enable I/O from Site B and then establish a zero RTO relationship from Site B to Site A. Complete the following steps to perform a forced failover on Site B.
 
 . Unmap all LUNs belonging to the consistency group from Site B.
 
 . Delete the SnapMirror consistency group relationship using the force option.
 
-. Enter the snapmirror break command on the consistency group constituent volumes to convert volumes from DP to RW, to enable I/O from Site B.
+. Enter the SnapMirror break command on the consistency group constituent volumes to convert volumes from DP to RW, to enable I/O from Site B.
 
 . Boot up the Site A nodes to create a zero RTO relationship from Site B to Site A.
 
@@ -60,16 +58,17 @@ Complete the following steps to perform a forced failover on Site B.
 
 . Convert volumes on Site A from RW to DP by setting up a volume level relationship using either Sync policy or Async policy.
 
-. Issue the snapmirror resync to synchronize the relationships.
+. Issue the `snapmirror resync` command to synchronize the relationships.
 
 . Delete the SnapMirror relationships with Sync policy on Site A.
 
 . Release the SnapMirror relationships with Sync policy using relationship-info-only true on Site B.
 
-. Create a consistency group relationship from Site B to Site A.
+. Create a consistency group relationship between Site B to Site A.
 
-. Perform a consistency group resync from Site A, and then verify that the consistency group is in sync.
+. From the source cluster, resynchronize the consistency group. Verify the consistency group state is in sync.
 
-. Rescan host LUN I/O paths to restore all paths to the LUNs.
+. Rescan the host LUN I/O paths to restore all paths to the LUNs.
 
+// 18 sept 2023, issue #1106
 // 1 april 2022, issue #439
