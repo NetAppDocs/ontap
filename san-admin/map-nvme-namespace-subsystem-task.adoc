@@ -9,9 +9,16 @@ summary: "You must map a namespace to a subsystem when using NVMe."
 :imagesdir: ../media/
 
 [.lead]
-This procedure maps an existing NVMe namespace to an existing NVMe subsystem using the ONTAP CLI.  
+Mapping an NVMe namespace to a subsystem allows data access from your host.  You can map an NVMe namespace to a subsystem when you provision storage or you can do it after your storage has been provisioned.
 
-Your namespace and subsystem should already be created.  If you need to create a namespace and subsystem, see link:create-nvme-namespace-subsystem-task.html[Provision NVMe storage].
+.Before you begin
+
+Your namespace and subsystem should already be created. If you need to create a namespace and subsystem, see link:create-nvme-namespace-subsystem-task.html[Provision NVMe storage].
+
+Beginning with ONTAP 9.14.1, you can enable your NVM subsystem to prioritize resource allocation for specific hosts. By default, when a host is added to the subsystem, it is  given regular priority. You can use the ONTAP CLI to manually change the default priority from regular to high.  Hosts assigned a high priority are allocated larger I/O queue counts and queue-depths. 
+
+[NOTE]
+If a host was added to a subsystem in ONTAP 9.13.1 or earlier and you want to give the host a high priority, you must remove the host from the subsystem and re-add it. Use the `vserve nvme subsystem host remove` command to remove a host from a subsystem.
 
 .Steps
 
@@ -23,6 +30,10 @@ Your namespace and subsystem should already be created.  If you need to create a
 ----
 vserver nvme subsystem host add -vserver <SVM_name> -subsystem <subsystem_name> -host-nqn <Host_NQN_:subsystem._subsystem_name>
 ----
++
+If you want to change the default priority for the host from regular to high, use the `-priority high` option. 
+To verify the priorty of a host, use the `vserve nvme show-host-priority` command.
+
 
 . Map the namespace to the subsystem:
 +
@@ -41,3 +52,5 @@ vserver nvme namespace show -vserver <SVM_name> -instance
 ----
 +
 The subsystem should be listed as the `Attached subsystem`.
+
+// 2023 Nov 02, 9.14.1
