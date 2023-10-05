@@ -11,7 +11,7 @@ summary: "To take advantage of increased account security through multifactor au
 [.lead]
 Beginning in ONTAP 9.14.1, you can configure ONTAP to use Cisco Duo for multi-factor authentication (MFA) during SSH logins. You configure Duo at the Vserver level, and it applies to all user accounts by default. If you enable and configure Duo, it serves as an additional authentication method, supplementing the existing methods for all users.
 
-For guidance with installing Cisco Duo for UNIX, refer to the Cisco Duo https://duo.com/docs/duounix#overview[installation instructions^].
+//For guidance with installing Cisco Duo for UNIX, refer to the Cisco Duo https://duo.com/docs/duounix#overview[installation instructions^].
 
 If you enable Duo authentication for SSH logins, users will need to enroll a device the next time they log in using SSH. For enrollment information, refer to the Cisco Duo https://guide.duo.com/add-device[enrollment documentation^].
 
@@ -30,7 +30,7 @@ You can create a Cisco Duo configuration for a specific Vserver using the `secur
 
 .Before you begin
 
-Install Cisco Duo for UNIX, referring to the Cisco Duo https://duo.com/docs/duounix#overview[installation instructions^].
+//Install Cisco Duo for UNIX, referring to the Cisco Duo https://duo.com/docs/duounix#overview[installation instructions^].
 
 .Steps
 
@@ -52,7 +52,7 @@ security login duo create \
 For more information on the required and optional parameters for this command, refer to link:config-worksheets-reference.html[Worksheets for administrator authentication and RBAC configuration^].
 
 == Change Cisco Duo configuration
-If you need to change the Cisco Duo configuration for a Vserver, you can use the `security login duo modify` command.
+You can change the way Cisco Duo authenticates users (for example, how many authentication prompts are given, or what HTTP proxy is used). If you need to change the Cisco Duo configuration for a Vserver, you can use the `security login duo modify` command.
 
 .Steps
 
@@ -79,12 +79,12 @@ security login duo modify \
 ----
 
 == Remove Cisco Duo configuration
-To remove the Cisco Duo configuration for a Vserver, you can use the `security login duo delete` command.
+You can remove the Cisco Duo configuration, which will remove the need for SSH users to authenticate using Duo upon login. To remove the Cisco Duo configuration for a Vserver, you can use the `security login duo delete` command.
 
 .Steps
 
 . Log in to your ONTAP account using SSH.
-. Remove the Cisco Duo MFA configuration for this Vserver, substituting your Vserver name for `<VSERVER_NAME>`. All parameters except `vserver` are optional:
+. Remove the Cisco Duo configuration for this Vserver, substituting your Vserver name for `<VSERVER_NAME>`:
 +
 [source,cli]
 ----
@@ -126,18 +126,20 @@ Prompts: 1
 Comments: -
 ----
 
-== Remove a Duo group
-You can remove a Duo group entry using the `security login duo group delete` command.
+== Create a Duo group
+You can instruct Cisco Duo to include only the users in a certain Active Directory, LDAP, or local user group in the Duo authentication process. If you create a Duo group, only the users in that group are prompted for Duo authentication. You can create a Duo group by using the `security login duo group create` command. When you create a group, you can optionally exclude specific users in that group from the Duo authentication process.
 
 .Steps
 
 . Log in to your ONTAP account using SSH.
-. Remove the Duo group entry, substituting information from your environment for the values in brackets. If you omit the `-vserver` parameter, the group is removed at the cluster level:
+. Create the Duo group, substituting information from your environment for the values in brackets. If you omit the `-vserver` parameter, the group is created at the cluster level:
 +
 [source,cli]
 ----
-security login duo group delete -vserver <VSERVER_NAME> -group-name <GROUP_NAME> 
+security login duo group create -vserver <VSERVER_NAME> -group-name <GROUP_NAME> -exclude-users <USER1, USER2>
 ----
++
+The name of the Duo group must match an Active Directory, LDAP, or local group. Users you specify with the optional `-exclude-users` parameter will not be included in the Duo authentication process.
 
 == View Duo groups
 You can view existing Cisco Duo group entries by using the `security login duo group show` command.
@@ -151,9 +153,26 @@ You can view existing Cisco Duo group entries by using the `security login duo g
 ----
 security login duo group show -vserver <VSERVER_NAME> -group-name <GROUP_NAME> -exclude-users <USER1, USER2>
 ----
++
+The name of the Duo group must match an Active Directory, LDAP, or local group. Users you specify with the optional `-exclude-users` parameter will not be displayed.
+
+== Remove a Duo group
+You can remove a Duo group entry using the `security login duo group delete` command. If you remove a group, the users in that group are no longer included in the Duo authentication process.
+
+.Steps
+
+. Log in to your ONTAP account using SSH.
+. Remove the Duo group entry, substituting information from your environment for the values in brackets. If you omit the `-vserver` parameter, the group is removed at the cluster level:
++
+[source,cli]
+----
+security login duo group delete -vserver <VSERVER_NAME> -group-name <GROUP_NAME> 
+----
++
+The name of the Duo group must match an Active Directory, LDAP, or local group. 
 
 == Bypass Duo authentication for users
-You can exclude all users or certain types of users from the Duo SSH authentication process.
+You can exclude all users or specific users from the Duo SSH authentication process.
 
 === Exclude all Duo users
 You can disable Cisco Duo SSH authentication for all users.
@@ -168,18 +187,20 @@ You can disable Cisco Duo SSH authentication for all users.
 security login duo -vserver <VSERVER_NAME> -is-duo-enabled-false
 ----
 
-=== Exclude group Duo users
-You can exclude certain groups from using Duo SSH authentication.
+=== Exclude Duo group users
+You can exclude certain users that are part of a Duo group from the Duo SSH authentication process.
 
 .Steps
 
 . Log in to your ONTAP account using SSH.
-. Disable Cisco Duo authentication for a group. Substitute the group name and list of users to exclude for the values in brackets:
+. Disable Cisco Duo authentication for specific users in a group. Substitute the group name and list of users to exclude for the values in brackets:
 +
 [source,cli]
 ----
 security login group modify -group-name <GROUP_NAME> -exclude-users <USER1, USER2>
 ----
++
+The name of the Duo group must match an Active Directory, LDAP, or local group. Users you specify with the `-exclude-users` parameter will not be included in the Duo authentication process.
 
 === Exclude local Duo users
 You can exclude specific local users from using Duo authentication by using the Cisco Duo Admin Panel. For instructions, refer to the https://duo.com/docs/administration-users#changing-user-status[Cisco Duo documentation^].
