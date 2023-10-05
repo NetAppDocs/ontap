@@ -1,0 +1,55 @@
+---
+permalink: encryption-at-rest/configure-nve-svm-root-task.html
+keywords: volume encryption, nve, svm root, encrypt 
+summary: "NetApp Volume Encryption (NVE) is a software-based technology for encrypting data at rest one volume at a time. You can configured NVE on an SVM root beginning with ONTAP 9.14.1."
+---
+= Configure NetApp Volume Encryption on an SVM root volume
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.14.1, you can enable NetApp Volume Encryption (NVE) on an SVM root volume. With NVE, the root volume is encrypted with a unique key, enabling greater security on your SVM. 
+
+.About this task 
+
+You can enable NVE encryption on an SVM root volume if the SVM is not part of an aggregate using NetApp Aggregate Encryption (NAE). NVE on an SVM root volume can only be enabled after the SVM has created. You can enable NVE in-place or by using the `volume move` command. 
+
+.Before you begin 
+
+* The SVM root volume must not be be on an aggregate using NAE. 
+* You must have enabled encryption with the Onboard Key Manager or an external key manager.  
+* You must be running ONTAP 9.14.1 or later. 
+* If you want to migrate an SVM containing a root volume encrypted with NVE, you should first convert the root volume to a plain text volume, then re-encrypt it after the SVM migration. If the destination aggregate of the SVM migration uses NAE, the root volume inherits NAE by default. 
+// impact on mirrored volumes?
+
+.Steps 
+
+You can enable NVE on an SVM root volume with the ONTAP CLI or System Manager. 
+
+[role="tabbed-block"]
+====
+.CLI
+--
+.Encrypt the root volume in place 
+. Convert the root volume to an encrypted volume:
++
+`volume encryption conversion start -vserver _svm_name_ -volume _volume_`
+. Confirm the encryption succeeded. The `volume show -encryption-type volume` will output a list of all volumes using NVE.
+
+.Encrypt the SVM root volume by moving it
+. Initiate a volume move: 
++
+`volume move start -vserver _svm_name_ -volume _volume_ -destination-aggregate _aggregate_ -encrypt-with-aggr-key false -encrypt-destination true`
+. Confirm the encryption succeeded. The `volume show -encryption-type volume` will output a list of all volumes using NVE.
+--
+
+.System Manager 
+--
+. Navigate to **Storage** > **Volumes**.
+. Next to the name of the SVM root volume you want to modify, select image:icon_kabob.gif[three vertical dots] then **Edit**. 
+. Under the **Storage and Optimization** heading, select **Enable encryption**.
+. Select **Save**.
+--
+====
+
+// 2023 4 oct, ontapdoc-1121
