@@ -78,10 +78,11 @@ If you need to create a Snapshot of your consistency group outside of a normally
 --
 Beginning with ONTAP 9.14.1, you can create an on-demand Snapshot of a consistency group using the CLI. 
 
-.Steps 
+.Step
 . Create the Snapshot:
 +
 By default, the Snapshot type is crash-consistent. You can modify the Snapshot type with the optional `-type` parameter. 
++
 `consistency-group snapshot create -vserver _svm_name_ -consistency-group _consistency_group_name_ -snapshot _snapshot_name_`
 --
 ====
@@ -108,6 +109,25 @@ For more information about the ONTAP REST API, see link:https://docs.netapp.com/
 
 [role="tabbed-block"]
 ====
+.CLI
+--
+Beginning with ONTAP 9.14.1, you can create a two-phase Snapshot using the CLI. 
+
+[NOTE]
+If you implement the two-phase Snapshot using the ONTAP API, you must complete it using the API as the API does not return all of the necessary information to complete the Snapshot using the CLI. 
+
+.Steps
+. Initiate the Snapshot:
++
+`consistency-group snapshot start -vserver _svm_name_ -consistency-group _consistency_group_name_ -snapshot _snapshot_name_ [-timeout _time_in_seconds_ -write-fence {true|false}]`
+. Verify the Snapshot was taken:
++
+`consistency-group snapshot show`
+. Commit the Snapshot: 
++
+`consistency-group snapshot commit _svm_name_ -consistency-group _consistency_group_name_ -snapshot _snapshot_name_`
+--
+
 .API
 --
 . Invoke the Snapshot creation. Send a POST request to the consistency group endpoint using the `action=start` parameter.
@@ -129,25 +149,6 @@ curl -k -X POST 'https://<IP_address>/application/consistency-groups/<cg-uuid>/s
 ----
 curl -k -X PATCH 'https://<IP_address>/application/consistency-groups/<cg_uuid>/snapshots/<snapshot_id>?action=commit' -H "accept: application/hal+json" -H "content-type: application/json"
 ----
---
-
-.CLI
---
-Beginning with ONTAP 9.14.1, you can create a two-phase Snapshot using the CLI. 
-
-[NOTE]
-If you implement the two-phase Snapshot using the ONTAP API, you must complete it using the API as the API does not return all of the necessary information to complete the Snapshot using the CLI. 
-
-.Steps
-. Initiate the Snapshot:
-+
-`consistency-group snapshot start -vserver _svm_name_ -consistency-group _consistency_group_name_ -snapshot _snapshot_name_ [-timeout _time_in_seconds_ -write-fence {true|false}]`
-. Verify the Snapshot was taken:
-+
-`consistency-group snapshot show command`
-. Commit the Snapshot: 
-+
-`consistency-group snapshot commit _svm_name_ -consistency-group _consistency_group_name_ -snapshot _snapshot_name_`
 --
 ====
 
