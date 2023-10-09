@@ -182,12 +182,13 @@ To configure SM-BC with the CLI, see xref:../task_san_configure_protection_for_b
 
 === Configure asynchronous SnapMirror protection
 
-Beginning with ONTAP 9.13.1, you can configure asynchronous SnapMirror protection for a single consistency group. 
+Beginning with ONTAP 9.13.1, you can configure asynchronous SnapMirror protection for a single consistency group. Beginning with ONTAP 9.14.1, you can use Asynchronous SnapMirror to replicate volume-granular Snapshots to the destination cluster.
 
-.About this task 
-Beginning with ONTAP 9.14.1, you can use Asynchronous SnapMirror to replicate volume-granular Snapshots to the destination cluster if the volume-granular Snapshot matches the policy type of the consistency group Snapshot policy (e.g. MirrorAndVault, Vault, or MirrorAllSnapshots). Volume-granular Snapshots on the destination abide by the retention policy on the destination cluster independent of the consistency group Snapshots. For example, if you have a policy to retain two Snapshots on the destination, you can have two volume-granular Snapshots _and_ two consistency group Snapshots. 
+.About this task
 
-When resynchronizing a consistency group, you can preserve volume-granular Snapshots with the `-preserve` flag. Volume-granular Snapshots newer than consistency group Snapshot are preserved. If there is not a consistency group Snapshot, no volume-granular Snapshots can be transferred in the resync operation. 
+To replicate volume-granular Snapshots, you must be running ONTAP 9.14.1 or later. The volume-granular Snapshot policy must match the policy type of the consistency group Snapshot policy (e.g. MirrorAndVault, Vault, or MirrorAllSnapshots). Volume-granular Snapshots abide by the keep value of the SnapMirror policy, which is calculated independently of the consistency group Snapshots. For example, if you have a policy to keep two Snapshots on the destination, you can have two volume-granular Snapshots _and_ two consistency group Snapshots. 
+
+When resynchronizing the SnapMirror relationship with volume-granular Snapshots, you can preserve volume-granular Snapshots with the `-preserve` flag. Volume-granular Snapshots newer than consistency group Snapshot are preserved. If there is not a consistency group Snapshot, no volume-granular Snapshots can be transferred in the resync operation. 
 
 .Before you begin
 * Asynchronous SnapMirror protection is only available for single consistency groups. It is not supported for hierarchical consistency groups. To convert a hierarchical consistency group into a single consistency group, see xref:modify-geometry-task.html[modify consistency group architecture].
@@ -197,7 +198,6 @@ When resynchronizing a consistency group, you can preserve volume-granular Snaps
 * If you have configured an asynchronous SnapMirror protection relationship for multiple individual volumes, you can convert those volumes into a consistency group while retaining the existing Snapshots. To convert volumes successfully:
   * There must be a common Snapshot copy of the volumes.
   * You must break the existing SnapMirror relationship, xref:configure-task.html[add the volumes to a single consistency group], then resynchronize the relationship using the following workflow.  
-
 
 .Steps
 . From the destination cluster, select *Storage > Consistency groups*.
@@ -213,6 +213,11 @@ The minimum supported schedule (recovery point objective, or RPO) for consistenc
 . Select *Save*.
 . The consistency group needs to initialize and synchronize. Confirm synchronization has completed successfully by returning to the *Consistency group* menu. The *SnapMirror (Remote)* status displays `Protected` next to image:../media/icon_shield.png[alt=green shield icon].
 
+=== Configure asynchronous SnapMirror with SVM data replication 
+
+Beginning in ONTAP 9.14.1, SVM's in a data replication relationship that contain consistency groups mirror the consistency groups to the destination SVM if using Asynchronous SnapMirror. For more information SVM DR, see xref:../task_dp_configure_storage_vm_dr.html[Configure storage VM disaster recovery].
+
+
 == Visualize relationships
 
 System Manager visualizes LUN maps under the *Protection > Relationships* menu. When you select a source relationship, System Manager displays a visualization of the source relationships. By selecting a volume, you can delve deeper into these relationships to see a list of the contained LUNs and the initiator group relationships. This information can be downloaded as an Excel workbook from the individual volume view; the download operation will run in the background.
@@ -227,7 +232,8 @@ System Manager visualizes LUN maps under the *Protection > Relationships* menu. 
 * link:https://docs.netapp.com/us-en/ontap-automation/[ONTAP Automation documentation^]
 * xref:../data-protection/snapmirror-disaster-recovery-concept.html[Asynchronous SnapMirror disaster recovery basics]
 
-// 5 oct 2023, ontapdoc-1280
+
+// 5 oct 2023, ontapdoc-1280, ontapdoc-1404
 // 16 august 2023, BURT 1556718
 // 2023-June-29, issue #982
 // 22 march 2023, ontapdoc-867 
