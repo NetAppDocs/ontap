@@ -47,12 +47,8 @@ link:../performance-admin/index.html[Performance management]
 
 See the `vserver object-store-server bucket` man pages for additional configuration and display options.
 
-== Process to create buckets
+== Create buckets by using the CLI
 
-[role="tabbed-block"]
-====
-.CLI
---
 . If you plan to select aggregates and FlexGroup components yourself, set the privilege level to advanced (otherwise, admin privilege level is sufficient): `set -privilege advanced`
 . Create a bucket:
 +
@@ -99,10 +95,9 @@ The following example creates a bucket for SVM vs1 of size 1TB and specifying th
 ----
 cluster-1::*> vserver object-store-server bucket create -vserver svm1.example.com -bucket testbucket -aggr-list aggr1 -size 1TB
 ----
---
 
-.System Manager
---
+== Create buckets by using System Manager 
+
 .	Add a new bucket on an S3-enabled storage VM.
 ..	Click *Storage > Buckets*, then click *Add*.
 ..	Enter a name, select the storage VM, and enter a size.
@@ -115,18 +110,34 @@ NOTE: You should not use the S3 root user to manage ONTAP object storage and sha
 
 **	A Quality of Service (performance) level that is the highest available for your system.
 
-*	You can click *More Options* to configure user permissions and performance level when you configure the bucket, or you can modify these settings later.
+* ##Click *Save* to create a bucket with these defaults.##
 
-**	You must have already created user and groups before using *More Options* to configure their permissions.
-**	If you intend to use the S3 object store for FabricPool tiering, consider selecting *Use for tiering* (use low-cost media with optimal performance for the tiered data) rather than a performance service level.
 
-.	On S3 client apps – another ONTAP system or an external 3rd-party app – verify access to the new bucket by entering the following:
+=== Configure additional permissions and restrictions
+##Created this section from some existing information and added WORM info to it##
+
+You can click *More Options* to configure settings for object locking, user permissions, and performance level when you configure the bucket, or you can modify these settings later.
+
+[NOTE]
+You must have already created user and groups before using *More Options* to configure their permissions.
+
+.	If you intend to use the S3 object store for FabricPool tiering, consider selecting *Use for tiering* (use low-cost media with optimal performance for the tiered data) rather than a performance service level.
+. If you want to enable versioning for your objects for later recovery, select *Enable Versioning*. Versioning is enabled by default if you are enabling object locking on the bucket. For information about object versioning, see the https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html[Using versioning in S3 buckets for Amazon].
+. If you want to lock the objects in your bucket from getting deleted or overwritten, select *Enable object locking*. Locking can be enabled on all or specific versions of objects, and only when SnapLock compliance clock is initialized for the cluster.
+.. If the SnapLock compliance clock is not initialized on any node of the cluster, the *Initialize SnapLock Compliance Clock* button appears. Click *Initialize SnapLock Compliance Clock* to initialize SnapLock compliance clock on the cluster.
+.. Select *Governance* to enable a time-based lock on the objects, that is enable a _Write once, read multiple times (WORM)_ permissions. The objects can, however, be deleted by administrator users with specific permissions.
+.. Select *Compliance* if you want to assign stricter rules of deletion and update on the objects. The objects can be expired only on the completion of the specified retention period.
+.. Specify the retention tenure for the lock in days or years if you want the locking to be effective for a certain period. The locked objects never expire if no retention period is specified.
+[NOTE]
+Locking is enabled on versioned and on-versioned buckets. Object locking is not enabled for NAS objects.
++
+. Optionally, you can configure protection and permission settings, and performance service level for the bucket. For information, see https://docs.netapp.com/us-en/ontap/s3-snapmirror/create-remote-mirror-new-bucket-task.html#system-manager-procedure[Create mirror for new bucket].
+
+.	On S3 client apps - another ONTAP system or an external 3rd-party app - verify access to the new bucket by entering the following:
 
 *	The S3 server CA certificate.
-*	The user’s access key and secret key.
+*	The user's access key and secret key.
 *	The S3 server FQDN name and bucket name.
---
-====
 
 // 2022-05-04, BURT 1476111 (CLI)
 
