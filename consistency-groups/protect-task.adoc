@@ -1,7 +1,7 @@
 ---
 permalink: consistency-groups/protect-task.html
 sidebar: sidebar
-keywords: application protection, two-phase commit, 2 phase, smbc, async snapmirror, local, remote, snapshot
+keywords: application protection, two-phase commit, 2 phase, smbc, async snapmirror, local, remote, snapshot, svm dr, asynchronous, svm disaster recovery, snapmirror
 summary: "Protect your consistency group using local snapshot, SnapMirror Business Continuity (SM-BC) or asynchronous SnapMirror protection."
 ---
 = Protect consistency groups
@@ -26,21 +26,18 @@ Beginning with ONTAP 9.11.1, consistency groups offer <<two-phase,two-phase cons
 
 Recovery can occur for an entire consistency group, a single consistency group in a hierarchical configuration, or for individual volumes within the consistency group. Recovery can be achieved by selecting the consistency group you want to recover from, selecting the Snapshot copy type, and then identifying the Snapshot copy to base the restoration on. For more information about this process, see link:../task_dp_restore_from_vault.html[Restore a volume from an earlier Snapshot copy].
 
-== Set or modify a local Snapshot policy
+== Configure a local Snapshot policy
 
 Setting a local snapshot protection policy allows you to create a policy spanning all volumes in a consistency group. 
 
-<<<<<<< HEAD
+.About this task 
+include::../_include/consistency-group-snapshot-minimum.adoc[]
+
 [role="tabbed-block"]
 ====
 
 .System Manager
 --
-=======
-.About this task 
-include::../_include/consistency-group-snapshot-minimum.adoc[]
-
->>>>>>> 203f9709371533d84d9371637053f464b955dd31
 .Steps
 . Select *Storage > Consistency groups*.
 . Select the consistency group you have created from the Consistency group menu.
@@ -219,10 +216,19 @@ The minimum supported schedule (recovery point objective, or RPO) for consistenc
 . Select *Save*.
 . The consistency group needs to initialize and synchronize. Confirm synchronization has completed successfully by returning to the *Consistency group* menu. The *SnapMirror (Remote)* status displays `Protected` next to image:../media/icon_shield.png[alt=green shield icon].
 
-=== Configure asynchronous SnapMirror with SVM data replication 
+== Configure SVM disaster recovery
 
-Beginning in ONTAP 9.14.1, SVM's in a data replication relationship that contain consistency groups mirror the consistency groups to the destination SVM if using Asynchronous SnapMirror. For more information SVM DR, see xref:../task_dp_configure_storage_vm_dr.html[Configure storage VM disaster recovery].
+Beginning in ONTAP 9.14.1, xref:../data-protection/snapmirror-svm-replication-concept.html#[SVM disaster recovery (SVM DR)] supports consistency groups, mirroring consistency group information from the source to the destination cluster. 
 
+If you are enabling SVM DR on an SVM that already contains a consistency group, following the SVM configuration workflows for xref:../task_dp_configure_storage_vm_dr.html[System Manager] or the xref:../data-protection/replicate-entire-svm-config-task.html[ONTAP CLI].
+
+If you are adding a consistency group to an SVM that is in an active and healthy SVM DR relationship, you must update the SVM DR relationship from the destination cluster. For more information, see xref:../data-protection/update-replication-relationship-manual-task.html[Update a replication relationship manually]. You must update the relationship any time you expand the consistency group. 
+
+.Limitations 
+* SVM DR does not support hierarchical consistency groups. 
+* SVM DR does not support consistency groups protected with Asynchronous SnapMirror. You must break the SnapMirror relationship before configuring SVM DR. 
+* Fan-out relationships are not supported for SVM DR configurations that contain consistency groups. 
+* For other limits, see xref:limits.html[consistency group limits].
 
 == Visualize relationships
 
