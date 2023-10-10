@@ -4,21 +4,80 @@ sidebar: sidebar
 keywords: nvme, namespaces, considerations, provisioning
 summary: "NVMe support varies based on your version of ONTAP, your platform and your configuration."
 ---
-= NVMe support and limitations
+= NVMe configuration, support and limitations
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
+Beginning with ONTAP 9.4, the link:https://docs.netapp.com/us-en/ontap/san-admin/manage-nvme-concept.html[non-volatile memory express (NVMe)] protocol is available for SAN environments. FC-NVMe uses the same physical setup and zoning practice as traditional FC networks but allows for greater bandwidth, increased IOPs and reduced latency than FC-SCSI.
 
 NVMe support and limitations vary based on your version of ONTAP, your platform and your configuration. For details on your specific configuration, see the link:https://imt.netapp.com/matrix/[NetApp Interoperability Matrix Tool].
 
 
-Protocol support
+== Configuration
+
+* You can set up your NVMe configuration with single nodes or HA pairs using a single fabric or multifabric.
+* You should configure one management LIF for every SVM supporting SAN.
+* The use of heterogeneous FC switch fabrics is not supported, except in the case of embedded blade switches.
++
+Specific exceptions are listed on the link:https://mysupport.netapp.com/matrix[NetApp Interoperability Matrix Tool^].
+
+* Cascade, partial mesh, full mesh, core-edge, and director fabrics are all industry-standard methods of connecting FC switches to a fabric, and all are supported.
++
+A fabric can consist of one or multiple switches, and the storage controllers can be connected to multiple switches.
+
+== Features
+
+The following NVMe features are supported based on your version of ONTAP.
+
+[cols=2*]
+|===
+
+h| Beginning with ONTAP... h| NVMe supports 
+
+| 9.12.1
+a|  4-node MetroCluster IP configurations on NVMe/FC.  
+* MetroCluster configurations are not supported for NVMe prior to 9.12.1.
+* MetroCluster configurations are not supported on NVMe/TCP. 
+
+| 9.10.1 
+|xref:../nvme/resize-namespace-task.html[Resizing a namespace]
+
+| 9.9.1
+a| * Namespaces and LUNs coexistence on the same volume.
+
+| 9.8
+a| 
+* Protocol co-existence
++
+SCSI, NAS and NVMe protocols can exist on the same storage virtual machine (SVM).
++ 
+Prior to ONTAP 9.8, NVMe can be the only protocol on the SVM.
+* 
+
+
+|9.6
+a| * 512 byte blocks and 4096 byte blocks for namespaces
++
+4096 is the default value. 512 should only be used if the host operating system does not support 4096 byte blocks.
+
+* Volume move with mapped namespaces
+
+
+| 9.5
+| Multipath HA pair failover/giveback.
+
+|===
+
+
+== Protocols
+
+The following NVMe protocols are supported.  
 
 [cols=3*]
 |===
 
-h| Protocol h| Beginning with ONTAP... h| Allowed by...
+h| Protocol h| Beginning with ONTAP... h| Allowed by... 
 
 |TCP
 |9.10.1
@@ -33,16 +92,13 @@ h| Protocol h| Beginning with ONTAP... h| Allowed by...
 Beginning with ONTAP 9.8, you can configure SCSI, NAS and NVMe protocols on the same storage virtual machine (SVM). 
 In ONTAP 9.7 and earlier, NVMe can be the only protocol on the SVM.
 
-== Platform and configuration support and limitations
+== Platforms and nodes per cluster
 
-NVMe/FC and NVMe/TCP protocols are supported as follows.  NVME/FC is supported on the platforms listed below only with 32GB FC HBAs. 
+NVMe/FC and NVMe/TCP protocols are supported as follows.  
 
 [NOTE]
-====
-* Beginning with ONTAP 9.12.1, 4-node MetroCluster IP configurations are supported on NVMe/FC.  
-* MetroCluster configurations are not supported on NVMe/TCP.  
-* MetroCluster configurations are not supported for NVMe prior to 9.12.1.
-====
+NVME/FC is supported on the platforms listed below with 32GB FC HBAs. 
+
 
 [cols=3*]
 |===
@@ -64,67 +120,32 @@ a| * AFF
 | 4
 |===
 
+== Namespaces
 
-== Namespace support and limitations
-
-NVMe namespace support varies based on your version of ONTAP. 
-
-[cols=2*]
-|===
-
-h| Beginning with ONTAP... h| NVMe namespaces support...
-
-| 9.10.1 
-|xref:../nvme/resize-namespace-task.html[Resizing] 
-
-Resizing a namespace is not supported in releases prior to ONTAP 9.10.1.
-
-| 9.8
-| LUNs and namespaces can be mixed on the same volume.
-
-
-|9.6
-a| * 512 byte blocks and 4096 byte blocks
-+
-4096 is the default value. 512 should only be used if the host operating system does not support 4096 byte blocks.
-
-* Volume move with mapped namespaces
-
-|===
-
-
-Also, when working with NVMe namespaces, you should be aware of the following:
+When working with NVMe namespaces, you should be aware of the following:
 
 * If you lose data in a LUN, it cannot be restored from a namespace, or vice versa.
 * The space guarantee for namespaces is the same as the space guarantee of the containing volume.
 * You cannot create a namespace on a volume transition from Data ONTAP operating in 7-mode.
 * Namespaces do not support the following:
 ** Renaming
-+
-You cannot rename a namespace.
-
 ** Inter-volume move
 ** Inter-volume copy
 ** Copy on Demand
 
 
-== Multipath HA pair failover/giveback
-
-Beginning with ONTAP 9.5, NVMe supports multipath HA pair failover/giveback.
-
 == Additional limitations
 
 
+.The following ONTAP features are not supported by NVMe configurations:
 
-* The following ONTAP features are not supported by NVMe configurations:
+* Sync
+* Virtual Storage Console
 
-** Sync
-** Virtual Storage Console
+. The following applies only to nodes running ONTAP 9.4:
 
-* The following applies only to nodes running ONTAP 9.4:
-
-** NVMe LIFs and namespaces must be hosted on the same node.
-** The NVMe service must be created before the NVMe LIF is created.
+* NVMe LIFs and namespaces must be hosted on the same node.
+* The NVMe service must be created before the NVMe LIF is created.
 
 See the https://hwu.netapp.com[NetApp Hardware Universe^] for a complete list of NVMe limits.
 
@@ -132,6 +153,8 @@ See the https://hwu.netapp.com[NetApp Hardware Universe^] for a complete list of
 
 link:https://www.netapp.com/pdf.html?item=/media/10680-tr4080.pdf[Best practices for modern SAN]
 
+
+// 2023 Sept 12, Jira 1109
 // 2023 Jul 7, Git Issue 976
 // 2023 June 23, ONTAPDOC 1109
 // 2023 May 02, IDR-217
