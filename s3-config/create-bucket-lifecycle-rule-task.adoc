@@ -10,20 +10,17 @@ summary: "Beginning with ONTAP 9.13.1, you can implement S3 object expiration."
 :imagesdir: ../media/
 
 [.lead]
-You can create lifecycle management rules to manage object lifecycle in your S3 buckets. You can define deletion rules for specific objects in a bucket, and through these rules, expire those bucket objects. This enables you to meet retention requirements and manage overall S3 object storage efficiently.
-##Modified the lead sentence##
+Beginning with ONTAP 9.13.1, you can create lifecycle management rules to manage object lifecycles in your S3 buckets. You can define deletion rules for specific objects in a bucket, and through these rules, expire those bucket objects. This enables you to meet retention requirements and manage overall S3 object storage efficiently.
+
 
 [NOTE]
-If object locking is enabled for your bucket objects, the lifecycle management rules for object expiry will not be applied on the same objects. For information about object locking, see link:../s3-config/create-bucket-task.html[Create a bucket].
+If object locking is enabled for your bucket objects, the lifecycle management rules for object expiration will not be applied on locked objects. For information about object locking, see link:../s3-config/create-bucket-task.html[Create a bucket].
 
 .Before you begin
-
 An S3-enabled SVM containing an S3 server and a bucket must already exist. See link:create-svm-s3-task.html[Create an SVM for S3] for more information.
 
 .About this task
-##Modified this section##
-
-The procedure you follow depends on the interface that you use — the CLI or System Manager. When creating your lifecycle management rules, you can apply the following deletion actions to your bucket objects:
+When creating your lifecycle management rules, you can apply the following deletion actions to your bucket objects:
 
 * Deletion of current versions - This action expires objects identified by the rule. If versioning is enabled on the bucket, S3 makes all expired objects unavailable. If versioning is not enabled, this rule deletes the objects permanently. The CLI action is `Expiration`.
 * Deletion of non-current versions - This action specifies when S3 can permanently remove non-current objects. The CLI action is `NoncurrentVersionExpiration`.
@@ -31,10 +28,10 @@ The procedure you follow depends on the interface that you use — the CLI or Sy
 In versioning-enabled buckets, objects with a delete markers become the current versions of the objects. The objects are not deleted, and no action can be performed on them. These objects become expired when there are no current versions associated with them. The CLI action is `Expiration`.
 * Deletion of incomplete multipart uploads - This action sets a maximum time (in days) that you want to allow multipart uploads to remain in progress. Following which, they are deleted. The CLI action is `AbortIncompleteMultipartUpload`.
 
-== Manage lifecycle management rules by the CLI
-##Restructured this section##
+The procedure you follow depends on the interface that you use. With ONTAP 9.13,1, you need to use the CLI. Beginning with ONTAP 9.14.1, you can also use System Manager.
 
-Beginning with ONTAP 9.13.1, you can use the CLI to create lifecycle management rules to expire objects in your S3 buckets.
+== Manage lifecycle management rules with the CLI
+Beginning with ONTAP 9.13.1, you can use the ONTAP CLI to create lifecycle management rules to expire objects in your S3 buckets.
 
 .What you'll need
 For the CLI, you need to define the required fields for each expiration action type when creating a bucket lifecycle management rule. These fields can be modified after initial creation. The following table displays the unique fields for each action type.
@@ -100,15 +97,13 @@ The following command creates an AbortIncompleteMultipartUpload bucket lifecycle
 vserver object-store-server bucket lifecycle-management-rule create -vserver <svm_name> -bucket <bucket_name> -rule-id <rule_name> -action AbortIncompleteMultipartUpload -index <lifecycle_rule_index_integer> -is-enabled {true|false} -prefix <object_name> -tags <text> -obj-size-greater-than {<integer>[KB|MB|GB|TB|PB]} -obj-size-less-than {<integer>[KB|MB|GB|TB|PB]} -after-initiation-days <integer>
 ----
 
-== Manage lifecycle management rules by System Manager
-##Added this section##
-
-Beginning with ONTAP 9.14.1, you can implement object expiration by using System Manager. By using System Manager, you can add, edit, and delete lifecycle management rules for your S3 objects. Additionally, you can import a lifecycle rule created for one bucket and utilize it for the objects in another bucket. You can disable an active rule for enabling it later.
+== Manage lifecycle management rules with System Manager
+Beginning with ONTAP 9.14.1, you can implement object expiration by using System Manager. You can add, edit, and delete lifecycle management rules for your S3 objects. Additionally, you can import a lifecycle rule created for one bucket and utilize it for the objects in another bucket. You can disable an active rule for enabling it later.
 
 === Add a lifecycle management rule
 . Click *Storage > Buckets*.
 . Select the bucket for which you want to specify the expiration rule.
-. Click the image:icon_kabob.gif[kebab icon] icon and select *Manage lifecycle rules*. You go to the Lifecycle rules tab.
+. Click the image:icon_kabob.gif[kebab icon] icon and select *Manage lifecycle rules*.
 . Click *Add > Lifecycle rule*.
 . On the Add a lifecycle rule page, add the name of the rule.
 . Define the scope of the rule, whether you want it to apply to all the objects in the bucket or on specific objects. If you want to specify objects, add at least one of the following filter criteria:
@@ -121,32 +116,32 @@ Beginning with ONTAP 9.14.1, you can implement object expiration by using System
 .. *Delete expired object delete markers*: Select this action to delete objects with expired delete markers, that is delete markers without an associated current object.
 +
 [NOTE] 
-This option becomes unavailable when you select the *Expire the current version of objects* option that automatically deletes all objects after the retention period. This action becomes unavailable when object tags are used for filtering.
+This option becomes unavailable when you select the *Expire the current version of objects* option that automatically deletes all objects after the retention period. This option also becomes unavailable when object tags are used for filtering.
 +
-.. *Delete incomplete multipart uploads*: Set the number of days after which incomplete multipart uploads are to be deleted. If the multipart uploads that are in progress fail within the specified retention period, you can delete the incomplete multipart uploads. This action becomes unavailable when object tags are used for filtering.
+.. *Delete incomplete multipart uploads*: Set the number of days after which incomplete multipart uploads are to be deleted. If the multipart uploads that are in progress fail within the specified retention period, you can delete the incomplete multipart uploads. This option becomes unavailable when object tags are used for filtering.
 .. Click *Save*.
 
 === Import a lifecycle rule
 
 . Click *Storage > Buckets*.
 . Select the bucket for which you want to import the expiration rule.
-. Click the image:icon_kabob.gif[kebab icon] icon and select *Manage lifecycle rules*. You go to the Lifecycle rules tab.
-. Click *Add > Import a rule*. You see the Import lifecycle rule screen.
+. Click the image:icon_kabob.gif[kebab icon] icon and select *Manage lifecycle rules*.
+. Click *Add > Import a rule*.
 . Select the bucket from which you want to import the rule. The lifecycle management rules defined for the selected bucket appear.
 . Select the rule that you want to import. You have the option to select one rule at a time, with the default selection being the first rule.
 . Click *Import*.
 
 === Edit, delete, or disable a rule
+You can only edit the lifecycle management actions associated with the rule. If the rule was filtered with object tags, then the *Delete expired object delete markers* and *Delete incomplete multipart uploads* options are unavailable.  
+
+When you delete a rule, that rule will no longer apply to previously associated objects.
+
 . Click *Storage > Buckets*.
 . Select the bucket for which you want to edit, delete, or disable the lifecycle management rule.
-. Click the image:icon_kabob.gif[kebab icon] icon and select *Manage lifecycle rules*. You go to the Lifecycle rules tab.
-. Select the required rule. You can edit and disable one rule at a time, and delete multiple rules together.
+. Click the image:icon_kabob.gif[kebab icon] icon and select *Manage lifecycle rules*.
+. Select the required rule. You can edit and disable one rule at a time. You can delete multiple rules at once.
 . Select *Edit*, *Delete*, or *Disable*, and complete the procedure.
-
-[NOTE] 
-When editing a rule, you can edit only the lifecycle management actions associated with the rule. If the rule was filtered with object tags, then the *Delete expired object delete markers* and *Delete incomplete multipart uploads* options are unavailable. Disabling a rule changes the button label from *Disable* to *Enable*. On deletion, a rule ceases to apply on the designated objects.
-
 
 
 // 2023 Apr 13, Jira IDR-228
-// 27-Sep-2023 ONTAPDOC-1147 
+// 27-Sep-2023 ONTAPDOC-1146 
