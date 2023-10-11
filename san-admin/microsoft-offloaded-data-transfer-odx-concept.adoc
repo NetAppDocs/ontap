@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: microsoft, offloaded, data, transfer, odx
 summary: "Microsoft Offloaded Data Transfer (ODX), also known as copy offload, enables direct data transfers within a storage device or between compatible storage devices without transferring the data through the host computer."
 ---
-= Microsoft Offloaded Data Transfer (ODX) overview
+= Microsoft Offloaded Data Transfer (ODX)
 :icons: font
 :imagesdir: ../media/
 
@@ -19,4 +19,116 @@ Because ODX offloaded copies are performed directly between the source and desti
 
 For SAN environments, ODX is only available when it is supported by both the host and the storage system. Client computers that support ODX and have ODX enabled automatically and transparently use offloaded file transfer when moving or copying files. ODX is used regardless of whether you drag-and-drop files through Windows Explorer or use command-line file copy commands, or whether a client application initiates file copy requests.
 
-// 4 Feb 2022, BURT 1451789 
+== Requirements for using ODX
+
+If you plan to use ODX for copy offloads, you need to be familiar with volume support considerations, system requirements, and software capability requirements.
+
+To use ODX, your system must have the following:
+
+* ONTAP
++
+ODX is automatically enabled in supported versions of ONTAP.
+
+* Minimum source volume of 2 GB
++
+For optimal performance, the source volume should be greater than 260 GB.
+
+* ODX support on the Windows client
++
+ODX is supported in Windows Server 2012 or later and in Windows 8 or later. The Interoperability Matrix contains the latest information about supported Windows clients.
++
+https://mysupport.netapp.com/matrix[NetApp Interoperability Matrix Tool^]
+
+* Copy application support for ODX
++
+The application that performs the data transfer must support ODX. Application operations that support ODX include the following:
+
+ ** Hyper-V management operations, such as creating and converting virtual hard disks (VHDs), managing Snapshot copies, and copying files between virtual machines
+ ** Windows Explorer operations
+ ** Windows PowerShell copy commands
+ ** Windows command prompt copy commands
+The Microsoft TechNet Library contains more information about supported ODX applications on Windows servers and clients.
+
+* If you use compressed volumes, the compression group size must be 8K.
++
+32K compression group size is not supported.
+
+ODX does not work with the following volume types:
+
+* Source volumes with capacities of less than 2 GB
+* Read-only volumes
+* link:../flexcache/supported-unsupported-features-concept.html[FlexCache volumes]
++
+[NOTE]
+ ODX is supported on FlexCache origin volumes.
+ 
+* link:../san-admin/san-volumes-concept.html#semi-thick-provisioning-for-volumes[Semi-thick provisioned volumes]
+
+== Special system file requirements
+
+You can delete ODX files found in qtrees. You must not remove or modify any other ODX system files unless you are told by technical support to do so.
+
+When using the ODX feature, there are ODX system files that exist in every volume of the system. These files enable point-in-time representation of data used during the ODX transfer. The following system files are in the root level of each volume that contains LUNs or files to which data was offloaded:
+
+* `.copy-offload` (a hidden directory)
+* `.tokens` (file under the hidden `.copy-offload` directory)
+
+You can use the `copy-offload delete-tokens -path dir_path -node _node_name_` command to delete a qtree containing an ODX file.
+
+== Use cases for ODX
+
+You should be aware of the use cases for using ODX on SVMs so that you can determine under what circumstances ODX provides you with performance benefits.
+
+Windows servers and clients that support ODX use copy offload as the default way of copying data across remote servers. If the Windows server or client does not support ODX or the ODX copy offload fails at any point, the copy or move operation falls back to traditional reads and writes for the copy or move operation.
+
+The following use cases support using ODX copies and moves:
+
+* Intra-volume
++
+The source and destination files or LUNs are within the same volume.
+
+* Inter-volume, same node, same SVM
++
+The source and destination files or LUNs are on different volumes that are located on the same node. The data is owned by the same SVM.
+
+* Inter-volume, different nodes, same SVM
++
+The source and destination files or LUNs are on different volumes that are located on different nodes. The data is owned by the same SVM.
+
+* Inter-SVM, same node
++
+The source and destination file or LUNs are on different volumes that are located on the same node. The data is owned by different SVMs.
+
+* Inter-SVM, different nodes
++
+The source and destination file or LUNs are on different volumes that are located on different nodes. The data is owned by different SVMs.
+
+* Inter-cluster
++
+The source and destination LUNs are on different volumes that are located on different nodes across clusters. This is only supported for SAN and does not work for SMB.
+
+There are some additional special use cases:
+
+* With the ONTAP ODX implementation, you can use ODX to copy files between SMB shares and FC or iSCSI attached virtual drives.
++
+You can use Windows Explorer, the Windows CLI or PowerShell, Hyper-V, or other applications that support ODX to copy or move files seamlessly using ODX copy offload between SMB shares and connected LUNs, provided that the SMB shares and LUNs are on the same cluster.
+
+* Hyper-V provides some additional use cases for ODX copy offload:
+ ** You can use ODX copy offload pass-through with Hyper-V to copy data within or across virtual hard disk (VHD) files or to copy data between mapped SMB shares and connected iSCSI LUNs within the same cluster.
++
+This allows copies from guest operating systems to pass through to the underlying storage.
+
+ ** When creating fixed-sized VHDs, ODX is used for initializing the disk with zeros, using a well-known zeroed token.
+ ** ODX copy offload is used for virtual machine storage migration if the source and destination storage is on the same cluster.
+
++
+[NOTE]
+====
+To take advantage of the use cases for ODX copy offload pass-through with Hyper-V, the guest operating system must support ODX and the guest operating system's disks must be SCSI disks backed by storage (either SMB or SAN) that supports ODX. IDE disks on the guest operating system do not support ODX pass-through.
+====
+
+// 2023 Sept 7, ONTAPDOC-1253
+// 2023-Aug-22, issue# 1055
+// 2022 Feb 4, BURT 1451789 
+// 2022 Mar 10, BURT 1439146
+// 2023 Jul 26, ONTAPDOC-1097

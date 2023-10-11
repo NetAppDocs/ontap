@@ -1,0 +1,80 @@
+---
+sidebar: sidebar
+permalink: smbc/supported-configurations-reference.html
+keywords: SM-BC, SMBC, restrictions, consistency group, endpoint limits, solaris, aix, hp-ux, fanout
+summary: SM-BC is compatible with numerous operating systems and other features in ONTAP 
+---
+= Supported configurations and features
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+SnapMirror Business Continuity is compatible with numerous operating systems and other features in ONTAP. Learn about details and recommended configurations. 
+
+== Supported configurations
+
+SM-BC is supported with numerous operating systems, including: 
+
+* AIX (beginning ONTAP 9.11.1)
+* HP-UX (beginning ONTAP 9.10.1)
+* Solaris 11.4 (beginning ONTAP 9.10.1)
+
+== AIX
+
+Beginning with ONTAP 9.11.1, AIX is supported with SM-BC. With an AIX configuration, the primary cluster is the "active" cluster.
+
+In an AIX configuration, failovers are disruptive. With each failover, you will need to perform a re-scan on the host for I/O operations to resume. 
+
+To configure for AIX host with SM-BC, refer to the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_configure_an_AIX_host_for_SnapMirror_Business_Continuity_(SM-BC)[How to configure an AIX host for SnapMirror Business Continuity (SM-BC)].
+
+== HP-UX
+
+Beginning in ONTAP 9.10.1, SM-BC for HP-UX is supported.
+
+=== Limitations with HP-UX
+
+An automatic unplanned failover (AUFO) event on the isolated master cluster may be caused by dual event failure when the connection between the primary and the secondary cluster is lost and the connection between the primary cluster and the mediator is also lost. This is considered a rare event, unlike other AUFO events.
+
+* In this scenario, it might take more than 120 seconds for I/O to resume on the HP-UX host. Depending on the applications that are running, this might not lead to any I/O disruption or error messages.
+* To remediate, you must restart applications on the HP-UX host that have a disruption tolerance of less than 120 seconds.
+
+== Solaris Host setting recommendation
+
+Beginning with ONTAP 9.10.1, SM-BC supports Solaris 11.4.
+
+To ensure the Solaris client applications are non-disruptive when an unplanned site failover switchover occurs in an SM-BC environment, modify the default Solaris OS settings. To configure Solaris with the recommended settings, see the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/Solaris_Host_support_recommended_settings_in_SnapMirror_Business_Continuity_(SM-BC)_configuration[Solaris Host support recommended settings in SnapMirror Business Continuity (SM-BC) configuration^].
+
+== ONTAP integrations 
+
+SM-BC offers support for other features in ONTAP, including:
+
+* Fan-out configurations
+* NDMP copy (beginning ONTAP 9.13.1)
+* Partial file restore (beginning ONTAP 9.12.1)
+
+=== FabricPool 
+
+SM-BC supports source and destination volumes on FabricPool aggregates with the tiering policy of None, Snapshot or Auto. SM-S SM-BC does not support FabricPool aggregates using a tiering policy of All.
+
+=== Fan-out configurations
+
+In a xref:../data-protection/supported-deployment-config-concept.html[fan-out configurations], your source volume can be mirrored to an SM-BC destination endpoint and to one or more asynchronous SnapMirror relationships.
+
+image:fanout-diagram.png[Diagram of a fan-out configuration]
+
+SM-BC supports xref:../data-protection/supported-deployment-config-concept.html[fan-out configurations] with the `MirrorAllSnapshots` policy and, beginning in ONTAP 9.11.1, the `MirrorAndVault` policy. Fan-out configurations are not supported in SM-BC with the `XDPDefault` policy. 
+
+If you experience a failover on the SM-BC destination in a fan-out configuration, you will have to manually xref:smbc_admin_what_happens_during_an_automatic_unplanned_failover.html#resume-protection-in-a-fan-out-configuration-after-failover[resume protection in the fan-out configuration].
+
+=== NDMP restore
+
+Beginning in ONTAP 9.13.1, you can use NDMP to copy and restore data with SM-BC. Using NDMP allows you to move data onto the SM-BC source to complete a restore without pausing protection. This is particularly useful in fan-out configurations. 
+
+To learn more about this process, see xref:../tape-backup/transfer-data-ndmpcopy-task.html[Transfer data using ndmp copy].
+
+=== Partial file restore
+
+Beginning in ONTAP 9.12.1, partial LUN restore is supported for SM-BC volumes. For information on this process, refer to link:../data-protection/restore-part-file-snapshot-task.html[Restore part of a file from a Snapshot copy].
+
+// 5 september 2023, issue #1077
+//ontapdoc-804
