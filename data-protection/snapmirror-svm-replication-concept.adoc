@@ -1,7 +1,7 @@
 ---
 permalink: data-protection/snapmirror-svm-replication-concept.html
 sidebar: sidebar
-keywords: understand, snapmirror, svm, replication, SVM DR storage limits 
+keywords: understand, snapmirror, svm, replication, SVM disaster recovery storage limits 
 summary: "You can use SnapMirror to create a data protection relationship between SVM. In this type of data protection relationship, all or part of the SVM’s configuration, from NFS exports and SMB shares to RBAC, is replicated, as well as the data in the volumes that the SVM owns."
 ---
 = About SnapMirror SVM replication
@@ -22,7 +22,7 @@ Beginning with ONTAP 9.9.1, this behavior changes when you are using the mirror-
  ** They are not overwritten from the source to the destination during normal scheduled operations, updates and resync
  ** They are not deleted during break operations.
  ** They are not deleted during flip-resync operations.
-When you configure an SVM DR relationship using the mirror-vault policy using ONTAP 9.9.1 and later, the policy behaves as follows:
+When you configure an SVM disaster relationship using the mirror-vault policy using ONTAP 9.9.1 and later, the policy behaves as follows:
  ** User-defined Snapshot copy policies at the source are not copied to the destination.
  ** System-defined Snapshot copy policies are not copied to the destination.
  ** Volume association with user and system defined Snapshot policies are not copied to the destination.
@@ -84,7 +84,7 @@ Details about the changes in the default can be found here: link:version-flexibl
 
 [NOTE]
 ====
-Version-independence is not supported for SVM replication. In an SVM DR configuration, the destination SVM must be on a cluster running the same ONTAP version as the source SVM cluster to support failover and fail back operations.
+Version-independence is not supported for SVM replication. In an SVM disaster recovery configuration, the destination SVM must be on a cluster running the same ONTAP version as the source SVM cluster to support failover and fail back operations.
 ====
 
 link:compatible-ontap-versions-snapmirror-concept.html[Compatible ONTAP versions for SnapMirror relationships]
@@ -95,7 +95,7 @@ The content of an SVM replication relationship is determined by the interaction 
 
 * The `-identity-preserve true` option of the `snapmirror create` command replicates the entire SVM configuration.
 +
-The `-identity-preserve false` option replicates only the volumes and authentication and authorization configurations of the SVM, and the protocol and name service settings listed in link:snapmirror-svm-replication-concept.html#configurations-replicated-in-svm-dr-relationships[Configurations replicated in SVM DR relationships].
+The `-identity-preserve false` option replicates only the volumes and authentication and authorization configurations of the SVM, and the protocol and name service settings listed in link:snapmirror-svm-replication-concept.html#configurations-replicated-in-svm-dr-relationships[Configurations replicated in SVM disaster recovery relationships].
 
 * The `-discard-configs network` option of the `snapmirror policy create` command excludes LIFs and related network settings from SVM replication, for use in cases where the source and destination SVMs are in different subnets.
 * The `-vserver-dr-protection unprotected` option of the `volume modify` command excludes the specified volume from SVM replication.
@@ -124,7 +124,7 @@ a|
 Relationship types
 a|
 
-* SnapMirror DR
+* SnapMirror disaster recovery
 * Beginning with ONTAP 9.2, SnapMirror unified replication
 
 a|
@@ -139,9 +139,9 @@ a|
 * Supported beginning with ONTAP 9.12.1. For more information, see link:https://docs.netapp.com/us-en/ontap/anti-ransomware/index.html[Autonomous Ransomware Protection]
 
 a|
-Consistency Groups asynchronous support
+Consistency groups asynchronous support
 a|
-Beginning with ONTAP 9.14.1. See link:https://docs.netapp.com/us-en/ontap/consistency-groups/protect-task.html[Protect a consistency group] for more information.
+Beginning with ONTAP 9.14.1, a maximum of 32 SVM disaster recovery relationships are supported when consistency groups exist. See link:https://docs.netapp.com/us-en/ontap/consistency-groups/protect-task.html[Protect a consistency group] and link:https://docs.netapp.com/us-en/ontap/consistency-groups/limits.html[Consistency group limits] for more information.
 
 a|
 FabricPool
@@ -150,30 +150,30 @@ Beginning with ONTAP 9.6, SnapMirror SVM replication is supported with FabricPoo
 a|
 MetroCluster
 a|
-Beginning with ONTAP 9.11.1, both sides of a SVM DR relationship within a MetroCluster configuration can act as a source for additional SVM DR configurations.
+Beginning with ONTAP 9.11.1, both sides of a SVM disaster recovery relationship within a MetroCluster configuration can act as a source for additional SVM disaster recovery configurations.
 
 Beginning with ONTAP 9.5, SnapMirror SVM replication is supported on MetroCluster configurations.
 
-* A MetroCluster configuration cannot be the destination of an SVM DR relationship.
-* Only an active SVM within a MetroCluster configuration can be the source of an SVM DR relationship.
+* A MetroCluster configuration cannot be the destination of an SVM disaster recovery relationship.
+* Only an active SVM within a MetroCluster configuration can be the source of an SVM disaster recovery relationship.
 +
 A source can be a sync-source SVM before switchover or a sync-destination SVM after switchover.
 
-* When a MetroCluster configuration is in a steady state, the MetroCluster sync-destination SVM cannot be the source of an SVM DR relationship, since the volumes are not online.
-* When the sync-source SVM is the source of an SVM DR relationship, the source SVM DR relationship information is replicated to the MetroCluster partner.
-* During the switchover and switchback processes, replication to the SVM DR destination might fail.
+* When a MetroCluster configuration is in a steady state, the MetroCluster sync-destination SVM cannot be the source of an SVM disaster recovery relationship, since the volumes are not online.
+* When the sync-source SVM is the source of an SVM disaster recovery relationship, the source SVM disaster recovery relationship information is replicated to the MetroCluster partner.
+* During the switchover and switchback processes, replication to the SVM disaster recovery destination might fail.
 +
-However, after the switchover or switchback process completes, the next SVM DR scheduled updates will succeed.
+However, after the switchover or switchback process completes, the next SVM disaster recovery scheduled updates will succeed.
 
 a|
 ONTAP S3
 a|
-Not supported with SVM DR.
+Not supported with SVM disaster recovery.
 
 a|
 SnapMirror Synchronous
 a|
-Not supported with SVM DR.
+Not supported with SVM disaster recovery.
 
 a|
 Version-independence
@@ -191,7 +191,7 @@ a|
 
 |===
 
-== Configurations replicated in SVM DR relationships
+== Configurations replicated in SVM disaster recovery relationships
 
 The following table shows the interaction of the `snapmirror create -identity-preserve` option and the `snapmirror policy create -discard-configs network` option:
 [cols="5*"]
@@ -638,9 +638,9 @@ a|
 No
 |===
 
-== SVM DR storage limits
+== SVM disaster recovery storage limits
 
-The following table shows the recommended maximum number of volumes and SVM DR relationships supported per storage object. You should be aware that limits are often platform dependent. Refer to the link:https://hwu.netapp.com/[Hardware Universe^] to learn the limits for your specific configuration.
+The following table shows the recommended maximum number of volumes and SVM disaster recovery relationships supported per storage object. You should be aware that limits are often platform dependent. Refer to the link:https://hwu.netapp.com/[Hardware Universe^] to learn the limits for your specific configuration.
 
 [cols="2*"]
 |===
@@ -660,7 +660,7 @@ a|
 a|
 Cluster
 a|
-128 SVM DR relationships
+128 SVM disaster relationships
 |===
 
 // 2023-Oct-10, ONTAPDOC-1403
