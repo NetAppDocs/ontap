@@ -11,7 +11,7 @@ summary: "Before you create and configure FPolicy configurations on your storage
 [.lead]
 Before you create and configure FPolicy configurations on your SVMs, you need to be aware of certain requirements, considerations, and best practices for configuring FPolicy.
 
-FPolicy features are configured either through the command line interface (CLI) or through APIs.
+FPolicy features are configured either through the command line interface (CLI) or through REST APIs.
 
 == Requirements for setting up FPolicy
 
@@ -34,6 +34,8 @@ Privileged data access is accomplished using SMB connections.
  ** All data LIFs used to communicate with the FPolicy servers must be configured to have `cifs` as one of the allowed protocols.
 +
 This includes the LIFs used for passthrough-read connections.
++
+* Beginning with ONTAP 9.14.1, FPolicy allows you to setup a persistent store to capture file access events for asynchronous non-mandatory policies in the SVM. Persistent stores can help decouple client I/O processing from the FPolicy notification processing to reduce client latency. Synchronous and asynchronous mandatory configurations are not supported.
 
 == Best practices and recommendations when setting up FPolicy
 When setting up FPolicy on storage virtual machines (SVMs), get familiar with the general configuration best practices and recommendations to ensure that your FPolicy configuration provides robust monitoring performance and results that meet your requirements.
@@ -116,10 +118,16 @@ The `fpolicy` and `fpolicy_server` counters give you information on several perf
 |===
 |Counters |Description 
 2+a|*“fpolicy” counters*
+|aborted_requests
+|Number of screen requests for which processing is aborted on the SVM
+|event_count
+|List of events resulting in notification
 |max_request_latency 	
 |Maximum screen requests latency 
 |outstanding_requests
 |Total number of screen requests in process 
+|processed_requests
+|Total number of screen requests that went through fpolicy processing on the SVM 
 |request_latency_hist
 |Histogram of latency for screen requests 
 |requests_dispatched_rate
@@ -165,6 +173,9 @@ Before reverting to a version of ONTAP that does not support FPolicy passthrough
 * Disable all the policies using passthrough-read, and then modify the affected configurations so that they do not use passthrough-read.
 * Disable FPolicy functionality on the cluster by disabling every FPolicy policy on the cluster.
 
+Before reverting to a version of ONTAP that does not support persistent stores, ensure that none of the Fpolicy policies have a configured persistent store. If a persistent store is configured, the revert will fail.
+
+// 17 OCT 2023, ONTAPDOC-1344
 // 2023 May 23, ontap-issues-860
 // 2022 Dec 05, Jira ONTAPDOC-722
 // 2022 Oct 10, BURT 1495284 
