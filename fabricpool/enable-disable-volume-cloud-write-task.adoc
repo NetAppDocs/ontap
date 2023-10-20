@@ -2,7 +2,7 @@
 permalink: fabricpool/enable-disable-volume-cloud-write-task.html
 sidebar: sidebar
 keywords: creating, volume, fabricpool, cloud write, enable, disable
-summary: "Beginning with ONTAP 9.14.1, you can enable and disable cloud write mode to write data directly to the cloud. You can enable the cloud write option on all volumes in a FabricPool aggregate."
+summary: "Beginning with ONTAP 9.14.1, you can enable and disable cloud write mode on a new or existing volume in a FabricPool to allow NFS clients to write data directly to the cloud."
 ---
 = Enable and disable volumes to write directly to the cloud
 :icons: font
@@ -10,7 +10,10 @@ summary: "Beginning with ONTAP 9.14.1, you can enable and disable cloud write mo
 
 [.lead]
 
-Beginning with ONTAP 9.14.1, you can enable and disable cloud write mode on a new or existing volume to write data directly to the cloud. You can enable the cloud write option on all volumes in a FabricPool aggregate. Cloud write mode is disabled by default.
+Beginning with ONTAP 9.14.1, you can enable and disable cloud write mode on a new or existing volume in a FabricPool to allow NFS clients to write data directly to the cloud without waiting for tiering scans. SMB clients still write to the performance tier in a cloud write enabled volume. Cloud write mode is disabled by default.
+
+Cloud write mode is helpful for cases like migrations, for example, where large amounts of data are transferred to a cluster than the cluster can support on the local tier. Without cloud write mode, during a migration, smaller amounts of data are transferred, then tiered, then transferred and tiered again, until the migration is complete. Using cloud write mode, this type of management is no longer required because the data is never transferred to the local tier.
+
 
 .Before you begin
 
@@ -34,10 +37,10 @@ set -privilege advanced
 +
 [source,cli]
 ----
-volume create -volume <volume name> -is-cloud-write-enabled <true|false> -aggregate <aggregate name>
+volume create -volume <volume name> -is-cloud-write-enabled <true|false> -aggregate <local tier name>
 ----
 +
-The following example creates a volume named vol1 with cloud write enabled:
+The following example creates a volume named vol1 with cloud write enabled on the FabricPool local tier (aggr1):
 +
 ----
 volume create -volume vol1 -is-cloud-write-enabled true -aggregate aggr1
@@ -57,10 +60,10 @@ set -privilege advanced
 +
 [source,cli]
 ----
-volume modify -volume <volume name> -is-cloud-write-enabled <true|false> -aggregate <aggregate name>
+volume modify -volume <volume name> -is-cloud-write-enabled <true|false> -aggregate <local tier name>
 ----
 +
-The following example modifies a volume named vol1 with cloud write enabled:
+The following example modifies a volume named vol1 with cloud write enabled on the FabricPool local tier (aggr1):
 +
 ----
 volume modify -volume vol1 -is-cloud-write-enabled true -aggregate aggr1
