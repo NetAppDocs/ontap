@@ -23,7 +23,19 @@ Beginning with ONTAP 9.14.1, FPolicy allows you to set up a persistent store to 
 
 .Steps
 
-. Create an empty volume on the SVM that can be provisioned for the persistent store.
+. Create an empty volume on the SVM that can be provisioned for the persistent store:
++
+`volume create -vserver <SVM Name> -volume <volume> -state <online> -junction-path <path> -policy <default> -unix-permissions <777> -size <value> -aggregate <aggregate name> -snapshot-policy <none>`
++
+* Size of the persistent store volume is based on the time duration for which you want to persist the events that are not delivered to the external server (partner application).
++
+For example, if you want 30 minutes of events to persist in a cluster with a 30K notifications per second capacity:
++
+Required Volume Size = 30000 x 30 x 60 x 0.6KB (avg notification record size) = 32400000 KB = ~32 GB
++
+To find the approximate notification rate, you can either reach out to your FPolicy partner application or utilize the FPolicy counter `requests_dispatched_rate`.
++
+* It is expected that an administrator user with sufficient RBAC privileges (to create a volume) will create a volume (using the volume cli command or REST API) of the desired size and provide the name of that volume as the `-volume` in the persistent store create CLI command or REST API.
 . Create the persistent store:
 +
 `fpolicy persistent store create -vserver <SVM> -persistent-store <PS_name> -volume <volume>`
