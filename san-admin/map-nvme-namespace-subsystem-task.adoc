@@ -9,9 +9,16 @@ summary: "You must map a namespace to a subsystem when using NVMe."
 :imagesdir: ../media/
 
 [.lead]
-This procedure maps an existing NVMe namespace to an existing NVMe subsystem using the ONTAP CLI.  
+Mapping an NVMe namespace to a subsystem allows data access from your host.  You can map an NVMe namespace to a subsystem when you provision storage or you can do it after your storage has been provisioned.
 
-Your namespace and subsystem should already be created.  If you need to create a namespace and subsystem, see link:create-nvme-namespace-subsystem-task.html[Provision NVMe storage].
+Beginning with ONTAP 9.14.1, you can enable your NVM subsystem to prioritize resource allocation for specific hosts. By default, when a host is added to the subsystem, it is  given regular priority. You can use the ONTAP command line interface (CLI) to manually change the default priority from regular to high.  Hosts assigned a high priority are allocated larger I/O queue counts and queue-depths. 
+
+[NOTE]
+If you want to give a high priority to a host that was added to a subsystem in ONTAP 9.13.1 or earlier, you can xref:../nvme/change-host-priority-nvme-task.html[change the host priority].
+
+.Before you begin
+
+Your namespace and subsystem should already be created. If you need to create a namespace and subsystem, see link:create-nvme-namespace-subsystem-task.html[Provision NVMe storage].
 
 .Steps
 
@@ -19,16 +26,29 @@ Your namespace and subsystem should already be created.  If you need to create a
 
 . Add the host NQN to the subsystem:
 +
-`vserver nvme subsystem host add -vserver _SVM_name_ -subsystem _subsystem_name_ -host-nqn _Host_NQN_:subsystem._subsystem_name_`
+[source,cli]
+----
+vserver nvme subsystem host add -vserver <SVM_name> -subsystem <subsystem_name> -host-nqn <Host_NQN_:subsystem._subsystem_name>
+----
++
+If you want to change the default priority of the host from regular to high, use the `-priority high` option. 
 
 . Map the namespace to the subsystem:
 +
-`vserver nvme subsystem map add -vserver _SVM_name_ -subsystem _subsystem_name_ -path _path_`
+[source,cli]
+----
+vserver nvme subsystem map add -vserver <SVM_name> -subsystem <subsystem_name> -path <path>
+----
 +
 A namespace can only be mapped to a single subsystem.
 
 . Verify that the namespace is mapped to the subsystem:
 +
-`vserver nvme namespace show -vserver _SVM_name_ -instance`
+[source,cli]
+----
+vserver nvme namespace show -vserver <SVM_name> -instance
+----
 +
 The subsystem should be listed as the `Attached subsystem`.
+
+// 2023 Nov 02, Jira 1185

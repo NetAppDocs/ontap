@@ -13,7 +13,7 @@ You can add access rules to the default bucket policy. The scope of its access c
 
 .Before you begin
 
-An S3-enabled SVM containing an S3 server and a bucket must already exist.
+An S3-enabled storage VM containing an S3 server and a bucket must already exist.
 
 You must have already created users or groups before granting permissions.
 
@@ -42,6 +42,10 @@ When adding or modifying permissions, you can specify the following parameters:
 +
 The defaults *_bucketname_* and *_bucketname/*_* grant access to all objects in the bucket. You can also grant access to single objects; for example, *_bucketname/_*_readme.txt*.
 *	*Conditions* (optional): expressions that are evaluated when access is attempted. For example, you can specify a list of IP addresses for which access will be allowed or denied.
+
+[NOTE]
+Beginning with ONTAP 9.14.1, you can specify variables for the bucket policy in the *Resources* field. These variables are placeholders that are replaced with contextual values when the policy is evaluated. For example,  If `${aws:username}` is specified as a variable for a policy, then this variable is replaced with the request context username, and the policy action can be performed as configured for that user.
+
 --
 
 .CLI
@@ -71,30 +75,38 @@ A list of one or more S3 users or groups.
  ** A maximum of 10 users or groups can be specified.
  ** If an S3 group is specified, it must be in the form `group/group_name.`
  ** `*` can be specified to mean public access; that is, access without an access-key and secret-key.
- ** If no principal is specified, all S3 users in the SVM are granted access.
+ ** If no principal is specified, all S3 users in the storage VM are granted access.
 
 a|
 `-resource`
 a|
-The bucket and any object it contains. The wildcard characters `*` and `?` can be used to form a regular expression for specifying a resource.
+The bucket and any object it contains. The wildcard characters `*` and `?` can be used to form a regular expression for specifying a resource. For a resource, you can specify variables in a policy. These are policy variables are placeholders that are replaced with the contextual values when the policy is evaluated.
 |===
 You can optionally specify a text string as comment with the `-sid` option.
 
 .Examples
 
-The following example creates an object store server bucket policy statement for the SVM svm1.example.com and bucket1 which specifies allowed access to a readme folder for object store server user user1.
+The following example creates an object store server bucket policy statement for the storage VM svm1.example.com and bucket1 which specifies allowed access to a readme folder for object store server user user1.
 
 ----
 cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal user1 -resource bucket1/readme/* -sid "fullAccessToReadmeForUser1"
 ----
 
-The following example creates an object store server bucket policy statement for the SVM svm1.example.com and bucket1 which specifies allowed access to all objects for object store server group group1.
+The following example creates an object store server bucket policy statement for the storage VM svm1.example.com and bucket1 which specifies allowed access to all objects for object store server group group1.
 
 ----
 cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal group/group1 -resource bucket1/* -sid "fullAccessForGroup1"
 ----
+
+Beginning with ONTAP 9.14.1, you can specify variables for the bucket policy. The following example creates an object store server bucket policy statement for the storage VM `svm1` and `bucket1`, and specifies `${aws:username}` as a variable for a policy resource. When the policy is evaluated, the policy variable is replaced with the request context username, and the policy action can be performed as configured for that user. For example, when the following policy statement is evaluated, `${aws:username}` is replaced with the user performing the S3 operation, say a user `user1`. Therefore, `user1` is granted access to bucket1 as `bucket1/user1/*`.
+
+----
+cluster1::> object-store-server bucket policy statement create -vserver svm1 -bucket bucket1 -effect allow -action * -principal - -resource bucket1,bucket1/${aws:username}/*##
+----
+
 --
 ====
 
 // 2021-04-14, Jira IE-289
 // 2020-10-09, BURT 1290604
+// 5-Oct-2023 ONTAPDOC-1158
