@@ -9,7 +9,7 @@ summary: "To take advantage of increased account security through two-factor aut
 :imagesdir: ../media/
 
 [.lead]
-Beginning in ONTAP 9.14.1, you can configure ONTAP to use Cisco Duo for two-factor authentication (2FA) during SSH logins. You configure Duo at the cluster level, and it applies to all user accounts by default. Alternatively, you can configure Duo at the Vserver level, in which case only users of that Vserver are involved in Duo authentication. If you enable and configure Duo, it serves as an additional authentication method, supplementing the existing methods for all users.
+Beginning with ONTAP 9.14.1, you can configure ONTAP to use Cisco Duo for two-factor authentication (2FA) during SSH logins. You configure Duo at the level of the storage VM (previously referred to as vserver), and it applies to all user accounts by default. If you enable and configure Duo, it serves as an additional authentication method, supplementing the existing methods for all users.
 
 If you enable Duo authentication for SSH logins, users will need to enroll a device the next time they log in using SSH. For enrollment information, refer to the Cisco Duo https://guide.duo.com/add-device[enrollment documentation^].
 
@@ -24,7 +24,7 @@ You can use the ONTAP command line interface to perform the following tasks with
 * <<Bypass Duo authentication for users>>
 
 == Configure Cisco Duo
-You can create a Cisco Duo configuration for either the entire cluster or for a specific Vserver using the `security login duo create` command. When you do this, Cisco Duo is enabled for SSH logins for this cluster or Vserver.
+You can create a Cisco Duo configuration for either the entire cluster or for a specific storage VM (referred to as a vserver in the ONTAP CLI) using the `security login duo create` command. When you do this, Cisco Duo is enabled for SSH logins for this cluster or storage VM.
 
 .Before you begin
 
@@ -34,12 +34,12 @@ You can create a Cisco Duo configuration for either the entire cluster or for a 
 . Go to *Applications > UNIX Application*.
 . Record your integration key, secret key, and API hostname.
 . Log in to your ONTAP account using SSH.
-. Enable Cisco Duo authentication for this Vserver, substituting information from your environment for the values in brackets:
+. Enable Cisco Duo authentication for this storage VM, substituting information from your environment for the values in brackets:
 +
 [source,cli]
 ----
 security login duo create \
--vserver <VSERVER_NAME> \
+-vserver <STORAGE_VM_NAME> \
 -integration-key <INTEGRATION_KEY> \
 -secret-key <SECRET_KEY> \
 -apihost <API_HOSTNAME>
@@ -48,7 +48,7 @@ security login duo create \
 For more information on the required and optional parameters for this command, refer to link:config-worksheets-reference.html[Worksheets for administrator authentication and RBAC configuration^].
 
 == Change Cisco Duo configuration
-You can change the way Cisco Duo authenticates users (for example, how many authentication prompts are given, or what HTTP proxy is used). If you need to change the Cisco Duo configuration for a Vserver, you can use the `security login duo modify` command.
+You can change the way Cisco Duo authenticates users (for example, how many authentication prompts are given, or what HTTP proxy is used). If you need to change the Cisco Duo configuration for a storage VM (referred to as a vserver in the ONTAP CLI), you can use the `security login duo modify` command.
 
 .Steps
 
@@ -56,12 +56,12 @@ You can change the way Cisco Duo authenticates users (for example, how many auth
 . Go to *Applications > UNIX Application*.
 . Record your integration key, secret key, and API hostname.
 . Log in to your ONTAP account using SSH.
-. Change the Cisco Duo configuration for this Vserver, substituting updated information from your environment for the values in brackets:
+. Change the Cisco Duo configuration for this storage VM, substituting updated information from your environment for the values in brackets:
 +
 [source,cli]
 ----
 security login duo modify \
--vserver <VSERVER_NAME> \
+-vserver <STORAGE_VM_NAME> \
 -integration-key <INTEGRATION_KEY> \
 -secret-key <SECRET_KEY> \
 -apihost <API_HOSTNAME> \
@@ -75,31 +75,31 @@ security login duo modify \
 ----
 
 == Remove Cisco Duo configuration
-You can remove the Cisco Duo configuration, which will remove the need for SSH users to authenticate using Duo upon login. To remove the Cisco Duo configuration for a Vserver, you can use the `security login duo delete` command.
+You can remove the Cisco Duo configuration, which will remove the need for SSH users to authenticate using Duo upon login. To remove the Cisco Duo configuration for a storage VM (referred to as a vserver in the ONTAP CLI), you can use the `security login duo delete` command.
 
 .Steps
 
 . Log in to your ONTAP account using SSH.
-. Remove the Cisco Duo configuration for this Vserver, substituting your Vserver name for `<VSERVER_NAME>`:
+. Remove the Cisco Duo configuration for this storage VM, substituting your storage VM name for `<STORAGE_VM_NAME>`:
 +
 [source,cli]
 ----
-security login duo delete  -vserver <VSERVER_NAME>
+security login duo delete  -vserver <STORAGE_VM_NAME>
 ----
 +
-This permanently deletes the Cisco Duo configuration for this Vserver.
+This permanently deletes the Cisco Duo configuration for this storage VM.
 
 == View Cisco Duo configuration
-You can view the existing Cisco Duo configuration for a Vserver by using the `security login duo show` command.
+You can view the existing Cisco Duo configuration for a storage VM (referred to as a vserver in the ONTAP CLI) by using the `security login duo show` command.
 
 .Steps
 
 . Log in to your ONTAP account using SSH.
-. Show the Cisco Duo configuration for this Vserver. Optionally, you can use the `vserver` parameter to specify a Vserver, substituting the Vserver name for `<VSERVER_NAME>`:
+. Show the Cisco Duo configuration for this storage VM. Optionally, you can use the `vserver` parameter to specify a storage VM, substituting the storage VM name for `<STORAGE_VM_NAME>`:
 +
 [source,cli]
 ----
-security login duo show -vserver <VSERVER_NAME>
+security login duo show -vserver <STORAGE_VM_NAME>
 ----
 +
 You should see output similar to the following:
@@ -132,7 +132,7 @@ You can instruct Cisco Duo to include only the users in a certain Active Directo
 +
 [source,cli]
 ----
-security login duo group create -vserver <VSERVER_NAME> -group-name <GROUP_NAME> -exclude-users <USER1, USER2>
+security login duo group create -vserver <STORAGE_VM_NAME> -group-name <GROUP_NAME> -exclude-users <USER1, USER2>
 ----
 +
 The name of the Duo group must match an Active Directory, LDAP, or local group. Users you specify with the optional `-exclude-users` parameter will not be included in the Duo authentication process.
@@ -147,7 +147,7 @@ You can view existing Cisco Duo group entries by using the `security login duo g
 +
 [source,cli]
 ----
-security login duo group show -vserver <VSERVER_NAME> -group-name <GROUP_NAME> -exclude-users <USER1, USER2>
+security login duo group show -vserver <STORAGE_VM_NAME> -group-name <GROUP_NAME> -exclude-users <USER1, USER2>
 ----
 +
 The name of the Duo group must match an Active Directory, LDAP, or local group. Users you specify with the optional `-exclude-users` parameter will not be displayed.
@@ -162,7 +162,7 @@ You can remove a Duo group entry using the `security login duo group delete` com
 +
 [source,cli]
 ----
-security login duo group delete -vserver <VSERVER_NAME> -group-name <GROUP_NAME> 
+security login duo group delete -vserver <STORAGE_VM_NAME> -group-name <GROUP_NAME> 
 ----
 +
 The name of the Duo group must match an Active Directory, LDAP, or local group. 
@@ -176,11 +176,11 @@ You can disable Cisco Duo SSH authentication for all users.
 .Steps
 
 . Log in to your ONTAP account using SSH.
-. Disable Cisco Duo authentication for SSH users, substituting the Vserver name for `<VSERVER_NAME>`:
+. Disable Cisco Duo authentication for SSH users, substituting the Vserver name for `<STORAGE_VM_NAME>`:
 +
 [source,cli]
 ----
-security login duo -vserver <VSERVER_NAME> -is-duo-enabled-false
+security login duo -vserver <STORAGE_VM_NAME> -is-duo-enabled-false
 ----
 
 === Exclude Duo group users
