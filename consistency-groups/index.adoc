@@ -15,9 +15,9 @@ You can use consistency groups to simplify your storage management. Imagine you 
 
 Consistency groups facilitate application workload management, providing easily configured local and remote protection policies and simultaneous crash-consistent or application-consistent Snapshot copies of a collection of volumes at a point in time. Snapshots in consistency groups enable an entire application workload to be restored.
 
-== Understand consistency groups
+== Learn about consistency groups
 
-Consistency groups support any FlexVol volume regardless of protocol (NAS, SAN, or NVMe) and can be managed through the ONTAP REST API or in System Manager under the *Storage > Consistency Groups* menu item.
+Consistency groups support any FlexVol volume regardless of protocol (NAS, SAN, or NVMe) and can be managed through the ONTAP REST API or in System Manager under the *Storage > Consistency Groups* menu item. Beginning with ONTAP 9.14.1, consistency groups can be managed with the ONTAP CLI. 
 
 Consistency groups can exist as individual entities--as a collection of volumes--or in a hierarchical relationship, which consists of other consistency groups. Individual volumes can have their own volume-granular snapshot policy. In addition, there can be a consistency group-wide snapshot policy. The consistency group can only have one SnapMirror Business Continuity (SM-BC) relationship and shared SM-BC policy, which can be used to recover the entire consistency group.
 
@@ -31,7 +31,7 @@ In the following example, an application is hosted on `SVM1`. The administrator 
 
 image:../media/consistency-group-nested-diagram.gif[Diagram of a nested consistency group with its associated volumes]
 
-Beginning with ONTAP 9.12.1, consistency groups support xref:clone-task.html[cloning] and modifying the members of the consistency by xref:modify-task.html[adding or removing volumes] in both System Manager and the ONTAP REST API. Beginning in ONTAP 9.12.1, the ONTAP REST API also supports: 
+Beginning with ONTAP 9.12.1, consistency groups support xref:clone-task.html[cloning] and modifying the members of the consistency by xref:modify-task.html[adding or removing volumes] in both System Manager and the ONTAP REST API. Beginning with ONTAP 9.12.1, the ONTAP REST API also supports: 
 
 * Creating consistency groups with new NFS or SMB volumes or NVMe namespaces. 
 * Adding new or existing NFS or SMB volumes or NVMe namespaces to existing consistency groups. 
@@ -40,15 +40,17 @@ For more information about the ONTAP REST API, refer to https://docs.netapp.com/
 
 == Monitor consistency groups
 
-Beginning in ONTAP 9.13.1, consistency groups offer real-time and historical capacity and performance monitoring, offering insights about the performance of applications and individual consistency groups. 
+Beginning with ONTAP 9.13.1, consistency groups offer real-time and historical capacity and performance monitoring, offering insights about the performance of applications and individual consistency groups. 
 
-Consistency group monitoring data is maintained for up to one year. You can track metrics for:
+Monitoring data is refreshed every five minutes and is maintained for up to one year. You can track metrics for:
 
 * Performance: IOPS, latency, and throughput
-* Capacity: Size, available capacity, used capacity
+* Capacity: Size, logical used, available
+
+You can view monitoring data in the **Overview** tab of the consistency group menu in System Manager or by requesting it in the REST API. Beginning with ONTAP 9.14.1, you can view consistency group metrics with the CLI using the `consistency-group metrics show` command. 
 
 [NOTE]
-You can retrieve historical metrics only with the REST API. Historical metrics are not viewable in System Manager. 
+In ONTAP 9.13.1, you can only retrieve historical metrics using the REST API. Beginning with in ONTAP 9.14.1, historical metrics are also available in System Manager. 
 
 == Protect consistency groups
 
@@ -56,8 +58,9 @@ Consistency groups offer protection through:
 
 * Snapshot policies
 * xref:../smbc/index.html[SnapMirror Business Continuity (SM-BC)]
-* <<mcc>> (beginning 9.11.1)
-* xref:../data-protection/snapmirror-disaster-recovery-concept.html[Asynchronous SnapMirror] (beginning 9.13.1)
+* <<mcc>> (beginning with ONTAP 9.11.1)
+* xref:../data-protection/snapmirror-disaster-recovery-concept.html[Asynchronous SnapMirror] (beginning with ONTAP 9.13.1)
+* link:../data-protection/snapmirror-svm-replication-concept.html[SVM disaster recovery] (beginning with ONTAP 9.14.1)
 
 Creating a consistency group does not automatically enable protection. Local and remote protection policies can be set when creating or after creating a consistency group. 
 
@@ -67,17 +70,6 @@ In order to utilize remote protection, you must meet the requirements for xref:.
 
 [NOTE]
 SM-BC relationships cannot be established on volumes mounted for NAS access.
-
-== Application and component tags 
-
-Beginning in ONTAP 9.12.1, consistency groups support component and application tagging. Application and component tags are a management tool, enabling you to filter and identify different workloads in your consistency groups. 
-
-There are two types of tags:
-
-* **Application tags**: these apply to individual and parent consistency groups. Application tags provide labeling for workloads such as MongoDB, Oracle, or SQL Server. The default application tag for consistency groups is Other.
-* **Component tags**: Children in hierarchal consistency groups have component tags instead of application tags. The options for component tags are "data", "logs", or "other". The default value is Other. 
-
-You can apply tags when creating consistency groups or after the consistency groups have been created. If the consistency group has an SM-BC relationship, you must use *Other* as the application or component tag.
 
 [[mcc,MetroCluster]] 
 == Consistency groups in MetroCluster configurations
@@ -100,30 +92,32 @@ include::../_include/mirrored-aggregate-performance.adoc[]
 
 Consistency groups created with SM-BC in ONTAP 9.8 and 9.9.1 will automatically be upgraded and become manageable under *Storage > Consistency Groups* in System Manager or the ONTAP REST API when upgrading to ONTAP 9.10.1 or later. For more information about upgrading from ONTAP 9.8 or 9.9.1, see link:../smbc/smbc_admin_upgrade_and_revert_considerations.html[SM-BC upgrade and revert considerations].
 
-Consistency group snapshots created in the REST API can be managed through System Manager's Consistency Group interface and through consistency group REST API endpoints.
+Consistency group Snapshots created in the REST API can be managed through System Manager's Consistency Group interface and through consistency group REST API endpoints. Beginning with ONTAP 9.14.1, consistency group Snapshots can also be managed with the ONTAP CLI. 
 
 [NOTE]
-Snapshots created with the ONTAPI commands `cg-start` and `cg-commit` will not be recognized as consistency group Snapshots and thus cannot be managed through System Manager's consistency group interface or the consistency group endpoints in the ONTAP REST API.
+Snapshots created with the ONTAPI commands `cg-start` and `cg-commit` are recognized as consistency group Snapshots and thus cannot be managed through System Manager's consistency group interface or the consistency group endpoints in the ONTAP REST API. Beginning with ONTAP 9.14.1, these Snapshots can be mirrored to the destination volume if you are using an Asynchronous SnapMirror policy. For more information, see xref:protect-task.html#configure-asynchronous-snapmirror-protection[Configure asynchronous SnapMirror protection].
 
 == Supported features by release
 
-[options="header", cols="3,1,1,1,1"]
+[options="header", cols="3,1,1,1,1,1"]
 |===
-| | ONTAP 9.13.1  | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
-| Hierarchical consistency groups | X | X | X | X 
-| Local Snapshot protection | X | X | X | X 
-| SnapMirror Business Continuity | X | X | X | X 
-| MetroCluster support | X | X | X | 
-| Two-phase commits (REST API only) | X | X | X | 
-| Application and component tags | X | X | | 
-| Clone consistency groups | X | X | | 
-| Add and remove volumes | X | X | | 
-| Create CGs with new NAS volumes | X | REST API only | | 
-| Create CGs with new NVMe Namespaces | X | REST API only | | 
-| Move volumes between child consistency groups |  X | | | 
-| Modify consistency group geometry | X | | | 
-| Monitoring | X | | | 
-| Async SnapMirror (single consistency groups only) | X | | |
+| | ONTAP 9.14.1 | ONTAP 9.13.1  | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
+| Hierarchical consistency groups | ✓ | ✓ | ✓ | ✓ | ✓
+| Local Snapshot protection | ✓ | ✓ | ✓ | ✓ | ✓
+| SnapMirror Business Continuity | ✓ | ✓ | ✓ | ✓ | ✓
+| MetroCluster support | ✓ | ✓ | ✓ | ✓ | 
+| Two-phase commits (REST API only) | ✓ | ✓ | ✓ | ✓ | 
+| Application and component tags | ✓ | ✓ | ✓ | | 
+| Clone consistency groups | ✓ | ✓ | ✓ | | 
+| Add and remove volumes | ✓ | ✓ | ✓ | | 
+| Create CGs with new NAS volumes | ✓ | ✓ | REST API only | | 
+| Create CGs with new NVMe Namespaces | ✓ | ✓ | REST API only | | 
+| Move volumes between child consistency groups | ✓ |  ✓ | | | 
+| Modify consistency group geometry | ✓ | ✓ | | | 
+| Monitoring | ✓ | ✓ | | | 
+| Asynchronous SnapMirror (single consistency groups only) | ✓ | ✓ | | |
+| SVM disaster recovery (single consistency groups only)  | ✓ | | | |
+| CLI support | ✓ | | | | |
 |===
 
 == Learn more about consistency groups
@@ -136,6 +130,8 @@ video::j0jfXDcdyzE[youtube, width=848, height=480]
 * xref:../data-protection/snapmirror-disaster-recovery-concept.html[Asynchronous SnapMirror disaster recovery basics]
 * link:https://docs.netapp.com/us-en/ontap-metrocluster/[MetroCluster documentation]
 
+// 2023 17 august, ONTAPDOC-1152, ONTAPDOC-1280, ontapdoc-1404
+// 28 july 2023, ontapdoc-1088
 // 22 march 2023, ontapdoc-867
 // 13 MAR 2023, ONTAPDOC-755
 // 9 Feb 2023, ONTAPDOC-880
