@@ -1,0 +1,94 @@
+---
+permalink: nfs-trunking/update-network-task.html
+sidebar: sidebar
+keywords: NFS, servers, network, prepare, NFS trunking, LIF, trunking group, NIC
+summary: To take advantage of NFS trunking, you need to have multiple LIFs  residing on two or more NICs for each trunked connection.
+---
+= Update your network for trunking  
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+NFSv4.1 trunking requires the LIFs in a trunking group to reside on the same node and have home ports on the same node. All LIFs should be configured in a failover group on the same node.
+
+.About this task
+
+A one-to-one mapping of LIFs and NICs yields the greatest performance gain, but is not required to enable trunking. 
+
+You can have multiple failover groups, but the failover group for trunking must include only those LIFS in the trunking group.
+
+You should adjust the trunking failover group any time you add or remove connections (and underlying NICs) from a failover group.
+
+.Before you begin
+
+* You must know the port names associated with the NICs to create a failover group.
+* The ports must all be on the same node.
+
+.Steps
+
+. Verify the names and status of the network ports you plan to use:
++
+`network port show`
+. Create a trunking failover group or modify an existing one for trunking:
++
+`network interface failover-groups create -vserver _svm_name_ -failover-group _failover_group_name_ -targets _ports_list_`
++
+`network interface failover-groups modify -vserver _svm_name_ -failover-group _failover_group_name_ -targets _ports_list_`
++
+[NOTE]
+It is not a requirement to have a failover group, but it is strongly recommended. 
++
+* _svm_name_ is the name of the SVM containing the NFS server.
++
+* _ports_list_ is the list of ports that will be added to the failover group.
++
+Ports are added in the format _node_name:port_number_, for example, node1:e0c.
++
+The following command creates failover group `fg3` for SVM vs1 and adds three ports:
++
+`network interface failover-groups create -vserver vs1 -failover-group fg3 -targets cluster1-01:e0c,cluster1-01:e0d,cluster1-01:e0e`
++
+Learn more about link:../networking/configure_failover_groups_and_policies_for_lifs_overview.html[failover groups.]
+
+. Create additional LIFs for members of the trunking group as needed:
++
+`network interface create -vserver _svm_name_ -lif _lif_name_ -home-node _node_name_ -home-port _port_name_ -address _IP_address_ -netmask _IP_address_ [-service-policy _policy_] [-auto-revert {true|false}]`
++
+* `-home-node` - the node to which the LIF returns when the network interface revert command is run on the LIF.
++
+You can specify whether the LIF should automatically revert to the home-node and home-port with the `-auto-revert` option.
++
+* `-home-port` is the physical or logical port to which the LIF returns when the network interface revert command is run on the LIF.
++
+* You can specify an IP address with the `-address` and `-netmask` options.
++
+* When you assign IP addresses manually (without using a subnet), you might need to configure a default route to a gateway if there are clients or domain controllers on a different IP subnet. The network route create man page contains information about creating a static route within an SVM.
++
+* `-service-policy` - the service policy for the LIF. If no policy is specified, a default policy will be assigned automatically. Use the `network interface service-policy show` command to review available service policies.
++
+* `-auto-revert` - specify whether a data LIF is automatically reverted to its home node under circumstances such as startup, changes to the status of the management database, or when the network connection is made. *The default setting is false*, but you can set it to true depending on network management policies in your environment.
++
+Repeat this step for each additional LIF needed in the trunking group.
++
+The following command creates lif-A for the SVM vs1, on port e0c of the node cluster1_01:
++
+`network interface create -vserver vs1 -lif lif-A -service-policy default-intercluster -home-node cluster1_01 -home-port e0c -address 192.0.2.0`
++
+Learn more about link:../networking/create_lifs.html[LIF creation.]
+
+. Verify that the LIFs were created:
++
+`network interface show`
+
+. Verify that the configured IP address is reachable:
++
+[cols=2*,options="header",cols="25,75"]
+
+|===
+| To verify an...
+| Use...
+| IPv4 address | `network ping`
+| IPv6 address | `network ping6`
+|===
+
+// 2023 Jan 09, ONTAPDOC-552
