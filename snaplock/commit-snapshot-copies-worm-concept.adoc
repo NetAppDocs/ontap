@@ -9,7 +9,7 @@ summary: "You can use SnapLock for SnapVault to WORM-protect Snapshot copies on 
 :imagesdir: ../media/
 
 [.lead]
-You can use SnapLock for SnapVault to WORM-protect Snapshot copies on secondary storage. You perform all of the basic SnapLock tasks on the SnapVault destination. The destination volume is automatically mounted read-only, so there is no need to explicitly commit the Snapshot copies to WORM; therefore, creating scheduled Snapshot copies on the destination volume using SnapMirror policies is not supported.
+You can use SnapLock for SnapVault to WORM-protect Snapshot copies on secondary storage. You perform all of the basic SnapLock tasks on the vault destination. The destination volume is automatically mounted read-only, so there is no need to explicitly commit the Snapshot copies to WORM; therefore, creating scheduled Snapshot copies on the destination volume using SnapMirror policies is not supported.
 
 .Before you begin
 
@@ -32,7 +32,9 @@ You can clone SnapLock volumes, but you cannot clone files on a SnapLock volume.
 
 NOTE: LUNs are not supported in SnapLock volumes. LUNs are supported in SnapLock volumes only in scenarios where Snapshot copies created on a non-SnapLock volume are transferred to a SnapLock volume for protection as part of SnapLock vault relationship. LUNs are not supported in read/write SnapLock volumes. Tamperproof Snapshot copies however are supported on both SnapMirror source volumes and destination volumes that contain LUNs. 
 
-Beginning with ONTAP 9.13.1, you can instantaneously restore a locked Snapshot copy on the destination SnapLock volume of a SnapLock for SnapVault relationship by creating a FlexClone with the `snaplock-type` option set to “non-snaplock” and specifying the Snapshot copy as the “parent-snapshot” when executing the volume clone creation operation. Learn more about link:https://docs.netapp.com/us-en/ontap/volumes/create-flexclone-task.html?q=volume+clone[creating a FlexClone volume with a SnapLock type].
+Beginning with ONTAP 9.14.1, you can specify retention periods for specific SnapMirror labels in the Snapmirror policy of the SnapMirror relationship so that the replicated Snapshot copies from the source to the destination volume are retained for the retention-period specified in the rule. If no retention period is specified, the default-retention-period of the destination volume is used.
+
+Beginning with ONTAP 9.13.1, you can instantaneously restore a locked Snapshot copy on the destination SnapLock volume of a SnapLock vault relationship by creating a FlexClone with the `snaplock-type` option set to “non-snaplock” and specifying the Snapshot copy as the “parent-snapshot” when executing the volume clone creation operation. Learn more about link:https://docs.netapp.com/us-en/ontap/volumes/create-flexclone-task.html?q=volume+clone[creating a FlexClone volume with a SnapLock type].
 
 For MetroCluster configurations, you should be aware of the following:
 
@@ -40,15 +42,15 @@ For MetroCluster configurations, you should be aware of the following:
 * You can create a SnapVault relationship from a volume on a sync-source SVM to a data-serving SVM.
 * You can create a SnapVault relationship from a volume on a data-serving SVM to a DP volume on a sync-source SVM.
 
-The following illustration shows the procedure for initializing a SnapVault relationship:
+The following illustration shows the procedure for initializing a SnapLock vault relationship:
 
-image::../media/snapvault-steps-clustered.gif[This illustration shows the procedure for initializing a SnapVault relationship: identifying the destination cluster, creating a destination volume, creating a policy, adding rules to the policy, creating a SnapVault relationship between the volumes and assigning the policy to the relationship, and then initializing the relationship to start a baseline transfer.]
+image::../media/snapvault-steps-clustered.gif[This illustration shows the procedure for initializing a SnapLock vault relationship: identifying the destination cluster, creating a destination volume, creating a policy, adding rules to the policy, creating a vault relationship between the volumes and assigning the policy to the relationship, and then initializing the relationship to start a baseline transfer.]
 
 .Steps
 
 . Identify the destination cluster.
 
-. On the destination cluster, install the SnapLock license, initialize the ComplianceClock, and, if you are using an ONTAP release earlier than 9.10.1, create a SnapLock aggregate, as described in xref:workflow-concept.html[SnapLock workflow].
+. On the destination cluster, install the SnapLock license, initialize the Compliance Clock, and, if you are using an ONTAP release earlier than 9.10.1, create a SnapLock aggregate, as described in xref:workflow-concept.html[SnapLock workflow].
 
 . On the destination cluster, create a SnapLock destination volume of type `DP` that is either the same or greater in size than the source volume:
 +
@@ -109,7 +111,8 @@ https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html[Cluster and SV
 
 https://docs.netapp.com/us-en/ontap-sm-classic/volume-backup-snapvault/index.html[Volume backup using SnapVault]
 
-
+// 2023-Oct-31, IDR-279
+// 2023-Oct-31, ONTAPDOC-1230
 // 2023-June-8, ONTAPDOC-1055
 // 2023-Apr-17, ONTAP 9.13.1 update
 // 2023-Feb-13, issue# 730
