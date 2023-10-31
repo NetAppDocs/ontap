@@ -13,21 +13,25 @@ Hierarchical consistency groups enable you to manage large workloads spanning mu
 
 Hierarchical consistency groups have a parent that can include up to five individual consistency groups. Hierarchical consistency groups can support different local Snapshot policies across consistency groups or individual volumes. If you use a remote protection policy, that will apply for the entire hierarchical consistency group (parent and children). 
 
-Beginning in ONTAP 9.13.1, you can xref:modify-geometry-task.html[modify the geometry of your consistency groups] and xref:modify-task.html[move volumes between child consistency groups].
+Beginning with ONTAP 9.13.1, you can xref:modify-geometry-task.html[modify the geometry of your consistency groups] and xref:modify-task.html[move volumes between child consistency groups].
 
 For object limits on consistency groups, see xref:limits.html[Object limits for consistency groups].
 
 == Create a hierarchical consistency group with new LUNs or volumes
 
-When creating a hierarchical consistency group, you can populate it with new LUNs. Beginning in ONTAP 9.13.1, you can also use new NVMe namespaces and NAS volumes.
+When creating a hierarchical consistency group, you can populate it with new LUNs. Beginning with ONTAP 9.13.1, you can also use new NVMe namespaces and NAS volumes.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Steps
 . Select *Storage > Consistency groups*.
 . Select *+Add* then select the protocol for your storage object.
 +
-In ONTAP 9.10.1 through 9.12.1, the only option for a new storage object is **Using new LUNs**. Beginning in ONTAP 9.13.1, System Manager supports creating consistency groups with new NVMe namespaces and new NAS volumes. 
+In ONTAP 9.10.1 through 9.12.1, the only option for a new storage object is **Using new LUNs**. Beginning with ONTAP 9.13.1, System Manager supports creating consistency groups with new NVMe namespaces and new NAS volumes. 
 . Name the consistency group. Designate the number of volumes or LUNs and the capacity per volume or LUN.
-.. **Application Type**: If you are using ONTAP 9.12.1 or later, select an application type. If no value is selected, the consistency group will be assigned the type of **Other** by default. Learn more about tagging consistency in xref:index.html#application-and-component-tags[Application and component tags]. If you plan to use a remote protection policy, you must choose *Other*.
+.. **Application Type**: If you are using ONTAP 9.12.1 or later, select an application type. If no value is selected, the consistency group will be assigned the type of **Other** by default. Learn more about tagging consistency in xref:modify-tags-task.html[Application and component tags]. If you plan to use a remote protection policy, you must choose *Other*.
 . Select the host operating system and LUN format. Enter the host initiator information.
 .. For **New LUNs**: Select the host operating system and LUN format. Enter the host initiator information.
 .. For **New NAS volumes**: choose the appropriate export option (NFS or SMB/CIFS) based on the NAS configuration of your SVM. 
@@ -38,11 +42,30 @@ In ONTAP 9.10.1 through 9.12.1, the only option for a new storage object is **Us
 . Repeat for up to five child consistency groups.
 . Select *Save*.
 . Confirm your consistency group has been created by returning to the main consistency group menu where it will appear once the ONTAP job completes. If you set a protection policy, look under the appropriate policy, remote or local, which should display a green shield with a checkmark in it.
+--
+
+.CLI
+--
+Beginning with ONTAP 9.14.1, you can create a new hierarchical consistency group using the CLI.
+
+.Step
+. Create the new consistency group using the `consistency-group create` command. 
++
+The `volume-count` parameter sets the number of volumes in each child consistency group. You can create a parent consistency group with a maximum of five child consistency groups. 
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency_group_name_ -parent-consistency-group _parent_consistency_group_name_ -cg-count _number_of_child_consistency_groups_ -volume _volume_prefix_ -volume-count _number_ -size _size_ -export-policy _policy_name_ -storage-service extreme`
+//exlcude aggregates? 
+--
+====
 
 == Create a hierarchical consistency group with existing volumes
 
 You can organize existing volumes into a hierarchical consistency group.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Steps
 . Select *Storage > Consistency groups*.
 . Select *+Add* then *Using existing volumes*.
@@ -55,12 +78,26 @@ You can organize existing volumes into a hierarchical consistency group.
 . Repeat for up to five child consistency groups.
 . Select *Save*.
 . Confirm your consistency group has been created by returning to the main consistency group menu where it will appear once the ONTAP job completes. If you have chosen a protection policy, confirm it was properly set by selecting your consistency group from the menu; under the appropriate policy type, you will see a green shield with a checkmark inside of it.
+--
+
+.CLI
+--
+Beginning with ONTAP 9.14.1, you can create an hierarchical consistency group using the CLI. 
+
+.Steps
+. Provision a new parent consistency group and assign volumes to a new child consistency group:
++
+`consistency-group create -vserver _svm_name_ -consistency-group _child_consistency_group_name_ -parent-consistency-group _parent_consistency_group_name_ -volumes _volume_names_`
+. Enter `y` to confirm you want to create a new parent and child consistency group.
+--
+====
 
 .Next steps
 * xref:xref:modify-geometry-task.html[Modify the geometry of a consistency groups]
 * xref:modify-task.html[Modify a consistency group]
 * xref:protect-task.html[Protect a consistency group]
 
+// 28 july 2023, ontapdoc-1088
 // 13 MAR 2023, ONTAPDOC-755
 // 9 Feb 2023, ONTAPDOC-880
 // 2 feb 2023, ontap-issues-793
