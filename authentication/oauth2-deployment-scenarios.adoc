@@ -1,0 +1,142 @@
+---
+sidebar: sidebar
+permalink: authentication/oauth2-deployment-scenarios.html
+keywords: oauth 2.0, deployment, configuration, parameters, local validation, remote introspection
+summary: There are several configuration options available when defining an authorization server to ONTAP. Based on these options, you can create an authorization server appropriate for your deployment environment.
+---
+
+= OAuth 2.0 deployment scenarios
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+There are several configuration options available when defining an authorization server to ONTAP. Based on these options, you can create an authorization server appropriate for your deployment environment.
+
+== Summary of the configuration parameters
+
+There are several configuration parameters available when defining an authorization server to ONTAP. These parameters are generally supported in all the administrative interfaces.
+
+The parameter names can vary slightly depending on the ONTAP administrative interface. For example, when configuring remote introspection, the endpoint is identified using the CLI command parameter `-introspection-endpoint`. But with the System Manager, the equivalent field is _Authorization server token introspection URI_. To accommodate all the ONTAP administrative interfaces, a general description of the parameters is provided. The exact parameter or field should be obvious based on the context.
+
+[cols="25,75"*,options="header"]
+|===
+|Parameter
+|Description
+
+|Name
+|The name of the authorization server as it is known to ONTAP.
+
+|Application
+|The ONTAP internal application the definition applies to. This must be *http*.
+
+|Issuer URI
+|The FQDN with path identifying the site or organization that issues the tokens.
+
+|Provider JWKS URI
+|The FQDN with path and file name where ONTAP obtains the JSON Web Key Sets used to validate the access tokens.
+
+|JWKS refresh interval
+|The time interval determining how often ONTAP refreshes certificate information from the provider JWKS URI. The value is specified in ISO-8601 format.
+
+|Introspection endpoint
+|The FQDN with path that ONTAP uses to perform remote token validation through introspection.
+
+|Client ID
+|The name of the client as defined at the authorization server. When this value is included, you also need to provide the associated client secret based on the interface.
+
+|Outgoing proxy
+|This is to provide access to the authorization server when ONTAP is behind a firewall. The URI must be in curl format.
+
+|Use local roles if present
+|A boolean flag determining if the local ONTAP definitions are used, including a named REST role and local users.
+
+|Remove user claim
+|An alternative name that ONTAP uses to match local users. Use the `sub` field in the access token to match the local username.
+|===
+
+== Deployment scenarios
+
+Several common deployment scenarios are presented below. They are organized based on whether token validation is performed locally by ONTAP or remotely by the authorization server. Each scenario includes a list of the required configuration options. See link:../authentication/oauth2-deploy-ontap.html[Deploy OAuth 2.0 in ONTAP] for examples of the configuration commands.
+
+[TIP]
+After defining an authorization server, you can display its configuration through the ONTAP administrative interface. For example, use the command `security oauth2 client show` with the ONTAP CLI.
+
+=== Local validation
+
+The following deployment scenarios are based on ONTAP performing token validation locally.
+
+.Use self-contained scopes without a proxy
+// 1
+
+This is the simplest deployment using only OAuth 2.0 self-contained scopes. None of the local ONTAP identity definitions are used. You need to include the following parameters:
+
+* Name
+* Application (http)
+* Provider JWKS URI
+* Issuer URI
+
+You also need to add the scopes at the authorization server.
+
+.Use self-contained scopes with a proxy
+// 3
+
+This deployment scenario uses the OAuth 2.0 self-contained scopes. None of the local ONTAP identity definitions are used. But the authorization server is behind a firewall and so you need to configure a proxy. You need to include the following parameters:
+
+* Name
+* Application (http)
+* Provider JWKS URI
+* Outgoing proxy
+* Issuer URI
+* Audience
+
+You also need to add the scopes at the authorization server.
+
+.Use local user roles and default username mapping with a proxy
+// 4
+
+This deployment scenario uses local user roles with default name mapping. The remote user claim uses the default value of `sub` and so this field in the access token is used to match the local username. The username must be 40 characters or less. The authorization server is behind a firewall so you also need to configure a proxy. You need to include the following parameters:
+
+* Name
+* Application (http)
+* Provider JWKS URI
+* Use local roles if present (`true`)
+* Outgoing proxy
+* Issuer
+
+You need to make sure the local user is defined to ONTAP.
+
+.Use local user roles and alternate username mapping with a proxy
+//5
+
+This deployment scenario uses local user roles with an alternate username which is used to match a local ONTAP user. The authorization server is behind a firewall, so you need to configure a proxy. You need to include the following parameters:
+
+* Name
+* Application (http)
+* Provider JWKS URI
+* Use local roles if present (`true`)
+* Remote user claim
+* Outgoing proxy
+* Issuer URI
+* Audience
+
+You need to make sure the local user is defined to ONTAP.
+
+=== Remote introspection
+
+The following deployment configurations are based on ONTAP performing token validation remotely through introspection.
+
+.Use self-contained scopes with no proxy
+// 2
+
+This is a simple deployment based on using the OAuth 2.0 self-contained scopes. None of the ONTAP identity definitions are used. You must include the following parameters:
+
+* Name
+* Application (http)
+* Introspection endpoint
+* Client ID
+* Issuer URI
+
+You need to define the scopes as well as the client and client secret at the authorization server.
