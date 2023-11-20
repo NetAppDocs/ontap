@@ -49,5 +49,68 @@ You must configure at least one ONTAP management or data LIF before this Vscan s
 . Select *Finish* to end the installation and to close the InstallShield wizard.
 The Configure ONTAP LIFs icon is saved on the desktop to configure the ONTAP LIFs.
 +
-. link:configure-ontap-antivirus-connector-task.html[Configure the ONTAP Antivirus Connector].
+. Add an SVM to the Antivirus Connector.
+
+You can add an SVM to the Antivirus Connector by adding either an ONTAP management LIF, which is polled to retrieve the list of data LIFs, or by directly configuring the data LIF or LIFs.
+
+You must also provide the poll information and the ONTAP admin account credentials if the ONTAP management LIF is configured.
+
+.Before you begin
+
+* Verify that the management LIF or the IP address of the SVM is enabled for `management-https`. This is not required when you are only configuring data LIFs.
+* Verify that you have created a user account for the HTTTP application and assigned a role which has (at least read-only) access to the `/api/network/ip/interfaces` REST API.
+For more information about creating a user, see the link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-role-create.html[security login role create^] and link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-create.html[security login create^] ONTAP man pages.
+
+[NOTE]
+You can also use the domain user as an account by adding an authentication tunnel SVM for an administrative SVM. For more information, see the link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-domain-tunnel-create.html[security login domain-tunnel create^] ONTAP man page or use the `/api/security/acccounts` and `/api/security/roles` REST APIs to configure the admin account and role.
+
+.Steps
+
+.. Right-click on the *Configure ONTAP LIFs* icon, which was saved on your desktop when you completed the Antivirus Connector installation, and then select *Run as Administrator*.
+.. In the *Configure ONTAP LIFs* dialog box, select the preferred configuration type, then perform the following actions: 
++
+[cols="35,65"]
+|===
+
+h| To configure this type of LIF...   h| Perform these steps...
+
+a| Data LIF
+a|
+.. Set *role* to "data"
+.. Set *data protocol* to "cifs"
+.. Set *firewall policy* to "data"
+
+a| Management LIF
+a|
+.. Set *role* to "data"
+.. Set *data protocol* to "none"
+.. Set *firewall policy* to "mgmt"
+
+|===
+
++
+Read more about link:https://docs.netapp.com/us-en/ontap/networking/create_a_lif.html[creating a LIF^]. 
++
+After you create a LIF, enter the data or management LIF or IP address of the SVM that you want to add. You can also enter the cluster management LIF. If you specify the cluster management LIF, all SVMs within that cluster that are serving SMB can use the Vscan server.
++
+[NOTE]
+====
+When Kerberos authentication is required for Vscan servers, each SVM data LIF must have a unique DNS name, and you must register that name as a server principal name (SPN) with the Windows Active Directory. When a unique DNS name is not available for each data LIF or registered as an SPN, the Vscan server uses the NT LAN Manager mechanism for authentication. If you add or modify the DNS names and SPNs after the Vscan server is connected, you must restart the Antivirus Connector service on the Vscan server to apply the changes.
+====
++
+
+.. To configure a management LIF, enter the poll duration, in seconds. The poll duration is the frequency at which the Antivirus Connector checks for changes to the SVMs or the cluster's LIF configuration. The default poll interval is 60 seconds.
++
+.. Enter the ONTAP admin account name and password to configure a management LIF.
++
+.. Click *Test* to check the connectivity and verify the authentication. Authentication is verified only for a management LIF configuration.
++
+.. Click *Update* to add the LIF to the list of LIFs to poll or to connect to.
++
+.. Click *Save* to save the connection to the registry.
++
+.. Click *Export* if you want to export the list of connections to a registry import or registry export file.
+This is useful if multiple Vscan servers use the same set of management or data LIFs.
+
+See the link:configure-ontap-antivirus-connector-task.html[Configure the ONTAP Antivirus Connector page] for configuration options.
 // 2023 sep 19, ONTAPDOC-1052
