@@ -1,0 +1,103 @@
+---
+sidebar: sidebar
+permalink: authentication/oauth2-prepare.html
+keywords: oauth 2.0, oauth2, prepare, plan, deployment plan
+summary: Before configuring OAuth 2.0 in an ONTAP environment, you should prepare for the deployment.
+---
+
+= Prepare to deploy OAuth 2.0 with ONTAP
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+Before configuring OAuth 2.0 in an ONTAP environment, you should prepare for the deployment. A summary of the major tasks and decisions is included below. The arrangement of the sections is generally aligned with the order you should follow. But while it's applicable for most deployments, you should adapt it to your environment as needed. You should also consider creating a formal deployment plan.
+
+[TIP]
+Based on your environment, you can select the configuration for the authorization servers defined to ONTAP. This includes the parameter values you need to specific for each type of deployment. See link:../authentication/oauth2-deployment-scenarios.html[OAuth 2.0 deployment scenarios] for more information.
+
+== Protected resources and client applications
+
+OAuth 2.0 is an authorization framework for controlling access to protected resources. Given this, an important first step with any deployment is to determine what the available resources are and which clients need access to them.
+
+.Identify client applications
+
+You need to decide which clients will use OAuth 2.0 when issuing REST API calls and what API endpoints they need access to.
+
+.Review existing ONTAP REST roles and local users
+
+You should review the existing ONTAP identity definitions, including the REST roles and local users. Depending on how you configure OAuth 2.0, these definitions can be used for making access decisions.
+
+.Global transition to OAuth 2.0
+
+While you might implement OAuth 2.0 authorization gradually, you can also move all the REST API clients to OAuth 2.0 immediately by setting a global flag for each authorization server. This allows access decisions to be made based on your existing ONTAP configuration without the need for creating self-contained scopes.
+
+== Authorization servers
+
+The authorization servers play an important role in your OAuth 2.0 deployment by issuing access tokens and enforcing administrative policy.
+
+.Select and install the authorization server
+
+You need to select and install one or more authorization servers. It's important to become familiar with the configuration options and procedures of your identity providers, including how to define scopes.
+
+.Determine if the authorization root CA certificate needs to be installed
+
+ONTAP uses the authorization server's certificate to validate the signed access tokens presented by the clients. To do this, ONTAP needs the root CA certificate and any intermediate certificates. These might be pre-installed with ONTAP. If not, you need to install them.
+
+.Assess network location and configuration
+
+If the authorization server is behind a firewall, ONTAP needs to be configured to use a proxy server.
+
+== Client authentication and authorization
+
+There are several aspects of client authentication and authorization you need to consider.
+
+.Self-contained scopes or local ONTAP identity definitions
+
+At a high level, you can either define self-contained scopes defined at the authorization server or rely on the existing local ONTAP identity definitions including roles and users.
+
+.Options with local ONTAP processing
+
+If you use the ONTAP identity definitions, you must decide which to apply, including:
+
+* Named REST role
+* Match local users
+* Active Directory or LDAP groups
+
+.Local validation or remote introspection
+
+You need to decide if the access tokens will be validated locally by ONTAP or at the authorization server through introspection. There are also several related values to consider, such as the refresh interval.
+
+.Sender-constrained access tokens
+
+For environments requiring a high level of security, you can use send-constrained access tokens based on mTLS. This requires a certificate for each client.
+
+.Administrative interface
+
+You can perform administration of OAuth 2.0 through any of the ONTAP interfaces, including:
+
+* Command line interface
+* System Manager
+* REST API
+
+.How clients request access tokens
+
+The client applications must request access tokens directly from the authorization server. You need to decide how this will be done, including the grant type.
+
+== Configure ONTAP
+
+There are several ONTAP configuration tasks you need to perform.
+
+.Define REST roles and local users
+
+Based on your authorization configuration, local ONTAP identify processing can be used. In this case, you need to review and define the REST roles and user definitions.
+
+.Core configuration
+
+There are three major steps needed to perform the core ONTAP configuration, including:
+
+* Optionally install the root certificate (and any intermediate certificates) for the CA that signed the authorization server's certificate.
+* Define the authorization server.
+* Enable OAuth 2.0 processing for the cluster.
