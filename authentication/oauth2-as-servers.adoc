@@ -1,0 +1,126 @@
+---
+sidebar: sidebar
+permalink: authentication/oauth2-as-servers.html
+keywords: oauth 2.0, oauth2, access token, grant type, jwt
+summary: Authorization servers perform several important functions as a central component within the OAuth 2.0 Authorization framework.
+---
+
+= Authorization servers and access tokens
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+Authorization servers perform several important functions as a central component within the OAuth 2.0 Authorization framework.
+
+== OAuth 2.0 authorization servers
+
+Authorization servers are primarily responsible for creating and signing access tokens. These tokens contain identity and authorization information enabling a client application to selectively access protected resources. The servers are generally isolated from one another and can be implemented in several different ways, including as a standalone dedicated server or as part of a larger identity and access management product.
+
+[NOTE]
+Different terminology can sometimes be used for an authorization server, especially when the OAuth 2.0 functionality is packaged within a larger identity and access management product or solution. For example, the term *identity provider (IdP)* is frequently used interchangeably with *authorization server*.
+
+=== Administration
+
+In addition to issuing access tokens, authorization servers also provide related administrative services, typically through a web user interface. For example, you can define and administer:
+
+* Users and user authentication
+* Scopes
+* Administrative segregation through tenants and realms
+* Policy enforcement
+* Connection to various external services
+* Support for other identity protocols (such as SAML)
+
+ONTAP is compatible with authorization servers that are compliant with the OAuth 2.0 standard.
+
+=== Defining to ONTAP
+
+You need to define one or more authorization servers to ONTAP. ONTAP securely communicates with each server to verify tokens and perform other related tasks in support of the client applications.
+
+The major aspects of ONTAP configuration are presented below. Also see link:../authentication/oauth2-deployment-scenarios.html[OAuth 2.0 deployment scenarios] for more information.
+
+.How and where the access tokens are validated
+
+There are two options for validating access tokens.
+
+* Local validation
++
+ONTAP can validate access tokens locally based on information provided by the authorization server that issued the token. The information retrieved from the authorization server is cached by ONTAP and refreshed at regular intervals.
+
+* Remote introspection
++
+You can also use remote introspection to validate tokens at the authorization server. Introspection is a protocol allowing authorized parties to query an authorization server about an access token. It provides ONTAP a way to extract certain metadata from an access token and validate the token. ONTAP caches some of the data for performance reasons.
+
+.Network location
+
+ONTAP may be behind a firewall. In this case, you need to identify a proxy as part of the configuration.
+
+.How the authorization servers are defined
+
+You can define an authorization server to ONTAP using any of the administrative interfaces, including the CLI, System Manager, or REST API. For example, with the CLI you use the command `security oauth2 client create`.
+
+.Number of authorization servers
+
+You can define up to eight authorization servers to a single ONTAP cluster. The same authorization server can be defined more than once to the same ONTAP cluster as long as the issuer or issuer/audience claims are unique. For example, with Keycloak this will always be the case when using different realms.
+
+== Using OAuth 2.0 access tokens
+
+The OAuth 2.0 access tokens issued by the authorization servers are verified by ONTAP and used to make role-based access decisions for the REST API client requests.
+
+=== Acquiring an access token
+
+You need to acquire an access token from an authorization server defined to the ONTAP cluster where you use the REST API. To acquire a token, you must contact the authorization server directly.
+
+[CAUTION]
+ONTAP does not issue access tokens or redirect requests from clients to the authorization servers.
+
+How you request a token depends on several factors, including:
+
+* Authorization server and its configuration options
+* OAuth 2.0 grant type
+* Client or software tool used to issue the request
+
+=== Grant types
+
+A _grant_ is a well-defined process, including a set of network flows, used to request and receive an OAuth 2.0 access token. Several different grant types can be used depending on the client, environment, and security requirements. A list of the popular grant types is presented in the table below.
+
+[cols="25,75"*,options="header"]
+|===
+|Grant type
+|Description
+|Client credentials
+|A popular grant type based on using only credentials (such as an ID and shared secret). The client is assumed to have a close trust relationship with the resource owner.
+|Password
+|The resource owner password credentials grant type can be used in cases where the resource owner has an established trust relation with the client. It can also be useful when migrating legacy HTTP clients to OAuth 2.0.
+|Authorization code
+|This is an ideal grant type for confidential clients and is based on a redirection-based flow. It can be used to obtain both an access token and refresh token.
+|===
+
+=== JWT contents
+
+An OAuth 2.0 access token is formatted as a JWT. The content is created by the authorization server based on your configuration. However, the tokens are opaque to the client applications. A client has no reason to inspect a token or to be aware of the contents.
+
+Each JWT access token contains a set of claims. The claims describe characteristics of the issuer and the authorization based on administrative definitions at the authorization server. Some of the claims registered with the standard are described in the table below. All the strings are case sensitive.
+
+[cols="20,15,65"*,options="header"]
+|===
+|Claim
+|Keyword
+|Description
+|Issuer
+|iss
+|Identifies the principal that issued the token. The claim processing is application specific.
+|Subject
+|sub
+|The subject or user of the token. The name is scoped to be globally or locally unique.
+|Audience
+|aud
+|The recipients the token is intended for. Implemented as an array of strings.
+|Expiration
+|exp
+|The time after which the token expires and must be rejected.
+|===
+
+See https://www.rfc-editor.org/info/rfc7519[RFC 7519: JSON Web Tokens^] for more information.

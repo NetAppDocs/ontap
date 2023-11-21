@@ -14,14 +14,14 @@ S3 objects are kept in _buckets_--they are not nested as files inside a director
 
 .Before you begin
 
-An SVM containing an S3 server must already exist.
+A storage VM containing an S3 server must already exist.
 
 .About this task
 
 For the CLI, when you create a bucket, you have two provisioning options:
 
 * Let ONTAP select the underlying aggregates and FlexGroup components (default)
- ** ONTAP creates and configures a FlexGroup volume for the first bucket by automatically selecting the aggregates. It will automatically select the highest service level available for your platform, or you can specify the storage service level. Any additional buckets you add later in the SVM will have the same underlying FlexGroup volume.
+ ** ONTAP creates and configures a FlexGroup volume for the first bucket by automatically selecting the aggregates. It will automatically select the highest service level available for your platform, or you can specify the storage service level. Any additional buckets you add later in the storage VM will have the same underlying FlexGroup volume.
  ** Alternatively, you can specify whether the bucket will be used for tiering, in which case ONTAP tries to select low-cost media with optimal performance for the tiered data.
 * You select the underlying aggregates and FlexGroup components (requires advanced privilege command options)
  ** You have the option to manually select the aggregates on which the bucket and containing FlexGroup volume must be created, and then specifying the number of constituents on each aggregate. When adding additional buckets:
@@ -31,60 +31,32 @@ See xref:../flexgroup/index.html[FlexGroup volumes management] for more informat
 +
 When you specify aggregates and constituents when creating a bucket, no QoS policy groups, default or custom, are applied. You can do so later with the `vserver object-store-server bucket modify` command.
 
+Beginning with ONTAP 9.14.1, you can link:create-bucket-mcc-task.html[create a bucket on a mirrored or unmirrored aggregate in a MetroCluster configuration]. 
+
 *Note:* If you are serving buckets from Cloud Volumes ONTAP, you should use the CLI procedure. It is strongly recommended that you manually select the underlying aggregates to ensure that they are using one node only. Using aggregates from both nodes can impact performance, because the nodes will be in geographically separated availability zones and hence susceptible to latency issues.
 
 Storage service levels are predefined adaptive Quality of Service (QoS) policy groups, with _value_, _performance_, and _extreme_ default levels. Instead of one of the default storage service levels, you can also define a custom QoS policy group and apply it to a bucket.
 
 include::../_include/98_qos_enabled_by_default.adoc[]
 
-link:storage-service-definitions-reference.html[Storage service definitions]
+For more information about storage service definitions, see link:storage-service-definitions-reference.html[Storage service definitions]
 
-If you are configuring local capacity tiering, you create buckets and users in a data SVM, not in the system SVM where the S3 server is located.
+If you are configuring local capacity tiering, you create buckets and users in a data storage VM, not in the system storage VM where the S3 server is located.
 
 For remote client access, you must configure buckets in an S3-enabled storage VM. If you create a bucket in a storage VM that is not S3-enabled, it will only be available for local tiering.
 
-link:../performance-admin/index.html[Performance management]
+For more information about performance management, see link:../performance-admin/index.html[Performance management]
 
 See the `vserver object-store-server bucket` man pages for additional configuration and display options.
 
-== Process to create buckets
+== Create S3 buckets with the ONTAP CLI
 
-[role="tabbed-block"]
-====
-.System Manager
---
-.	Add a new bucket on an S3-enabled storage VM.
-..	Click *Storage > Buckets*, then click *Add*.
-..	Enter a name, select the storage VM, and enter a size.
-+
-* If you click *Save* at this point, a bucket is created with these default settings:
-
-**	No users are granted access to the bucket unless any group policies are already in effect.
-+
-NOTE: You should not use the S3 root user to manage ONTAP object storage and share its permissions, because it has unlimited access to the object store. Instead, create a user or group with administrative privileges that you assign.
-
-**	A Quality of Service (performance) level that is the highest available for your system.
-
-*	You can click *More Options* to configure user permissions and performance level when you configure the bucket, or you can modify these settings later.
-
-**	You must have already created user and groups before using *More Options* to configure their permissions.
-**	If you intend to use the S3 object store for FabricPool tiering, consider selecting *Use for tiering* (use low-cost media with optimal performance for the tiered data) rather than a performance service level.
-
-.	On S3 client apps – another ONTAP system or an external 3rd-party app – verify access to the new bucket by entering the following:
-
-*	The S3 server CA certificate.
-*	The user’s access key and secret key.
-*	The S3 server FQDN name and bucket name.
---
-
-.CLI
---
 . If you plan to select aggregates and FlexGroup components yourself, set the privilege level to advanced (otherwise, admin privilege level is sufficient): `set -privilege advanced`
 . Create a bucket:
 +
 `vserver object-store-server bucket create -vserver _svm_name_ -bucket _bucket_name_ [-size integer[KB|MB|GB|TB|PB]] [-comment text] [additional_options]`
 +
-The SVM name can be either a data SVM or `Cluster` (the system SVM name) if you are configuring local tiering.
+The storage VM name can be either a data storage VM or `Cluster` (the system storage VM name) if you are configuring local tiering.
 +
 If you specify no options, ONTAP creates a 5GB bucket with the service level set to the highest level available for your system.
 +
@@ -120,15 +92,59 @@ The default value of the `-aggr-list-multiplier` parameter is 4.
 
 .Example
 
-The following example creates a bucket for SVM vs1 of size 1TB and specifying the aggregate:
+The following example creates a bucket for storage VM vs1 of size 1TB and specifying the aggregate:
 
 ----
 cluster-1::*> vserver object-store-server bucket create -vserver svm1.example.com -bucket testbucket -aggr-list aggr1 -size 1TB
 ----
---
-====
 
+== Create S3 buckets with System Manager 
+
+.	Add a new bucket on an S3-enabled storage VM.
+..	Click *Storage > Buckets*, then click *Add*.
+..	Enter a name, select the storage VM, and enter a size.
++
+* If you click *Save* at this point, a bucket is created with these default settings:
+
+**	No users are granted access to the bucket unless any group policies are already in effect.
++
+NOTE: You should not use the S3 root user to manage ONTAP object storage and share its permissions, because it has unlimited access to the object store. Instead, create a user or group with administrative privileges that you assign.
+
+**	A Quality of Service (performance) level that is the highest available for your system.
+
+* Click *Save* to create a bucket with these default values.
+
+=== Configure additional permissions and restrictions
+You can click *More Options* to configure settings for object locking, user permissions, and performance level when you configure the bucket, or you can modify these settings later.
+
+If you intend to use the S3 object store for FabricPool tiering, consider selecting *Use for tiering* (use low-cost media with optimal performance for the tiered data) rather than a performance service level.
+
+If you want to enable versioning for your objects for later recovery, select *Enable Versioning*. Versioning is enabled by default if you are enabling object locking on the bucket. For information about object versioning, see the https://docs.aws.amazon.com/AmazonS3/latest/userguide/Versioning.html[Using versioning in S3 buckets for Amazon].
+
+Beginning with 9.14.1, object locking is supported on S3 buckets. If you want to protect objects in your bucket from getting deleted or overwritten, select *Enable object locking*. Locking can be enabled on either all or specific versions of objects, and only when the SnapLock compliance clock is initialized for the cluster nodes. Follow these steps:
+
+. If the SnapLock compliance clock is not initialized on any node of the cluster, the *Initialize SnapLock Compliance Clock* button appears. Click *Initialize SnapLock Compliance Clock* to initialize the SnapLock compliance clock on the cluster nodes.
+. Select *Governance* mode to activate a time-based lock that allows _Write once, read many (WORM)_ permissions on the objects. Even in _Governance_ mode, the objects can be deleted by administrator users with specific permissions.
+. Select *Compliance* mode if you want to assign stricter rules of deletion and update on the objects. In this mode of object locking, the objects can be expired only on the completion of the specified retention period. Unless a retention period is specified, the objects remain locked indefinitely.
+. Specify the retention tenure for the lock in days or years if you want the locking to be effective for a certain period.
+[NOTE]
+Locking is applicable to versioned and non-versioned S3 buckets. Object locking is not applicable to NAS objects.
+
+You can configure protection and permission settings, and performance service level for the bucket.
+[NOTE]
+You must have already created user and groups before configuring the permissions.
+
+For information, see link:../s3-snapmirror/create-remote-mirror-new-bucket-task.html#system-manager-procedure[Create mirror for new bucket].
+
+=== Verify access to the bucket
+On S3 client applications (whether ONTAP S3 or an external 3^rd^-party application), you can verify your access to the newly created bucket by entering the following:
+
+*	The S3 server CA certificate.
+*	The user's access key and secret key.
+*	The S3 server FQDN name and bucket name.
+
+// 2023 Nov 09, ONTAPDOC-1384
 // 2022-05-04, BURT 1476111 (CLI)
-
 // 2022-05-04, BURT 1476111 (SM)
 // 09Oct2020, BURT 1290604 (SM)
+// 10-Oct-2023 ONTAPDOC-1364
