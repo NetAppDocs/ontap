@@ -1,0 +1,77 @@
+---
+sidebar: sidebar
+permalink: authentication/oauth2-rest-api.html
+keywords: acquire token, curl, rest api call, keycloak
+summary: The OAuth 2.0 implementation in ONTAP supports REST API client applications. You can issue a simple REST API call using curl to get started using OAuth 2.0.
+---
+
+= Issue a REST API call using OAuth 2.0
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+The OAuth 2.0 implementation in ONTAP supports REST API client applications. You can issue a simple REST API call using curl to get started using OAuth 2.0. The example presented below retrieves the ONTAP cluster version.
+
+== Before you begin
+
+You must configure and enable the OAuth 2.0 feature for your ONTAP cluster. This includes defining an authorization server.
+
+== Step 1: Acquire an access token
+
+You need to acquire an access token to use with the REST API call. The token request is performed outside of ONTAP and the exact procedure depends on the authorization server and its configuration. You might request the token through a web browser, with a curl command, or using a programming language.
+
+For illustration purposes, an example of how an access token can be requested from Keycloak using curl is presented below.
+
+.Keycloak example
+
+[source,curl]
+----
+curl --request POST \
+--location 'https://superzap.dev.netapp.com:8443/realms/peterson/protocol/openid-connect/token' \
+--header 'Content-Type: application/x-www-form-urlencoded' \
+--data-urlencode 'client_id=dp-client-1' \
+--data-urlencode 'grant_type=client_credentials' \
+--data-urlencode 'client_secret=5iTUf9QKLGxAoYa1iR33vlD5A2xq09V7'
+----
+
+You should copy and save the returned token.
+
+== Step 2: Issue the REST API call
+
+After you have a valid access token, you can use a curl command with the access token to issue a REST API call.
+
+.Parameters and variables
+
+The two variables in the curl example are described in the table below.
+
+[cols="25,75"*,options="header"]
+|===
+|Variable
+|Description
+|$FQDN_IP
+|The fully qualified domain name or IP address of the ONTAP management LIF.
+|$ACCESS_TOKEN
+|The OAuth 2.0 access token issued by the authorization server.
+|===
+
+You should first set these variables in the Bash shell environment before issuing the curl example. For example, in the Linux CLI type the following command to set and display the FQDN variable:
+
+----
+FQDN_IP=172.14.31.224
+echo $FQDN_IP
+172.14.31.224
+----
+
+After both variables are defined in your local Bash shell, you can copy the curl command and paste it into the CLI. Press *Enter* to substitute the variables and issue the command.
+
+.Curl example
+
+[source,curl]
+curl --request GET \
+--location "https://$FQDN_IP/api/cluster?fields=version" \
+--include \
+--header "Accept: */*" \
+--header "Authorization: Bearer $ACCESS_TOKEN"

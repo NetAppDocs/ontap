@@ -1,0 +1,172 @@
+---
+sidebar: sidebar
+permalink: authentication/overview-oauth2.html
+keywords: oauth 2.0, oauth2, access token, bearer token, authentication, authorization, mutual tls, mtls, adfs, auth0, oidc
+summary: Beginning with ONTAP 9.14, you have the option to control access to your ONTAP clusters using the Open Authorization (OAuth 2.0) framework. You can configure this feature using any of the ONTAP administrative interfaces, including the ONTAP CLI, System Manager, and REST API. However, the OAuth 2.0 authorization and access control decisions can only be applied when a client accesses ONTAP using the REST API.
+---
+
+= Overview of the ONTAP OAuth 2.0 implementation
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+Beginning with ONTAP 9.14, you have the option to control access to your ONTAP clusters using the Open Authorization (OAuth 2.0) framework. You can configure this feature using any of the ONTAP administrative interfaces, including the ONTAP CLI, System Manager, and REST API. However, the OAuth 2.0 authorization and access control decisions can only be applied when a client accesses ONTAP using the REST API.
+
+[NOTE]
+OAuth 2.0 support was first introduced with ONTAP 9.14.0 and so its availability depends on the ONTAP release you are using. See the https://library.netapp.com/ecm/ecm_download_file/ECMLP2492508[ONTAP release notes^] for more information.
+
+== Features and benefits
+
+The major features and benefits of using OAuth 2.0 with ONTAP are described below.
+
+.Support for the OAuth 2.0 standard
+
+OAuth 2.0 is the industry standard authorization framework. It is used to restrict and control access to protected resources using signed access tokens. There are several benefits to using OAuth 2.0:
+
+* Many options for the authorization configuration
+* Never reveal the client credentials including passwords
+* Tokens can be set to expire based on your configuration
+* Ideally suited for use with REST APIs
+
+.Tested with several popular authorization servers
+
+The ONTAP implementation is designed to be compatible with any OAuth 2.0 compliant authorization server. It has been tested with the following popular servers or services, including:
+
+* Auth0
+* Active Directory Federation Service (ADFS)
+* Keycloak
+
+.Support for multiple concurrent authorization servers
+
+You can define up to eight authorization servers for a single ONTAP cluster. This gives you the flexibility to meet the needs of your diverse security environment.
+
+.Integration with the REST roles
+
+The ONTAP authorization decisions are ultimately based on the REST roles assigned to users or groups. These roles are either carried in the access token as self-contained scopes or based on local ONTAP definitions along with Active Directory or LDAP groups.
+
+.Option to use sender-constrained access tokens
+
+You can configure ONTAP and the authorization servers to use Mutual Transport Layer Security (mTLS) which strengthens client authentication. It guarantees the OAuth 2.0 access tokens are only used by the clients to which they were originally issued. This feature supports and aligns with several popular security recommendations, including those established by FAPI and MITRE.
+
+== Implementation and configuration
+
+At a high level, there are several aspects of an OAuth 2.0 implementation and configuration you should consider when getting started.
+
+.OAuth 2.0 entities within ONTAP
+
+The OAuth 2.0 authorization framework defines several entities that can be mapped to real or virtual elements within your data center or network. The OAuth 2.0 entities and their adaptation to ONTAP are presented in the table below.
+
+[cols="30,70"*,options="header"]
+|===
+|OAuth 2.0 Entity
+|Description
+|Resource
+|The REST API endpoints  that provide access to the ONTAP resources through internal ONTAP commands.
+|Resource owner
+|The ONTAP cluster user that created the protected resource or owns it by default.
+|Resource server
+|The host for the protected resources which is the ONTAP cluster.
+|Client
+|An application requesting access to a REST API endpoint on behalf of or with permission from the resource owner.
+|Authorization server
+|Typically a dedicated server responsible for issuing access tokens and enforcing administrative policy.
+|===
+
+.Core ONTAP configuration
+
+You need to configure the ONTAP cluster to enable and use OAuth 2.0. This includes establishing a connection to the authorization server and defining the required ONTAP authorization configuration. You can perform this configuration using any of the administrative interfaces, including:
+
+* ONTAP command line interface
+* System Manager
+* ONTAP REST API
+
+.Environment and supporting services
+
+In addition to the ONTAP definitions, you also need to configure the authorization servers. If you're using group-to-role mapping, you need also to configure the Active Directory groups or LDAP equivalent.
+
+.Supported ONTAP clients
+
+Beginning with ONTAP 9.14, a REST API client can access ONTAP using OAuth 2.0. Before issuing a REST API call, you need to obtain an access token from the authorization server. The client then passes this token to the ONTAP cluster as a _bearer token_ using the HTTP authorization request header. Depending on the level of security needed, you can also create and install a certificate at the client to use sender-constrained tokens based on mTLS.
+
+== Selected terminology
+
+As you begin exploring an OAuth 2.0 deployment with ONTAP, it is helpful to become familiar with some of the terminology. See link:../authentication/overview-oauth2.html#additional-resources[Additional resources] for links to more information about OAuth 2.0.
+
+Access token::
+A token issued by an authorization server and used by an OAuth 2.0 client application to make requests to access the protected resources.
+
+JSON Web Token::
+The standard used to format the access tokens. JSON is used to represent the OAuth 2.0 claims in a compact format with the claims arranged in three main sections.
+
+Sender-constrained access token::
+An optional feature based on the Mutual Transport Layer Security (mTLS) protocol. By using an additional confirmation claim in the token, this ensures the access token is only used by the client to which it was originally issued.
+
+JSON Web Key Set::
+A JWKS is a collection of public keys used by ONTAP to verify the JWT tokens presented by the clients. The key sets are typically available at the authorization server through a dedicated URI.
+
+Scope::
+Scopes provide a way to limit or control an application's access to protected resources such as the ONTAP REST API. They are represented as strings in the access token.
+
+ONTAP REST role::
+REST roles were introduced with ONTAP 9.6 and are a core part of the ONTAP RBAC framework. These roles are different than the earlier traditional roles which are still supported by ONTAP. The OAuth 2.0 implementation in ONTAP only supports REST roles.
+
+HTTP authorization header::
+A header included in the HTTP request to identify the client and associated permissions as part of making a REST API call. There are several flavors or implementations available depending on how authentication and authorization is performed. When presenting an OAuth 2.0 access token to ONTAP, the token is identified as a _bearer token_.
+
+HTTP basic authentication::
+An early HTTP authentication technique still supported by ONTAP. The plaintext credentials (username and password) are concatenated with a colon and encoded in base64. The string is placed in the authorization request header and sent to the server.
+
+FAPI::
+A working group at the OpenID Foundation providing protocols, data schemas, and security recommendations for the financial industry. The API was originally known as the Financial Grade API.
+
+MITRE::
+A private not-for-profit company providing technical and security guidance to the United States Air Force and US government.
+
+== Additional resources
+
+Several additional resources are provided below. You should review these sites to get more information about OAuth 2.0 and the related standards.
+
+.Protocols and standards
+
+* https://www.rfc-editor.org/info/rfc6749[RFC 6749: The OAuth 2.0 Authorization Framework^]
+
+* https://www.rfc-editor.org/info/rfc7519[RFC 7519: JSON Web Tokens (JWT)^]
+
+* https://www.rfc-editor.org/info/rfc7523[RFC 7523: JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants^]
+
+* https://www.rfc-editor.org/info/rfc7662[RFC 7662: OAuth 2.0 Token Introspection^]
+
+* https://www.rfc-editor.org/info/rfc7800[RFC 7800: Proof-of-Possession Key for JWTs^]
+
+* https://www.rfc-editor.org/info/rfc8705[RFC 8705: OAuth 2.0 Mutual-TLS Client Authentication and Certificate-Bound Access Tokens^]
+
+.Organizations
+
+* https://openid.net[OpenID Foundation^]
+
+* https://openid.net/wg/fapi[FAPI Working Group^]
+
+* https://www.mitre.org[MITRE^]
+
+* https://www.iana.org/assignments/jwt/jwt.xhtml[IANA - JWT^]
+
+.Products and services
+
+* https://auth0.com[Auth0^]
+
+* https://learn.microsoft.com/en-us/windows-server/identity/ad-fs/ad-fs-overview[ADFS overview^]
+
+* https://www.keycloak.org[Keycloak^]
+
+.Additional tools and utilities
+
+* https://jwt.io[JWT by Auth0^]
+
+* https://www.openssl.org[OpenSSL^]
+
+.NetApp documentation and resources
+
+* https://docs.netapp.com/us-en/ontap-automation[ONTAP automation^] documentation

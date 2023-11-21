@@ -13,6 +13,8 @@ Beginning with ONTAP 9.12.1, you can lock a Snapshot copy on a non-SnapLock volu
 
 You use the SnapLock compliance clock feature to lock Snapshot copies for a specified period so that they cannot be deleted until the expiration time is reached. Locking Snapshot copies makes them tamperproof, protecting them from ransomware threats. You can use locked Snapshot copies to recover data if a volume is compromised by a ransomware attack.
 
+Beginning with ONTAP 9.14.1, Snapshot copy locking supports long-term retention Snapshot copies on SnapLock vault destinations and on non-SnapLock SnapMirror destination volumes. Snapshot copy locking is enabled by setting the retention period using SnapMirror policy rules associated with an xref:Modify an existing policy to apply long-term retention[existing policy label]. The rule overrides the default retention period set on the volume. If there is no retention period associated with the SnapMirror label, the default retention period of the volume is used.
+
 .Tamperproof Snapshot copy requirements and considerations
 
 * If you are using the ONTAP CLI, all nodes in the cluster must be running ONTAP 9.12.1 or later. If you are using System Manager, all nodes must be running ONTAP 9.13.1 or later.
@@ -240,6 +242,21 @@ cluster1> volume snapshot modify-snaplock-expiry-time -volume vol1 -snapshot sna
 --
 ====
 
+=== Modify an existing policy to apply long-term retention
+
+Beginning with ONTAP 9.14.1, you can modify an existing SnapMirror policy by adding a rule to set long-term retention of Snapshot copies. The rule is used to override the default volume retention period on SnapLock vault destinations and on non-SnapLock SnapMirror destination volumes.
+
+. Add a rule to an existing SnapMirror policy:
++
+`snapmirror policy add-rule -vserver <SVM name> -policy <policy name> -snapmirror-label <label name> -keep <number of Snapshot copies> -retention-period [<integer> days|months|years]`
++
+The following example creates a rule that applies a retention period of 6 months to the existing policy called "lockvault":
++
+----
+snapmirror policy add-rule -vserver vs1 -policy lockvault -snapmirror-label test1 -keep 10 -retention-period "6 months"
+----
+
+// 2023-Oct-9, ONTAPDOC-1230
 // 2023-Oct-18, issue# 1136
 // 2023-Sept-5, issue# 1080
 // 2023-June-6, issue# 941
