@@ -30,10 +30,10 @@ image::../media/workflow_svm_migrate.gif[SVM migration workflow]
 
 h| Controller family h| ONTAP versions supported
 
-| AFF-A series
+| AFF A-series
 | ONTAP 9.10.1 and later
 
-| AFF-C series
+| AFF C-series
 | ONTAP 9.12.1 patch 4 and later
 
 | FAS
@@ -43,7 +43,7 @@ h| Controller family h| ONTAP versions supported
 
 [NOTE]
 
- When migrating from an AFF cluster to a FAS cluster with hybrid aggregates, auto volume placement will attempt to perform a like to like aggregate match. For example, if the source cluster has 60 volumes, the volume placement will try to find an AFF aggregate on the destination to place the volumes. When there is no sufficient space on the AFF aggregates, the volumes will be placed on aggregates with non-flash disks.
+ When migrating from an AFF cluster to a FAS cluster with hybrid aggregates, auto volume placement will attempt to perform a like to like aggregate match. For example, if the source cluster has 60 volumes, the volume placement will try to find an AFF aggregate on the destination to place the volumes. When there is not sufficient space on the AFF aggregates, the volumes will be placed on aggregates with non-flash disks.
 
 
 == Scalability support by ONTAP version
@@ -53,16 +53,21 @@ h| Controller family h| ONTAP versions supported
 
 h| ONTAP version h| HA pairs in source and destination
 
-| ONTAP 9.10.1
-| 1
-
-| ONTAP 9.11.1
-| 3
+| ONTAP 9.14.1
+| 12
 
 | ONTAP 9.13.1
 | 6
 
+| ONTAP 9.11.1
+| 3
+
+| ONTAP 9.10.1
+| 1
+
+
 |===
+
 
 == Network infrastructure performance requirements for TCP round trip time (RTT) between the source and the destination cluster
 
@@ -72,40 +77,51 @@ Depending on the ONTAP version installed on the cluster, the network connecting 
 
 h| ONTAP version h| Maximum RTT
 
-| ONTAP 9.11.1 and earlier
-| 2ms
 
 | ONTAP 9.12.1 and later
 | 10ms
+
+| ONTAP 9.11.1 and earlier
+| 2ms
 
 |===
 
 == Maximum supported volumes per SVM
 
-// [NOTE]
-// ====
-//If you are migrating from one cluster type to another (from a FAS cluster to an AFF cluster, for example), the maximum number of volumes supported is based on the HA pair that is hosting the source SVM.
-// ====
-
-[cols="2,1,1"]
+[cols="1,1,1,1,1,1"]
 |===
 
-h| ONTAP version 2+h| Maximum supported volumes per SVM
+h| Source h| Destination h| ONTAP 9.14.1 h| ONTAP 9.13.1 h| ONTAP 9.12.1 h| ONTAP 9.11.1 and earlier
 
-| 
-| *AFF*
-| *FAS*
-
-| ONTAP 9.12.1 and earlier
-| 100
-| 80
-
-| ONTAP 9.13.1 and later
+| AFF
+| AFF
+| 400
 | 200
+| 100
+| 100
+
+| FAS
+| FAS
 | 80
+| 80
+| 80
+| N/A
+
+| FAS
+| AFF
+| 80
+| 80
+| 80
+| N/A
+
+| AFF
+| FAS
+| 80
+| 80
+| 80
+| N/A 
 
 |===
-
 
 == Prerequisites
 
@@ -113,7 +129,7 @@ Before initiating an SVM migration, you must meet the following prerequisites:
 
 * You must be a cluster administrator.
 * link:https://docs.netapp.com/us-en/ontap/peering/create-cluster-relationship-93-later-task.html[The source and destination clusters must be peered to each other^].
-* The source and destination clusters must have the Data Protection Bundle license installed.
+* The source and destination clusters must have the SnapMirror Synchronous license installed.
 * All nodes in the source cluster must be running ONTAP 9.10.1 or later. For specific ONTAP array controller support, see link:https://hwu.netapp.com/[Hardware Universe^].
 * All nodes in the source cluster must be running the same ONTAP version.
 * All nodes in the destination cluster must be running the same ONTAP version.
@@ -142,26 +158,6 @@ The table indicates the ONTAP features supported by SVM data mobility and the ON
 
 h| Feature h| Release first supported h| Comments 
 
-| Asynchronous SnapMirror copy-to-cloud relationships
-| ONTAP 9.12.1
-| Beginning with ONTAP 9.12.1, when you migrate an SVM with SnapMirror Copy to Cloud relationships, the migrate destination cluster must have the copy to cloud license installed and must have enough capacity available to support moving the capacity in the volumes that are being mirrored to the cloud.
-
-| Asynchronous SnapMirror destination
-| ONTAP 9.12.1
-|
-
-| Asynchronous SnapMirror source
-| ONTAP 9.11.1
-a|
-* Transfers can continue as normal on FlexVol SnapMirror relationships during most of the migration.
-* Any ongoing transfers are canceled during cutover and new transfers fail during cutover and they cannot be restarted until the migration completes.
-* Scheduled transfers that were canceled or missed during the migration are not automatically started after the migrate completes.
-+
-[NOTE]
-====
-When a SnapMirror source is migrated, ONTAP does not prevent deletion of the volume after migration until the SnapMirror update takes place after. This happens because SnapMirror-related information for migrated SnapMirror source volumes is known only after first update after migrate is complete.
-====
-
 | Autonomous Ransomware Protection
 | ONTAP 9.12.1
 |
@@ -178,7 +174,7 @@ When a SnapMirror source is migrated, ONTAP does not prevent deletion of the vol
 | ONTAP 9.11.1
 a| Learn more about xref:FabricPool support[FabricPool support].
 
-| Fanout relationships (the migrating source has a SnapMirror source volume with more than one destination)
+| Fanout relationship (the migrating source has a SnapMirror source volume with more than one destination)
 | ONTAP 9.11.1
 |
 
@@ -250,6 +246,10 @@ a| Before SVM migration:
 | ONTAP 9.12.1
 |
 
+| NFSv4.1 with pNFS
+| ONTAP 9.14.1
+|
+
 | NVMe over Fabric
 | Not supported
 |
@@ -259,11 +259,11 @@ a| Before SVM migration:
 |
 
 | Qtrees
-| Not supported
+| ONTAP 9.14.1
 |
 
 | Quotas
-| Not supported
+| ONTAP 9.14.1
 |
 
 | S3
@@ -274,6 +274,26 @@ a| Before SVM migration:
 | ONTAP 9.12.1
 a| 
 SMB migrations are disruptive and require a client refresh post migration.
+
+| SnapMirror asynchronous copy-to-cloud relationships
+| ONTAP 9.12.1
+| Beginning with ONTAP 9.12.1, when you migrate an SVM with SnapMirror Copy to Cloud relationships, the destination cluster must have the copy-to-cloud license installed and it must have enough capacity available to support moving the capacity in the volumes that are being mirrored to the cloud.
+
+| SnapMirror asynchronous destination
+| ONTAP 9.12.1
+|
+
+| SnapMirror asynchronous source
+| ONTAP 9.11.1
+a|
+* Transfers can continue as normal on FlexVol SnapMirror relationships during most of the migration.
+* Any ongoing transfers are canceled during cutover and new transfers fail during cutover and they cannot be restarted until the migration completes.
+* Scheduled transfers that were canceled or missed during the migration are not automatically started after the migration completes.
++
+[NOTE]
+====
+When a SnapMirror source is migrated, ONTAP does not prevent deletion of the volume after migration until the SnapMirror update takes place. This happens because SnapMirror-related information for migrated SnapMirror source volumes is available only after migration is complete, and after the first update takes place.
+====
 
 | SMTape settings
 | Not supported
@@ -302,6 +322,10 @@ SMB migrations are disruptive and require a client refresh post migration.
 | Snapshot copy
 | ONTAP 9.10.1
 |
+
+| Tamperproof Snapshot copy locking
+| ONTAP 9.14.1
+| Tamperproof Snapshot copy locking is not equivalent to SnapLock. SnapLock remains unsupported.
 
 | Virtual IP LIFs/BGP
 | Not supported
@@ -352,12 +376,12 @@ h| Volume operation 3+h| SVM migration state
 | Allowed
 | Not supported
 
-| Filesystem analytics disable
+| File System Analytics disable
 | Allowed
 | Allowed 
 | Not supported
 
-| Filesystem analytics enable
+| File System Analytics enable
 | Not allowed
 | Allowed 
 | Not supported
@@ -379,12 +403,12 @@ h| Volume operation 3+h| SVM migration state
 
 | Qtree create/modify
 | Not allowed
-| Not allowed
+| Allowed
 | Not supported
 
 | Quota create/modify
 | Not allowed
-| Not allowed
+| Allowed
 | Not supported
 
 | Rename
@@ -469,7 +493,8 @@ h| File operation 3+h| SVM migration state
 
 |===
 
-
+// 2023-Oct-2, ONTAPDOC-1357
+// 2023-Oct-2, ONTAPDOC-1106
 // 2023-Sept-25, issue# 1121
 // 2023-Aug-28, ONTAPDOC-1292
 // 2023-June-29, ONTAPDOC-1138

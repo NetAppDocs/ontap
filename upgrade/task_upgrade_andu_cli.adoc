@@ -6,7 +6,6 @@ summary: You can nondisruptively update the version of ONTAP on your cluster.
 ---
 
 = Automated nondisruptive ONTAP upgrade using the CLI
-:toc: macro
 :toclevels: 1
 :hardbreaks:
 :nofooter:
@@ -15,21 +14,18 @@ summary: You can nondisruptively update the version of ONTAP on your cluster.
 :imagesdir: ./media/
 
 [.lead]
+For automated upgrades, ONTAP automatically installs the target ONTAP image on each node, validates the cluster components to ensure that the cluster can be upgraded nondisruptively, and then executes a xref:concept_upgrade_methods.html[batch or rolling upgrade] in the background based on the number of nodes. 
+
 You can use the command line interface (CLI) to verify that the cluster can be upgraded nondisruptively, install the target ONTAP image on each node, and then execute an upgrade in the background.
 
-NOTE: If you are upgrading ONTAP in a MetroCluster FC configuration, you also need to verify that the cluster is enabled for automatic unplanned switchover.
-
+[NOTE]
 If you do not plan to monitor the progress of the upgrade process, it is a good practice to link:task_requesting_notification_of_issues_encountered_in_nondisruptive_upgrades.html[request EMS notifications of errors that might require manual intervention].
 
 .Before you begin
 
-* You should launch Active IQ Digital Advisor.
-+
-The Upgrade Advisor component of Active IQ Digital Advisor helps you plan for a successful upgrade.
-+
-Data-driven insights and recommendations from Active IQ Digital Advisor are provided to all NetApp customers with an active *SupportEdge* contract (features vary by product and support tier).
+* You should link:prepare.html[prepare for your upgrade].
 
-* You must have met the upgrade preparation requirements.
+* You should link:download-software-image.html[download the ONTAP software image] for your target ONTAP release.
 
 * For each HA pair, each node should have one or more ports on the same broadcast domain.
 +
@@ -39,12 +35,17 @@ In ONTAP 9.8 and later, if the batch method is used, LIFs are migrated to the ot
 
 * If you are performing a link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths[direct multi-hop upgrade], you must have obtained both of the correct ONTAP images required for your specific link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#supported-upgrade-paths[upgrade path].
 
-.About this task
+* If you are upgrading ONTAP in a MetroCluster FC configuration, the cluster should be enabled for automatic unplanned switchover.
 
-The `cluster image validate` command checks the cluster components to validate that the upgrade can be completed nondisruptively, and then it provides the status of each check and any required action you must take before performing the software upgrade.
 
 [NOTE] 
 Modifying the setting of the `storage failover modify-auto-giveback` command option before the start of an automatic nondisruptive upgrade (ANDU) has no impact on the upgrade process. The ANDU process ignores any preset value to this option during the takeover/giveback required for the update. For example, setting `-autogiveback` to false prior to beginning ANDU does not interrupt the automatic upgrade before giveback.
+
+== Step 1: Load the target ONTAP software image into the cluster package repository
+
+To begin your ONTAP software upgrade process, you must make the target ONTAP software image available in the cluster package repository.
+
+.Steps
 
 . Delete the previous ONTAP software package:
 +
@@ -53,7 +54,7 @@ Modifying the setting of the `storage failover modify-auto-giveback` command opt
 cluster image package delete -version previous_ONTAP_Version
 ----
 
-. Download the target ONTAP software package:
+. Load the target ONTAP software image into the cluster package repository:
 +
 [source, cli]
 ----
@@ -67,7 +68,7 @@ Package download completed.
 Package processing completed.
 ----
 +
-If you are performing a link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths[direct multi-hop upgrade], you also need to download the software package for the intermediate version of ONTAP needed for your upgrade. For example, if you are upgrading from 9.8 to 9.13.1, you need to download the software package for ONTAP 9.12.1, and then use the same command to download the software package for 9.13.1.  
+If you are performing a link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths[direct multi-hop upgrade], you also need to load the software package for the intermediate version of ONTAP required for your upgrade. For example, if you are upgrading from 9.8 to 9.13.1, you need to load the software package for ONTAP 9.12.1, and then use the same command to load the software package for 9.13.1.  
 
 . Verify that the software package is available in the cluster package repository:
 +
@@ -83,7 +84,11 @@ Package Version  Package Build Time
 9.13.1              MM/DD/YYYY 10:32:15
 ----
 
-. Verify that the cluster is ready to be upgraded nondisruptively:
+== Step 2: Execute automated pre-upgrade checks
+
+Optionally, before you perform an automated upgrade of your ONTAP software, you can use the `cluster image validate` command to verify that the cluster can be upgraded successfully.  The `cluster image validate` command runs a series of checks against your cluster components, then provides a list of the specific validations that were performed and a list of any corrective actions that need to be taken before proceeding with the upgrade.
+
+. Execute the automated pre-upgrade checks:
 +
 [source, cli]
 ----
@@ -91,6 +96,7 @@ cluster image validate -version package_version_number
 ----
 +
 * If you are performing a link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths[direct multi-hop upgrade],use the target ONTAP package for verification.  You do not need to validate the intermediate upgrade image separately.  For example, if you are upgrading from 9.8 to 9.13.1, you should use the 9.13.1 package for verification. You do not need to validate the 9.12.1 package separately.
+
 * If you are upgrading a two-node or four-node MetroCluster configuration, you must run this command on both clusters before proceeding.
 +
 ----
@@ -106,6 +112,8 @@ cluster image show-update-progress
 ----
 
 . Complete all required actions identified by the validation.
+
+== Step 3: Upgrade the ONTAP software
 
 . Generate a software upgrade estimate:
 +
@@ -209,8 +217,10 @@ AUSO Failure Domain    auso-on-cluster-disaster
 +
 [source, cli]
 ----
-metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster
+metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster -overide-vetoes true
 ----
++
+NOTE: You cannot perform the switchback operation until the automated nondisruptive upgrade is completed.
 
 .. Verify that automatic unplanned switchover has been enabled:
 +
@@ -219,36 +229,9 @@ metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster
 metrocluster show
 ----
 
+// BURT 1555318, 25 Sep 2023
 // BURT 1361715, 06 DEC 2021
 // BURT 1387815, 23 FEB 2022
-
-== Resuming an upgrade (using the CLI) after an error in the automated upgrade process
-
-If an automated upgrade pauses because of an error, you can resolve the error and resume the automated upgrade, or you can cancel the automated upgrade and complete the process manually. If you choose to continue the automated upgrade, do not perform any of the upgrade steps manually.
-
-.About this task
-
-If you want to manually complete the upgrade, use the `cluster image cancel-update` command to cancel the automated process and proceed manually. If you want to continue the automated upgrade, complete the following steps.
-
-.Steps
-
-. View the upgrade error:
-+
-[source, cli]
-----
-cluster image show-update-progress
-----
-. Resolve the error.
-. Resume the update:
-+
-[source, cli]
-----
-cluster image resume-update
-----
-
-.After you finish
-
-link:task_what_to_do_after_upgrade.html[Perform post-upgrade checks].
 
 
 .Related information
@@ -256,6 +239,8 @@ link:task_what_to_do_after_upgrade.html[Perform post-upgrade checks].
 * https://aiq.netapp.com/[Launch Active IQ]
 * https://docs.netapp.com/us-en/active-iq/[Active IQ documentation]
 
+// 2023 Oct 13, Jira 1415
+// 2023 Oct 9, Jira 1162
 // 2023 Aug 30, Jira 1257
 // 2023 Jun 16, Jira 1098
 // 2023 Feb 10, Git 796
