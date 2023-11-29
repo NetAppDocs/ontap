@@ -1,57 +1,68 @@
 ---
 permalink: snaplock/initialize-complianceclock-task.html
 sidebar: sidebar
-keywords: snaplock, complianceclock, initialize, worm, retention, period, node, ntp, reset, resynchronize
-summary: "The SnapLock ComplianceClock ensures against tampering that might alter the retention period for WORM files. You must initialize the system ComplianceClock on each node that hosts a SnapLock aggregate. Once you initialize the ComplianceClock on a node, you cannot initialize it again."
+keywords: snaplock, complianceclock, compliance clock, initialize, worm, retention, period, node, ntp, reset, resynchronize
+summary: "The SnapLock ComplianceClock ensures against tampering that might alter the retention period for WORM files. You must initialize the system Compliance Clock on each node that hosts a SnapLock aggregate. "
 ---
-= Initialize the ComplianceClock
+= Initialize the Compliance Clock
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-The SnapLock ComplianceClock ensures against tampering that might alter the retention period for WORM files. You must initialize the _system ComplianceClock_ on each node that hosts a SnapLock aggregate. Once you initialize the ComplianceClock on a node, you cannot initialize it again.
+SnapLock uses the _volume Compliance Clock_ to ensure against tampering that might alter the retention period for WORM files. You must first initialize the _system ComplianceClock_ on each node that hosts a SnapLock aggregate.
 
-.What you'll need
+Beginning with ONTAP 9.14.1, you can initialize or reinitialize the system Compliance Clock when there are no SnapLock volumes or no volumes with Snapshot copy locking enabled. The ability to reinitialize enables system administrators to reset the system Compliance Clock in instances where it might have been incorrectly initialized or to correct clock drift on the system. In ONTAP 9.13.1 and earlier releases, once you initialize the Compliance Clock on a node, you cannot initialize it again.
+
+.Before you begin
+
+To reinitialize the Compliance Clock: 
+
+* All nodes in the cluster must be in the healthy state.
+* All volumes must be online.
+* No volumes can be present the the recovery queue.
+* No SnapLock volumes can be present.
+* No volumes with Snapshot copy locking enabled can be present. 
+
+General requirements for initializing the Compliance Clock:
 
 * You must be a cluster administrator to perform this task.
 * The SnapLock license must be installed on the node.
 
 .About this task
 
-The time on the system ComplianceClock is inherited by the _volume ComplianceClock_, which controls the retention period for WORM files on the volume. The volume ComplianceClock is initialized automatically when you create a new SnapLock volume.
+The time on the system Compliance Clock is inherited by the _volume Compliance Clock_, the latter of which controls the retention period for WORM files on the volume. The volume Compliance Clock is initialized automatically when you create a new SnapLock volume.
 
 [NOTE]
 ====
-The initial setting of the ComplianceClock is based on the current system clock. For that reason, you should verify that the system time and time zone are correct before initializing the ComplianceClock. Once you initialize the ComplianceClock on a node, you cannot initialize it again.
+The initial setting of the system Compliance Clock is based on the current hardware system clock. For that reason, you should verify that the system time and time zone are correct before initializing the system Compliance Clock on each node. Once you initialize the system Compliance Clock on a node, you cannot initialize it again when SnapLock volumes or volumes with locking enabled are present.
 ====
 
+.Steps
+
+You can use the ONTAP CLI to initialize the Compliance Clock or, beginning with ONTAP 9.12.1, you can use System Manager to initialize the Compliance Clock.
 
 [role="tabbed-block"]
 ====
 .System Manager
 --
-Beginning with ONTAP 9.12.1, you can use System Manager to initialize the SnapLock Compliance Clock.
-
-.Steps
-
 . Navigate to *Cluster > Overview*.
 . In the *Nodes* section, click *Initialize SnapLock Compliance Clock*.
-. To display the Compliance Clock column and to verify that the Compliance Clock is initialized, in the *Cluster > Overview > Nodes* section, click *Show/Hide* and select *SnapLock Compliance Clock*.
+. To display the *Compliance Clock* column and to verify that the Compliance Clock is initialized, in the *Cluster > Overview > Nodes* section, click *Show/Hide* and select *SnapLock Compliance Clock*.
 --
 
 --
 .CLI
-. Initialize the system ComplianceClock:
+. Initialize the system Compliance Clock:
 +
 `*snaplock compliance-clock initialize -node _node_name_*`
 +
-The following command initializes the system ComplianceClock on `node1`:
+The following command initializes the system Compliance Clock on `node1`:
 +
 ----
 cluster1::> snaplock compliance-clock initialize -node node1
 ----
 
-. When prompted, confirm that the system clock is correct and that you want to initialize the ComplianceClock:
+. When prompted, confirm that the system clock is correct and that you want to initialize the Compliance Clock:
 +
 ----
 Warning: You are about to initialize the secure ComplianceClock of
@@ -70,9 +81,9 @@ Do you want to continue? (y|n): y
 
 // 2022-9-12, ONTAPDOC-580
 
-== Enable ComplianceClock resynchronization for an NTP-configured system
+== Enable Compliance Clock resynchronization for an NTP-configured system
 
-You can enable the SnapLock ComplianceClock time synchronization feature when an NTP server is configured.
+You can enable the SnapLock Compliance Clock time synchronization feature when an NTP server is configured.
 
 .What you'll need
 
@@ -83,17 +94,17 @@ You can enable the SnapLock ComplianceClock time synchronization feature when an
 
 .About this task
 
-When the SnapLock secure clock daemon detects a skew beyond the threshold, ONTAP uses the system time to reset both the system and volume ComplianceClocks. A period of 24 hours is set as the skew threshold. This means that the system ComplianceClock is synchronized to the system clock only if the skew is more than a day old.
+When the SnapLock secure clock daemon detects a skew beyond the threshold, ONTAP uses the system time to reset both the system and volume Compliance Clocks. A period of 24 hours is set as the skew threshold. This means that the system Compliance Clock is synchronized to the system clock only if the skew is more than a day old.
 
-The SnapLock secure clock daemon detects a skew and changes the ComplianceClock to the system time. Any attempt at modifying the system time to force the ComplianceClock to synchronize to the system time fails, since the ComplianceClock synchronizes to the system time only if the system time is synchronized with the NTP time.
+The SnapLock secure clock daemon detects a skew and changes the Compliance Clock to the system time. Any attempt at modifying the system time to force the Compliance Clock to synchronize to the system time fails, since the Compliance Clock synchronizes to the system time only if the system time is synchronized with the NTP time.
 
 .Steps
 
-. Enable the SnapLock ComplianceClock time synchronization feature when an NTP server is configured:
+. Enable the SnapLock Compliance Clock time synchronization feature when an NTP server is configured:
 +
 `*snaplock compliance-clock ntp*`
 +
-The following command enables the system ComplianceClock time synchronization feature:
+The following command enables the system Compliance Clock time synchronization feature:
 +
 ----
 cluster1::*> snaplock compliance-clock ntp modify -is-sync-enabled true
@@ -106,10 +117,13 @@ cluster1::*> snaplock compliance-clock ntp modify -is-sync-enabled true
 +
 `*snaplock compliance-clock ntp show*`
 +
-The following command checks that the system ComplianceClock time synchronization feature is enabled:
+The following command checks that the system Compliance Clock time synchronization feature is enabled:
 +
 ----
 cluster1::*> snaplock compliance-clock ntp show
 
 Enable clock sync to NTP system time: true
 ----
+
+// 2023-Oct-31, IDR-279
+// 2023-Oct-4, ONTAPDOC-1230

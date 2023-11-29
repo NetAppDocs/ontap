@@ -1,0 +1,50 @@
+---
+permalink: nas-audit/create-persistent-stores.html
+sidebar: sidebar
+keywords: create, persistent store, fpolicy
+summary: "Beginning with ONTAP 9.14.1, FPolicy allows you to setup a persistent store to capture file access events for asynchronous non-mandatory policies in the SVM. Persistent stores can help decouple client I/O processing from the FPolicy notification processing to reduce client latency. Synchronous and asynchronous mandatory configurations are not supported."
+---
+= Create persistent stores
+:icons: font
+:imagesdir: ../media/
+
+
+[.lead]
+Beginning with ONTAP 9.14.1, FPolicy allows you to set up a link:persistent-stores.html[Persistent stores] to capture file access events for asynchronous non-mandatory policies in the SVM. Persistent stores can help decouple client I/O processing from FPolicy notification processing to reduce client latency. Synchronous (mandatory or non-mandatory) and asynchronous mandatory configurations are not supported.
+
+.Best practices
+
+* Before using the persistent store functionality, please ensure your partner applications support this configuration.
+* The persistent store volume is setup on a per SVM basis. For each FPolicy enabled SVM you will need a persistent store volume. 
+* The persistent store volume name and the junction-path specified at the time of volume creation should match. 
+* Create the persistent store volume on the node with LIFs that expect maximum traffic to be monitored by Fpolicy.
+* Have the snapshot policy set to `none` for that volume instead of `default`. This is to ensure that there is no accidental restore of the snapshot leading to loss of current events and to prevent possible duplicate event processing.
+* Make the persistent store volume inaccessible for external user protocol access (CIFS/NFS) to avoid accidental corruption or deletion of the persisted event records. To achieve this, after enabling FPolicy, unmount the volume in ONTAP to remove the junction path, this makes it inaccessible for the user protocol access.
+
+.Steps
+
+. Create an empty volume on the SVM that can be provisioned for the persistent store:
++
+`volume create -vserver <SVM Name> -volume <volume> -state <online> -junction-path <path> -policy <default> -unix-permissions <777> -size <value> -aggregate <aggregate name> -snapshot-policy <none>`
++
+* Size of the persistent store volume is based on the time duration for which you want to persist the events that are not delivered to the external server (partner application).
++
+For example, if you want 30 minutes of events to persist in a cluster with a 30K notifications per second capacity:
++
+Required Volume Size = 30000 x 30 x 60 x 0.6KB (avg notification record size) = 32400000 KB = ~32 GB
++
+To find the approximate notification rate, you can either reach out to your FPolicy partner application or utilize the FPolicy counter `requests_dispatched_rate`.
++
+* It is expected that an administrator user with sufficient RBAC privileges (to create a volume) will create a volume (using the volume cli command or REST API) of the desired size and provide the name of that volume as the `-volume` in the persistent store create CLI command or REST API.
+. Create the persistent store:
++
+`vserver fpolicy persistent store create -vserver <SVM> -persistent-store <PS_name> -volume <volume>`
++
+* persistent-store: The persistent store name
+* volume: The persistent store volume
+. After the persistent store is created, you can create the FPolicy policy and add the persistent store name to that policy. 
+For more information, see link:https://docs.netapp.com/us-en/ontap/nas-audit/create-fpolicy-policy-task.html[Create the FPolicy policy].
+
+
+// 20 OCT 2023, ONTAPDOC-1344 updates
+// 17 OCT 2023, ONTAPDOC-1344

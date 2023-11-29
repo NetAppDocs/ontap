@@ -1,0 +1,344 @@
+---
+sidebar: sidebar
+permalink: upgrade/automated-upgrade-task.html
+keywords: netapp, ontap, automate, automatic, automated, upgrade, nondisruptive, nondisruptively, non-disruptive update, nondisruptive upgrade, upgrade a cluster, shift workload between clusters, hardware platform, configuration, software image, update, update ONTAP, update software, ndu
+summary: You can nondisruptively update the version of ONTAP on your cluster.
+---
+
+= Automated nondisruptive ONTAP upgrade
+:toclevels: 1
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+When you perform an automated upgrade, ONTAP automatically installs the target ONTAP image on each node, validates that the cluster can be upgraded successfully, and then executes either a xref:concept_upgrade_methods.html[batch or rolling upgrade] in the background based on the number of nodes in the cluster. 
+
+If it is supported by your configuration, you should use System Manager to perform an automated upgrade.  If your configuration does not support automated upgrade using System Manager, you can use the ONTAP command line interface (CLI) to perform an automated upgrade.
+
+[IMPORTANT]
+Modifying the setting of the `storage failover modify-auto-giveback` command option before the start of an automatic nondisruptive upgrade (ANDU) has no impact on the upgrade process. The ANDU process ignores any preset value to this option during the takeover/giveback required for the update. For example, setting `-autogiveback` to false prior to beginning ANDU does not interrupt the automatic upgrade before giveback.
+
+.Before you begin
+
+* You should link:prepare.html[prepare for your upgrade].
+
+* You should link:download-software-image.html[download the ONTAP software image] for your target ONTAP release.
++
+If you are performing a link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths[direct multi-hop upgrade], you need to download both of the ONTAP images required for your specific link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#supported-upgrade-paths[upgrade path].
+
+* For each HA pair, each node should have one or more ports on the same broadcast domain.
++
+If you have 8 or more nodes, the batch upgrade method is used in the automatic nondisruptive upgrade.  In ONTAP 9.7 and earlier, if the batch method is used, LIFs are migrated to the HA partner of the node being upgraded.  If the partners don't have any ports in the same broadcast domain, then the LIF migration fails.
++
+In ONTAP 9.8 and later, if the batch method is used, LIFs are migrated to the other batch group.
+
+* If you are upgrading ONTAP in a MetroCluster FC configuration, the cluster should be enabled for automatic unplanned switchover.
+
+* If you don't plan to monitor the progress of the upgrade process, you should link:task_requesting_notification_of_issues_encountered_in_nondisruptive_upgrades.html[request EMS notifications of errors that might require manual intervention].
+
+.Steps
+
+// start tabbed area
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+. Validate the ONTAP target image: 
++
+[NOTE]
+If you are upgrading a MetroCluster configuration, you should validate Cluster A and then repeat the validation process on Cluster B.
+
+.. Depending on the ONTAP version that you are running, perform one of the following steps:
++
+
+|===
+
+h|If you are running...  h| Do this...
+
+| ONTAP 9.8 or later a| Click *Cluster > Overview*.
+| ONTAP 9.5, 9.6, and 9.7 a| Click *Configuration* > *Cluster* > *Update*.
+| ONTAP 9.4 or earlier a| Click *Configuration* > *Cluster Update*.
+|===
+
+.. In the right corner of the *Overview* pane, click image:icon_kabob.gif[menu icon].
+
+.. Click *ONTAP Update*.
+
+.. In the *Cluster Update* tab, add a new image or select an available image.
++
+
+|===
+
+h| If you want to... h| Then...
+
+a|
+Add a new software image from a local folder
+
+You should have already link:download-software-image.html[downloaded the image] to the local client.
+
+a|
+
+... Under *Available Software Images*, click *Add from Local*.
+... Browse to the location you saved the software image, select the image, and then click *Open*.
+
+
+a|
+Add a new software image from an HTTP or FTP server
+a|
+
+... Click *Add from Server*.
+... In the *Add a New Software Image* dialog box, enter the URL of the HTTP or FTP server to which you downloaded the ONTAP software image from the NetApp Support Site.
++
+For anonymous FTP, you must specify the URL in the ftp://anonymous@ftpserver format.
+
+... Click *Add*.
+
+a|
+Select an available image
+a|
+Choose one of the listed images.
+|===
+
+.. Click *Validate* to run the pre-upgrade validation checks.
++
+If any errors or warnings are found during validation, they are displayed along with a list of corrective actions. You must resolve all errors before proceeding with the upgrade.  It is best practice to also resolve warnings.
+
+. Click *Next*.
+
+. Click *Update*.
++
+Validation is performed again. Any remaining errors or warnings are displayed along with a list of corrective actions.  Errors must be corrected before you can proceed with the upgrade.  If the validation is completed with warnings, you correct the warnings or choose *Update with warnings*.
++
+NOTE: By default, ONTAP uses the link:concept_upgrade_methods.html[batch upgrade process] to upgrade clusters with eight or more nodes.  Beginning in ONTAP 9.10.1, if preferred, you can select *Update one HA pair at a time* to override the default and have your cluster upgrade one HA pair at a time using the rolling upgrade process.  
++
+For MetroCluster configurations with more than 2 nodes, the ONTAP upgrade process starts simultaneously on the HA pairs at both sites.  For a 2-node MetroCluster configuration, the upgrade is started first on the site where the upgrade is not initiated. The upgrade on the remaining site begins after the first upgrade is fully completed.  
+
+. If your upgrade pauses because of an error, click the error message to view the details, then correct the error and link:resume-upgrade-after-andu-error.html[resume the upgrade].
+
+.After you finish
+After the upgrade is completed successfully, the node reboots, and you are redirected to the System Manager login page. If the node takes a long time to reboot, you should refresh your browser.
+--
+
+.CLI
+--
+
+. Validate the ONTAP target software image
+[NOTE]
+If you are upgrading a MetroCluster configuration you should first execute the following steps on cluster A, then execute the same steps on cluster B.
+
+.. Delete the previous ONTAP software package:
++
+[source, cli]
+----
+cluster image package delete -version previous_ONTAP_Version
+----
+
+.. Load the target ONTAP software image into the cluster package repository:
++
+[source, cli]
+----
+cluster image package get -url location
+----
++
+----
+cluster1::> cluster image package get -url http://www.example.com/software/9.13.1/image.tgz
+
+Package download completed.
+Package processing completed.
+----
++
+If you are performing a link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths[direct multi-hop upgrade], you also need to load the software package for the intermediate version of ONTAP required for your upgrade. For example, if you are upgrading from 9.8 to 9.13.1, you need to load the software package for ONTAP 9.12.1, and then use the same command to load the software package for 9.13.1.  
+
+.. Verify that the software package is available in the cluster package repository:
++
+[source, cli]
+----
+cluster image package show-repository
+----
++
+----
+cluster1::> cluster image package show-repository
+Package Version  Package Build Time
+---------------- ------------------
+9.13.1              MM/DD/YYYY 10:32:15
+----
+
+.. Execute the automated pre-upgrade checks:
++
+[source, cli]
+----
+cluster image validate -version package_version_number
+----
++
+If you are performing a link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths[direct multi-hop upgrade],you only need to use the target ONTAP package for verification.  You don't need to validate the intermediate upgrade image separately.  For example, if you are upgrading from 9.8 to 9.13.1, use the 9.13.1 package for verification. You don't need to validate the 9.12.1 package separately.
++
+----
+cluster1::> cluster image validate -version 9.13.1
+
+WARNING: There are additional manual upgrade validation checks that must be performed after these automated validation checks have completed...
+----
+
+.. Monitor the progress of the validation:
++
+[source, cli]
+----
+cluster image show-update-progress
+----
+
+.. Complete all required actions identified by the validation.
+
+
+. Generate a software upgrade estimate:
++
+[source, cli]
+----
+cluster image update -version package_version_number -estimate-only
+----
++
+[NOTE]
+If you are upgrading a MetroCluster configuration, you can run this command on either Cluster A or Cluster B.  You don't need to run it on both clusters.
++
+The software upgrade estimate displays details about each component to be updated, as well as the estimated duration of the upgrade.
+
+
+. Perform the software upgrade:
++
+[source, cli]
+----
+cluster image update -version package_version_number
+----
++
+* If you are performing a link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_paths.html#types-of-upgrade-paths[direct multi-hop upgrade], use the target ONTAP version for the package_version_number. For example, if you are upgrading from ONTAP 9.8 to 9.13.1, use 9.13.1 as the package_version_number.
+
+* By default, ONTAP uses the link:concept_upgrade_methods.html[batch upgrade process] to upgrade clusters with eight or more nodes.  If preferred, you can use the `-force-rolling` parameter to override the default process and have your cluster upgraded one node at a time using the rolling upgrade process. 
+
+* After completing each takeover and giveback, the upgrade waits for 8 minutes to enable client applications to recover from the pause in I/O that occurs during the takeover and giveback. If your environment requires more or less time for client stabilization, you can use the `-stabilize-minutes` parameter to specify a different amount of stabilization time.
+
+* For MetroCluster configurations with 4 nodes more, the automated upgrade starts simultaneously on the HA pairs at both sites.  For a 2-node MetroCluster configuration, the upgrade starts on the site where the upgrade is not initiated. The upgrade on the remaining site begins after the first upgrade is fully completed. 
+
++
+----
+cluster1::> cluster image update -version 9.13.1
+
+Starting validation for this update. Please wait..
+
+It can take several minutes to complete validation...
+
+WARNING: There are additional manual upgrade validation checks...
+
+Pre-update Check      Status     Error-Action
+--------------------- ---------- --------------------------------------------
+...
+20 entries were displayed
+
+Would you like to proceed with update ? {y|n}: y
+Starting update...
+
+cluster-1::>
+----
+
+. Display the cluster update progress:
++
+[source, cli]
+----
+cluster image show-update-progress
+----
++
+If you are upgrading a 4-node or 8-node MetroCluster configuration, the `cluster image show-update-progress` command only displays the progress for the node on which you run the command. You must run the command on each node to see individual node progress.
+
+. Verify that the upgrade was completed successfully on each node.
++
+[source, cli]
+----
+cluster image show-update-progress
+----
++
+----
+cluster1::> cluster image show-update-progress
+
+                                             Estimated         Elapsed
+Update Phase         Status                   Duration        Duration
+-------------------- ----------------- --------------- ---------------
+Pre-update checks    completed                00:10:00        00:02:07
+Data ONTAP updates   completed                01:31:00        01:39:00
+Post-update checks   completed                00:10:00        00:02:00
+3 entries were displayed.
+
+Updated nodes: node0, node1.
+----
+
+. Trigger an AutoSupport notification:
++
+[source, cli]
+----
+autosupport invoke -node * -type all -message "Finishing_NDU"
+----
++
+If your cluster is not configured to send AutoSupport messages, a copy of the notification is saved locally.
+
+. If you are upgrading a MetroCluster FC configuration, verify that the cluster is enabled for automatic unplanned switchover.
++
+[NOTE]
+If you are upgrading a standard configuration or a MetroCluster IP configuration, you don't need to perform this step.
+
+.. Check whether automatic unplanned switchover is enabled:
++
+[source, cli]
+----
+metrocluster show
+----
++
+If automatic unplanned switchover is enabled, the following statement appears in the command output:
++
+....
+AUSO Failure Domain    auso-on-cluster-disaster
+....
+
+.. If the statement does not appear in the output, enable automatic unplanned switchover:
++
+[source, cli]
+----
+metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster
+----
+
+.. Verify that automatic unplanned switchover has been enabled:
++
+[source, cli]
+----
+metrocluster show
+----
+
+--
+
+====
+
+// end tabbed area
+
+== Video: Upgrades made easy
+
+Take a look at the simplified ONTAP upgrade capabilities of System Manager in ONTAP 9.8.
+
+video::xwwX8vrrmIk[youtube, width=848, height=480]
+
+
+// BURT 1361715, 06 DEC 2021
+// BURT 1387815, 23 FEB 2022
+
+
+.Related information
+
+* https://aiq.netapp.com/[Launch Active IQ]
+* https://docs.netapp.com/us-en/active-iq/[Active IQ documentation]
+
+// 2023 Oct 17 Jira 1423
+// 2023 Oct 13, Jira 1415
+// 2023 Oct 9, Jira 1162
+// 2023 Aug 30, Jira 1257
+// 2023 Jun 16, Jira 1098
+// 2023 Feb 10, Git 796
+// 2022 Feb 21, BURT 1387815

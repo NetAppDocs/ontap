@@ -9,7 +9,7 @@ summary: 'A mixed version ONTAP cluster consists of nodes running two different 
 :imagesdir: ../media/
 
 [.lead]
-A mixed version ONTAP cluster consists of nodes running two different major ONTAP releases for a limited time.  For example, if a cluster consists of nodes running ONTAP 9.8 and 9.12.1, the cluster is a mixed version cluster.  Similarly, a cluster in which nodes are running ONTAP 9.9.1 and 9.13.1 would be a mixed version cluster.  NetApp supports mixed version ONTAP clusters for limited periods of time and in specific scenarios.  
+A mixed version ONTAP cluster consists of nodes running two different major ONTAP releases for a limited time.  For example, if a cluster currently consists of nodes running ONTAP 9.8 and 9.12.1, the cluster is a mixed version cluster.  Similarly, a cluster in which nodes are running ONTAP 9.9.1 and 9.13.1 would be a mixed version cluster.  NetApp supports mixed version ONTAP clusters for limited periods of time and in specific scenarios.  
 
 The following are the  most common scenarios in which an ONTAP cluster will be in a mixed version state:
 
@@ -22,9 +22,9 @@ The information applies to ONTAP versions that support NetApp platforms systems,
 
 If your cluster needs to enter a mixed ONTAP version state, you need to be aware of important requirements and restrictions. 
 
-* There cannot be more than two different major ONTAP versions in a cluster at any given time. Clusters that have nodes running with different P or D patch levels of the same ONTAP release, such as ONTAP 9.9.1P1 and 9.9.1P5, are not considered mixed version ONTAP clusters. 
+* There cannot be more than two different major ONTAP versions in a cluster at any given time. For example, ONTAP 9.9.1 and 9.13.1 is supported but ONTAP 9.9.1, 9.12.1, and 9.13.1 is not. Clusters that have nodes running with different P or D patch levels of the same ONTAP release, such as ONTAP 9.9.1P1 and 9.9.1P5, are not considered mixed version ONTAP clusters. 
 
-* While the cluster is in a mixed version state, you should not enter any commands that alter the cluster operation or configuration except those that are required for the upgrade or data migration process.  For example, activities such as (but not limited to) LIF migration,  planned storage failover operations, or large-scale object creation or destruction should not be performed until upgrade and data migration are complete.
+* While the cluster is in a mixed version state, you should not enter any commands that alter the cluster operation or configuration except those that are required for the upgrade or data migration process.  For example, activities such as (but not limited to) LIF migration, planned storage failover operations, or large-scale object creation or deletion should not be performed until upgrade and data migration are complete.
 
 * For optimal cluster operation, the length of time that the cluster is in a mixed version state should be as short as possible.  The maximum length of time a cluster can remain in a mixed version state depends on the lowest ONTAP version in the cluster.
 +
@@ -42,29 +42,29 @@ If your cluster needs to enter a mixed ONTAP version state, you need to be aware
 
 |===
 
-* Beginning with ONTAP 9.8, a mixed version ONTAP cluster can span a maximum of 5 major releases. For example, a mixed version ONTAP cluster could have nodes running ONTAP 9.8 and 9.12.1, or it could have nodes running ONTAP 9.9.1 and 9.13.1. A mixed version ONTAP cluster with nodes running ONTAP 9.8 and 9.13.1 would not be supported, because that mixed version cluster spans 6 major releases.
+* Beginning with ONTAP 9.8, the version difference between the original nodes and the new nodes cannot be greater than four. For example, a mixed version ONTAP cluster could have nodes running ONTAP 9.8 and 9.12.1, or it could have nodes running ONTAP 9.9.1 and 9.13.1. However, a mixed version ONTAP cluster with nodes running ONTAP 9.8 and 9.13.1 would not be supported.
++
+For a complete list of supported mixed version clusters, see link:concept_upgrade_paths.html[supported upgrade paths]. All _direct_ upgrade paths are supported for mixed version clusters.
 
 == Updating the ONTAP version of a large cluster
 
 One scenario for entering a mixed version cluster state involves upgrading the ONTAP version of a cluster with multiple nodes to take advantage of the features available in later versions of ONTAP 9. When you need to upgrade the ONTAP version of a larger cluster, you will enter a mixed version cluster state for a period of time as you upgrade each node in your cluster. 
 
-== Adding new nodes to your cluster
+== Adding new nodes to an ONTAP cluster
 
 Another scenario for entering a mixed version cluster state involves adding new nodes to your cluster. You might add new nodes to your cluster to expand its capacity, or you might add new nodes as part of the process of completely replacing your controllers. In either case, you need to enable the migration of your data from existing controllers to the new nodes in your new system.
 
-If you plan to add new nodes to your cluster, and those nodes require a minimum version of ONTAP that’s later than the version currently running in your cluster, you need to perform any supported software upgrades on the existing nodes in your cluster before adding the new nodes. 
+If you plan to add new nodes to your cluster, and those nodes require a minimum version of ONTAP that's later than the version currently running in your cluster, you need to perform any supported software upgrades on the existing nodes in your cluster before adding the new nodes. 
 
-Ideally, you would upgrade all existing nodes to the minimum version of ONTAP required by the nodes you plan to add to the cluster. However, if this is not possible because some of your existing nodes don’t support the later version of ONTAP, you’ll need to enter a mixed version state for a limited amount of time as part of your upgrade process. If you have nodes that do not support the minimum ONTAP version required by your new controllers, you should do the following:
+Ideally, you would upgrade all existing nodes to the minimum version of ONTAP required by the nodes you plan to add to the cluster. However, if this is not possible because some of your existing nodes don't support the later version of ONTAP, you'll need to enter a mixed version state for a limited amount of time as part of your upgrade process. If you have nodes that do not support the minimum ONTAP version required by your new controllers, you should do the following:
 
 . link:https://docs.netapp.com/us-en/ontap/upgrade/concept_upgrade_methods.html[Upgrade] the nodes that do not support the minimum ONTAP version required by your new controllers to the maximum ONTAP version that they do support.  
 +
-For example, if you have a FAS8000 running ONTAP 9.5 and you are adding a new C-Series platform running ONTAP 9.12.1, you should upgrade your FAS8000 to ONTAP 9.8 (which is the maximum ONTAP version it supports).
+For example, if you have a FAS8080 running ONTAP 9.5 and you are adding a new C-Series platform running ONTAP 9.12.1, you should upgrade your FAS8080 to ONTAP 9.8 (which is the maximum ONTAP version it supports).
 
-. Add the new nodes to your cluster.
-+
-Use the ONTAP command cluster `add-node -allow-mixed-version-join` at the advanced privilege level to join the new nodes. 
+. https://review.docs.netapp.com/us-en/ontap_pcarriga-ontapdoc1416-9oct/system-admin/add-nodes-cluster-concept.html[Add the new nodes to your cluster].
 
-. Migrate the data from any nodes that cannot be upgraded to a node running the higher ONTAP version.
+. link:https://docs.netapp.com/us-en/ontap-systems-upgrade/upgrade/upgrade-create-aggregate-move-volumes.html[Migrate the data] from the nodes being removed from the cluster to the newly added nodes.
 
 . link:https://docs.netapp.com/us-en/ontap/system-admin/remov-nodes-cluster-concept.html[Remove the unsupported nodes from the cluster^].
 
@@ -78,7 +78,10 @@ For details on data migration see:
 * link:https://docs.netapp.com/us-en/ontap-metrocluster/transition/task_move_linux_iscsi_hosts_from_mcc_fc_to_mcc_ip_nodes.html#setting-up-new-iscsi-connections[Setting up new iSCSI connections for SAN volume moves^]
 * link:https://docs.netapp.com/us-en/ontap/encryption-at-rest/encrypt-existing-volume-task.html[Moving volumes with encryption^]
 
-
+// 2023 OCT 9, ONTAPDOC-1416
+// 2023 Aug 28, ONTAPDOC 1257
+// 2023 Aug 29, Jira 1313
+// 2023 Aug 28, Jira 1100
 // 2023 Jul 31, Jira 1073
 // 2023 Jul 18, Public PR 1004
 // 2023 Jul 07, Jira 1100

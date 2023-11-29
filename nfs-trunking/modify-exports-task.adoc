@@ -1,0 +1,45 @@
+---
+permalink: nfs-trunking/modify-exports-task.html
+sidebar: sidebar
+keywords: NFS, servers, network, NFS trunking, NIC, export, policies, rule, Linux, VMware, datastores, client
+summary: 'To enable clients to to take advantage of trunking for existing data shares, you might have to modify export policies and rules, and the volumes to which they are attached.'
+---
+= Modify data export for client access 
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+To enable clients to take advantage of trunking for existing data shares, you might have to modify export policies and rules, and the volumes to which they are attached. There are different export requirements for Linux clients and VMware datastores. 
+
+Client export requirements:
+
+* Linux clients must have a separate mount and a separate mount point for each trunking connection (that is, for each LIF).
++
+If you are upgrading to ONTAP 9.14.1 and you have already exported a volume, you can continue to use that volume in a trunking group.
+
+* VMware clients require only a single mount point for an exported volume, with multiple LIFs specified. 
++
+VMware clients require root access in the export policy. 
+
+.Steps
+
+. Verify that an existing export policy is in place:
++
+`vserver export-policy show`
+. Verify that the existing export policy rules are appropriate for the trunking configuration:
++
+`vserver export-policy rule show -policyname _policy_name_`
++
+In particular, verify that the `-clientmatch` parameter correctly identifies the trunking-capable Linux or VMware clients that will mount the export.
++
+If adjustments are necessary, modify the rule using the `vserver export-policy rule modify` command or create a new rule:
++
+`vserver export-policy rule create -vserver _svm_name_ -policyname _policy_name_ -ruleindex integer -protocol nfs4 -clientmatch { text | "text,text,…" } -rorule _security_type_ -rwrule _security_type_ -superuser _security_type_ -anon _user_ID_`
++
+Learn more about link:../nfs-config/add-rule-export-policy-task.html[creating export rules.]
+
+. Verify that existing exported volumes are online:
++
+`volume show -vserver _svm_name_`
+
+// 2023 Jan 09, ONTAPDOC-552
