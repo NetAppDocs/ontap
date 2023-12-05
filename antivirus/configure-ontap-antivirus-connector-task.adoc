@@ -104,7 +104,7 @@ entry for rotation limit (5 is the limit).
 +
 [NOTE]
 ====
-These values are optional. If they are not provided, default values of 20MB and 10MB are used for the rotation size and rotation limit respectively. Provided integer values do not provide decimal or fraction values. If you provide values higher than the default values, it rebounds to the default values.
+These values are optional. If they are not provided, default values of 20MB and 10 files are used for the rotation size and rotation limit respectively. Provided integer values do not provide decimal or fraction values. If you provide values higher than the default values, it rebounds to the default values.
 ====
 +
 . To disable user configured log rotation, delete the registry values you created in Step 6.
@@ -119,7 +119,7 @@ A custom banner allows you to place a legally binding statement and a system acc
 . Modify the default banner by updating the contents in the `banner.txt` file in the install directory and then saving the changes.
 You must reopen the Configure ONTAP LIF API window to see the changes reflected in the banner.
 
-== Secure (EO) Mode of Operation
+== Enable Extended Ordinance (EO) mode 
 
 You can enable and disable Extended Ordinance (EO) mode for secure operation.
 
@@ -131,8 +131,7 @@ You can enable and disable Extended Ordinance (EO) mode for secure operation.
 . In the right-side pane, create a new registry value of type "DWORD" with the name "EO_Mode" (without quotes) and value "1" (without quotes) to enable EO_Mode or value "0" (without quotes) to disable EO_Mode.
 
 [NOTE]
-By default, if the EO_Mode registry entry is not present, EO_mode is disabled.
-When you enable EO_mode, configure both the External Syslog Server and Mutual Certificate Authentication.
+By default, if the EO_Mode registry entry is absent, EO_mode is disabled. When you enable EO_mode, you must configure both the external syslog server and mutual certificate authentication.
 
 == Configure the external syslog server
 
@@ -179,7 +178,7 @@ Syslog_host
 a|
 |===
 +
-Provide the syslog host IP address or domain name for Value.
+Provide the syslog host IP address or domain name for the value field.
 . Create another registry value by providing the information as shown in the following table:
 +
 
@@ -253,7 +252,7 @@ Please note that a 1 value enables syslog with Transport Layer Security (TLS) an
 and the syslog level defaults to 5 (LOG_NOTICE).
 * You can confirm that syslog is enabled by verifying that the  `syslog_enabled` value is 1. When the `syslog_enabled` value is 1, you should be able to log in to the configured remote server whether or not `EO_Mode` is enabled. 
 * If `EO_Mode` is set to 1 and you change the `syslog_enabled` value from 1 to 0, the following applies:
-** If the service is started or restarted, it cannot start and shutdown.
+** You cannot start the service if syslog is not enabled in `EO Mode`.
 **  If the system is running in a steady state, a warning appears that says syslog cannot be disabled in `EO_Mode` and syslog is forcefully set to 1, which you can see in the registry. If this occurs, you should disable `EO Mode` first and then disable syslog.
 * If the syslog server is unable to run successfully when `EO_Mode` and syslog are enabled, the service stops running. This might occur for one of the following reasons:
 ** An invalid or no syslog_host is configured.
@@ -261,16 +260,13 @@ and the syslog level defaults to 5 (LOG_NOTICE).
 ** A port number is invalid.
 * For a TCP or TLS over TCP configuration, if the server is not listening on the IP port, the connection fails and the service shuts down.
 
-== X.509 mutual certificate authentication
+== Configure X.509 mutual certificate authentication
 
-X.509 certificate based mutual authentication is possible for the Secure Sockets Layer (SSL) communication between the Antivirus Connector and ONTAP in the management path.
-When operating in EO compliant mode, if the certificate is not found, the AV Connector terminates.
-The following procedure is performed on the Antivirus Connector:
+X.509 certificate based mutual authentication is possible for the Secure Sockets Layer (SSL) communication between the Antivirus Connector and ONTAP in the management path. If EO mode is enabled and the certificate is not found, the AV Connector terminates. Perform the following procedure on the Antivirus Connector:
 
 .Steps
 
-. The Antivirus Connector looks for the Antivirus Connector client certificate and the certificate authority (CA) certificate for the NetApp server in a fixed location. This location is the directory path from where the Antivirus Connector runs the Antivirus Connector install directory. The certificates must be copied into this fixed directory path.
-. The client certificate and its private key should be embedded in the PKCS12 format and named "AV_client.P12".
-. The CA certificate (along with any intermediate signing authority up to the root CA) used to sign the certificate for the NetApp server should be in the Privacy Enhanced Mail (PEM) format and named "Ontap_CA.pem". It should also be placed in the Antivirus Connector install directory.
-On the NetApp ONTAP system, the CA certificate (along with any intermediate signing authority up to the root CA) used to sign the client certificate for the Antivirus  Connector should be installed at "ONTAP" as a "client-ca" type certificate.
+. The Antivirus Connector searches for the Antivirus Connector client certificate and the certificate authority (CA) certificate for the NetApp server in the directory path from where the Antivirus Connector runs the install directory. Copy the certificates into this fixed directory path.
+. Embed the client certificate and its private key in the PKCS12 format and name it "AV_client.P12".
+. Ensure the CA certificate (along with any intermediate signing authority up to the root CA) used to sign the certificate for the NetApp server is in the Privacy Enhanced Mail (PEM) format and named "Ontap_CA.pem". Place it in the Antivirus Connector install directory. On the NetApp ONTAP system, install the CA certificate (along with any intermediate signing authority up to the root CA) used to sign the client certificate for the Antivirus Connector at "ONTAP" as a "client-ca" type certificate.
 // 2023 november 11, ONTAPDOC-1052
