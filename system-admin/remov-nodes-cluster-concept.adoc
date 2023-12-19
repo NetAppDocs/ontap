@@ -64,26 +64,60 @@ NOTE: All system and user data, from all disks that are connected to the node, m
 
 . Change the privilege level to advanced:
 +
-`*set -privilege advanced*`
-
-. Verify if a nodes on the cluster holds epsilon:
-+
-`*cluster show -epsilon true*`
-
-.. If a node holds epsilon, change its eligibility to false.
-+
-`*cluster modify -node <node_name> -eligibility false*`
-
-. If the node you want to remove is the current master node, then enable another node in the cluster to be elected as the master node by changing the master node's cluster eligibility to `false`:
-+
-`*cluster modify –eligibility false*`
-+
-The master node is the node that holds processes such as "`mgmt`", "`vldb`", "`vifmgr`", "`bcomd`", and "`crs`". The `cluster ring show` advanced command shows the current master node.
-+
+[source,cli]
 ----
-cluster::*> cluster modify -node node1 -eligibility false
+set -privilege advanced
 ----
 
+. Verify if a node on the cluster holds epsilon:
++
+[source,cli]
+----
+cluster show -epsilon true
+----
+
+. If a node on the cluster holds epsilon and that node is going to be unjoined, move epsilon to a node that is not going to be unjoined:
+
+.. Move epsilon from the node that is going to be unjoined
++
+[source,cli]
+----
+cluster modify -node <name_of_node_to_be_unjoined> -epsilon false
+----
+
+.. Move epsilon to a node that is not going to be unjoined:
++
+[source,cli]
+----
+cluster modify -node <node_name> -epsilon true
+----
+
+. Identify the current master node:
++
+[source,cli]
+----
+cluster ring show
+----
++
+The master node is the node that holds processes such as "`mgmt`", "`vldb`", "`vifmgr`", "`bcomd`", and "`crs`". 
+
+. If the node you want to remove is the current master node, then enable another node in the cluster to be elected as the master node:
+
+.. Make the current master node ineligibly to participate in the cluster:
++
+[source,cli]
+----
+cluster modify – node <node_name> -eligibility false
+----
++
+When the master node become ineligible, one of the remaining nodes is elected by the cluster quorum as the new master.
+
+.. Make the previous master node eligible to participate in the cluster again:
++
+[source,cli]
+----
+cluster modify – node <node_name> -eligibility true
+----
 . Log into the remote node management LIF or the cluster-management LIF on a node other than the one that is being removed.
 
 . Remove the node from the cluster:
@@ -94,11 +128,17 @@ cluster::*> cluster modify -node node1 -eligibility false
 a|
 ONTAP 9.3
 a|
-`*cluster unjoin*`
+[source,cli]
+----
+cluster unjoin
+----
 a|
 ONTAP 9.4 and later
 a|
-`*cluster remove-node*`
+[source,cli]
+----
+cluster remove-node*
+----
 |===
 If you have a mixed version cluster and you are removing the last lower version node, use the `-skip-last-low-version-node-check` parameter with these commands.
 +
@@ -117,16 +157,21 @@ The node is automatically rebooted after it is successfully removed from the clu
 
 . If you are repurposing the node, erase the node configuration and initialize all disks:
  .. During the boot process, press Ctrl-C to display the boot menu when prompted to do so.
- .. Select the boot menu option *(4) Clean configuration and initialize all disks*.
+ .. Select the boot menu option (4) Clean configuration and initialize all disks.
 . Return to admin privilege level:
 +
-`*set -privilege admin*`
+[source,cli]
+----
+set -privilege admin
+----
+
 . Repeat the preceding steps to remove the failover partner from the cluster.
 
 .After you finish
 
 If you removed nodes to have a single-node cluster, you should modify the cluster ports to serve data traffic by modifying the cluster ports to be data ports, and then creating data LIFs on the data ports.
 
+// 2023 Dec 18, Jira 736
 // 2023 Apr 17, Git Issue 750
 // 2023 Apr 17, Git Issue 849
 // 2023 Apr 10, Git Issue 863
