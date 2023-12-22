@@ -1,0 +1,271 @@
+---
+permalink: antivirus/configure-ontap-antivirus-connector-task.html
+sidebar: sidebar
+keywords: configure, antivirus connector, task, SVM's, connections
+summary: "You must configure the Antivirus Connector to specify one or more storage virtual machines (SVMs) that you want to connect to by either entering the ONTAP Management LIF, poll information, and the ONTAP admin account credentials, or just the Data LIF."
+---
+= Configure the ONTAP Antivirus Connector
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Configure the ONTAP Antivirus Connector to specify one or more storage virtual machines (SVMs) that you want to connect to by either entering the ONTAP management LIF, poll information, and the ONTAP admin account credentials, or just the data LIF. You can also modify the details of an SVM connection or remove an SVM connection. By default, the ONTAP Antivirus Connector uses REST APIs to retrieve the list of data LIFs if the ONTAP management LIF is configured.
+
+== Modify the details of an SVM connection
+
+You can update the details of a storage virtual machine (SVM) connection, which has been added to the Antivirus Connector, by modifying the ONTAP management LIF and the poll information. You cannot update data LIFs after they have been added. To update data LIFs you must first remove them and then add them again with the new LIF or IP address.
+
+.Before you begin
+
+Verify that you have created a user account for the HTTP application and assigned a role which has (at least read-only) access to the `/api/network/ip/interfaces` REST API.
+For more information about creating a user, see the link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-role-create.html#description[security login role create^] and the link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-create.html[security login create^] commands.
+You can also use the domain user as an account by adding an authentication tunnel SVM for an administrative SVM.
+For more information, see the link:https://docs.netapp.com/us-en/ontap-cli-9131//security-login-domain-tunnel-create.html[security login domain-tunnel create] ONTAP man page.
+
+.Steps
+
+. Right-click the *Configure ONTAP LIFs* icon, which was saved on your desktop when you completed the Antivirus Connector installation, and then select *Run as Administrator*. The Configure ONTAP LIFs dialog box opens.
+. Select the SVM IP address, and then click *Update*.
+. Update the information, as required.
+. Click *Save* to update the connection details in the registry.
+. Click *Export* if you want to export the list of connections to a registry import or a registry export file.
+This is useful if multiple Vscan servers use the same set of management or data LIFs.
+
+== Remove an SVM connection from the Antivirus Connector
+
+If you no longer require an SVM connection, you can remove it.
+
+.Steps
+
+. Right-click the *Configure ONTAP LIFs* icon, which was saved on your desktop when you completed the Antivirus Connector installation, and then select *Run as Administrator*. The Configure ONTAP LIFs dialog box opens.
+. Select one or more SVM IP addresses, and then click *Remove*.
+. Click *Save* to update the connection details in the registry.
+. Click *Export* if you want to export the list of connections to a registry import or registry export file.
+This is useful if multiple Vscan servers use the same set of management or data LIFs.
+
+== Troubleshoot
+
+.Before you begin
+
+When you are creating registry values in this procedure, use the right-side pane.
+
+You can enable or disable Antivirus Connector logs for diagnostic purposes. By default, these logs are disabled. For enhanced performance, you should keep the Antivirus Connector logs disabled and only enable them for critical events.
+
+.Steps
+
+. Select *Start*, type "regedit" into the search box, and then select `regedit.exe` in the Programs list.
++
+. In *Registry Editor*, locate the following subkey for the ONTAP Antivirus Connector:
+  `HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Data ONTAP\Clustered Data ONTAP Antivirus Connector\v1.0`
++
+. Create registry values by providing the type, name, and values shown in the following table:
++
+
+|===
+
+h| Type h| Name h| Values
+
+a|
+String
+a|
+Tracepath
+a|
+c:\avshim.log
+|===
++
+This registry value could be any other valid path.
++
+. Create another registry value by providing the type, name, values, and logging information shown in the following table:
++
+
+|===
+
+h| Type h| Name h| Critical logging h| Intermediate logging h| Verbose logging
+
+a|
+DWORD
+a|
+Tracelevel
+a|
+1
+a| 
+2 or 3
+a|
+4
+|===
++
+This enables Antivirus Connector logs that are saved at the path value provided in the TracePath in Step 3.
++
+. Disable Antivirus Connector logs by deleting the registry values you created in Steps 3 and 4.
++
+. Create another registry value of type "MULTI_SZ" with the name "LogRotation" (without quotes). In "LogRotation",
+provide "logFileSize:1" as an entry for rotation size (where 1 represents 1MB) and in the next line, provide "logFileCount:5" as an
+entry for rotation limit (5 is the limit).
++
+[NOTE]
+====
+These values are optional. If they are not provided, default values of 20MB and 10 files are used for the rotation size and rotation limit respectively. Provided integer values do not provide decimal or fraction values. If you provide values higher than the default values, the default values are used instead.
+====
++
+. To disable the user-configured log rotation, delete the registry values you created in Step 6.
+
+
+== Customizable Banner
+
+A custom banner allows you to place a legally binding statement and a system access disclaimer on the _Configure ONTAP LIF API_ window.
+
+.Step
+
+. Modify the default banner by updating the contents in the `banner.txt` file in the install directory and then saving the changes.
+You must reopen the Configure ONTAP LIF API window to see the changes reflected in the banner.
+
+== Enable Extended Ordinance (EO) mode 
+
+You can enable and disable Extended Ordinance (EO) mode for secure operation.
+
+.Steps
+
+. Select *Start*, type "regedit" in the search box, and then select `regedit.exe` in the Programs list.
+. In *Registry Editor*, locate the following subkey for ONTAP Antivirus Connector:
+`HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Data ONTAP\Clustered Data ONTAP Antivirus Connector\v1.0`
+. In the right-side pane, create a new registry value of type "DWORD" with the name "EO_Mode" (without quotes) and value "1" (without quotes) to enable EO Mode or value "0" (without quotes) to disable EO Mode.
+
+[NOTE]
+By default, if the `EO_Mode` registry entry is absent, EO mode is disabled. When you enable EO mode, you must configure both the external syslog server and mutual certificate authentication.
+
+== Configure the external syslog server
+
+.Before you begin
+
+Take note that when you are creating registry values in this procedure, use the right-side pane.
+
+.Steps
+
+. Select *Start*, type "regedit" in the search box, and then select `regedit.exe` in the Programs list.
++
+. In *Registry Editor*, create the following subkey for ONTAP Antivirus Connector for syslog configuration:
+`HKEY_LOCAL_MACHINE\SOFTWARE\Wow6432Node\Data ONTAP\Clustered Data ONTAP Antivirus Connector\v1.0\syslog`
++
+. Create a registry value by providing the type, name, and value as shown in the following table:
++
+
+|===
+
+h|Type h|Name h| Value
+
+a|
+DWORD
+a|
+syslog_enabled
+a|
+1 or 0
+a|
+|===
++
+Please note that a "1" value enables the syslog and a "0" value disables it.
++
+. Create another registry value by providing the information as shown in the following table:
+
++
+|===
+
+h|Type h|Name 
+
+a|
+REG_SZ
+a|
+Syslog_host
+a|
+|===
++
+Provide the syslog host IP address or domain name for the value field.
+. Create another registry value by providing the information as shown in the following table:
++
+
+|===
+
+h|Type h|Name 
+
+a|
+REG_SZ
+a|
+Syslog_port
+|===
++
+Provide the port number on which the syslog server is running in the value field.
+. Create another registry value by providing the information as shown in the following table:
++
+|===
+
+h|Type h|Name 
+
+a|
+REG_SZ
+a|
+Syslog_protocol
+a|
+|===
++
+Enter the protocol that is in use on the syslog server, either "tcp" or "udp", in the value field.
+. Create another registry value by providing the information as shown in the following table:
++
+|===
+
+h|Type h|Name h| LOG_CRIT h|LOG_NOTICE h| LOG_INFO h| LOG_DEBUG
+
+a|
+DWORD
+a|
+Syslog_level
+a|
+2
+a|
+5
+a|
+6
+a|
+7
+|===
+. Create another registry value by providing the information as shown in the following table:
++
+|===
+
+h|Type h|Name h| Value
+
+a|
+DWORD
+a|
+syslog_tls
+a|
+1 or 0
+
+|===
+
+Please note that a "1" value enables syslog with Transport Layer Security (TLS) and a "0" value disables syslog with TLS.
+
+=== Ensure a configured external syslog server runs smoothly
+
+* If the key is absent or has a null value:
+** The protocol defaults to "tcp".
+** The port defaults to "514" for plain "tcp/udp" and defaults to "6514" for TLS.
+** The syslog level defaults to 5 (LOG_NOTICE).
+* You can confirm that syslog is enabled by verifying that the `syslog_enabled` value is "1". When the `syslog_enabled` value is "1", you should be able to log in to the configured remote server whether or not EO mode is enabled. 
+* If EO mode is set to "1" and you change the `syslog_enabled` value from "1" to "0", the following applies:
+** You cannot start the service if syslog is not enabled in EO mode.
+**  If the system is running in a steady state, a warning appears that says syslog cannot be disabled in EO mode and syslog is forcefully set to "1", which you can see in the registry. If this occurs, you should disable EO mode first and then disable syslog.
+* If the syslog server is unable to run successfully when EO mode and syslog are enabled, the service stops running. This might occur for one of the following reasons:
+** An invalid or no syslog_host is configured.
+** An invalid protocol apart from UDP or TCP is configured.
+** A port number is invalid.
+* For a TCP or TLS over TCP configuration, if the server is not listening on the IP port, the connection fails and the service shuts down.
+
+== Configure X.509 mutual certificate authentication
+
+X.509 certificate based mutual authentication is possible for the Secure Sockets Layer (SSL) communication between the Antivirus Connector and ONTAP in the management path. If EO mode is enabled and the certificate is not found, the AV Connector terminates. Perform the following procedure on the Antivirus Connector:
+
+.Steps
+
+. The Antivirus Connector searches for the Antivirus Connector client certificate and the certificate authority (CA) certificate for the NetApp server in the directory path from where the Antivirus Connector runs the install directory. Copy the certificates into this fixed directory path.
+. Embed the client certificate and its private key in the PKCS12 format and name it "AV_client.P12".
+. Ensure the CA certificate (along with any intermediate signing authority up to the root CA) used to sign the certificate for the NetApp server is in the Privacy Enhanced Mail (PEM) format and named "Ontap_CA.pem". Place it in the Antivirus Connector install directory. On the NetApp ONTAP system, install the CA certificate (along with any intermediate signing authority up to the root CA) used to sign the client certificate for the Antivirus Connector at "ONTAP" as a "client-ca" type certificate.
+// 2023 november 11, ONTAPDOC-1052
