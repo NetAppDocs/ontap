@@ -2,33 +2,45 @@
 permalink: upgrade/task_updating_a_two_node_metrocluster_configuration_in_ontap_9_2_and_earlier.html
 sidebar: sidebar
 keywords: ontap, upgrade, two-node, metrocluster, mcc, 9.2, earlier
-summary: 'If you have a 2-node Metrocluster configuration running 9.2 or earlier use this procedure for ONTAP upgrade.'
+summary: 'How you upgrade a two-node MetroCluster configuration varies based on your ONTAP version. Use this procedure for upgrades from ONTAP 9.2 or earlier.'
 ---
-= Manual nondisruptive upgrade of a two-node MetroCluster configuration in ONTAP 9.2 or earlier
+= Nondisruptive upgrade of a two-node MetroCluster configuration in ONTAP 9.2 or earlier
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You can upgrade ONTAP nondisruptively for a two-node MetroCluster configuration. This method has several steps: initiating a negotiated switchover, updating the cluster at the "`failed`" site, initiating switchback, and then repeating the process on the cluster at the other site.
+How you upgrade a two-node MetroCluster configuration varies based on your ONTAP version. If you are running ONTAP 9.2 or earlier, you should use this procedure to perform a manual nondisruptive upgrade which includes initiating a negotiated switchover, updating the cluster at the "`failed`" site, initiating switchback, and then repeating the process on the cluster at the other site.
 
-[NOTE]
-====
-This procedure is for two-node MetroCluster configurations running ONTAP 9.2 or earlier only.
+If you have a two-node MetroCluster configuration running ONTAP 9.3 or later, perform an xref:task_upgrade_andu_sm.html[automated upgrade using System Manager].
 
-If you have a two-node MetroCluster configuration running ONTAP 9.3 or later, perform an xref:task_upgrade_andu_sm.html[automated nondisruptive upgrade using System Manager].
+.Steps
 
-====
-. Set the privilege level to advanced, entering *y* when prompted to continue: `set -privilege advanced`
+. Set the privilege level to advanced, entering *y* when prompted to continue: 
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 The advanced prompt (`*>`) appears.
 
-. On the cluster to be upgraded, install the new ONTAP software image as the default: `system node image update -package package_location -setdefault true -replace-package true`
+. On the cluster to be upgraded, install the new ONTAP software image as the default: 
++
+[source,cli]
+----
+system node image update -package package_location -setdefault true -replace-package true
+----
 +
 ----
 cluster_B::*> system node image update -package http://www.example.com/NewImage.tgz -setdefault true -replace-package true
 ----
 
-. Verify that the target software image is set as the default image: `system node image show`
+. Verify that the target software image is set as the default image: 
++
+[source,cli]
+----
+system node image show
+----
 +
 The following example shows that `NewImage` is set as the default image:
 +
@@ -43,9 +55,26 @@ node_B_1
 2 entries were displayed.
 ----
 
-. If the target software image is not set as the default image, then change it: `system image modify {-node * -iscurrent false} -isdefault true`
-. Verify that all cluster SVMs are in a health state: `metrocluster vserver show`
-. On the cluster that is not being updated, initiate a negotiated switchover: `metrocluster switchover`
+. If the target software image is not set as the default image, then change it: 
++
+[source,cli]
+----
+system image modify {-node * -iscurrent false} -isdefault true
+----
+
+. Verify that all cluster SVMs are in a health state: 
++
+[source,cli]
+----
+metrocluster vserver show
+----
+
+. On the cluster that is not being updated, initiate a negotiated switchover: 
++
+[source,cli]
+----
+metrocluster switchover
+----
 +
 The operation can take several minutes. You can use the metrocluster operation show command to verify that the switchover is completed.
 +
@@ -62,8 +91,19 @@ Warning: negotiated switchover is about to start. It will stop all the data
 Do you want to continue? {y|n}: y
 ----
 
-. Verify that all cluster SVMs are in a health state: `metrocluster vserver show`
-. Resynchronize the data aggregates on the "`surviving`" cluster: `metrocluster heal -phase aggregates`
+. Verify that all cluster SVMs are in a health state: 
++
+[source,cli]
+----
+metrocluster vserver show
+----
+
+. Resynchronize the data aggregates on the "`surviving`" cluster: 
++
+[source,cli]
+----
+metrocluster heal -phase aggregates
+----
 +
 After upgrading MetroCluster IP configurations to ONTAP 9.5 or later, the aggregates will be in a degraded state for a short period before resynchronizing and returning to a mirrored state.
 +
@@ -72,7 +112,12 @@ cluster_A::> metrocluster heal -phase aggregates
 [Job 130] Job succeeded: Heal Aggregates is successful.
 ----
 
-. Verify that the healing operation was completed successfully: `metrocluster operation show`
+. Verify that the healing operation was completed successfully: 
++
+[source,cli]
+----
+metrocluster operation show
+----
 +
 ----
 cluster_A::> metrocluster operation show
@@ -83,14 +128,24 @@ End Time: MM/DD/YYYY TIME
 Errors: -
 ----
 
-. Resynchronize the root aggregates on the "`surviving`" cluster: `metrocluster heal -phase root-aggregates`
+. Resynchronize the root aggregates on the "`surviving`" cluster: 
++
+[source,cli]
+----
+metrocluster heal -phase root-aggregates
+----
 +
 ----
 cluster_A::> metrocluster heal -phase root-aggregates
 [Job 131] Job succeeded: Heal Root Aggregates is successful.
 ----
 
-. Verify that the healing operation was completed successfully: `metrocluster operation show`
+. Verify that the healing operation was completed successfully:
++
+[source,cli]
+----
+metrocluster operation show
+----
 +
 ----
 cluster_A::> metrocluster operation show
@@ -101,10 +156,33 @@ End Time: MM/DD/YYYY TIME
 Errors: -
 ----
 
-. On the halted cluster, boot the node from the LOADER prompt: `boot_ontap`
-. Wait for the boot process to finish, and then verify that all cluster SVMs are in a health state: `metrocluster vserver show`
-. Perform a switchback from the "`surviving`" cluster: `metrocluster switchback`
-. Verify that the switchback was completed successfully: `metrocluster operation show`
+. On the halted cluster, boot the node from the LOADER prompt: 
++
+[source,cli]
+----
+boot_ontap
+----
+
+. Wait for the boot process to finish, and then verify that all cluster SVMs are in a health state: 
++
+[source,cli]
+----
+metrocluster vserver show
+----
+
+. Perform a switchback from the "`surviving`" cluster: 
++
+[source,cli]
+----
+metrocluster switchback
+----
+
+. Verify that the switchback was completed successfully: 
++
+[source,cli]
+----
+metrocluster operation show
+----
 +
 ----
 cluster_A::> metrocluster operation show
@@ -115,10 +193,23 @@ End Time: MM/DD/YYYY TIME
 Errors: -
 ----
 
-. Verify that all cluster SVMs are in a health state: `metrocluster vserver show`
+. Verify that all cluster SVMs are in a health state: 
++
+[source,cli]
+----
+metrocluster vserver show
+----
+
 . Repeat all previous steps on the other cluster.
+
 . Verify that the MetroCluster configuration is healthy:
- .. Check the configuration: `metrocluster check run`
+
+.. Check the configuration: 
++
+[source,cli]
+----
+metrocluster check run
+----
 +
 ----
 cluster_A::> metrocluster check run
@@ -139,10 +230,48 @@ operation, run "metrocluster switchover -simulate" or "metrocluster
 switchback -simulate", respectively.
 ----
 
- .. If you want to view more detailed results, use the metrocluster check run command: `metrocluster check aggregate show``metrocluster check config-replication show``metrocluster check lif show``metrocluster check node show`
- .. Set the privilege level to advanced: `set -privilege advanced`
- .. Simulate the switchover operation: `metrocluster switchover -simulate`
- .. Review the results of the switchover simulation: `metrocluster operation show`
+.. If you want to view more detailed results, use the metrocluster check run command: 
++
+[source,cli]
+----
+metrocluster check aggregate show
+----
++
+[source,cli]
+----
+metrocluster check config-replication show
+----
++
+[source,cli]
+----
+metrocluster check lif show
+----
++
+[source,cli]
+----
+metrocluster check node show
+----
+
+.. Set the privilege level to advanced: 
++
+[source,cli]
+----
+set -privilege advanced
+----
+
+.. Simulate the switchover operation: 
++
+[source,cli]
+----
+metrocluster switchover -simulate
+----
+
+.. Review the results of the switchover simulation: 
++
+[source,cli]
+----
+metrocluster operation show
+----
 +
 ----
 cluster_A::*> metrocluster operation show
@@ -153,13 +282,22 @@ cluster_A::*> metrocluster operation show
        Errors: -
 ----
 
- .. Return to the admin privilege level: `set -privilege admin`
- .. Repeat these substeps on the other cluster.
+.. Return to the admin privilege level: 
++
+[source,cli]
+----
+set -privilege admin
+----
 
-You should perform any post-upgrade tasks.
+.. Repeat these substeps on the other cluster.
+
+.After you finish
+
+Perform any link:task_what_to_do_after_upgrade.html[post-upgrade tasks].
 
 .Related information
 
 link:https://docs.netapp.com/us-en/ontap-metrocluster/disaster-recovery/concept_dr_workflow.html[MetroCluster Disaster recovery]
 
+// 2023 Dec 13, Jira 1275
 // 2023 Aug 08, Jira 1256

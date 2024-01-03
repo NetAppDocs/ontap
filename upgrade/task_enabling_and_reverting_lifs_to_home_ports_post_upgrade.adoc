@@ -2,82 +2,46 @@
 permalink: upgrade/task_enabling_and_reverting_lifs_to_home_ports_post_upgrade.html
 sidebar: sidebar
 keywords: ontap, upgrade, after, post, enable, enabling, revert, reverting, lifs, home, ports
-summary: 'During a reboot, some LIFs might have been migrated to their assigned failover ports. Before and after you upgrade a cluster, you must enable and revert any LIFs that are not on their home ports.'
+summary: 'During an upgrade reboot, some LIFs might be migrated to their assigned failover ports .After the upgrade, enable and revert LIFs that are not on their home ports.'
 ---
-= Verify all LIFS are on home ports after upgrade
+= Verify all LIFS are on home ports after ONTAP upgrade
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-During a reboot, some LIFs might have been migrated to their assigned failover ports. After you upgrade a cluster, you must enable and revert any LIFs that are not on their home ports.
+During the reboot that occurs as part of the ONTAP upgrade process, some LIFs might be migrated from their home ports to their assigned failover ports. After an upgrade, you need to enable and revert any LIFs that are not on their home ports.
 
-The network interface revert command reverts a LIF that is not currently on its home port back to its home port, provided that the home port is operational. A LIF's home port is specified when the LIF is created; you can determine the home port for a LIF by using the network interface show command.
+.Steps
 
-. Display the status of all LIFs: `network interface show -fields home-port,curr-port`
+. Display the status of all LIFs:
 +
-This example displays the status of all LIFs for a storage virtual machine (SVM).
-+
+[source,cli]
 ----
-cluster1::> network interface show -fields home-port,curr-port
-vserver                          lif       home-port curr-port
--------------------------------- --------- --------- ---------
-C1_sti96-vsim-ucs539g_1622463615 clus_mgmt e0d       e0d
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539g_cluster_mgmt_inet6 e0d e0d
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539g_mgmt1 e0c e0c
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539g_mgmt1_inet6 e0c e0c
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539h_cluster_mgmt_inet6 e0d e0d
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539h_mgmt1 e0c e0c
-C1_sti96-vsim-ucs539g_1622463615 sti96-vsim-ucs539h_mgmt1_inet6 e0c e0c
-Cluster                          sti96-vsim-ucs539g_clus1 e0a e0a
-Cluster                          sti96-vsim-ucs539g_clus2 e0b e0b
-Cluster                          sti96-vsim-ucs539h_clus1 e0a e0a
-Cluster                          sti96-vsim-ucs539h_clus2 e0b e0b
-vs0                              sti96-vsim-ucs539g_data1 e0d e0d
-vs0                              sti96-vsim-ucs539g_data1_inet6 e0d e0d
-vs0                              sti96-vsim-ucs539g_data2 e0e e0e
-vs0                              sti96-vsim-ucs539g_data2_inet6 e0e e0e
-vs0                              sti96-vsim-ucs539g_data3 e0f e0f
-vs0                              sti96-vsim-ucs539g_data3_inet6 e0f e0f
-vs0                              sti96-vsim-ucs539g_data4 e0d e0d
-vs0                              sti96-vsim-ucs539g_data4_inet6 e0d e0d
-vs0                              sti96-vsim-ucs539g_data5 e0e e0e
-vs0                              sti96-vsim-ucs539g_data5_inet6 e0e e0e
-vs0                              sti96-vsim-ucs539g_data6 e0f e0f
-vs0                              sti96-vsim-ucs539g_data6_inet6 e0f e0f
-vs0                              sti96-vsim-ucs539h_data1 e0d e0d
-vs0                              sti96-vsim-ucs539h_data1_inet6 e0d e0d
-vs0                              sti96-vsim-ucs539h_data2 e0e e0e
-vs0                              sti96-vsim-ucs539h_data2_inet6 e0e e0e
-vs0                              sti96-vsim-ucs539h_data3 e0f e0f
-vs0                              sti96-vsim-ucs539h_data3_inet6 e0f e0f
-vs0                              sti96-vsim-ucs539h_data4 e0d e0d
-vs0                              sti96-vsim-ucs539h_data4_inet6 e0d e0d
-vs0                              sti96-vsim-ucs539h_data5 e0e e0e
-vs0                              sti96-vsim-ucs539h_data5_inet6 e0e e0e
-vs0                              sti96-vsim-ucs539h_data6 e0f e0f
-vs0                              sti96-vsim-ucs539h_data6_inet6 e0f e0f
-35 entries were displayed.
+network interface show -fields home-port,curr-port
 ----
 +
-If any LIFs appear with a Status Admin status of "down" or with an Is home status of "false", continue with the next step.
+If *Status Admin* is "down" or *Is home* is "false" for any LIFs, continue with the next step.
 
-. Enable the data LIFs: `network interface modify {-role data} -status-admin up`
+. Enable the data LIFs: 
 +
+[source,cli]
 ----
-cluster1::> network interface modify {-role data} -status-admin up
-8 entries were modified.
+network interface modify {-role data} -status-admin up
 ----
 
-. Revert LIFs to their home ports: `network interface revert *`
+. Revert LIFs to their home ports: 
 +
-This command reverts all LIFs back to their home ports.
-+
+[source,cli]
 ----
-cluster1::> network interface revert *
-8 entries were acted on.
+network interface revert *
 ----
 
-. Verify that all LIFs are in their home ports: `network interface show`
+. Verify that all LIFs are in their home ports: 
++
+[source,cli]
+----
+network interface show
+----
 +
 This example shows that all LIFs for SVM vs0 are on their home ports.
 +
@@ -98,4 +62,5 @@ vs0
 8 entries were displayed.
 ----
 
+// 2023 Dec 12, Jira 1275
 //2023 Jan 26, GitIssue 783
