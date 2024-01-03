@@ -11,10 +11,23 @@ summary: "Beginning with ONTAP 9.3, you can configure Security Assertion Markup 
 [.lead]
 Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (SAML) authentication for web services. When SAML authentication is configured and enabled, users are authenticated by an external Identity Provider (IdP) instead of the directory service providers such as Active Directory and LDAP.
 
-.What you'll need
+== Enable SAML authentication
+To enable SAML authentication with System Manager or with the CLI, perform the following steps. If your cluster is running ONTAP 9.7 or earlier, the System Manager steps you need to follow are different. Refer to the System Manager online help available on your system.
 
-* You must have configured the IdP for SAML authentication.
-* You must have the IdP URI.
+NOTE: After you enable SAML authentication, only remote users can access the System Manager GUI. Local users cannot access the System Manager GUI after SAML authentication is enabled.
+
+image:workflow_security_mfa_setup.gif[Workflow diagram of task to set up multfactor authentication with SAML]
+
+.Before you begin
+
+* The IdP that you plan to use for remote authentication must be configured.
++
+[NOTE]
+====
+See the documentation that is provided by the IdP that you have configured.
+====
+
+* You must have the URI of the IdP.
 
 .About this task
 
@@ -38,6 +51,39 @@ The following IdPs have been validated with System Manager:
 
 .Steps
 
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Click *Cluster > Settings*.
+
+. Next to *SAML Authentication*, click image:icon_gear.gif[gear icon].
+
+. Ensure there is a check in the *Enable SAML Authentication* checkbox.
+
+. Enter the URL of the IdP URI (including "https://").
+
+. Modify the host system address, if needed.
+
+. Ensure the correct certificate is being used:
+
+* If your system was mapped with only one certificate with type "server", then that certificate is considered the default and it isn't displayed.
+
+* If your system was mapped with multiple certificates as type "server", then one of the certificates is displayed.  To select a different certificate, click *Change*.
+
+. Click *Save*. A confirmation window displays the metadata information, which has been automatically copied to your clipboard.
+
+. Go to the IdP system you specified and copy the metadata from your clipboard to update the system metadata.
+
+. Return to the confirmation window (in System Manager) and check the checkbox *I have configured the IdP with the host URI or metadata*.
+
+. Click *Logout* to enable SAML-based authentication.  The IdP system will display an authentication screen.
+
+. In the IdP system, enter your SAML-based credentials. After your credentials are verified, you will be directed to the System Manager home page.
+--
+
+.CLI
+--
 . Create a SAML configuration so that ONTAP can access the IdP metadata:
 +
 `*security saml-sp create -idp-uri _idp_uri_ -sp-host _ontap_host_name_*`
@@ -105,6 +151,10 @@ admin1         http        password      backup           no     none
 **admin1       http        saml          backup           -      none**
 ----
 
+--
+====
+// end tabbed block
+
 == Disable SAML authentication
 
 You can disable SAML authentication when you want to stop authenticating web users by using an external Identity Provider (IdP). When SAML authentication is disabled, the configured directory service providers such as Active Directory and LDAP are used for authentication.
@@ -115,12 +165,27 @@ You must be logged in from the console.
 
 .Steps
 
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Click *Cluster > Settings*.
+
+. Under *SAML Authentication*, click the *Enabled* toggle button.
+
+. _Optional_:  You can also click  image:icon_gear.gif[gear icon] next to *SAML Authentication*, and then uncheck the *Enable SAML Authentication* checkbox.
+--
+
+.CLI
+--
 . Disable SAML authentication:
 +
 `*security saml-sp modify -is-enabled false*`
 . If you no longer want to use SAML authentication or if you want to modify the IdP, delete the SAML configuration:
 +
 `*security saml-sp delete*`
+--
+====
 
 == Troubleshoot issues with SAML configuration
 
