@@ -11,20 +11,16 @@ summary: "You can enable global file locking on FlexCache volumes if you want to
 [.lead]
 Beginning with ONTAP 9.10.1, global file locking can be applied to prevent reads across all related cached files.
 
-.About this task
+With global file locking enabled, modifications to the origin volume are suspended until all FlexCache volumes are online. You should only enable global file locking when you have control over the reliability of the connections between cache and origin due to suspension and possible timeouts of modifications when FlexCache volumes are offline.
 
-By default, FlexCache volumes favor availability over consistency. Without global file locking, any modification to an origin will be distributed to FlexCache volumes, but they might not be updated simultaneously. Global file locking favors consistency across volumes over availability. With global file locking enabled, modifications to the origin will be suspended until all FlexCache volumes are online.
+.Before you begin 
 
-NOTE: You should only enable global file locking when you have control over the reliability of the connections between cache and origin due to suspension and possible timeouts of modifications when FlexCache volumes are offline.
-
-Global file locking requires the clusters containing the origin and all associated caches to be running ONTAP 9.9.1 or later. Global file locking can be enabled on new or existing FlexCache volumes. The command can be run on one volume and will apply to all associated volumes.
-
-You must be in the advanced privilege level to enable global file locking.
-
-The process to enable global file locking depends on whether the origin has existing caches.
-
-* <<enable-gfl-new>>
-* <<enable-gfl-existing>>
+* Global file locking requires the clusters containing the origin and all associated caches to be running ONTAP 9.9.1 or later. Global file locking can be enabled on new or existing FlexCache volumes. The command can be run on one volume and applies to all associated FlexCache volumes.
+* You must be in the advanced privilege level to enable global file locking.
+* If you revert to a version of ONTAP earlier than 9.9.1, global file locking must first be disabled on the origin and associated caches. To disable, from the origin volume, run: `volume flexcache prepare-to-downgrade -disable-feature-set 9.10.0`
+* The process to enable global file locking depends on whether the origin has existing caches:
+** <<enable-gfl-new>>
+** <<enable-gfl-existing>>
 
 [[enable-gfl-new]]
 == Enable global file locking on new FlexCache volumes
@@ -35,7 +31,7 @@ The process to enable global file locking depends on whether the origin has exis
 +
 `volume flexcache create volume _volume_name_ -is-global-file-locking-enabled true`
 +
-[Note]
+[NOTE]
 The default value of `-is-global-file-locking` is "`false`". When any subsequent `volume flexcache create` commands are run on a volume, they must be passed with `-is-global-file-locking enabled` set to "`true`".
 
 [[enable-gfl-existing]]
@@ -48,15 +44,11 @@ The default value of `-is-global-file-locking` is "`false`". When any subsequent
 +
 `volume flexcache connection-status show`
 +
-The status for all the listed volumes should display as “`connected.`” For more information, see link:view-connection-status-origin-task.html[View the status of a FlexCache relationship] or link:synchronize-properties-origin-volume-task.html[Synchronize properties of a FlexCache volume from an origin].
+The status for all the listed volumes should display as `connected.` For more information, see link:view-connection-status-origin-task.html[View the status of a FlexCache relationship] or link:synchronize-properties-origin-volume-task.html[Synchronize properties of a FlexCache volume from an origin].
 . Enable global file locking on the caches:
 +
 `volume flexcache origin config show/modify -volume _volume_name_ -is-global-file-locking-enabled true`
 
-[Note]
-If reverting to a version of ONTAP earlier than 9.9.1, global file lock must first be disabled on the origin and associated caches. This can be managed by running:
-
-`volume flexcache prepare-to-downgrade -disable-feature-set 9.10.0`
-
+// 5 jan 2024, ONTAPDOC-1556
 // 2021-29-10, IE-426
 // BURT 1449057, 24 JAN 2022
