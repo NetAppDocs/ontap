@@ -9,15 +9,15 @@ summary: "If you want ONTAP to access the external LDAP servers in your environm
 :imagesdir: ../media/
 
 [.lead]
-If you want ONTAP to access the external LDAP servers in your environment, you must first set up an LDAP client on the storage system.
+If you want ONTAP to access the external LDAP or Active Directory services in your environment, you need to first set up an LDAP client on the storage system.
 
 .What you'll need
 
-One of the first three servers in the AD-domain resolved list must be up and serving data. Otherwise, this task fails.
+One of the first three servers in the Active Directory domain resolved list must be up and serving data. Otherwise, this task fails.
 
 [NOTE]
 ====
-There are multiple servers, out of which more than two servers are down at any point of time.
+There are multiple servers, out of which more than two servers are down at any point in time.
 ====
 
 .Steps
@@ -27,15 +27,14 @@ There are multiple servers, out of which more than two servers are down at any p
 +
 The `-ad-domain` and `-servers` options are mutually exclusive.
 
-*** Use the `-ad-domain` option to enable LDAP server discovery in the Active Directory domain.
-+
-You can use the `-preferred-ad-servers` option to specify one or more preferred Active Directory servers by IP address in a comma-delimited list. After the client is created, you can modify this list by using the `vserver services name-service ldap client modify` command.
-
-*** Use the `-servers` option to specify one or more LDAP servers (AD or UNIX) by IP address in a comma-delimited list.
+** Use the `-ad-domain` option to enable LDAP server discovery in the Active Directory domain.
+*** You can use the `-restrict-discovery-to-site` option to restrict LDAP server discovery to the CIFS default site for the specified domain. If you use this option, you also need to specify the CIFS default site with `-default-site`.
+** You can use the `-preferred-ad-servers` option to specify one or more preferred Active Directory servers by IP address in a comma-delimited list. After the client is created, you can modify this list by using the `vserver services name-service ldap client modify` command.
+** Use the `-servers` option to specify one or more LDAP servers (Active Directory or UNIX) by IP address in a comma-delimited list.
 +
 [NOTE]
 ====
-The `-servers` option is deprecated in ONTAP 9.2. Beginning with ONTAP 9.2, the `-ldap-servers` field replaces the `-servers` field. This new field can take either a host name or an IP address for the LDAP server.
+The `-servers` option is deprecated in ONTAP 9.2. Beginning with ONTAP 9.2, the `-ldap-servers` field replaces the `-servers` field. This field can take either a host name or an IP address for the LDAP server.
 ====
 
  .. Specify a default or custom LDAP schema.
@@ -86,7 +85,7 @@ If set to `*true*` and the LDAP server supports it, the LDAP client uses an encr
 +
 [NOTE]
 ====
-If the SVM has a SMB server added to a domain and the LDAP server is one of the domain controllers of the home-domain of the SMB server, then you can modify the `-session-security-for-ad-ldap` option by using the `vserver cifs security modify` command.
+If the storage VM has a SMB server added to a domain and the LDAP server is one of the domain controllers of the home-domain of the SMB server, then you can modify the `-session-security-for-ad-ldap` option by using the `vserver cifs security modify` command.
 ====
 
  .. Select port, query, and base values.
@@ -117,13 +116,13 @@ Beginning with ONTAP 9.5, this allows the ONTAP LDAP client to refer look-up req
 +
 To search for records present in the referred LDAP servers, the base-dn of the referred records must be added to the base-dn as part of LDAP client configuration.
 
-. Create an LDAP client configuration on the SVM:
+. Create an LDAP client configuration on the storage VM:
 +
-`vserver services name-service ldap client create -vserver _vserver_name_ -client-config _client_config_name_ {-servers _LDAP_server_list_ | -ad-domain _ad_domain_ -preferred-ad-servers _preferred_ad_server_list_ -schema _schema_ -port 389 -query-timeout 3 -min-bind-level {anonymous|simple|sasl} -bind-dn _LDAP_DN_ -bind-password _password_ -base-dn _LDAP_DN_ -base-scope subtree -session-security {none|sign|seal} [-referral-enabled {true|false}]`
+`vserver services name-service ldap client create -vserver _vserver_name_ -client-config _client_config_name_ {-servers _LDAP_server_list_ | -ad-domain _ad_domain_} -preferred-ad-servers _preferred_ad_server_list_ -restrict-discovery-to-site {true|false} -default-site _CIFS_default_site_ -schema _schema_ -port 389 -query-timeout 3 -min-bind-level {anonymous|simple|sasl} -bind-dn _LDAP_DN_ -bind-password _password_ -base-dn _LDAP_DN_ -base-scope subtree -session-security {none|sign|seal} [-referral-enabled {true|false}]`
 +
 [NOTE]
 ====
-You must provide the SVM name when creating an LDAP client configuration.
+You must provide the storage VM name when creating an LDAP client configuration.
 ====
 
 . Verify that the LDAP client configuration is created successfully:
@@ -132,34 +131,35 @@ You must provide the SVM name when creating an LDAP client configuration.
 
 .Examples
 
-The following command creates a new LDAP client configuration named ldap1 for the SVM vs1 to work with an Active Directory server for LDAP:
+The following command creates a new LDAP client configuration named ldap1 for the storage VM vs1 to work with an Active Directory server for LDAP:
 
 ----
-cluster1::> vserver services name-service ldap client create -vserver vs1 -client-config ldapclient1 –ad-domain addomain.example.com -schema AD-SFU -port 389 -query-timeout 3 -min-bind-level simple -base-dn DC=addomain,DC=example,DC=com -base-scope subtree -preferred-ad-servers 172.17.32.100
+cluster1::> vserver services name-service ldap client create -vserver vs1 -client-config ldapclient1 -ad-domain addomain.example.com -schema AD-SFU -port 389 -query-timeout 3 -min-bind-level simple -base-dn DC=addomain,DC=example,DC=com -base-scope subtree -preferred-ad-servers 172.17.32.100
 ----
 
-The following command creates a new LDAP client configuration named ldap1 for the SVM vs1 to work with an Active Directory server for LDAP on which signing and sealing is required:
+The following command creates a new LDAP client configuration named ldap1 for the storage VM vs1 to work with an Active Directory server for LDAP on which signing and sealing is required, and LDAP server discovery is restricted to a particular site for the specified domain:
 
 ----
-cluster1::> vserver services name-service ldap client create -vserver vs1 -client-config ldapclient1 –ad-domain addomain.example.com -schema AD-SFU -port 389 -query-timeout 3 -min-bind-level sasl -base-dn DC=addomain,DC=example,DC=com -base-scope subtree -preferred-ad-servers 172.17.32.100 -session-security seal
+cluster1::> vserver services name-service ldap client create -vserver vs1 -client-config ldapclient1 -ad-domain addomain.example.com -restrict-discovery-to-site true -default-site cifsdefaultsite.com -schema AD-SFU -port 389 -query-timeout 3 -min-bind-level sasl -base-dn DC=addomain,DC=example,DC=com -base-scope subtree -preferred-ad-servers 172.17.32.100 -session-security seal
 ----
 
-The following command creates a new LDAP client configuration named ldap1 for the SVM vs1 to work with an Active Directory server for LDAP where LDAP referral chasing is required:
+The following command creates a new LDAP client configuration named ldap1 for the storage VM vs1 to work with an Active Directory server for LDAP where LDAP referral chasing is required:
 
 ----
-cluster1::> vserver services name-service ldap client create -vserver vs1 -client-config ldapclient1 –ad-domain addomain.example.com -schema AD-SFU -port 389 -query-timeout 3 -min-bind-level sasl -base-dn "DC=adbasedomain,DC=example1,DC=com; DC=adrefdomain,DC=example2,DC=com" -base-scope subtree -preferred-ad-servers 172.17.32.100 -referral-enabled true
+cluster1::> vserver services name-service ldap client create -vserver vs1 -client-config ldapclient1 -ad-domain addomain.example.com -schema AD-SFU -port 389 -query-timeout 3 -min-bind-level sasl -base-dn "DC=adbasedomain,DC=example1,DC=com; DC=adrefdomain,DC=example2,DC=com" -base-scope subtree -preferred-ad-servers 172.17.32.100 -referral-enabled true
 ----
 
-The following command modifies the LDAP client configuration named ldap1 for the SVM vs1 by specifying the base DN:
+The following command modifies the LDAP client configuration named ldap1 for the storage VM vs1 by specifying the base DN:
 
 ----
 cluster1::> vserver services name-service ldap client modify -vserver vs1 -client-config ldap1 -base-dn CN=Users,DC=addomain,DC=example,DC=com
 ----
 
-The following command modifies the LDAP client configuration named ldap1 for the SVM vs1 by enabling referral chasing:
+The following command modifies the LDAP client configuration named ldap1 for the storage VM vs1 by enabling referral chasing:
 
 ----
 cluster1::> vserver services name-service ldap client modify -vserver vs1 -client-config ldap1 -base-dn "DC=adbasedomain,DC=example1,DC=com; DC=adrefdomain,DC=example2,DC=com"  -referral-enabled true
 ----
 
 // 08 DEC 2021,BURT 1430515
+// 22 DEC 2023, BURT 1498204, JIRA ONTAPDOC-747
