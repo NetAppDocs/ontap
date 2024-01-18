@@ -2,7 +2,7 @@
 permalink: upgrade/task_updating_an_ontap_cluster_disruptively.html
 sidebar: sidebar
 keywords: ontap, upgrade, disruptively
-summary: 'If you can take your cluster offline to upgrade to a new ONTAP release, then you can use the disruptive upgrade method. This method has several steps: disabling storage failover for each HA pair, rebooting each node in the cluster, and then reenabling storage failover.'
+summary: 'If you can take your cluster offline to upgrade to a new ONTAP release, then you can use the disruptive upgrade method.'
 ---
 = Manual disruptive ONTAP upgrade using the CLI
 :icons: font
@@ -19,15 +19,32 @@ If SAN clients are not shut down or suspended prior to a disruptive upgrade , th
 
 In a disruptive upgrade, downtime is required because storage failover is disabled for each HA pair, and each node is updated. When storage failover is disabled, each node behaves as a single-node cluster; that is, system services associated with the node are interrupted for as long as it takes the system to reboot.
 
-. Set the privilege level from admin to advanced, entering *y* when prompted to continue: `set -privilege advanced`
+.Steps
+
+. Set the privilege level from admin to advanced, entering *y* when prompted to continue:
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 The advanced prompt (`*>`) appears.
 
-. Set the new ONTAP software image to be the default image: `system image modify {-node * -iscurrent false} -isdefault true`
+. Set the new ONTAP software image to be the default image: 
++
+[source,cli]
+----
+system image modify {-node * -iscurrent false} -isdefault true
+----
 +
 This command uses an extended query to change the target ONTAP software image (which is installed as the alternate image) to be the default image for each node.
 
-. Verify that the new ONTAP software image is set as the default image: `system image show`
+. Verify that the new ONTAP software image is set as the default image: 
++
+[source,cli]
+----
+system image show
+----
 +
 In the following example, image 2 is the new ONTAP version and is set as the default image on both nodes:
 +
@@ -58,29 +75,58 @@ a|
 Two nodes
 a|
 
- .. Disable cluster high availability: `cluster ha modify -configured false`
+.. Disable cluster high availability: 
++
+[source,cli]
+----
+cluster ha modify -configured false
+----
 +
 Enter `y` to continue when prompted.
 
- .. Disable storage failover for the HA pair: `storage failover modify -node * -enabled false`
+.. Disable storage failover for the HA pair:
++
+[source,cli]
+----
+storage failover modify -node * -enabled false
+----
 
 a|
 More than two nodes
 a|
-Disable storage failover for each HA pair in the cluster: `storage failover modify -node * -enabled false`
+Disable storage failover for each HA pair in the cluster: 
+[source,cli]
+----
+storage failover modify -node * -enabled false
+----
 |===
 
-. Reboot a node in the cluster: `system node reboot -node nodename -ignore-quorum-warnings`
+. Reboot a node in the cluster: 
++
+[source,cli]
+----
+system node reboot -node nodename -ignore-quorum-warnings
+----
 +
 IMPORTANT: Do not reboot more than one node at a time.
 +
 The node boots the new ONTAP image. The ONTAP login prompt appears, indicating that the reboot process is complete.
 
-. After the node or set of nodes has rebooted with the new ONTAP image, set the privilege level to advanced: `set -privilege advanced`
+. After the node or set of nodes has rebooted with the new ONTAP image, set the privilege level to advanced: 
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 Enter *y* when prompted to continue
 
-. Confirm that the new software is running: `system node image show`
+. Confirm that the new software is running: 
++
+[source,cli]
+----
+system node image show
+----
 +
 In the following example, image1 is the new ONTAP version and is set as the current version on node0:
 +
@@ -99,19 +145,47 @@ node1
 ----
 
 . Verify that the upgrade is completed successfully:
- .. Set the privilege level to advanced: `set -privilege advanced`
- .. Verify that the upgrade status is complete for each node: `system node upgrade-revert show -node nodename`
+
+.. Set the privilege level to advanced: 
++
+[source,cli]
+----
+set -privilege advanced
+----
+
+.. Verify that the upgrade status is complete for each node: 
++
+[source,cli]
+----
+system node upgrade-revert show -node nodename
+----
 +
 The status should be listed as complete.
 +
 If the status is not complete, link:http://mysupport.netapp.com/[contact NetApp Support] immediately.
 
- .. Return to the admin privilege level: `set -privilege admin`
-. Repeat Steps 2 through 7 for each additional node.
-. If the cluster consists of two or more nodes, enable storage failover for each HA pair in the cluster: `storage failover modify -node * -enabled true`
-. If the cluster consists of only two nodes, enable cluster high availability: `cluster ha modify -configured true`
+.. Return to the admin privilege level: 
++
+[source,cli]
+----
+set -privilege admin
+----
+. Repeat Steps 2 through 8 for each additional node.
+. If the cluster consists of two or more nodes, enable storage failover for each HA pair in the cluster: 
++
+[source,cli]
+----
+storage failover modify -node * -enabled true
+----
+. If the cluster consists of only two nodes, enable cluster high availability: 
++
+[source,cli]
+----
+cluster ha modify -configured true
+----
 
 
+// 2023 Dec 13, Jira 1275
 // 2023 Apr 14, BURT 1355778
 // 2022 May 22, ontap-issues-476
 // 2022-06-27, BURT 1485042
