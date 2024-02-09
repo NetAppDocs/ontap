@@ -22,22 +22,26 @@ ONTAP supports the following session key algorithms for secure Netlogon connecti
 
 |===
 
-h| Session key algorithm  h| Available in...
+h| Session key algorithm  h| Available beginning with...
 
-| HMAC-SHA256, based on the Advanced Encryption Standard (AES) | ONTAP 9.10.1 and later
+| HMAC-SHA256, based on the Advanced Encryption Standard (AES)
+
+If your cluster is running ONTAP 9.9.1 or earlier and your domain controller enforces AES for secure Netlogon services, the connection fails. In this case, you need to reconfigure your domain controller to instead accept strong key connections with ONTAP.
+| ONTAP 9.10.1
 | DES and HMAC-MD5 (when strong key is set) | All ONTAP 9 releases
 
 |===
 
-In ONTAP 9.14.1 and later, AES session keys are used during Netlogon secure channel establishment by default for new installations of ONTAP.
+If you want to use AES session keys during Netlogon secure channel establishment, you need to verify that AES is enabled on your SVM.
 
-In ONTAP 9.10.1 through 9.13.1, or for ONTAP systems that you have upgraded to 9.14.1, AES session keys are disabled by default for Netlogon secure channel establishment. If you want to change this, you need to enable the feature using the following command:  // MW to Ed: (What happens for systems that you upgrade from, say, 9.8 to 9.14.1? Is the behavior the same as a newly installed ONTAP system?)
-
+* Beginning with ONTAP 9.14.1, AES is enabled by default when you create an SVM, and you don't need to modify the security settings of your SVM to use AES session keys during Netlogon secure channel establishment.
+* In ONTAP 9.10.1 through 9.13.1, AES is disabled by default when you create an SVM. You need to enable AES using the following command:
++
 ----
 cifs security modify -vserver vs1 -aes-enabled-for-netlogon-channel true
 ----
 
-In ONTAP releases earlier than 9.10.1, if the domain controller enforces AES for secure Netlogon services, the connection fails. The domain controller must be configured to accept strong key connections with ONTAP in these releases.
+NOTE: When you upgrade to ONTAP 9.14.1 or later, the AES setting for existing SVMs that were created with older ONTAP releases will not automatically change. You still need to update the value for this setting to enable AES on these SVMs.
 
 == Configure an authentication tunnel
 
