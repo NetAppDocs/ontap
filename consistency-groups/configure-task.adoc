@@ -11,38 +11,71 @@ summary: "Create a single consistency group for application workload management 
 [.lead]
 Consistency groups can be created with existing volumes or new LUNs or volumes (depending on the version of ONTAP). A volume or LUN can only be associated with one consistency group at a time. 
 
-.Before you begin
+.About this task
 * In ONTAP 9.10.1 through 9.11.1, modifying the member volumes of a consistency group after it is created is not supported.
 +
-Beginning in ONTAP 9.12.1, you can modify the member volumes of a consistency group. For more information on this process, refer to xref:modify-task.html[Modify a consistency group].
+Beginning with ONTAP 9.12.1, you can modify the member volumes of a consistency group. For more information on this process, refer to xref:modify-task.html[Modify a consistency group].
 
 == Create a consistency group with new LUNs or volumes
 
-In ONTAP 9.10.1 through 9.12.1, you can create a consistency group using new LUNs. Beginning in ONTAP 9.13.1, System Manager also supports creating a consistency group with new NVMe namespaces or new NAS volumes. (This is also supported in the ONTAP REST API beginning with ONTAP 9.12.1.)
+In ONTAP 9.10.1 through 9.12.1, you can create a consistency group using new LUNs. Beginning with ONTAP 9.13.1, System Manager also supports creating a consistency group with new NVMe namespaces or new NAS volumes. (This is also supported in the ONTAP REST API beginning with ONTAP 9.12.1.)
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Steps
 . Select *Storage > Consistency groups*.
 . Select *+Add* then select the protocol for your storage object. 
 +
-In ONTAP 9.10.1 through 9.12.1, the only option for a new storage object is **Using new LUNs**. Beginning in ONTAP 9.13.1, System Manager supports creating consistency groups with new NVMe namespaces and new NAS volumes. 
+In ONTAP 9.10.1 through 9.12.1, the only option for a new storage object is **Using new LUNs**. Beginning with ONTAP 9.13.1, System Manager supports creating consistency groups with new NVMe namespaces and new NAS volumes. 
 . Name the consistency group. Designate the number of volumes or LUNs and the capacity per volume or LUN.
-.. **Application Type**: If you are using ONTAP 9.12.1 or later, select an application type. If no value is selected, the consistency group will be assigned the type of **Other** by default. Learn more about tagging consistency in xref:index.html#application-and-component-tags[Application and component tags]. If you plan to create a consistency group with a remote protection policy, you must use *Other*.
+.. **Application Type**: If you are using ONTAP 9.12.1 or later, select an application type. If no value is selected, the consistency group will be assigned the type of **Other** by default. Learn more about tagging consistency in xref:modify-tags-task.html[Application and component tags]. If you plan to create a consistency group with a remote protection policy, you must use *Other*.
 .. For **New LUNs**: Select the host operating system and LUN format. Enter the host initiator information.
 .. For **New NAS volumes**: choose the appropriate export option (NFS or SMB/CIFS) based on the NAS configuration of your SVM. 
 .. For **New NVMe namespaces**: Select the host operating system and NVMe subsystem.
 . To configure protection policies, add a child consistency group, or access permissions, select *More options*.
 . Select *Save*.
 . Confirm your consistency group has been created by returning to the main consistency group menu where it will appear once the job completes. If you set a protection policy, you will know it has been applied when you see a green shield under look under the appropriate policy, remote or local.
+--
+
+.CLI
+--
+Beginning with ONTAP 9.14.1, you can create a new consistency group with new volumes using the ONTAP CLI. The specific parameters depends on whether the volumes are SAN, NVMe, or NFS.
+
+.Create a consistency group with NFS volumes
+. Create the consistency group:
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency-group-name_ -volume _volume-prefix_ -volume-count _number_ -size _size_ -export-policy _policy_name_`
+
+.Create a consistency group with SAN volumes
+. Create the consistency group:
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency-group-name_ -lun _lun_name_ -size _size_ -lun-count _number_ -igroup _igroup_name_`
+
+.Create a consistency group with NVMe namespaces
+. Create the consistency group:
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency_group_name_ -namespace _namespace_name_ -volume-count _number_ -namespace-count _number_ -size _size_ -subsystem _subsystem_name_`
+
+.After you're done
+. Confirm your consistency group has been created using the `consistency-group show` command. 
+--
+====
 
 == Create a consistency group with existing volumes
 
 You can use existing volumes to create a consistency group.
 
+[role="tabbed-block"]
+====
+.System Manager
+--
 .Steps
 . Select *Storage > Consistency groups*.
 . Select *+Add* then *Using existing volumes*.
 . Name the consistency group and select the storage VM.
-.. **Application Type**: If you are using ONTAP 9.12.1 or later, select an application type. If no value is selected, the consistency group will be assigned the type of **Other** by default. Learn more about tagging consistency in xref:index.html#application-and-component-tags[Application and component tags]. If the consistency group has an SM-BC relationship, you must use *Other*.
+.. **Application Type**: If you are using ONTAP 9.12.1 or later, select an application type. If no value is selected, the consistency group will be assigned the type of **Other** by default. Learn more about tagging consistency in xref:modify-tags-task.html[Application and component tags]. If the consistency group has an SM-BC relationship, you must use *Other*.
 . Select the existing volumes to include. Only volumes that are not already part of a consistency group will be available for selection.
 +
 [NOTE]
@@ -50,12 +83,26 @@ If creating a consistency group with existing volumes, the consistency group sup
 +
 . Select *Save*.
 . Confirm your consistency group has been created by returning to the main consistency group menu where it will appear once the ONTAP job completes. If you have chosen a protection policy, confirm it was properly set by selecting your consistency group from the menu. If you set a protection policy, you will know it has been applied when you see a green shield under look under the appropriate policy, remote or local.
+--
+
+.CLI
+--
+Beginning with ONTAP 9.14.1, you can create a consistency group with existing volumes using the ONTAP CLI. 
+
+.Steps
+. Issue the `consistency-group create` command. The `-volumes` parameter accepts a comma-separated list of volume names.
++
+`consistency-group create -vserver _SVM_name_ -consistency-group _consistency-group-name_ -volume _volumes_`
+. View your consistency group using the `consistency-group show` command. 
+--
+====
 
 .Next steps
 * xref:protect-task.html[Protect a consistency group]
 * xref:modify-task.html[Modify a consistency group]
 * xref:clone-task.html[Clone a consistency group]
 
+// 28 july 2023, ontapdoc-1088
 // 13 MAR 2023, ONTAPDOC-755
 // 9 Feb 2023, ONTAPDOC-880
 // 17 OCT 2022, ONTAPDOC-612

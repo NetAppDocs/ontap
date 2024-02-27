@@ -13,15 +13,13 @@ Beginning with ONTAP 9.12.1, you can lock a Snapshot copy on a non-SnapLock volu
 
 You use the SnapLock compliance clock feature to lock Snapshot copies for a specified period so that they cannot be deleted until the expiration time is reached. Locking Snapshot copies makes them tamperproof, protecting them from ransomware threats. You can use locked Snapshot copies to recover data if a volume is compromised by a ransomware attack.
 
+Beginning with ONTAP 9.14.1, Snapshot copy locking supports long-term retention Snapshot copies on SnapLock vault destinations and on non-SnapLock SnapMirror destination volumes. Snapshot copy locking is enabled by setting the retention period using SnapMirror policy rules associated with an xref:Modify an existing policy to apply long-term retention[existing policy label]. The rule overrides the default retention period set on the volume. If there is no retention period associated with the SnapMirror label, the default retention period of the volume is used.
+
 .Tamperproof Snapshot copy requirements and considerations
 
 * If you are using the ONTAP CLI, all nodes in the cluster must be running ONTAP 9.12.1 or later. If you are using System Manager, all nodes must be running ONTAP 9.13.1 or later.
-* The SnapLock license must be installed on the cluster.
-+
-For details, see link:https://docs.netapp.com/us-en/ontap/snaplock/install-license-task.html[Installing the SnapLock license].
-* The compliance clock on the cluster must be initialized.
-+
-For details, see link:https://docs.netapp.com/us-en/ontap/snaplock/initialize-complianceclock-task.html[Initialize the Compliance Clock].
+* link:https://docs.netapp.com/us-en/ontap/system-admin/install-license-task.html[The SnapLock license must be installed on the cluster].
+* link:https://docs.netapp.com/us-en/ontap/snaplock/initialize-complianceclock-task.html[The compliance clock on the cluster must be initialized].
 * When Snapshot locking is enabled on a volume, you can upgrade the clusters to a version of ONTAP later than ONTAP 9.12.1; however, you cannot revert to an earlier version of ONTAP until all locked Snapshot copies have reached their expiration date and are deleted and Snapshot copy locking is disabled.
 * When a Snapshot is locked, the volume expiry time is set to the expiry time of the Snapshot copy. If more than one Snapshot copy is locked, the volume expiry time  reflects the largest expiry time among all Snapshot copies.
 * The retention period for locked Snapshot copies takes precedence over the Snapshot copy keep count, which means the keep count limit is not honored if the Snapshot copy retention period for locked Snapshot copies has not expired.
@@ -47,12 +45,14 @@ You can create volume clones and file clones from a locked Snapshot copy.
 
 The following features currently are not supported with tamperproof Snapshot copies:
 
+* Cloud Volumes ONTAP
 * Consistency groups
 * FabricPool
 * FlexCache volumes
 * SMtape
 * SnapCenter 
 * SnapMirror Business Continuity (SM-BC)
+* SnapMirror policy rules using the `-schedule` parameter
 * SnapMirror Synchronous
 * SVM data mobility 
 
@@ -241,6 +241,25 @@ cluster1> volume snapshot modify-snaplock-expiry-time -volume vol1 -snapshot sna
 --
 ====
 
+=== Modify an existing policy to apply long-term retention
+
+Beginning with ONTAP 9.14.1, you can modify an existing SnapMirror policy by adding a rule to set long-term retention of Snapshot copies. The rule is used to override the default volume retention period on SnapLock vault destinations and on non-SnapLock SnapMirror destination volumes.
+
+. Add a rule to an existing SnapMirror policy:
++
+`snapmirror policy add-rule -vserver <SVM name> -policy <policy name> -snapmirror-label <label name> -keep <number of Snapshot copies> -retention-period [<integer> days|months|years]`
++
+The following example creates a rule that applies a retention period of 6 months to the existing policy called "lockvault":
++
+----
+snapmirror policy add-rule -vserver vs1 -policy lockvault -snapmirror-label test1 -keep 10 -retention-period "6 months"
+----
+
+// 2024-Feb-21, ONTAPDOC-1366
+// 2024-Jan-29, issue# 1221
+// 2023-Oct-9, ONTAPDOC-1230
+// 2023-Oct-18, issue# 1136
+// 2023-Sept-5, issue# 1080
 // 2023-June-6, issue# 941
 // 2023-Apr-18, issue# 885
 // 2023-Mar-28, ONTAPDOC-870

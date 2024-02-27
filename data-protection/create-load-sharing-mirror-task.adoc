@@ -9,7 +9,8 @@ summary: "You should create a load-sharing mirror (LSM) for each root volume in 
 :imagesdir: ../media/
 
 [.lead]
-You should create a load-sharing mirror (LSM) for each SVM root volume that serves NAS data in the cluster. You can create the LSM on any node other than the one containing the root volume, such as the partner node in an HA pair, or preferably in a different HA pair. For a two-node cluster, you should create the LSM on the partner of the node with the SVM root volume.
+You should create a load-sharing mirror (LSM) for each SVM root volume that serves NAS data in the cluster. For clusters consisting of two or more HA pairs, you should consider load-sharing mirrors of SVM root volumes to ensure the namespace remains accessible to clients in the event that
+both nodes of an HA pair fail. Load-sharing mirrors are not suitable for clusters consisting of a single HA pair.
 
 .About this task
 
@@ -25,7 +26,12 @@ For example, in a four-node cluster with a root volume on three nodes:
 
 . Create a destination volume for the LSM:
 +
-`volume create -vserver _SVM_ -volume volume -aggregate _aggregate_ -type DP -size size`
+You must replace the variables in angle brackets with the required values before running this command.
++
+[source, cli]
+----
+volume create -vserver <SVM> -volume <volume> -aggregate <aggregate> -type DP -size <size>
+----
 +
 The destination volume should be the same or greater in size than the root volume.
 +
@@ -39,10 +45,15 @@ The following example creates a load-sharing mirror volume for the root volume `
 cluster_src:> volume create -vserver svm1 -volume svm1_m1 -aggregate aggr_1 -size 1gb -state online -type DP
 ----
 
-. Create a replication job schedule, as described in link:create-replication-job-schedule-task.html[Creating a replication job schedule].
+. link:create-replication-job-schedule-task.html[Create a replications job schedule].
 . Create a load-sharing mirror relationship between the SVM root volume and the destination volume for the LSM:
 +
-`snapmirror create -source-path _SVM:volume_|_cluster://SVM/volume_ -destination-path _SVM:volume_|_cluster://SVM/volume_ -type LS -schedule _schedule_`
+You must replace the variables in angle brackets with the required values before running this command.
++
+[source, cli]
+----
+snapmirror create -source-path <SVM:volume> -destination-path <SVM:volume> -type LS -schedule <schedule>
+----
 +
 For complete command syntax, see the man page.
 +
@@ -56,7 +67,12 @@ The type attribute of the load-sharing mirror changes from `DP` to `LS`.
 
 . Initialize the load-sharing mirror:
 +
-`snapmirror initialize-ls-set -source-path _SVM:volume_|_cluster://SVM/volume_`
+You must replace the variables in angle brackets with the required values before running this command.
++
+[source, cli]
+----
+snapmirror initialize-ls-set -source-path <SVM:volume>
+----
 +
 Initialization can be time-consuming. You might want to run the baseline transfer in off-peak hours.
 +
@@ -68,4 +84,8 @@ The following example initializes the load-sharing mirror for the root volume `s
 cluster_src::> snapmirror initialize-ls-set -source-path svm1:svm1_root
 ----
 
+// 2023-Nov-30, ONTAPDOC-1512
+// 2023-Oct-27, issue# 1156
+// 2023-Sept-20, issue# 1108
+// 2023-Sept-6, issue# 993
 // 2021-12-21, BURT 1446961

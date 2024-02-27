@@ -11,7 +11,7 @@ summary: "The ONTAP object store server manages data as S3 objects, as opposed t
 [.lead]
 The ONTAP object store server manages data as S3 objects, as opposed to file or block storage provided by ONTAP NAS and SAN servers.
 
-.What you'll need
+.Before you begin
 
 You should be prepared to enter the S3 server name as a Fully Qualified Domain Name (FQDN), which clients will use for S3 access. The FQDN must not begin with a bucket name.
 
@@ -32,47 +32,6 @@ See the `vserver object-store-server` man pages for additional configuration and
 
 [role="tabbed-block"]
 ====
-.CLI
---
-
-. Create the S3 server:
-+
-`vserver object-store-server create -vserver _svm_name_ -object-store-server _s3_server_fqdn_ -certificate-name _s3_server_name_ -comment _text_ [additional_options]`
-+
-You can specify additional options when creating the S3 server or at any time later.
-
- ** The SVM name can be either a data SVM or `Cluster` (the system SVM name) if you are configuring local tiering.
- ** HTTPS is enabled by default on port 443. You can change the port number with the `-secure-listener-port` option.
-+
-When HTTPS is enabled, CA certificates are required for proper integration with SSL/TLS.
-
- ** HTTP is disabled by default; when enabled, the server listens on port 80. You can enable it with the `-is-http-enabled` option or change the port number with the `-listener-port` option.
-+
-When HTTP is enabled, all the request and responses are sent over the network in clear text.
-
-. Verify that S3 is configured as desired:
-+
-`vserver object-store-server show`
-
-.Example
-
-The following command verifies the configuration values of all object storage servers:
-
-----
-cluster1::> vserver object-store-server show
-
-            Vserver: vs1
-
-                      Object Store Server Name: s3.example.com
-                          Administrative State: up
-                        Listener Port For HTTP: 80
-                Secure Listener Port For HTTPS: 443
-                                  HTTP Enabled: false
-                                 HTTPS Enabled: true
-             Certificate for HTTPS Connections: svm1_ca
-                                       Comment: Server comment
-----
---
 
 .System Manager
 --
@@ -96,7 +55,53 @@ Whether you select system-generated certificate or one of your own, it will be r
 * The secret key will not be displayed again.
 * If you need the certificate information again: click *Storage > Storage VMs*, select the storage VM, and click *Settings*.
 --
+
+.CLI
+--
+
+. Create the S3 server:
++
+`vserver object-store-server create -vserver _svm_name_ -object-store-server _s3_server_fqdn_ -certificate-name _server_certificate_name_ -comment _text_ [additional_options]`
++
+You can specify additional options when creating the S3 server or at any time later.
+
+ ** If you are configuring local tiering, the SVM name can either be a data SVM or system SVM (cluster) name.
+ ** The certificate name should be the name of the server certificate (end user or leaf certificate), and not server CA certificate (intermediate or root CA certificate).
+ ** HTTPS is enabled by default on port 443. You can change the port number with the `-secure-listener-port` option.
++
+When HTTPS is enabled, CA certificates are required for correct integration with SSL/TLS.
+
+ ** HTTP is disabled by default. When enabled, the server listens on port 80. You can enable it with the `-is-http-enabled` option, or change the port number with the `-listener-port` option.
++
+When HTTP is enabled, the request and responses are sent over the network in clear text.
+
+. Verify that S3 is configured:
++
+`vserver object-store-server show`
+
+.Example
+
+This command verifies the configuration values of all object storage servers:
+
+----
+cluster1::> vserver object-store-server show
+
+            Vserver: vs1
+
+                      Object Store Server Name: s3.example.com
+                          Administrative State: up
+                        Listener Port For HTTP: 80
+                Secure Listener Port For HTTPS: 443
+                                  HTTP Enabled: false
+                                 HTTPS Enabled: true
+             Certificate for HTTPS Connections: svm1_ca
+                                       Comment: Server comment
+----
+--
 ====
 
+// 2024 Jan 02 ONTAPDOC-1179 
+// 2023 Oct 31 Jira 1178
 // 2022 Dec 14, ontap-issues-733
 // 2022 Jul 14, BURT 1459155
+

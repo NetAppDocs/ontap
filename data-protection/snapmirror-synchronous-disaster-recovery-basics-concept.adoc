@@ -14,13 +14,15 @@ Beginning with ONTAP 9.5, SnapMirror Synchronous (SM-S) technology is supported 
 
 This functionality addresses the regulatory and national mandates for synchronous replication in financial, healthcare, and other regulated industries where zero data loss is required.
 
+== SnapMirror Synchronous operations allowed
+
 The limit on the number of SnapMirror Synchronous replication operations per HA pair depends on the controller model.
 
 The following table lists the number of SnapMirror Synchronous operations that are allowed per HA pair according to platform type and ONTAP release.
 
 |===
 
-h| Platform h| Releases earlier than ONTAP 9.9.1 h| ONTAP 9.9.1 h| ONTAP 9.10.1 h| ONTAP 9.11.1\ONTAP 9.12.1 
+h| Platform h| Releases earlier than ONTAP 9.9.1 h| ONTAP 9.9.1 h| ONTAP 9.10.1 h| ONTAP 9.11.1 through ONTAP 9.14.1
 a|
 AFF
 a|
@@ -31,6 +33,18 @@ a|
 200
 a|
 400
+
+a|
+ASA
+a|
+80
+a|
+160
+a|
+200
+a|
+400
+
 a|
 FAS
 a|
@@ -55,79 +69,162 @@ a|
 
 == Supported features
 
-ONTAP 9.12.1 supports non-disruptive SnapMirror Synchronous operations (NDO) on AFF/ASA platforms, only. Support for non-disruptive operations enables you to perform many common maintenance tasks without scheduling down time. Operations supported include takeover and giveback, and volume move, provided that a single node is surviving among each of the two clusters. 
+The following table indicates the features supported with SnapMirror Synchronous and the ONTAP releases in which support is available.
 
-The following features are supported for SnapMirror Synchronous technology in ONTAP 9.10.1; provided all nodes in the source and destination cluster are running ONTAP 9.10.1:
+[cols="3,1,4"]
+|===
 
-* NFSv4.2
-* NVMe/TCP
+h| Feature h| Release first supported h| Additional information 
 
-In ONTAP 9.5 and later, SnapMirror Synchronous technology supports the NFSv3, FC, and iSCSI protocols over all networks for which the latency does not exceed 10ms.
+| Antivirus on the primary volume of the SnapMirror Synchronous relationship
+| ONTAP 9.6
+|
 
-SnapMirror Synchronous supports source and destination volumes on FabricPool aggregates with a tiering policy of None, Snapshot, or Auto. The destination volume in a FabricPool aggregate cannot be set to All tiering policy.
+| Application-created Snapshot copy replication
+| ONTAP 9.7
+| If a Snapshot copy is tagged with the appropriate label at the time of the `snapshot create` operation, using the CLI or the ONTAP API, SnapMirror Synchronous replicates the Snapshot copies, both user created or those created with external scripts, after quiescing the applications. Scheduled Snapshot copies created using a Snapshot policy are not replicated. For more information about replicating application-created Snapshot copies, see the Knowledge Base article: link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_replicate_application_created_snapshots_with_SnapMirror_Synchronous[How to replicate application created snapshots with SnapMirror Synchronous^].
 
-The following features are supported for SnapMirror Synchronous technology in ONTAP 9.7:
+| Clone auto delete
+| ONTAP 9.6
+|
 
-* Replication of application-created Snapshot copies
-If a Snapshot copy is tagged with the appropriate label at the time of the `snapshot create` operation, using the CLI or the ONTAP API, SnapMirror Synchronous replicates the Snapshot copies, both user created or those created with external scripts, after quiescing the applications. Scheduled Snapshot copies created using a Snapshot policy are not replicated. For more information about replicating application-created Snapshot copies, see the Knowledge Base article: link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_replicate_application_created_snapshots_with_SnapMirror_Synchronous[How to replicate application created snapshots with SnapMirror Synchronous^].
+| FabricPool aggregates with tiering policy of None, Snapshot, or Auto are supported with SnapMirror Synchronous source and destination. 
+| ONTAP 9.5
+| The destination volume in a FabricPool aggregate cannot be set to All tiering policy.
 
-* FC-NVMe
-* LUN clones and NVMe namespace clones
-LUN clones backed by application-created Snapshot copies are also supported.
+| FC
+| ONTAP 9.5
+| Over all networks for which latency does not exceed 10ms
 
-The following features are supported for SnapMirror Synchronous technology in ONTAP 9.6; provided all nodes in the source and destination cluster are running ONTAP 9.6:
+| FC-NVMe
+| ONTAP 9.7
+|
 
-* SVM DR
-** A SnapMirror Synchronous source can also be a SVM DR source, for example, a fan-out configuration with SM-S as one leg and SVM DR as the other.
-** A SnapMirror Synchronous source cannot be an SVM DR destination because SM-S does not support cascading a DP source.
-You must release the synchronous relationship before performing an SVM DR flip resync in the destination cluster.
+| File clones
+| ONTAP 9.7
+|
 
-** A SnapMirror Synchronous destination cannot be an SVM DR source because SVM DR does not support replication of DP volumes.
-A flip resync of the synchronous source would result in the SVM DR excluding the DP volume in the destination cluster.
+| FPolicy on the primary volume of the SnapMirror Synchronous relationship
+| ONTAP 9.6
+|
 
-* NFSv4.0 and NFSv4.1
-* SMB 2.0 or later
-* Mixed protocol access (NFSv3 and SMB)
-* Antivirus on the primary volume of the SnapMirror Synchronous relationship
-* Hard or soft quotas on the primary volume of the SnapMirror Synchronous relationship
-The quota rules are not replicated to the destination; therefore, the quota database is not replicated to the destination.
+| Hard and soft quotas on the primary volume of the SnapMirror Synchronous relationship
+| ONTAP 9.6
+| The quota rules are not replicated to the destination; therefore, the quota database is not replicated to the destination.
 
-* FPolicy on the primary volume of the SnapMirror Synchronous relationship
-* SnapMirror Synchronous mirror-mirror cascade
-The relationship from the destination volume of the SnapMirror Synchronous relationship must be an asynchronous SnapMirror relationship.
+| Intra-cluster synchronous relationships
+| ONTAP 9.14.1
+| High availability is provided when source and destination volumes are placed on different HA pairs.
+If the entire cluster goes down, access to volumes will not be possible until the cluster is recovered.
+Intra-cluster SnapMirror synchronous relationships will contribute to the overall limit of simultaneous xref:SnapMirror Synchronous operations allowed[relationships per HA pair].
 
-* Timestamp parity between source and destination volumes for NAS
-If you have upgraded from ONTAP 9.5 to ONTAP 9.6, the timestamp is replicated only for any new and modified files in the source volume. The timestamp of existing files in the source volume is not synchronized.
 
-* Removal of high metadata operation frequency limitation
-* Security for sensitive data in-transit using TLS 1.2 encryption
-* Clone autodelete
+| iSCSI
+| ONTAP 9.5
+|
 
-Beginning in ONTAP 9.13.1, NDMP is supported with SnapMirror Synchronous. Both the source and destination cluster must be running ONTAP 9.13.1 or later to use NDMP with SnapMirror Synchronous. For more information, see xref:../tape-backup/transfer-data-ndmpcopy-task.html[Transfer data using ndmp copy].
+| LUN clones and NVMe namespace clones
+| ONTAP 9.7
+|
+
+| LUN clones backed by application-created Snapshot copies
+| ONTAP 9.7
+|
+
+| Mixed protocol access (NFS v3 and SMB)
+| ONTAP 9.6
+|
+
+| NDMP/NDMP restore
+| ONTAP 9.13.1
+| Both the source and destination cluster must be running ONTAP 9.13.1 or later to use NDMP with SnapMirror Synchronous. For more information, see xref:../tape-backup/transfer-data-ndmpcopy-task.html[Transfer data using ndmp copy].
+
+| Non-disruptive SnapMirror Synchronous operations (NDO) on AFF/ASA platforms, only.
+| ONTAP 9.12.1
+| Support for non-disruptive operations enables you to perform many common maintenance tasks without scheduling down time. Operations supported include takeover and giveback, and volume move, provided that a single node is surviving among each of the two clusters. 
+
+| NFS v4.2
+| ONTAP 9.10.1
+| 
+
+| NFS v4.3
+| ONTAP 9.5
+|
+
+| NFS v4.0
+| ONTAP 9.6
+|
+
+| NFS v4.1
+| ONTAP 9.6
+|
+
+| NVMe/TCP
+| 9.10.1
+|
+
+| Removal of high metadata operation frequency limitation
+| ONTAP 9.6
+| 
+
+| Security for sensitive data in-transit using TLS 1.2 encryption
+| ONTAP 9.6
+|
+
+| Single file and partial file restore
+| ONTAP 9.13.1
+|
+
+| SMB 2.0 or later
+| ONTAP 9.6
+|
+
+| SnapMirror Synchronous mirror-mirror cascade
+| ONTAP 9.6
+| The relationship from the destination volume of the SnapMirror Synchronous relationship must be an asynchronous SnapMirror relationship.
+
+| SVM disaster recovery
+| ONTAP 9.6
+| * A SnapMirror Synchronous source can also be a SVM disaster recovery source, for example, a fan-out configuration with SnapMirror Synchronous as one leg and SVM disaster recovery as the other.
+
+* A SnapMirror Synchronous source cannot be an SVM disaster recovery destination because SnapMirror Synchronous does not support cascading a data protection source.
+You must release the synchronous relationship before performing an SVM disaster recovery flip resync in the destination cluster.
+
+* A SnapMirror Synchronous destination cannot be an SVM disaster recovery source because SVM disaster recovery does not support replication of DP volumes.
+A flip resync of the synchronous source would result in the SVM disaster recovery excluding the DP volume in the destination cluster.
+
+| Tape-based restore to the source volume
+| ONTAP 9.13.1
+|
+
+| Timestamp parity between source and destination volumes for NAS
+| ONTAP 9.6
+| If you have upgraded from ONTAP 9.5 to ONTAP 9.6, the timestamp is replicated only for any new and modified files in the source volume. The timestamp of existing files in the source volume is not synchronized.
+
+|===
 
 == Unsupported features
 
 The following features are not supported with Synchronous SnapMirror relationships:
 
-* Tamperproof Snapshot copies
 * Consistency groups
+* DP_Optimized (DPO) systems
+* FlexGroup volumes
+* FlexCache volumes
+* Global throttling
+* In a fan-out configuration, only one relationship can be a SnapMirror Synchronous relationship; all the other relationships from the source volume must be asynchronous SnapMirror relationships.
+* LUN move
 * MetroCluster configurations
-* SFMoD
-* SFCoD
-* VVol
 * Mixed SAN and NVMe access
 LUNs and NVMe namespaces are not supported on the same volume or SVM.
 
+* SnapCenter
 * SnapLock volumes
-* FlexGroup volumes
-* FlexCache volumes
-* SnapRestore
-* DP_Optimized (DPO) systems
+* Tamperproof Snapshot copies
 * Tape backup or restore using dump and SMTape on the destination volume
-* Tape based restore to the source volume
 * Throughput floor (QoS Min) for source volumes
-* In a fan-out configuration, only one relationship can be a SnapMirror Synchronous relationship; all the other relationships from the source volume must be asynchronous SnapMirror relationships.
-* Global throttling
+* Volume SnapRestore
+* VVol
 
 == Modes of operation
 
@@ -152,8 +249,14 @@ If the relationship status becomes `OutofSync` for a SnapMirror Synchronous rela
 
 .Related information
 
-http://www.netapp.com/us/media/tr-4733.pdf[NetApp Technical Report 4733: SnapMirror Synchronous configration and best practices^]
+http://www.netapp.com/us/media/tr-4733.pdf[NetApp Technical Report 4733: SnapMirror Synchronous configuration and best practices^]
 
+// 2024-Jan-31, ONTAPDOC-1622
+// 2023-Dec-12, issue# 1202
+// 2023-Dec-7. issue# 1197
+// 2023-Dec-6, ONTAPDOC-1520
+// 2023-Dec-5, ONTAPDOC-1517
+// 2023-Aug-24, issue# 1060
 // ontapdoc-915, 16 april 2023
 // 2023-Feb-7, issue# 804
 // 2023-10-01, ONTAPDOC-804

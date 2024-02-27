@@ -1,27 +1,33 @@
 ---
 sidebar: sidebar
 permalink: smbc/smbc_install_confirm_ontap_cluster.html
-keywords: SM-BC, SMBC, ONTAP, cluster, configure, peering, volume, SVM, SAN, LIFs, map, igroup, discover
-summary: You should make sure that your source and destination clusters are configured properly.
+keywords: SM-BC, SMBC, cluster, peering, ONTAP Mediator, initialize, snapmirror active sync
+summary: SM-BC requires you to install and initialize the ONTAP Mediator and ensure proper cluster peering. 
 ---
 
-= Install ONTAP Mediator Service and confirm the ONTAP cluster configuration
+= Configure the ONTAP Mediator and clusters for SnapMirror Business Continuity
 :hardbreaks:
 :nofooter:
 :icons: font
 :linkattrs:
 :imagesdir: ../media/
 
-//
-// This file was created with NDAC Version 2.0 (August 17, 2020)
-//
-// 2020-11-04 10:10:29.130581
-//
-
 [.lead]
-You should make sure that your source and destination clusters are configured properly.
+SnapMirror Business Continuity (SM-BC) utilizes peered clusters to ensure your data is available in the event of a failover scenario. The ONTAP Mediator is a key resource ensuring business continuity, monitoring the health of each cluster. To configure SM-BC, you must first install the ONTAP Mediator and ensure you primary and secondary clusters are configured properly. 
 
-.About this task
+Once you have installed the ONTAP Mediator and configured your clusters, you must <<initialize-the-ontap-mediator>> the ONTAP Mediator for use with SM-BC. You must then xref:../task_san_configure_protection_for_business_continuity.html[Create, initialize, and map the consistency group for SM-BC]
+
+== ONTAP Mediator 
+
+The ONTAP Mediator establishes a quorum for the ONTAP clusters in an SM-BC relationship. It coordinates automated failover when a failure is detected, determining which cluster acts as the primary and ensuring data is served to and from the correct destination. 
+
+.Prerequisites for the ONTAP Mediator
+* The ONTAP Mediator includes its own set of prerequisites. You must meet these prerequisites before installing the mediator.
++
+For more information, see link:https://docs.netapp.com/us-en/ontap-metrocluster/install-ip/task_configuring_the_ontap_mediator_service_from_a_metrocluster_ip_configuration.html[Prepare to install the ONTAP Mediator service^].
+* By default, the ONTAP Mediator provides service through TCP port 31784. You should make sure that port 31784 is open and available between the ONTAP clusters and the mediator.
+
+== Install the ONTAP Mediator and confirm cluster configuration 
 
 Proceed through each of the following steps. For each step, you should confirm that the specific configuration has been performed. Use the link included after each step to get more information as needed.
 
@@ -29,11 +35,11 @@ Proceed through each of the following steps. For each step, you should confirm t
 
 . Install the ONTAP Mediator service before you ensure that your source and destination clusters are configured properly.
 +
-xref:../mediator/index.html[ONTAP Mediator service]
+xref:../mediator/index.html[Prepare to install or upgrade the ONTAP Mediator service]
 
 . Confirm that a cluster peering relationship exists between the clusters.
 +
-NOTE: The default IPspace is required by SM-BC for cluster peer relationships. Custom IPspace is not supported.
+NOTE: The default IPspace is required by SM-BC for cluster peer relationships. A custom IPspace is not supported.
 +
 xref:../task_dp_prepare_mirror.html[Configure peer relationships]
 
@@ -55,10 +61,68 @@ link:../san-admin/lifs-cluster-concept.html[Considerations for LIFs in a cluster
 +
 link:https://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-sanag/GUID-4B666C44-694A-48A3-B0A9-517FA7FD2502.html?cp=13_6_4_0[Creating a LIF^]
 
-. Confirm that the necessary LUNs are created and mapped to igroup, which is used to map LUNs to the initiator on the application host.
+. Confirm that the necessary LUNs are created and mapped to an igroup, which is used to map LUNs to the initiator on the application host.
 +
 xref:../san-admin/create-luns-mapping-igroups-task.html[Create LUNs and map igroups]
 
 . Rescan the application host to discover any new LUNs.
 
+[[initialize-the-ontap-mediator]]
+== Initialize the ONTAP mediator for SM-BC
+
+Once you have installed the ONTAP Mediator and confirmed you cluster configuration, you must initialize the ONTAP Mediator for cluster monitoring. You can initialize the ONTAP Mediator using System Manager or the ONTAP CLI. 
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+With System Manager, you can configure the ONTAP Mediator server for automated failover. You can also replace the self-signed SSL and CA with the third party validated SSL Certificate and CA if you have not already done so.
+
+.Steps
+.	Navigate to *Protection > Overview > Mediator > Configure*.
+.	Select *Add*, and enter the following ONTAP Mediator server information:
++
+*	IPv4 address
+*	Username
+*	Password
+*	Certificate
+--
+
+.CLI
+--
+You can initialize the ONTAP Mediator from either the primary or secondary cluster using the ONTAP CLI. When you issue the `mediator add` command on one cluster, the ONTAP Mediator is automatically added on the other cluster.
+
+.Steps
+. Initialize Mediator on one of the clusters:
++
+`snapmirror mediator add -mediator-address IP_Address -peer-cluster cluster_name -username user_name`
++
+*Example*
++
+....
+cluster1::> snapmirror mediator add -mediator-address 192.168.10.1 -peer-cluster cluster2 -username mediatoradmin
+Notice: Enter the mediator password.
+
+Enter the password: ******
+Enter the password again: ******
+....
+. Check the status of the Mediator configuration:
++
+`snapmirror mediator show`
++
+....
+Mediator Address Peer Cluster     Connection Status Quorum Status
+---------------- ---------------- ----------------- -------------
+192.168.10.1     cluster-2        connected         true
+....
++
+`Quorum Status` indicates whether the SnapMirror consistency group relationships are synchronized with the mediator; a status of `true` indicates successful synchronization.
+--
+====
+
+
+
+// 7 march 2023, ontapdoc-883
 // 2021-6-30, BURT 1411387
+// ontap-metrocluster issue #146, 7 march 2022
+// issue #402, 9 march 2022

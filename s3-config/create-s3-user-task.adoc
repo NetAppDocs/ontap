@@ -4,29 +4,28 @@ sidebar: sidebar
 keywords: create, s3, user
 summary: "User authorization is required on all ONTAP object stores in order to restrict connectivity to authorized clients."
 ---
+
 = Create an S3 user
 :icons: font
 :imagesdir: ../media/
 :hardbreaks-option:
 
 [.lead]
-User authorization is required on all ONTAP object stores in order to restrict connectivity to authorized clients.
+User authorization is required on all ONTAP object stores to restrict connectivity to authorized clients.
 
 .Before you begin.
 
-An S3-enabled SVM must already exist.
+An S3-enabled storage VM must already exist.
 
 .About this task
 
-An S3 user can be granted access to any bucket in an SVM but not in multiple SVMs.
-
-When you create an S3 user, an access-key and a secret-key will be generated. They must be shared with the user along with the object store's FQDN and bucket name. S3 users' keys can be displayed with the `vserver object-store-server user show` command.
+An S3 user can be granted access to any bucket in a storage VM. When you create an S3 user, an access key and a secret key are also generated for the user. They should be shared with the user along with the FQDN of the object store and bucket name. An S3 users' keys can be viewed with the `vserver object-store-server user show` command.
 
 You can grant specific access permissions to S3 users in a bucket policy or an object server policy.
 
 [NOTE]
 ====
-When an object store server is created, a root user (UID 0) is created, a privileged user with access all buckets. Rather than administering ONTAP S3 as root user, it is a best practice to create an admin user role with specific privileges.
+When you create a new object store server, ONTAP creates a root user (UID 0), which is a privileged user with access to all buckets. Rather than administering ONTAP S3 as the root user, NetApp recommends that an admin user role be created with specific privileges.
 ====
 
 [role="tabbed-block"]
@@ -34,16 +33,29 @@ When an object store server is created, a root user (UID 0) is created, a privil
 .CLI
 --
 . Create an S3 user:
-`vserver object-store-server user create -vserver _svm_name_ -user _user_name_ [-comment _text_]`
-. Be sure to save the access key and secret key, they will be required for access from S3 clients.
+`vserver object-store-server user create -vserver svm_name -user user_name -comment [-comment text] -key-time-to-live time`
+** Adding a comment is optional.
+** Beginning with ONTAP 9.14.1, you can define the period of time for which the key will be valid in the `-key-time-to-live` parameter. You can add the retention period in this format, to indicate the period after which the access key expires: `P[<integer>D]T[<integer>H][<integer>M][<integer>S] | P<integer>W`
+For example, if you want to enter a retention period of one day, two hours, three minutes, and four seconds, enter the value as `P1DT2H3M4S`. Unless specified, the key is valid for an indefinite period of time.
++
+The below example creates a user with name `sm_user1` on storage VM `vs0`, with a key retention period of one week.
++
+----
+vserver object-store-server user create -vserver vs0 -user sm_user1 -key-time-to-live P1W
+----
++
+. Be sure to save the access key and secret key. They will be required for access from S3 clients.
+
 --
 
 .System Manager
 --
-. Edit the storage VM: click *Storage > storage VMs*, click the storage VM, click *Settings* and then click image:icon_pencil.gif[pencil icon] under S3.
-. Add a user: click *Users*, then click *Add*.
-. Enter a name and click *Save*.
-. Be sure to save the access key and secret key, they will be required for access from S3 clients.
+. Click *Storage > Storage VMs*. Select the storage VM to which you need to add a user, select *Settings* and then click image:icon_pencil.gif[pencil icon] under S3.
+. To add a user, click *Users > Add*.
+. Enter a name for the user.
+. Beginning with ONTAP 9.14.1, you can specify the retention period of the access keys that get created for the user. You can specify the retention period in days, hours, minutes, or seconds, after which the keys automatically expire. By default, the value is set to `0` that indicates that the key is indefinitely valid.
+. Click *Save*. The user is created, and an access key and a secret key are generated for the user. 
+. Download or save the access key and secret key. They will be required for access from S3 clients.
 --
 ====
 
@@ -51,3 +63,4 @@ When an object store server is created, a root user (UID 0) is created, a privil
 * xref:create-modify-groups-task.html[Create or modify S3 groups]
 
 // 09Oct2020, BURT 1290604, forry
+// 10-Oct-2023 ONTAPDOC-1364

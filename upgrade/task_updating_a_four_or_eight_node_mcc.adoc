@@ -1,15 +1,15 @@
 ---
 permalink: upgrade/task_updating_a_four_or_eight_node_mcc.html
 sidebar: sidebar
-keywords: 4-node MetroCluster configurations,8-node MetroCluster configurations
-summary: 'The manual update procedure for upgrading or downgrading a four- or eight-node MetroCluster configuration involves preparing for the update, updating the DR pairs in each of the one or two DR groups simultaneously, and performing some post-update tasks.'
+keywords: 4-node MetroCluster configurations,8-node MetroCluster configurations, upgrade, upgrading, manual, manually
+summary: 'Manual upgrade of a four- or eight-node MetroCluster configuration involves preparing and updating the DR pairs in each of the DR groups and performing post-upgrade tasks'
 ---
-= Manual nondisruptive upgrade of a four- or eight-node MetroCluster configuration using the CLI
+= Manual nondisruptive ONTAP upgrade of a four- or eight-node MetroCluster configuration using the CLI
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-The manual update procedure for upgrading or downgrading a four- or eight-node MetroCluster configuration involves preparing for the update, updating the DR pairs in each of the one or two DR groups simultaneously, and performing some post-update tasks.
+A manual upgrade of a four- or eight-node MetroCluster configuration involves preparing for the update, updating the DR pairs in each of the one or two DR groups simultaneously, and performing post-upgrade tasks.
 
 * This task applies to the following configurations:
  ** Four-node MetroCluster FC or IP configurations running ONTAP 9.2 or earlier
@@ -20,46 +20,51 @@ The manual update procedure for upgrading or downgrading a four- or eight-node M
  ** When downgrading, the old version is a later version of ONTAP, with a higher version number than the new version of ONTAP.
 * This task uses the following high-level workflow:
 +
-image::../media/workflow_mcc_lockstep_upgrade.gif[Diagram of MetroCluster upgrade decision flow.]
+image:workflow_mcc_lockstep_upgrade.gif[Diagram of MetroCluster upgrade decision flow.]
 
-== Differences when updating software on an eight-node or four-node MetroCluster configuration
+== Differences when updating ONTAP software on an eight-node or four-node MetroCluster configuration
 
-The MetroCluster software update process differs, depending on whether there are eight or four nodes in the MetroCluster configuration.
+The MetroCluster software upgrade process differs, depending on whether there are eight or four nodes in the MetroCluster configuration.
 
 A MetroCluster configuration consists of one or two DR groups. Each DR group consists of two HA pairs, one HA pair at each MetroCluster cluster. An eight-node MetroCluster includes two DR groups:
 
-image::../media/mcc_dr_groups_8_node.gif[Diagram of eight-node MetroCluster configuration.]
+image:mcc_dr_groups_8_node.gif[Diagram of eight-node MetroCluster configuration.]
 
-The MetroCluster software update procedure involves upgrading or downgrading one DR group at a time.
+You upgrade one DR group at a time.
 
-For four-node MetroCluster configurations:
+.For four-node MetroCluster configurations:
 
-. Update DR Group One:
-.. Update node_A_1 and node_B_1.
-.. Update node_A_2 and node_B_2.
+. Upgrade DR Group One:
+.. Upgrade node_A_1 and node_B_1.
+.. Upgrade node_A_2 and node_B_2.
 
-For eight-node MetroCluster configurations, you perform the DR group update procedure twice:
+.For eight-node MetroCluster configurations, you perform the DR group upgrade procedure twice:
 
-. Update DR Group One:
-.. Update node_A_1 and node_B_1.
-.. Update node_A_2 and node_B_2.
-. Update DR Group Two:
-.. Update node_A_3 and node_B_3.
-.. Update node_A_4 and node_B_4.
+. Upgrade DR Group One:
+.. Upgrade node_A_1 and node_B_1.
+.. Upgrade node_A_2 and node_B_2.
+. Upgrade DR Group Two:
+.. Upgrade node_A_3 and node_B_3.
+.. Upgrade node_A_4 and node_B_4.
 
-== Preparing to update a MetroCluster DR group
+== Preparing to upgrade a MetroCluster DR group
 
-Before you actually update the software on the nodes, you must identify the DR relationships among the nodes, send an AutoSupport message that you are initiating an update, and confirm the ONTAP version running on each node.
+Before you upgrade the ONTAP software on the nodes, you must identify the DR relationships among the nodes, send an AutoSupport message that you are initiating an upgrade, and confirm the ONTAP version running on each node.
 
-You must have xref:task_download_and_install_ontap_software_image.html[downloaded and installed the software images].
+You must have link:download-software-image.html[downloaded] and link:install-software-manual-upgrade.html[installed] the software images.
 
 This task must be repeated on each DR group. If the MetroCluster configuration consists of eight nodes, there are two DR groups. Thereby, this task must be repeated on each DR group.
 
 The examples provided in this task use the names shown in the following illustration to identify the clusters and nodes:
 
-image::../media/mcc_dr_groups_8_node.gif[Diagram of eight-node MetroCluster configuration.]
+image:mcc_dr_groups_8_node.gif[Diagram of eight-node MetroCluster configuration.]
 
-. Identify the DR pairs in the configuration: `metrocluster node show -fields dr-partner`
+. Identify the DR pairs in the configuration: 
++
+[source,cli]
+----
+metrocluster node show -fields dr-partner
+----
 +
 ----
  cluster_A::> metrocluster node show -fields dr-partner
@@ -75,12 +80,21 @@ image::../media/mcc_dr_groups_8_node.gif[Diagram of eight-node MetroCluster conf
  cluster_A::>
 ----
 
-. Set the privilege level from admin to advanced, entering *y* when prompted to continue: `set -privilege advanced`
+. Set the privilege level from admin to advanced, entering *y* when prompted to continue: 
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 The advanced prompt (`*>`) appears.
 
-. Confirm the ONTAP version running on each node:
-.. Confirm the version on cluster_A: `system image show`
+. Confirm the ONTAP version on cluster_A: 
++
+[source,cli]
+----
+system image show
+----
 +
 ----
  cluster_A::*> system image show
@@ -98,7 +112,12 @@ The advanced prompt (`*>`) appears.
  cluster_A::>
 ----
 
-.. Confirm the version on cluster_B: `system image show`
+. Confirm the version on cluster_B: 
++
+[source,cli]
+----
+system image show
+----
 +
 ----
  cluster_B::*> system image show
@@ -115,18 +134,32 @@ The advanced prompt (`*>`) appears.
 
  cluster_B::>
 ----
-. Trigger an AutoSupport notification: `autosupport invoke -node * -type all -message "Starting_NDU"`
+. Trigger an AutoSupport notification: 
 +
-This AutoSupport notification includes a record of the system status before the update. It saves useful troubleshooting information if there is a problem with the update process.
+[source,cli]
+----
+autosupport invoke -node * -type all -message "Starting_NDU"
+----
++
+This AutoSupport notification includes a record of the system status before the upgrade. It saves useful troubleshooting information if there is a problem with the upgrade process.
 +
 If your cluster is not configured to send AutoSupport messages, then a copy of the notification is saved locally.
 
-. For each node in the first set, set the target ONTAP software image to be the default image: `system image modify {-node nodename -iscurrent false} -isdefault true`
+. For each node in the first set, set the target ONTAP software image to be the default image: 
++
+[source,cli]
+----
+system image modify {-node nodename -iscurrent false} -isdefault true
+----
 +
 This command uses an extended query to change the target software image, which is installed as the alternate image, to be the default image for the node.
 
-. Verify that the target ONTAP software image is set as the default image:
-.. Verify the images on cluster_A: `system image show`
+. Verify that the target ONTAP software image is set as the default image on cluster_A: 
++
+[source,cli]
+----
+system image show
+----
 +
 In the following example, image2 is the new ONTAP version and is set as the default image on each of the nodes in the first set:
 +
@@ -145,7 +178,12 @@ In the following example, image2 is the new ONTAP version and is set as the defa
  2 entries were displayed.
 ----
 
-.. Verify the images on cluster_B: `system image show`
+.. Verify that the target ONTAP software image is set as the default image on cluster_B: 
++
+[source,cli]
+----
+system image show
+----
 +
 The following example shows that the target version is set as the default image on each of the nodes in the first set:
 +
@@ -163,11 +201,17 @@ The following example shows that the target version is set as the default image 
 
  2 entries were displayed.
 ----
-. Determine whether the nodes to be upgraded are currently serving any clients twice for each node: `system node run -node target-node -command uptime`
+. Determine whether the nodes to be upgraded are currently serving any clients twice for each node: 
++
+[source,cli]
+----
+system node run -node target-node -command uptime
+----
 +
 The uptime command displays the total number of operations that the node has performed for NFS, CIFS, FC, and iSCSI clients since the node was last booted. For each protocol, you need to run the command twice to determine whether the operation counts are increasing. If they are increasing, the node is currently serving clients for that protocol. If they are not increasing, the node is not currently serving clients for that protocol.
 +
-*NOTE*: You should make a note of each protocol that has increasing client operations so that after the node is upgraded, you can verify that client traffic has resumed.
+[NOTE]
+You should make a note of each protocol that has increasing client operations so that after the node is upgraded, you can verify that client traffic has resumed.
 +
 This example shows a node with NFS, CIFS, FC, and iSCSI operations. However, the node is currently serving only NFS and iSCSI clients.
 +
@@ -185,16 +229,26 @@ You must perform a takeover and giveback of the nodes in the correct order to ma
 
 All nodes must be running the old version of ONTAP.
 
-In this task, node_A_1 and node_B_1 are updated.
+In this task, node_A_1 and node_B_1 are upgraded.
 
-If you have updated the ONTAP software on the first DR group, and are now updating the second DR group in an eight-node MetroCluster configuration, in this task you would be updating node_A_3 and node_B_3.
+If you have upgraded the ONTAP software on the first DR group, and are now upgrading the second DR group in an eight-node MetroCluster configuration, in this task you would be updating node_A_3 and node_B_3.
 
 . If MetroCluster Tiebreaker software is enabled, disabled it.
-. For each node in the HA pair, disable automatic giveback: `storage failover modify -node target-node -auto-giveback false`
+. For each node in the HA pair, disable automatic giveback: 
++
+[source,cli]
+----
+storage failover modify -node target-node -auto-giveback false
+----
 +
 This command must be repeated for each node in the HA pair.
 
-. Verify that automatic giveback is disabled: `storage failover show -fields auto-giveback`
+. Verify that automatic giveback is disabled: 
++
+[source,cli]
+----
+storage failover show -fields auto-giveback
+----
 +
 This example shows that automatic giveback has been disabled on both nodes:
 +
@@ -207,18 +261,29 @@ This example shows that automatic giveback has been disabled on both nodes:
  2 entries were displayed.
 ----
 
-. Ensure that I/O is not exceeding ~50% for each controller. Ensure that CPU utilization is not exceeding ~50% per controller.
+. Ensure that I/O is not exceeding ~50% for each controller and that CPU utilization is not exceeding ~50% per controller.
+
 . Initiate a takeover of the target node on cluster_A:
 +
 Do not specify the -option immediate parameter, because a normal takeover is required for the nodes that are being taken over to boot onto the new software image.
 
-.. Take over the DR partner on cluster_A (node_A_1):``storage failover takeover -ofnode node_A_1``
+.. Take over the DR partner on cluster_A (node_A_1):
++
+[source,cli]
+----
+storage failover takeover -ofnode node_A_1
+----
 +
 The node boots up to the "Waiting for giveback" state.
 +
 NOTE: If AutoSupport is enabled, then an AutoSupport message is sent indicating that the nodes are out of cluster quorum. You can ignore this notification and proceed with the upgrade.
 
-.. Verify that the takeover is successful: `storage failover show`
+.. Verify that the takeover is successful: 
++
+[source,cli]
+----
+storage failover show
+----
 +
 The following example shows that the takeover is successful. Node_A_1 is in the "Waiting for giveback" state and node_A_2 is in the "In takeover" state.
 +
@@ -236,13 +301,24 @@ The following example shows that the takeover is successful. Node_A_1 is in the 
 +
 Do not specify the -option immediate parameter, because a normal takeover is required for the nodes that are being taken over to boot onto the new software image.
 
-.. Take over node_B_1: `storage failover takeover -ofnode node_B_1`
+.. Take over node_B_1: 
++
+[source,cli]
+----
+storage failover takeover -ofnode node_B_1
+----
 +
 The node boots up to the "Waiting for giveback" state.
 +
-NOTE: If AutoSupport is enabled, then an AutoSupport message is sent indicating that the nodes are out of cluster quorum. You can ignore this notification and proceed with the upgrade.
+[NOTE]
+If AutoSupport is enabled, then an AutoSupport message is sent indicating that the nodes are out of cluster quorum. You can ignore this notification and proceed with the upgrade.
 
-.. Verify that the takeover is successful: `storage failover show`
+.. Verify that the takeover is successful: 
++
+[source,cli]
+----
+storage failover show
+----
 +
 The following example shows that the takeover is successful. Node_B_1 is in the "Waiting for giveback" state and node_B_2 is in the "In takeover" state.
 +
@@ -265,12 +341,28 @@ The recovery time is client-specific and might take longer than eight minutes de
 +
 After upgrading MetroCluster IP configurations to ONTAP 9.5 or later, the aggregates will be in a degraded state for a short period before resynchronizing and returning to a mirrored state.
 
-.. Give back the aggregates to the DR partner on cluster_A: `storage failover giveback –ofnode node_A_1`
-.. Give back the aggregates to the DR partner on cluster_B: `storage failover giveback –ofnode node_B_1`
+.. Give back the aggregates to the DR partner on cluster_A: 
++
+[source,cli]
+----
+storage failover giveback –ofnode node_A_1
+----
+
+.. Give back the aggregates to the DR partner on cluster_B: 
++
+[source,cli]
+----
+storage failover giveback –ofnode node_B_1
+----
 +
 The giveback operation first returns the root aggregate to the node and then, after the node has finished booting, returns the non-root aggregates.
 
-. Verify that all aggregates have been returned by issuing the following command on both clusters: `storage failover show-giveback`
+. Verify that all aggregates have been returned by issuing the following command on both clusters: 
++
+[source,cli]
+----
+storage failover show-giveback
+----
 +
 If the Giveback Status field indicates that there are no aggregates to give back, then all aggregates have been returned. If the giveback is vetoed, the command displays the giveback progress and which subsystem vetoed the giveback.
 
@@ -285,11 +377,21 @@ If you decided to override the "`veto`" condition, set the -override-vetoes para
 ** Clients are recovered from the pause in I/O that occurs during giveback.
 +
 The recovery time is client-specific and might take longer than eight minutes depending on the characteristics of the client applications.
-. Set the privilege level from admin to advanced, entering *y* when prompted to continue: `set -privilege advanced`
+. Set the privilege level from admin to advanced, entering *y* when prompted to continue: 
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 The advanced prompt (`*>`) appears.
 
-. Confirm the version on cluster_A: `system image show`
+. Confirm the version on cluster_A: 
++
+[source,cli]
+----
+system image show
+----
 +
 The following example shows that System image2 should is the default and current version on node_A_1:
 +
@@ -309,7 +411,12 @@ The following example shows that System image2 should is the default and current
  cluster_A::>
 ----
 
-. Confirm the version on cluster_B: `system image show`
+. Confirm the version on cluster_B: 
++
+[source,cli]
+----
+system image show
+----
 +
 The following example shows that System image2 (ONTAP 9.0.0) is the default and current version on node_A_1:
 +
@@ -335,25 +442,41 @@ You must perform a takeover and giveback of the node in the correct order to mak
 
 You should have upgraded the first DR pair (node_A_1 and node_B_1).
 
-In this task, node_A_2 and node_B_2 are updated.
+In this task, node_A_2 and node_B_2 are upgraded.
 
-If you have updated the ONTAP software on the first DR group, and are now updating the second DR group in an eight-node MetroCluster configuration, in this task you are updating node_A_4 and node_B_4.
+If you have upgraded the ONTAP software on the first DR group, and are now updating the second DR group in an eight-node MetroCluster configuration, in this task you are updating node_A_4 and node_B_4.
+
+. Migrate all of the data LIFs away from the node: 
++
+[source,cli]
+----
+network interface migrate-all -node nodenameA
+----
 
 . Initiate a takeover of the target node on cluster_A:
 +
 Do not specify the -option immediate parameter, because a normal takeover is required for the nodes that are being taken over to boot onto the new software image.
 
- .. Take over the DR partner on cluster_A:
+.. Take over the DR partner on cluster_A:
 +
-`storage failover takeover -ofnode node_A_2 -option allow-version-mismatch`
+[source,cli]
+----
+storage failover takeover -ofnode node_A_2 -option allow-version-mismatch
+----
 +
-NOTE: The `allow-version-mismatch` option is not required for upgrades from ONTAP 9.0 to ONTAP 9.1 or for any patch upgrades.
+[NOTE]
+The `allow-version-mismatch` option is not required for upgrades from ONTAP 9.0 to ONTAP 9.1 or for any patch upgrades.
 +
 The node boots up to the "Waiting for giveback" state.
 +
 If AutoSupport is enabled, then an AutoSupport message is sent indicating that the nodes are out of cluster quorum. You can ignore this notification and proceed with the upgrade.
 
- .. Verify that the takeover is successful: `storage failover show`
+.. Verify that the takeover is successful: 
++
+[source,cli]
+----
+storage failover show
+----
 +
 The following example shows that the takeover is successful. Node_A_2 is in the "Waiting for giveback" state and node_A_1 is in the "In takeover" state.
 +
@@ -371,27 +494,41 @@ node_A_2       node_A_1       -        Waiting for giveback (HA mailboxes)
 +
 Do not specify the -option immediate parameter, because a normal takeover is required for the nodes that are being taken over to boot onto the new software image.
 
- .. Take over the DR partner on cluster_B (node_B_2):
+.. Take over the DR partner on cluster_B (node_B_2):
 +
 [cols=2*,options="header"]
 |===
 | If you are upgrading from...| Enter this command...
 a|
-ONTAP 9.2 or        ONTAP 9.1
+ONTAP 9.2 or ONTAP 9.1
 a|
-`storage failover takeover -ofnode node_B_2`
-a|
-ONTAP 9.0 or        Data ONTAP 8.3.x
-a|
-`storage failover takeover -ofnode node_B_2 -option allow-version-mismatch`
-NOTE: The `allow-version-mismatch` option is not required for upgrades from ONTAP 9.0 to ONTAP 9.1 or for any patch upgrades.
-|===
 
+[source,cli]
+----
+storage failover takeover -ofnode node_B_2
+----
+a|
+ONTAP 9.0 or Data ONTAP 8.3.x
+a|
+[source,cli]
+----
+storage failover takeover -ofnode node_B_2 -option allow-version-mismatch
+----
+[NOTE]
+The `allow-version-mismatch` option is not required for upgrades from ONTAP 9.0 to ONTAP 9.1 or for any patch upgrades.
+|===
++
 The node boots up to the "Waiting for giveback" state.
 +
-NOTE: If AutoSupport is enabled, an AutoSupport message is sent indicating that the nodes are out of cluster quorum. You can safely ignore this notification and proceed with the upgrade.
+[NOTE]
+If AutoSupport is enabled, an AutoSupport message is sent indicating that the nodes are out of cluster quorum. You can safely ignore this notification and proceed with the upgrade.
 
- .. Verify that the takeover is successful: `storage failover show`
+.. Verify that the takeover is successful: 
++
+[source,cli]
+----
+storage failover show
+----
 +
 The following example shows that the takeover is successful. Node_B_2 is in the "Waiting for giveback" state and node_B_1 is in the "In takeover" state.
 +
@@ -406,40 +543,66 @@ node_B_2       node_B_1       -        Waiting for giveback (HA mailboxes)
 ----
 
 . Wait at least eight minutes to ensure the following conditions:
- ** Client multipathing (if deployed) is stabilized.
- ** Clients are recovered from the pause in I/O that occurs during takeover.
+* Client multipathing (if deployed) is stabilized.
+* Clients are recovered from the pause in I/O that occurs during takeover.
 +
 The recovery time is client-specific and might take longer than eight minutes depending on the characteristics of the client applications.
 . Return the aggregates to the target nodes:
 +
 After upgrading MetroCluster IP configurations to ONTAP 9.5, the aggregates will be in a degraded state for a short period before resynchronizing and returning to a mirrored state.
 
- .. Give back the aggregates to the DR partner on cluster_A: `storage failover giveback –ofnode node_A_2`
- .. Give back the aggregates to the DR partner on cluster_B: `storage failover giveback –ofnode node_B_2`
+.. Give back the aggregates to the DR partner on cluster_A: 
++
+[source,cli]
+----
+storage failover giveback –ofnode node_A_2
+----
 
+.. Give back the aggregates to the DR partner on cluster_B: 
++
+[source,cli]
+----
+storage failover giveback –ofnode node_B_2
+----
 +
 The giveback operation first returns the root aggregate to the node and then, after the node has finished booting, returns the non-root aggregates.
 
-. Verify that all aggregates have been returned by issuing the following command on both clusters: `storage failover show-giveback`
+. Verify that all aggregates have been returned by issuing the following command on both clusters: 
++
+[source,cli]
+----
+storage failover show-giveback
+----
 +
 If the Giveback Status field indicates that there are no aggregates to give back, then all aggregates have been returned. If the giveback is vetoed, the command displays the giveback progress and which subsystem vetoed the giveback.
 
 . If any aggregates have not been returned, do the following:
- .. Review the veto workaround to determine whether you want to address the "`veto`" condition or override the veto.
- .. If necessary, address the "`veto`" condition described in the error message, ensuring that any identified operations are terminated gracefully.
- .. Reenter the storage failover giveback command.
+.. Review the veto workaround to determine whether you want to address the "`veto`" condition or override the veto.
+.. If necessary, address the "`veto`" condition described in the error message, ensuring that any identified operations are terminated gracefully.
+.. Reenter the storage failover giveback command.
 +
 If you decided to override the "`veto`" condition, set the -override-vetoes parameter to true.
+
 . Wait at least eight minutes to ensure the following conditions:
- ** Client multipathing (if deployed) is stabilized.
- ** Clients are recovered from the pause in I/O that occurs during giveback.
+* Client multipathing (if deployed) is stabilized.
+* Clients are recovered from the pause in I/O that occurs during giveback.
 +
 The recovery time is client-specific and might take longer than eight minutes depending on the characteristics of the client applications.
-. Set the privilege level from admin to advanced, entering *y* when prompted to continue: `set -privilege advanced`
+. Set the privilege level from admin to advanced, entering *y* when prompted to continue:
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 The advanced prompt (`*>`) appears.
 
-. Confirm the version on cluster_A: `system image show`
+. Confirm the version on cluster_A: 
++
+[source,cli]
+----
+system image show
+----
 +
 The following example shows that System image2 (target ONTAP image) is the default and current version on node_A_2:
 +
@@ -459,7 +622,12 @@ node_A_2
 cluster_A::>
 ----
 
-. Confirm the version on cluster_B: `system image show`
+. Confirm the version on cluster_B: 
++
+[source,cli]
+----
+system image show
+----
 +
 The following example shows that System image2 (target ONTAP image) is the default and current version on node_B_2:
 +
@@ -479,11 +647,21 @@ node_B_2
 cluster_A::>
 ----
 
-. For each node in the HA pair, enable automatic giveback: `storage failover modify -node target-node -auto-giveback true`
+. For each node in the HA pair, enable automatic giveback: 
++
+[source,cli]
+----
+storage failover modify -node target-node -auto-giveback true
+----
 +
 This command must be repeated for each node in the HA pair.
 
-. Verify that automatic giveback is enabled: `storage failover show -fields auto-giveback`
+. Verify that automatic giveback is enabled: 
++
+[source,cli]
+----
+storage failover show -fields auto-giveback
+----
 +
 This example shows that automatic giveback has been enabled on both nodes:
 +
@@ -495,3 +673,6 @@ node_x_1 true
 node_x_2 true
 2 entries were displayed.
 ----
+
+// 2023 Dec 13, Jira 1275
+// 2023 Aug 21, Git Issue 1008

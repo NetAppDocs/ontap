@@ -2,10 +2,9 @@
 sidebar: sidebar
 permalink: anti-ransomware/enable-default-task.html
 keywords:  system manager, cli, enable, anti-ransomware, anti ransomware, antiransom, antiransomware, autonomous, ransomware, protection, arp, default, volumes, configure, storage volumes, enable anti-ransomware in system manager, modify, storage VM, SVM, create
-summary: Beginning with ONTAP 9.10.1, you can configure storage VMs (SVMs) such that new volumes are enabled by default for anti-ransomware in learning mode.
+summary: Beginning with ONTAP 9.10.1, you can configure SVM so that new volumes are enabled by default for anti-ransomware protection.
 ---
 = Enable Autonomous Ransomware Protection by default in new volumes
-:toc: macro
 :toclevels: 1
 :hardbreaks:
 :nofooter:
@@ -18,18 +17,20 @@ Beginning with ONTAP 9.10.1, you can configure storage VMs (SVMs) such that new 
 
 .About this task
 
-By default, new volumes are created with ARP in disabled mode. You can modify this setting in System Manager and with the CLI. Volumes enabled by default are set to ARP in learning mode. 
+By default, new volumes are created with ARP in disabled mode. You can modify this setting in System Manager and with the CLI. Volumes enabled by default are set to ARP in learning (or dry-run) mode. 
 
 ARP will only be enabled on volumes created in the SVM after you have changed the setting. ARP will not be enabled on existing volumes. Learn how to link:enable-task.html[enable ARP in an existing volume].
 
-Beginning in ONTAP 9.13.1, adaptive learning has been added to ARP analytics, and the switch from learning mode to active mode is done automatically. For more information, see link:index.html#learning-and-active-mode[Learning and active mode]. 
+Beginning in ONTAP 9.13.1, adaptive learning has been added to ARP analytics, and the switch from learning mode to active mode is done automatically. For more information, see link:index.html#learning-and-active-modes[Learning and active modes]. 
 
 .Before you begin 
 
 * The xref:index.html[correct license] must be installed for your ONTAP version.
+* The volume must be less than 100% full.
+* Junction paths must be active. 
 * Beginning in ONTAP 9.13.1, it's recommended you enable multi-admin verification (MAV) so that two or more authenticated user admins are required for anti-ransomware operations. link:../multi-admin-verify/enable-disable-task.html[Learn more^].
 
-.Autonomous ARP switching from learning to active mode
+.Switch ARP from learning to active mode
 [%collapsible]
 ====
 Beginning in ONTAP 9.13.1, adaptive learning has been added to ARP analytics and the switch from learning mode to active mode is done automatically. The autonomous decision by ARP to automatically switch from learning mode to active mode is based on the configuration settings of the following options:
@@ -42,7 +43,7 @@ Beginning in ONTAP 9.13.1, adaptive learning has been added to ARP analytics and
  -anti-ransomware-auto-switch-minimum-file-extension
 ----
 
-If the criteria for these options is not met after 30 days, the volume automatically switches to ARP active mode. This duration can be configured with the option `anti-ransomware-auto-switch-duration-without-new-file-extension`, but the maximum value is 30 days.
+After 30 days of learning, a volume is automatically switched to active mode even if one or more of these conditions are not satisfied. That is, if auto-switch is enabled, the volume switches to active mode after a maximum of 30 days. The maximum value of 30 days is fixed and not modifiable. 
 
 For more information on ARP configuration options, including default values, see the ONTAP man pages.
 ====
@@ -71,8 +72,10 @@ At the CLI, you can also create a new SVM with ARP enabled by default for new vo
 If you upgraded to ONTAP 9.13.1 or later, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, use the following command:
 +
 `vserver modify _svm_name_ -anti-ransomware-auto-switch-from-learning-to-enabled false`
+--
 ====
 
+// 21 dec 2023, ontapdoc-1550
 // 18 may 2023, ontapdoc-1046
 // 2023-04-06, ontapdoc-931
 // 2022 Dec 16, ontap-issues-739

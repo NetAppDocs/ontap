@@ -9,18 +9,13 @@ summary: "You can use the Onboard Key Manager to secure the keys that the cluste
 :imagesdir: ../media/
 
 [.lead]
-You can use the Onboard Key Manager to secure the keys that the cluster uses to access encrypted data. You must enable Onboard Key Manager on each cluster that accesses an encrypted volume or a self-encrypting disk.
-
-.What you'll need
-
-* You must be a cluster administrator to perform this task.
-* You must configure the MetroCluster environment before you configure an external key manager.
-
+You can use the Onboard Key Manager to secure the keys that the cluster uses to access encrypted data. You must enable the Onboard Key Manager on each cluster that accesses an encrypted volume or a self-encrypting disk.
+ 
 .About this task
 
 You must run the `security key-manager onboard sync` command each time you add a node to the cluster.
 
-If you have a MetroCluster configuration you must run `security key-manager onboard enable` on the local cluster first, then run `security key-manager onboard sync` on the remote cluster, using the same passphrase on each.
+If you have a MetroCluster configuration, you must run the `security key-manager onboard enable` command on the local cluster first, then run the `security key-manager onboard sync` command on the remote cluster, using the same passphrase on each. When you run the `security key-manager onboard enable` command from the local cluster and then synchronize on the remote cluster, you do not need to run the `enable` command again from the remote cluster.
 
 By default, you are not required to enter the key manager passphrase when a node is rebooted. You can use the `cc-mode-enabled=yes` option to require that users enter the passphrase after a reboot.
 
@@ -38,14 +33,17 @@ If you fail to enter the correct cluster passphrase at boot, encrypted volumes a
 
 * System image updates use the NetApp RSA-3072 code signing certificate together with SHA-384 code signed digests to check the image integrity instead of the usual NetApp RSA-2048 code signing certificate and SHA-256 code signed digests.
 +
-The upgrade command verifies that the image contents have not been altered or corrupted by checking various digital signatures. The image update process proceeds to the next step if validation succeeds; otherwise, the image update fails. See the "`cluster image`" man page for information concerning system updates.
-
+The upgrade command verifies that the image contents have not been altered or corrupted by checking various digital signatures. The image update process proceeds to the next step if validation succeeds; otherwise, the image update fails. See the `cluster image` man page for information concerning system updates.
 ====
 
 [NOTE]
-====
 The Onboard Key Manager stores keys in volatile memory. Volatile memory contents are cleared when the system is rebooted or halted. Under normal operating conditions, volatile memory contents will be cleared within 30s when a system is halted.
-====
+
+.Before you begin
+
+* You must be a cluster administrator to perform this task.
+* You must configure the MetroCluster environment before you configure the Onboard Key Manager. 
+
 
 .Steps
 
@@ -88,57 +86,39 @@ The following example verifies that authentication keys have been created for `c
 +
 ----
 cluster1::> security key-manager key query -key-type NSE-AK
-       Vserver: cluster1
-   Key Manager: onboard
-          Node: node1
+               Node: node1
+            Vserver: cluster1
+        Key Manager: onboard
+   Key Manager Type: OKM
+ Key Manager Policy: -
 
-Key Tag                               Key Type  Restored
-------------------------------------  --------  --------
-node1                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
-node1                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+ Key Tag                               Key Type Encryption   Restored
 
-       Vserver: svm1
-   Key Manager: onboard
-          Node: node1
-    Key Server: keyserver.svm1.com:5965
+------------------------------------  -------- ------------ --------
 
-Key Tag                               Key Type  Restored
-------------------------------------  --------  --------
-eb9f8311-e8d8-487e-9663-7642d7788a75  VEK       yes
-    Key ID: 0000000000000000020000000000004001cb18336f7c8223743d3e75c6a7726e0000000000000000
-9d09cbbf-0da9-4696-87a1-8e083d8261bb  VEK       yes
-    Key ID: 0000000000000000020000000000004064f2e1533356a470385274a9c3ffb9770000000000000000
+node1                                 NSE-AK   AES-256      true
 
-       Vserver: cluster1
-   Key Manager: onboard
-          Node: node2
+    Key ID: 00000000000000000200000000000100056178fc6ace6d91472df8a9286daacc0000000000000000
 
-Key Tag                               Key Type  Restored
-------------------------------------  --------  --------
-node1                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
-node1                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+node1                                 NSE-AK   AES-256      true
 
-       Vserver: svm1
-   Key Manager: onboard
-          Node: node2
-    Key Server: keyserver.svm1.com:5965
+    Key ID: 00000000000000000200000000000100df1689a148fdfbf9c2b198ef974d0baa0000000000000000
 
-Key Tag                               Key Type  Restored
-------------------------------------  --------  --------
-eb9f8311-e8d8-487e-9663-7642d7788a75  VEK       yes
-    Key ID: 0000000000000000020000000000004001cb18336f7c8223743d3e75c6a7726e0000000000000000
-9d09cbbf-0da9-4696-87a1-8e083d8261bb  VEK       yes
-    Key ID: 0000000000000000020000000000004064f2e1533356a470385274a9c3ffb9770000000000000000
+2 entries were displayed.
 ----
+
+. Optionally, convert plain text volumes to encrypted volumes.
++
+`volume encryption conversion start`
++
+The Onboard Key Manager must be fully configured before you convert the volumes. In a MetroCluster environment, the Onboard Key Manager must be configured on both sites.
 
 .After you finish
 
 Copy the passphrase to a secure location outside the storage system for future use.
 
-All key management information is automatically backed up to the replicated database (RDB) for the cluster. You should also back up the information manually for use in case of a disaster.
+Whenever you configure the Onboard Key Manager passphrase, you should also back up the information manually to a secure location outside the storage system for use in case of a disaster. See link:backup-key-management-information-manual-task.html[Back up onboard key management information manually].
 
+// 2023 Sept 21, Git Issue 1096
+// ONTAPDOC-1076, 2023 Jun 30
 // 2021 dec 3, issue #273

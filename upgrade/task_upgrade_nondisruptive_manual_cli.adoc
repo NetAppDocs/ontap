@@ -2,28 +2,18 @@
 sidebar: sidebar
 permalink: upgrade/task_upgrade_nondisruptive_manual_cli.html
 keywords: upgrade, nondisruptive, , non-disruptive update, nondisruptive upgrade, shift workload between clusters, hardware platform, configuration, software image, update, update ONTAP, update software, ndu
-summary: To upgrade a cluster of two or more nodes using the manual nondisruptive method, you must initiate a failover operation on each node in an HA pair, update the "failed" node, initiate giveback, and then repeat the process for each HA pair in the cluster.
+summary: Automated upgrade using System Manager is the preferred upgrade method.  If System Manger does not support your configuration, you can use the CLI to perform a manual nondisruptive upgrade. 
 ---
-= Manual nondisruptive upgrade using the CLI (non-MetroCluster systems)
+= Manual nondisruptive ONTAP upgrade using the CLI (standard configurations)
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-To upgrade a cluster of two or more nodes using the manual nondisruptive method, you must initiate a failover operation on each node in an HA pair, update the "`failed`" node, initiate giveback, and then repeat the process for each HA pair in the cluster.
+Automated upgrade using System Manager is the preferred upgrade method.  If System Manger does not support your configuration, you can use the ONTAP command line interface (CLI) to perform a manual nondisruptive upgrade.  To upgrade a cluster of two or more nodes using the manual nondisruptive method, you must initiate a failover operation on each node in an HA pair, update the "`failed`" node, initiate giveback, and then repeat the process for each HA pair in the cluster.
 
-You must have satisfied upgrade preparation requirements.
+.Before you begin
 
-. Update the first node in an HA pair
-+
-You upgrade the first node in an HA pair by initiating a takeover by the node's partner. The partner serves the node's data while the first node is upgraded.
-
-. Update the second node in an HA pair
-+
-After upgrading or downgrading the first node in an HA pair, you upgrade its partner by initiating a takeover on it. The first node serves the partner's data while the partner node is upgraded.
-
-. Repeat these steps for each additional HA pair.
-
-You should complete post-upgrade tasks.
+You must have satisfied upgrade link:prepare.html[preparation] requirements.
 
 == Updating the first node in an HA pair
 
@@ -31,24 +21,52 @@ You can update the first node in an HA pair by initiating a takeover by the node
 
 If you are performing a major upgrade, the first node to be upgraded must be the same node on which you configured the data LIFs for external connectivity and installed the first ONTAP image.
 
-After upgrading the first node, you should upgrade the partner node as quickly as possible. Do not allow the two nodes to remain in a state of version mismatch longer than necessary.
+After upgrading the first node, you should upgrade the partner node as quickly as possible. Do not allow the two nodes to remain in a link:concept_mixed_version_requirements.html[mixed version] state longer than necessary.
 
-. Update the first node in the cluster by invoking an AutoSupport message: `autosupport invoke -node * -type all -message "Starting_NDU"`
+.Steps
+
+. Update the first node in the cluster by invoking an AutoSupport message: 
++
+[source,cli]
+----
+autosupport invoke -node * -type all -message "Starting_NDU"
+----
 +
 This AutoSupport notification includes a record of the system status just prior to update. It saves useful troubleshooting information in case there is a problem with the update process.
 +
 If the cluster is not configured to send AutoSupport messages, a copy of the notification is saved locally.
 
-. Set the privilege level to advanced, entering *y* when prompted to continue: `set -privilege advanced`
+. Set the privilege level to advanced, entering *y* when prompted to continue: 
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 The advanced prompt (`*>`) appears.
 
-. Set the new ONTAP software image to be the default image: `system image modify {-node nodenameA -iscurrent false} -isdefault true`
+. Set the new ONTAP software image to be the default image: 
++
+[source,cli]
+----
+system image modify {-node nodenameA -iscurrent false} -isdefault true
+----
 +
 The system image modify command uses an extended query to change the new ONTAP software image (which is installed as the alternate image) to the default image for the node.
 
-. Monitor the progress of the update: `system node upgrade-revert show`
-. Verify that the new ONTAP software image is set as the default image: `system image show`
+. Monitor the progress of the update: 
++
+[source,cli]
+----
+system node upgrade-revert show
+----
+
+. Verify that the new ONTAP software image is set as the default image: 
++
+[source,cli]
+----
+system image show
+----
 +
 In the following example, image2 is the new ONTAP version and is set as the default image on node0:
 +
@@ -66,11 +84,21 @@ node1
 4 entries were displayed.
 ----
 
-. Disable automatic giveback on the partner node if it is enabled: `storage failover modify -node nodenameB -auto-giveback false`
+. Disable automatic giveback on the partner node if it is enabled: 
++
+[source,cli]
+----
+storage failover modify -node nodenameB -auto-giveback false
+----
 +
 If the cluster is a two-node cluster, a message is displayed warning you that disabling automatic giveback prevents the management cluster services from going online in the event of an alternating-failure scenario. Enter `y` to continue.
 
-. Verify that automatic giveback is disabled for node's partner: `storage failover show -node nodenameB -fields auto-giveback`
+. Verify that automatic giveback is disabled for node's partner: 
++
+[source,cli]
+----
+storage failover show -node nodenameB -fields auto-giveback
+----
 +
 ----
 cluster1::> storage failover show -node node1 -fields auto-giveback
@@ -80,11 +108,17 @@ node1    false
 1 entry was displayed.
 ----
 
-. Run the following command twice to determine whether the node to be updated is currently serving any clients `system node run -node nodenameA -command uptime`
+. Run the following command twice to determine whether the node to be updated is currently serving any clients 
++
+[source,cli]
+----
+system node run -node nodenameA -command uptime
+----
 +
 The uptime command displays the total number of operations that the node has performed for NFS, SMB, FC, and iSCSI clients since the node was last booted. For each protocol, you must run the command twice to determine whether the operation counts are increasing. If they are increasing, the node is currently serving clients for that protocol. If they are not increasing, the node is not currently serving clients for that protocol.
 +
-*NOTE*: You should make a note of each protocol that has increasing client operations so that after the node is updated, you can verify that client traffic has resumed.
+[NOTE] 
+You should make a note of each protocol that has increasing client operations so that after the node is updated, you can verify that client traffic has resumed.
 +
 The following example shows a node with NFS, SMB, FC, and iSCSI operations. However, the node is currently serving only NFS and iSCSI clients.
 +
@@ -96,8 +130,19 @@ cluster1::> system node run -node node0 -command uptime
   2:58pm up  7 days, 19:17 800001573 NFS ops, 1017333 CIFS ops, 0 HTTP ops, 40395 FCP ops, 32815 iSCSI ops
 ----
 
-. Migrate all of the data LIFs away from the node: `network interface migrate-all -node nodenameA`
-. Verify any LIFs that you migrated: `network interface show`
+. Migrate all of the data LIFs away from the node: 
++
+[source,cli]
+----
+network interface migrate-all -node nodenameA
+----
+
+. Verify any LIFs that you migrated: 
++
+[source,cli]
+----
+network interface show
+----
 +
 For more information about parameters you can use to verify LIF status, see the network interface show man page.
 +
@@ -114,15 +159,26 @@ vs0     data004 node0     e0a       node1     e0a       up          up
 4 entries were displayed.
 ----
 
-. Initiate a takeover: `storage failover takeover -ofnode nodenameA`
+. Initiate a takeover: 
++
+[source,cli]
+----
+storage failover takeover -ofnode nodenameA
+----
 +
 Do not specify the -option immediate parameter, because a normal takeover is required for the node that is being taken over to boot onto the new software image. If you did not manually migrate the LIFs away from the node, they automatically migrate to the node's HA partner to ensure that there are no service disruptions.
 +
 The first node boots up to the Waiting for giveback state.
 +
-*NOTE*: If AutoSupport is enabled, an AutoSupport message is sent indicating that the node is out of cluster quorum. You can ignore this notification and proceed with the update.
+[NOTE]
+If AutoSupport is enabled, an AutoSupport message is sent indicating that the node is out of cluster quorum. You can ignore this notification and proceed with the update.
 
-. Verify that the takeover is successful: `storage failover show`
+. Verify that the takeover is successful: 
++
+[source,cli]
+----
+storage failover show
+----
 +
 You might see error messages indicating version mismatch and mailbox format problems. This is expected behavior and it represents a temporary state in a major nondisruptive upgrade and is not harmful.
 +
@@ -143,38 +199,71 @@ node1          node0          false    In takeover
  ** Clients are recovered from the pause in an I/O operation that occurs during takeover.
 +
 The recovery time is client specific and might take longer than eight minutes, depending on the characteristics of the client applications.
-. Return the aggregates to the first node: `storage failover giveback –ofnode nodenameA`
+
+. Return the aggregates to the first node: 
++
+[source,cli]
+----
+storage failover giveback –ofnode nodenameA
+----
 +
 The giveback first returns the root aggregate to the partner node and then, after that node has finished booting, returns the non-root aggregates and any LIFs that were set to automatically revert. The newly booted node begins to serve data to clients from each aggregate as soon as the aggregate is returned.
 
-. Verify that all aggregates have been returned: `storage failover show-giveback`
+. Verify that all aggregates have been returned: 
++
+[source,cli]
+----
+storage failover show-giveback
+----
 +
 If the Giveback Status field indicates that there are no aggregates to give back, then all aggregates have been returned. If the giveback is vetoed, the command displays the giveback progress and which subsystem vetoed the giveback.
 
 . If any aggregates have not been returned, perform the following steps:
- .. Review the veto workaround to determine whether you want to address the "`veto`" condition or override the veto.
-+
-link:../high-availability/index.html[High-availability configuration]
+.. Review the veto workaround to determine whether you want to address the "`veto`" condition or override the veto.
 
- .. If necessary, address the "`veto`" condition described in the error message, ensuring that any identified operations are terminated gracefully.
- .. Rerun the storage failover giveback command.
+.. If necessary, address the "`veto`" condition described in the error message, ensuring that any identified operations are terminated gracefully.
+.. Rerun the storage failover giveback command.
 +
 If you decided to override the "`veto`" condition, set the -override-vetoes parameter to true.
 . Wait at least eight minutes for the following conditions to take effect:
- ** Client multipathing (if deployed) is stabilized.
- ** Clients are recovered from the pause in an I/O operation that occurs during giveback.
++
+* Client multipathing (if deployed) is stabilized.
+* Clients are recovered from the pause in an I/O operation that occurs during giveback.
 +
 The recovery time is client specific and might take longer than eight minutes, depending on the characteristics of the client applications.
+
 . Verify that the update was completed successfully for the node:
- .. Go to the advanced privilege level :``set -privilege advanced``
- .. Verify that update status is complete for the node: `system node upgrade-revert show -node nodenameA`
+.. Go to the advanced privilege level :
++
+[source,cli]
+----
+set -privilege advanced
+----
+
+.. Verify that update status is complete for the node: 
++
+[source,cli]
+----
+system node upgrade-revert show -node nodenameA
+----
 +
 The status should be listed as complete.
 +
 If the status is not complete, contact technical support.
 
- .. Return to the admin privilege level: `set -privilege admin`
-. Verify that the node's ports are up: `network port show -node nodenameA`
+.. Return to the admin privilege level: 
++
+[source,cli]
+----
+set -privilege admin
+----
+
+. Verify that the node's ports are up: 
++
+[source,cli]
+----
+network port show -node nodenameA
+----
 +
 You must run this command on a node that is upgraded to the higher version of ONTAP 9.
 +
@@ -194,7 +283,12 @@ node0
 5 entries were displayed.
 ----
 
-. Revert the LIFs back to the node: `network interface revert *`
+. Revert the LIFs back to the node: 
++
+[source,cli]
+----
+network interface revert *
+----
 +
 This command returns the LIFs that were migrated away from the node.
 +
@@ -203,7 +297,12 @@ cluster1::> network interface revert *
 8 entries were acted on.
 ----
 
-. Verify that the node's data LIFs successfully reverted back to the node, and that they are up: `network interface show`
+. Verify that the node's data LIFs successfully reverted back to the node, and that they are up: 
++
+[source,cli]
+----
+network interface show
+----
 +
 The following example shows that all of the data LIFs hosted by the node have successfully reverted back to the node, and that their operational status is up:
 +
@@ -220,7 +319,12 @@ vs0
 4 entries were displayed.
 ----
 
-. If you previously determined that this node serves clients, verify that the node is providing service for each protocol that it was previously serving: `system node run -node nodenameA -command uptime`
+. If you previously determined that this node serves clients, verify that the node is providing service for each protocol that it was previously serving: 
++
+[source,cli]
+----
+system node run -node nodenameA -command uptime
+----
 +
 The operation counts reset to zero during the update.
 +
@@ -231,7 +335,12 @@ cluster1::> system node run -node node0 -command uptime
   3:15pm up  0 days, 0:16 129 NFS ops, 0 CIFS ops, 0 HTTP ops, 0 FCP ops, 2 iSCSI ops
 ----
 
-. Reenable automatic giveback on the partner node if it was previously disabled: `storage failover modify -node nodenameB -auto-giveback true`
+. Reenable automatic giveback on the partner node if it was previously disabled: 
++
+[source,cli]
+----
+storage failover modify -node nodenameB -auto-giveback true
+----
 
 You should proceed to update the node's HA partner as quickly as possible. If you must suspend the update process for any reason, both nodes in the HA pair should be running the same ONTAP version.
 
@@ -239,16 +348,37 @@ You should proceed to update the node's HA partner as quickly as possible. If yo
 
 After updating the first node in an HA pair, you update its partner by initiating a takeover on it. The first node serves the partner's data while the partner node is upgraded.
 
-. Set the privilege level to advanced, entering *y* when prompted to continue: `set -privilege advanced`
+. Set the privilege level to advanced, entering *y* when prompted to continue: 
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 The advanced prompt (`*>`) appears.
 
-. Set the new ONTAP software image to be the default image: `system image modify {-node nodenameB -iscurrent false} -isdefault true`
+. Set the new ONTAP software image to be the default image: 
++
+[source,cli]
+----
+system image modify {-node nodenameB -iscurrent false} -isdefault true
+----
 +
 The system image modify command uses an extended query to change the new ONTAP software image (which is installed as the alternate image) to be the default image for the node.
 
-. Monitor the progress of the update: `system node upgrade-revert show`
-. Verify that the new ONTAP software image is set as the default image: `system image show`
+. Monitor the progress of the update: 
++
+[source,cli]
+----
+system node upgrade-revert show
+----
+
+. Verify that the new ONTAP software image is set as the default image: 
++
+[source,cli]
+----
+system image show
+----
 +
 In the following example, `image2` is the new version of ONTAP and is set as the default image on the node:
 +
@@ -266,11 +396,21 @@ node1
 4 entries were displayed.
 ----
 
-. Disable automatic giveback on the partner node if it is enabled: `storage failover modify -node nodenameA -auto-giveback false`
+. Disable automatic giveback on the partner node if it is enabled: 
++
+[source,cli]
+----
+storage failover modify -node nodenameA -auto-giveback false
+----
 +
 If the cluster is a two-node cluster, a message is displayed warning you that disabling automatic giveback prevents the management cluster services from going online in the event of an alternating-failure scenario. Enter `y` to continue.
 
-. Verify that automatic giveback is disabled for the partner node: `storage failover show -node nodenameA -fields auto-giveback`
+. Verify that automatic giveback is disabled for the partner node: 
++
+[source,cli]
+----
+storage failover show -node nodenameA -fields auto-giveback
+----
 +
 ----
 cluster1::> storage failover show -node node0 -fields auto-giveback
@@ -280,7 +420,12 @@ node0    false
 1 entry was displayed.
 ----
 
-. Run the following command twice to determine whether the node to be updated is currently serving any clients: `system node run -node nodenameB -command uptime`
+. Run the following command twice to determine whether the node to be updated is currently serving any clients: 
++
+[source,cli]
+----
+system node run -node nodenameB -command uptime
+----
 +
 The uptime command displays the total number of operations that the node has performed for NFS, SMB, FC, and iSCSI clients since the node was last booted. For each protocol, you must run the command twice to determine whether the operation counts are increasing. If they are increasing, the node is currently serving clients for that protocol. If they are not increasing, the node is not currently serving clients for that protocol.
 +
@@ -296,8 +441,18 @@ cluster1::> system node run -node node1 -command uptime
   2:58pm up  7 days, 19:17 800001573 NFS ops, 1017333 CIFS ops, 0 HTTP ops, 40395 FCP ops, 32815 iSCSI ops
 ----
 
-. Migrate all of the data LIFs away from the node: `network interface migrate-all -node nodenameB`
-. Verify the status of any LIFs that you migrated: `network interface show`
+. Migrate all of the data LIFs away from the node: 
++
+[source,cli]
+----
+network interface migrate-all -node nodenameB
+----
+. Verify the status of any LIFs that you migrated: 
++
+[source,cli]
+----
+network interface show
+----
 +
 For more information about parameters you can use to verify LIF status, see the network interface show man page.
 +
@@ -314,15 +469,29 @@ vs0     data004 node1     e0a       node0     e0a       up          up
 4 entries were displayed.
 ----
 
-. Initiate a takeover: `storage failover takeover -ofnode nodenameB -option allow-version-mismatch`
+. Initiate a takeover: 
++
+[source,cli]
+----
+storage failover takeover -ofnode nodenameB -option allow-version-mismatch
+----
 +
 Do not specify the -option immediate parameter, because a normal takeover is required for the node that is being taken over to boot onto the new software image. If you did not manually migrate the LIFs away from the node, they automatically migrate to the node's HA partner so that there are no service disruptions.
 +
+A warning is displayed.  You must enter `y` to continue.
++
+
 The node that is taken over boots up to the Waiting for giveback state.
 +
-*NOTE*: If AutoSupport is enabled, an AutoSupport message is sent indicating that the node is out of cluster quorum. You can ignore this notification and proceed with the update.
+[NOTE]
+If AutoSupport is enabled, an AutoSupport message is sent indicating that the node is out of cluster quorum. You can ignore this notification and proceed with the update.
 
-. Verify that the takeover was successful: `storage failover show`
+. Verify that the takeover was successful: 
++
+[source,cli]
+----
+storage failover show
+----
 +
 The following example shows that the takeover was successful. Node node1 is in the Waiting for giveback state, and its partner is in the In takeover state.
 +
@@ -337,42 +506,77 @@ node1          node0          false    Waiting for giveback (HA mailboxes)
 ----
 
 . Wait at least eight minutes for the following conditions to take effect:
- ** Client multipathing (if deployed) is stabilized.
- ** Clients are recovered from the pause in I/O that occurs during takeover.
+ +
+* Client multipathing (if deployed) is stabilized.
+* Clients are recovered from the pause in I/O that occurs during takeover.
 +
 The recovery time is client-specific and might take longer than eight minutes, depending on the characteristics of the client applications.
-. Return the aggregates to the partner node: `storage failover giveback -ofnode nodenameB`
+
+. Return the aggregates to the partner node: 
++
+[source,cli]
+----
+storage failover giveback -ofnode nodenameB
+----
 +
 The giveback operation first returns the root aggregate to the partner node and then, after that node has finished booting, returns the non-root aggregates and any LIFs that were set to automatically revert. The newly booted node begins to serve data to clients from each aggregate as soon as the aggregate is returned.
 
-. Verify that all aggregates are returned: `storage failover show-giveback`
+. Verify that all aggregates are returned: 
++
+[source,cli]
+----
+storage failover show-giveback
+----
 +
 If the Giveback Status field indicates that there are no aggregates to give back, then all aggregates are returned. If the giveback is vetoed, the command displays the giveback progress and which subsystem vetoed the giveback operation.
 
 . If any aggregates are not returned, perform the following steps:
- .. Review the veto workaround to determine whether you want to address the "`veto`" condition or override the veto.
-+
-link:https://docs.netapp.com/us-en/ontap/high-availability/index.html[High-availability configuration]
+.. Review the veto workaround to determine whether you want to address the "`veto`" condition or override the veto.
 
- .. If necessary, address the "`veto`" condition described in the error message, ensuring that any identified operations are terminated gracefully.
- .. Rerun the storage failover giveback command.
+.. If necessary, address the "`veto`" condition described in the error message, ensuring that any identified operations are terminated gracefully.
+.. Rerun the storage failover giveback command.
 +
 If you decided to override the "`veto`" condition, set the -override-vetoes parameter to true.
+
 . Wait at least eight minutes for the following conditions to take effect:
- ** Client multipathing (if deployed) is stabilized.
- ** Clients are recovered from the pause in an I/O operation that occurs during giveback.
++
+* Client multipathing (if deployed) is stabilized.
+* Clients are recovered from the pause in an I/O operation that occurs during giveback.
 +
 The recovery time is client specific and might take longer than eight minutes, depending on the characteristics of the client applications.
+
 . Verify that the update was completed successfully for the node:
- .. Go to the advanced privilege level :``set -privilege advanced``
- .. Verify that update status is complete for the node: `system node upgrade-revert show -node nodenameB`
+.. Go to the advanced privilege level :
++
+[source,cli]
+----
+set -privilege advanced
+----
+
+.. Verify that update status is complete for the node: 
++
+[source,cli]
+----
+system node upgrade-revert show -node nodenameB
+----
 +
 The status should be listed as complete.
 +
 If the status is not complete, from the node, run the system node upgrade-revert upgrade command. If the command does not complete the update, contact technical support.
 
- .. Return to the admin privilege level: `set -privilege admin`
-. Verify that the node's ports are up: `network port show -node nodenameB`
+.. Return to the admin privilege level: 
++
+[source,cli]
+----
+set -privilege admin
+----
+
+. Verify that the node's ports are up: 
++
+[source,cli]
+----
+network port show -node nodenameB
+----
 +
 You must run this command on a node that has been upgraded to ONTAP 9.4.
 +
@@ -392,7 +596,12 @@ node1
 5 entries were displayed.
 ----
 
-. Revert the LIFs back to the node: `network interface revert *`
+. Revert the LIFs back to the node: 
++
+[source,cli]
+----
+network interface revert *
+----
 +
 This command returns the LIFs that were migrated away from the node.
 +
@@ -401,7 +610,12 @@ cluster1::> network interface revert *
 8 entries were acted on.
 ----
 
-. Verify that the node's data LIFs successfully reverted back to the node, and that they are up: `network interface show`
+. Verify that the node's data LIFs successfully reverted back to the node, and that they are up: 
++
+[source,cli]
+----
+network interface show
+----
 +
 The following example shows that all of the data LIFs hosted by the node is successfully reverted back to the node, and that their operational status is up:
 +
@@ -418,7 +632,12 @@ vs0
 4 entries were displayed.
 ----
 
-. If you previously determined that this node serves clients, verify that the node is providing service for each protocol that it was previously serving: `system node run -node nodenameB -command uptime`
+. If you previously determined that this node serves clients, verify that the node is providing service for each protocol that it was previously serving: 
++
+[source,cli]
+----
+system node run -node nodenameB -command uptime
+----
 +
 The operation counts reset to zero during the update.
 +
@@ -431,15 +650,26 @@ cluster1::> system node run -node node1 -command uptime
 
 . If this was the last node in the cluster to be updated, trigger an AutoSupport notification:
 +
-`set -privilege advanced`
-+
-`autosupport invoke -node * -type all -message "Finishing_NDU"`
+[source,cli]
+----
+autosupport invoke -node * -type all -message "Finishing_NDU"
+----
 +
 This AutoSupport notification includes a record of the system status just prior to update. It saves useful troubleshooting information in case there is a problem with the update process.
 +
 If the cluster is not configured to send AutoSupport messages, a copy of the notification is saved locally.
 
-. Confirm that the new ONTAP software is running on both nodes of the HA pair: `system node image show`
+. Confirm that the new ONTAP software is running on both nodes of the HA pair: 
++
+[source,cli]
+----
+set -privilege advanced
+----
++
+[source,cli]
+----
+system node image show
+----
 +
 In the following example, image2 is the updated version of ONTAP and is the default version on both nodes:
 +
@@ -457,15 +687,28 @@ node1
 4 entries were displayed.
 ----
 
-. Reenable automatic giveback on the partner node if it was previously disabled: `storage failover modify -node nodenameA -auto-giveback true`
-. Verify that the cluster is in quorum and that services are running by using the cluster show and cluster ring show (advanced privilege level) commands.
+. Reenable automatic giveback on the partner node if it was previously disabled: 
++
+[source,cli]
+----
+storage failover modify -node nodenameA -auto-giveback true
+----
+
+. Verify that the cluster is in quorum and that services are running by using the `cluster show` and `cluster ring show` (advanced privilege level) commands.
 +
 You must perform this step before upgrading any additional HA pairs.
 
-. Return to the admin privilege level: `set -privilege admin`
+. Return to the admin privilege level: 
++
+[source,cli]
+----
+set -privilege admin
+----
 
-Upgrade any additional HA pairs.
+. Upgrade any additional HA pairs.
 
+// 2023 Dec 13, Jira 1275
+// 2023 Jul 12, BURT 1355840
 // 2023 Jul 07, BURT 1355840
 // 2022-03-07, BURT 1458608
 // 2022-06-27, BURT 1485042

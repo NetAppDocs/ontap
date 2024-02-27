@@ -1,7 +1,7 @@
 ---
 permalink: authentication/enable-ad-users-groups-access-cluster-svm-task.html
 sidebar: sidebar
-keywords: configure, active directory, domain, controller access
+keywords: configure, active directory, domain, controller access, authentication tunnel, SMB server, create, svm, computer, account, domain, cifs server
 summary: "You must configure AD domain controller access to the cluster or SVM before an AD account can access the SVM. If you have already configured an SMB server for a data SVM, you can configure the SVM as a gateway, or tunnel, for AD access to the cluster. If you have not configured an SMB server, you can create a computer account for the SVM on the AD domain."
 ---
 = Configure Active Directory domain controller access overview
@@ -9,7 +9,7 @@ summary: "You must configure AD domain controller access to the cluster or SVM b
 :imagesdir: ../media/
 
 [.lead]
-You must configure AD domain controller access to the cluster or SVM before an AD account can access the SVM. If you have already configured a SMB server for a data SVM, you can configure the SVM as a gateway, or _tunnel_, for AD access to the cluster. If you have not configured a SMB server, you can create a computer account for the SVM on the AD domain.
+You must configure AD domain controller access to the cluster or SVM before an AD account can access the SVM. If you have already configured a SMB server for a data SVM, you can configure the SVM as a gateway, or _tunnel_, for AD access to the cluster. If you have not configured an SMB server, you can create a computer account for the SVM on the AD domain.
 
 ONTAP supports the following domain controller authentication services:
 
@@ -22,20 +22,94 @@ ONTAP supports the following session key algorithms for secure Netlogon connecti
 
 |===
 
-h| Session key algorithm  h| Available in...
+h| Session key algorithm  h| Available beginning with...
 
-| HMAC-SHA256, based on the Advanced Encryption Standard (AES) | ONTAP 9.10.1 and later
+| HMAC-SHA256, based on the Advanced Encryption Standard (AES)
+
+If your cluster is running ONTAP 9.9.1 or earlier and your domain controller enforces AES for secure Netlogon services, the connection fails. In this case, you need to reconfigure your domain controller to instead accept strong key connections with ONTAP.
+| ONTAP 9.10.1
 | DES and HMAC-MD5 (when strong key is set) | All ONTAP 9 releases
 
 |===
 
-If you want to use AES session keys during Netlogon secure channel establishment in ONTAP 9.10.1 and later, you must enable them using the following command:
+If you want to use AES session keys during Netlogon secure channel establishment, you need to verify that AES is enabled on your SVM.
 
-`cifs security modify -vserver vs1 -aes-enabled-for-netlogon-channel true`
+* Beginning with ONTAP 9.14.1, AES is enabled by default when you create an SVM, and you don't need to modify the security settings of your SVM to use AES session keys during Netlogon secure channel establishment.
+* In ONTAP 9.10.1 through 9.13.1, AES is disabled by default when you create an SVM. You need to enable AES using the following command:
++
+----
+cifs security modify -vserver vs1 -aes-enabled-for-netlogon-channel true
+----
 
-The default is `false`.
+NOTE: When you upgrade to ONTAP 9.14.1 or later, the AES setting for existing SVMs that were created with older ONTAP releases will not automatically change. You still need to update the value for this setting to enable AES on these SVMs.
 
-In ONTAP releases earlier than 9.10.1, if the domain controller enforces AES for secure Netlogon services, the connection fails. The domain controller must be configured to accept strong key connections with ONTAP in these releases.
+== Configure an authentication tunnel
 
-// 2021-12-02, BURT 1389116
-// 4 FEB 2022, BURT 1451789 
+If you have already configured a SMB server for a data SVM, you can use the `security login domain-tunnel create` command to configure the SVM as a gateway, or _tunnel_, for AD access to the cluster.
+
+.Before you begin
+
+* You must have configured a SMB server for a data SVM.
+* You must have enabled an AD domain user account to access the admin SVM for the cluster.
+* You must be a cluster administrator to perform this task.
+
+Beginning with ONTAP 9.10.1, if you have an SVM gateway (domain tunnel) for AD access, you can use Kerberos for admin authentication if you have disabled NTLM in your AD domain. In earlier releases, Kerberos was not supported with admin authentication for SVM gateways. This functionality is available by default; no configuration is required.
+
+[NOTE]
+Kerberos authentication is always attempted first. In case of failure, NTLM authentication is then attempted.
+
+.Step
+
+. Configure a SMB-enabled data SVM as an authentication tunnel for AD domain controller access to the cluster:
++
+`security login domain-tunnel create -vserver _svm_name_`
++
+For complete command syntax, see the link:config-worksheets-reference.html[worksheet].
++
+[NOTE]
+====
+The SVM must be running for the user to be authenticated.
+====
++
+The following command configures the SMB-enabled data SVM "`engData`" as an authentication tunnel.
++
+----
+cluster1::>security login domain-tunnel create -vserver engData
+----
+
+== Create an SVM computer account on the domain
+
+If you have not configured an SMB server for a data SVM, you can use the `vserver active-directory create` command to create a computer account for the SVM on the domain.
+
+.About this task
+
+After you enter the `vserver active-directory create` command, you are prompted to provide the credentials for an AD user account with sufficient privileges to add computers to the specified organizational unit in the domain. The password of the account cannot be empty.
+
+.Before you begin
+
+You must be a cluster or SVM administrator to perform this task.
+
+.Step
+
+. Create a computer account for an SVM on the AD domain:
++
+`vserver active-directory create -vserver _SVM_name_ -account-name _NetBIOS_account_name_ -domain _domain_ -ou _organizational_unit_`
++
+For complete command syntax, see the link:config-worksheets-reference.html[worksheet].
++
+The following command creates a computer account named "`ADSERVER1`" on the domain "`example.com`" for SVM "`engData`". You are prompted to enter the AD user account credentials after you enter the command.
++
+----
+cluster1::>vserver active-directory create -vserver engData -account-name ADSERVER1 -domain example.com
+
+In order to create an Active Directory machine account, you must supply the name and password of a Windows account with sufficient privileges to add computers to the "CN=Computers" container within the "example.com" domain.
+
+Enter the user name: Administrator
+
+Enter the password:
+----
+
+// 2021 Dec 02, BURT 1351274
+// 2021 Dec 02, BURT 1389116
+// 2022 Feb 04, BURT 1451789
+// 2023 Jul 28, ONTAPDOC-1015

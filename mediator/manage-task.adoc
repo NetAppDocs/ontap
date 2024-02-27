@@ -1,8 +1,8 @@
 ---
 permalink: mediator/manage-task.html
 sidebar: sidebar
-keywords: mediator, username, password, change, uninstall
-summary: After you have installed ONTAP Mediator service, you might want to change the user name or password. You may also uninstall the ONTAP Mediator Service.
+keywords: mediator, service, username, user name, password, change, uninstall, self-signed certificate, self signed certificate, regenerate, stop mediator service, uninstall scst
+summary: After you have installed ONTAP Mediator service, you might want to change the user name or password. You can also uninstall the ONTAP Mediator Service.
 ---
 
 = Manage the ONTAP mediator service
@@ -10,7 +10,7 @@ summary: After you have installed ONTAP Mediator service, you might want to chan
 :imagesdir: ../media/
 
 [.lead]
-After you have installed ONTAP Mediator service, you may change the user name or password. You may also uninstall the ONTAP Mediator Service.
+After you have installed ONTAP Mediator service, you might want to change the user name or password. You can also uninstall the ONTAP Mediator Service.
 
 == Change the user name
 
@@ -79,7 +79,7 @@ Change the password by choosing one of the following options:
 +
 `MEDIATOR_USERNAME= mediatoradmin MEDIATOR_PASSWORD=mediator1 MEDIATOR_NEW_PASSWORD=mediator2 mediator_change_password`
 +
-The example shows the password is changed from "mediator1" to "mediator2".
+The example shows that the password is changed from "mediator1" to "mediator2".
 +
 ....
  [root@mediator-host ~]# MEDIATOR_USERNAME=mediatoradmin MEDIATOR_PASSWORD=mediator1 MEDIATOR_NEW_PASSWORD=mediator2 mediator_change_password
@@ -192,13 +192,13 @@ To uninstall SCST, you need the SCST tar bundle that is used for the installed v
 
 h| For this version ...  h| Use this tar bundle...
 
-a| ONTAP Mediator 1.0      a| scst-3.3.0.tar.bz2
-a| ONTAP Mediator 1.1      a| scst-3.4.0.tar.bz2
-a| ONTAP Mediator 1.2      a| scst-3.4.0.tar.bz2
-a| ONTAP Mediator 1.3      a| scst-3.5.0.tar.bz2
-a| ONTAP Mediator 1.4      a| scst-3.6.0.tar.bz2
-a| ONTAP Mediator 1.5      a| scst-3.6.0.tar.bz2
+a| ONTAP Mediator 1.7      a| scst-3.7.0.tar.bz2
 a| ONTAP Mediator 1.6      a| scst-3.7.0.tar.bz2
+a| ONTAP Mediator 1.5      a| scst-3.6.0.tar.bz2
+a| ONTAP Mediator 1.4      a| scst-3.6.0.tar.bz2
+a| ONTAP Mediator 1.3      a| scst-3.5.0.tar.bz2
+a| ONTAP Mediator 1.1      a| scst-3.4.0.tar.bz2
+a| ONTAP Mediator 1.0      a| scst-3.3.0.tar.bz2
 
 |===
 
@@ -230,7 +230,7 @@ To manually install SCST, you need the SCST tar bundle that is used for the inst
 ....
 [root@localhost ~]# modinfo -n scst_vdisk
 [root@localhost ~]# modinfo -n scst
-[root@localhost ~]# modinfo -n iscst_scst
+[root@localhost ~]# modinfo -n iscsi_scst
 ....
 
 .. Determine the kernel release.
@@ -248,7 +248,7 @@ To manually install SCST, you need the SCST tar bundle that is used for the inst
 _module-filename_
 ....
 
-.. Install correct key with the UEFI firmware.
+.. Install the correct key with the UEFI firmware.
 + 
 Instructions for installing the UEFI key are located at:
 +
@@ -292,6 +292,47 @@ If you are unable to reach this command, you might need to run the command using
  [root@mediator-host ~]#
 ....
 
+== Regenerate a temporary self-signed certificate
+
+.About this task
+
+* You perform this task on the Linux host on which the ONTAP Mediator service is installed.
+* You can perform this task only if the generated self-signed certificates have become obsolete due to changes to the hostname or IP address of the host after installing the ONTAP Mediator.
+* After the temporary self-signed certificate has been replaced by a trusted third-party certificate, you do _not_ use this task to regenerate a certificate.  The absence of a self-signed certificate will cause this procedure to fail.
+
+.Step
+
+To regenerate a new temporary self-signed certificate for the current host, perform the following step:
+
+. Restart the ONTAP Mediator:
++
+`./make_self_signed_certs.sh overwrite`
++
+----
+[root@xyz000123456 ~]# cd /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config
+[root@xyz000123456 server_config]# ./make_self_signed_certs.sh overwrite
+
+Adding Subject Alternative Names to the self-signed server certificate
+#
+# OpenSSL example configuration file.
+Generating self-signed certificates
+Generating RSA private key, 4096 bit long modulus (2 primes)
+..................................................................................................................................................................++++
+........................................................++++
+e is 65537 (0x010001)
+Generating a RSA private key
+................................................++++
+.............................................................................................................................................++++
+writing new private key to 'ontap_mediator_server.key'
+-----
+Signature ok
+subject=C = US, ST = California, L = San Jose, O = "NetApp, Inc.", OU = ONTAP Core Software, CN = ONTAP Mediator, emailAddress = support@netapp.com
+Getting CA Private Key
+----
+
 // 2022 Mar 07, ontap-metrocluster issue #146
 // 2023 May 04, Public PR 908
 // 2023 Jun 30, ONTAPDOC-1129 (ontap GH issue 975)
+// ONTAPDOC-1314, 2023 Nov 01
+// ONTAPDOC-1427, 2023 Dec 06
+// ONTAPDOC-1129, 2023 Dec 12 (updated)

@@ -2,41 +2,46 @@
 permalink: upgrade/task_verify_cluster_after_upgrade.html
 sidebar: sidebar
 keywords: ontap, upgrade, upgrade, verify, status, health, post, after
-summary: 'After you upgrade you should verify your cluster.'
+summary: 'After you upgrade ONTAP, verify the cluster version, cluster health, and storage health.  For MetroCluster FC configurations, verify that automatic unplanned switchover is enabled.'
 ---
-= Post-upgrade cluster verification
+= Verify your cluster after ONTAP upgrade
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-After you upgrade, you should verify your cluster version, cluster health, and storage health.
+After you upgrade ONTAP, verify the cluster version, cluster health, and storage health.  For MetroCluster FC configurations, also verify that the cluster is enabled for automatic unplanned switchover.
 
-.Before you begin
-
-NOTE: If you are using a MetroCluster FC configuration, you also need to verify that the cluster is enabled for automatic unplanned switchover.
 
 == Verify cluster version
 
-After all of the HA pairs have been upgraded, you must use the version command to verify that all of the nodes are running the target release.
+After all the HA pairs have been upgraded, you must use the version command to verify that all of the nodes are running the target release.
 
 The cluster version is the lowest version of ONTAP running on any node in the cluster. If the cluster version is not the target ONTAP release, you can upgrade your cluster.
 
 . Verify that the cluster version is the target ONTAP release:
 +
-`version`
-. If the cluster version is not the target ONTAP release, you can verify the upgrade status of all nodes:
+[source,cli]
+----
+version
+----
+
+. If the cluster version is not the target ONTAP release, you should verify the upgrade status of all nodes:
 +
-`system node upgrade-revert show`
+[source,cli]
+----
+system node upgrade-revert show
+----
 
 == Verify cluster health
-:icons: font
-:imagesdir: ../media/
 
 After you upgrade a cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum.
 
 . Verify that the nodes in the cluster are online and are eligible to participate in the cluster:
 +
-`cluster show`
+[source,cli]
+----
+cluster show
+----
 +
 ----
 cluster1::> cluster show
@@ -50,13 +55,14 @@ If any node is unhealthy or ineligible, check EMS logs for errors and take corre
 
 . Set the privilege level to advanced:
 +
-`set -privilege advanced`
-+
-Enter "`y`" to continue.
+[source,cli]
+----
+set -privilege advanced
+----
 
 . Verify the configuration details for each RDB process.
- ** The relational database epoch and database epochs should match for each node.
- ** The per-ring quorum master should be the same for all nodes.
+* The relational database epoch and database epochs should match for each node.
+* The per-ring quorum master should be the same for all nodes.
 +
 Note that each ring might have a different quorum master.
 
@@ -99,16 +105,21 @@ node3     vldb     154      154      14847    node0     secondary
 4 entries were displayed.
 ----
 
-. If you are operating in a SAN environment, verify that each node is in a SAN quorum: `event log show  -severity informational -message-name scsiblade.*`
+. If you are operating in a SAN environment, verify that each node is in a SAN quorum: 
 +
-The most recent scsiblade event message for each node should indicate that the scsi-blade is in quorum.
+[source,cli]
+----
+cluster kernel-service show
+----
 +
 ----
-cluster1::*> event log show  -severity informational -message-name scsiblade.*
-Time             Node       Severity       Event
----------------  ---------- -------------- ---------------------------
-MM/DD/YYYY TIME  node0      INFORMATIONAL  scsiblade.in.quorum: The scsi-blade ...
-MM/DD/YYYY TIME  node1      INFORMATIONAL  scsiblade.in.quorum: The scsi-blade ...
+cluster1::*> cluster kernel-service show
+Master            Cluster           Quorum        Availability  Operational
+Node              Node              Status        Status        Status
+----------------- ----------------- ------------- ------------- -------------
+cluster1-01       cluster1-01       in-quorum     true          operational
+                  cluster1-02       in-quorum     true          operational
+2 entries were displayed.
 ----
 
 
@@ -116,19 +127,20 @@ MM/DD/YYYY TIME  node1      INFORMATIONAL  scsiblade.in.quorum: The scsi-blade .
 
 link:../system-admin/index.html[System administration]
 
-== Verify that automatic unplanned switchover is enabled
+== Verify automatic unplanned switchover is enabled (MetroCluster FC configurations only)
 
-After you upgrade a cluster, you should verify that automatic unplanned switchover is enabled.
+If your cluster is in a MetroCluster FC configuration, you should verify that automatic unplanned switchover is enabled after you upgrade ONTAP.
 
-.About this task
-
-NOTE: This procedure is performed only for MetroCluster FC configurations.  If you are using a MetroCluster IP configuration, skip this procedure.
+If you are using a MetroCluster IP configuration, skip this procedure.
 
 .Steps
 
 . Check whether automatic unplanned switchover is enabled:
 +
-`metrocluster show`
+[source,cli]
+----
+metrocluster show
+----
 +
 If automatic unplanned switchover is enabled, the following statement appears in the command output:
 +
@@ -138,76 +150,28 @@ AUSO Failure Domain  auso-on-cluster-disaster
 
 . If the statement does not appear, enable an automatic unplanned switchover:
 +
-`metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster`
+[source,cli]
+----
+metrocluster modify -auto-switchover-failure-domain auso-on-cluster-disaster
+----
 
-. Verify that an automatic unplanned switchover has been enabled by repeating Step 1.
+. Verify that an automatic unplanned switchover has been enabled:
++
+[source,cli]
+----
+metrocluster show
+----
 
 // BURT 1387815, 21 FEB 2022
 
-== Verify storage health
-
-After you upgrade a cluster, you should verify the status of your disks, aggregates, and volumes.
-
-. Verify disk status:
-+
-
-|===
-
-h| To check for... h| Do this...
-
-a|
-Broken disks
-a|
-
-.. Display any broken disks:
-+
-`storage disk show -state broken`
-.. Remove or replace any broken disks.
-
-a|
-Disks undergoing maintenance or reconstruction
-a|
-
-.. Display any disks in maintenance, pending, or reconstructing states:
-+
-`storage disk show -state maintenance\|pending\|reconstructing`
-.. Wait for the maintenance or reconstruction operation to finish before proceeding.
-
-+
-|===
-
-. Verify that all aggregates are online by displaying the state of physical and logical storage, including storage aggregates:
-+
-`storage aggregate show -state !online`
-+
-This command displays the aggregates that are _not_ online. All aggregates must be online before and after performing a major upgrade or reversion.
-+
-----
-cluster1::> storage aggregate show -state !online
-There are no entries matching your query.
-----
-
-. Verify that all volumes are online by displaying any volumes that are _not_ online:
-+
-`volume show -state !online`
-+
-All volumes must be online before and after performing a major upgrade or reversion.
-+
-----
-cluster1::> volume show -state !online
-There are no entries matching your query.
-----
-
-. Verify that there are no inconsistent volumes:
-+
-`volume show -is-inconsistent true`
-+
-See the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Volume_Showing_WAFL_Inconsistent[Volume Showing WAFL Inconsistent] on how to address the inconsistent volumes.
 
 .Related information
 
 link:../disks-aggregates/index.html[Disk and aggregate management]
 
+// 2023 Dec 13< ONTAPDOC 1275
+// 2023 Aug 30, ONTAPDOC 1257
+// 2023 Aug 30, ONTAPDOC-1287
 // 2022-04-25, BURT 1454366
 // BURT 1387815, 21 FEB 2022
 // 2022-06-27, Jira KDA-1528

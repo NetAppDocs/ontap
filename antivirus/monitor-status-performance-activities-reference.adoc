@@ -1,0 +1,208 @@
+---
+permalink: antivirus/monitor-status-performance-activities-reference.html
+sidebar: sidebar
+keywords: monitoring, performance, status, connection, statistics
+summary: "You can monitor critical Vscan server issues."
+---
+= Monitor status and performance activities
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can monitor the critical aspects of the Vscan module, such as the Vscan server connection status, 
+the health of the Vscan servers, and the number of files that have been scanned. This information helps 
+you diagnose issues related to the Vscan server.
+
+== View Vscan server connection information
+
+You can view the connection status of Vscan servers to manage the connections that are already in use 
+and the connections that are available for use. Various commands display information 
+about the connection status of Vscan servers.
+|===
+
+h| Command... h| Information displayed...
+a|
+`vserver vscan connection-status show`
+a|
+Summary of the connection status
+a|
+`vserver vscan connection-status show-all`
+a|
+Detailed information about the connection status
+a|
+`vserver vscan connection-status show-not-connected`
+a|
+Status of the connections that are available but not connected
+a|
+`vserver vscan connection-status show-connected`
+a|
+Information about the connected Vscan server
+|===
+For more information about these commands, see the link:https://docs.netapp.com/us-en/ontap-cli-9131/index.html[man pages^].
+
+== View Vscan server statistics
+
+You can view Vscan server–specific statistics to monitor performance and diagnose issues related to 
+virus scanning. You must collect a data sample before you can use the `statistics show` command to 
+display the Vscan server statistics.
+To complete a data sample, complete the following step:
+
+.Step
+
+. Run the `statistics start` command and the `optional statistics` stop command.
+
+=== View statistics for Vscan server requests and latencies
+
+You can use ONTAP `offbox_vscan` counters on a per-SVM basis to monitor the rate of Vscan 
+server requests that are dispatched and received per second and the server latencies across all Vscan 
+servers. To view these statistics, complete the following step:
+
+.Step
+
+. Run the statistics show `object offbox_vscan –instance SVM` command with the 
+following counters:
++
+
+|===
+
+h| Counter... h| Information displayed...
+a|
+`scan_request_dispatched_rate` 
+a|
+Number of virus-scanning requests sent from ONTAP to the Vscan servers per second
+a|
+`scan_noti_received_rate`
+a|
+Number of virus-scanning requests received back by ONTAP from the Vscan servers per second
+a|
+`dispatch_latency`
+a|
+Latency within ONTAP to identify an available Vscan server and send the request to that Vscan server
+a|
+`scan_latency`
+a|
+Round-trip latency from ONTAP to the Vscan server, including the time for the scan to run
+|===
+
+==== Example of statistics generated from an ONTAP offbox vscan counter 
+----
+Object: offbox_vscan
+Instance: SVM
+Start-time: 10/16/2013 10:13:25
+End-time: 10/16/2013 10:25:11
+Cluster: cluster01
+Number of Constituents: 2 (complete_aggregation)
+Counter Value
+-------------------------------- --------------------------------
+scan_request_dispatched_rate 291
+scan_noti_received_rate 292
+dispatch_latency 43986us
+scan_latency 3433501us
+-----------------------------------------------------------------
+----
+
+=== View statistics for individual Vscan server requests and latencies
+
+You can use ONTAP `offbox_vscan_server` counters on a per-SVM, per–off-box Vscan server, 
+and per-node basis to monitor the rate of dispatched Vscan server requests and the server latency on 
+each Vscan server individually. To collect this information, complete the following step:
+
+.Step
+
+. Run the `statistics show –object offbox_vscan –instance 
+SVM:servername:nodename` command with the following counters:
++
+
+|===
+
+h| Counter... h| Information displayed...
+a|
+`scan_request_dispatched_rate`
+a|
+Number of virus-scanning requests sent from ONTAP 
+a|
+`scan_latency`
+a|
+Round-trip latency from ONTAP to the Vscan server, including the time for the scan to run
+to the Vscan servers per second
+|===
+
+==== Example of statistics generated from an ONTAP offbox_vscan_server counter
+----
+Object: offbox_vscan_server
+Instance: SVM:vscan_server:node
+Start-time: 10/16/2013 10:13:25
+End-time: 10/16/2013 10:25:11
+Cluster: cluster01
+Number of Constituents: 1 (complete_aggregation)
+Counter Value
+-------------------------------- --------------------------------
+scan_request_dispatched_rate 291
+scan_latency 3433830us
+------------------------------------------------------------------
+----
+
+=== View statistics for Vscan server utilization
+
+You can also use ONTAP `offbox_vscan_server` counters to collect Vscan server–side utilization 
+statistics. These statistics are tracked on a per-SVM, per–off-box Vscan server, and per-node basis. They 
+include CPU utilization on the Vscan server, queue depth for scanning operations on the Vscan server 
+(both current and maximum), used memory and used network.
+These statistics are forwarded by the Antivirus Connector to the statistics counters within ONTAP. They 
+are based on data that is polled every 20 seconds and must be collected multiple times for accuracy; 
+otherwise, the values seen in the statistics reflect only the last polling. CPU utilization and queues are 
+particularly important to monitor and analyze. A high value for an average queue can indicate that the 
+Vscan server has a bottleneck.
+To collect utilization statistics for the Vscan server on a per-SVM, per–off-box Vscan server, and per-node 
+basis, complete the following step:
+
+.Step
+
+. Collect utilization statistics for the Vscan server 
++
+Run the `statistics show –object offbox_vscan_server –instance 
+SVM:servername:nodename` command with the following `offbox_vscan_server` counters:
+|===
+
+h| Counter... h| Information displayed...
+a|
+`scanner_stats_pct_cpu_used`
+a|
+CPU utilization on the Vscan server
+a|
+`scanner_stats_pct_input_queue_avg`
+a|
+Average queue of scan requests on the Vscan server
+a|
+`scanner_stats_pct_input_queue_hiwatermark`
+a|
+Peak queue of scan requests on the Vscan server
+a|
+`scanner_stats_pct_mem_used`
+a|
+Memory used on the Vscan server
+a|
+`scanner_stats_pct_network_used`
+a|
+Network used on the Vscan server
+|===
+
+==== Example of utilization statistics for the Vscan server
+----
+Object: offbox_vscan_server
+Instance: SVM:vscan_server:node
+Start-time: 10/16/2013 10:13:25
+End-time: 10/16/2013 10:25:11
+Cluster: cluster01
+Number of Constituents: 1 (complete_aggregation)
+Counter Value
+-------------------------------- --------------------------------
+scanner_stats_pct_cpu_used 51
+scanner_stats_pct_dropped_requests 0
+scanner_stats_pct_input_queue_avg 91
+scanner_stats_pct_input_queue_hiwatermark 100
+scanner_stats_pct_mem_used 95
+scanner_stats_pct_network_used 4
+-----------------------------------------------------------------
+----
+// 2023 sep 28, ONTAPDOC-1052

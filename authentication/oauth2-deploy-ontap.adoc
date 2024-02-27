@@ -1,0 +1,175 @@
+---
+sidebar: sidebar
+permalink: authentication/oauth2-deploy-ontap.html
+keywords: certificate, install certificate, enable, enable oauth2
+summary: Deploying the core OAuth 2.0 functionality involves three primary steps.
+---
+
+= Deploy OAuth 2.0 in ONTAP
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+Deploying the core OAuth 2.0 functionality involves three primary steps.
+
+== Before you begin
+
+You must prepare for the OAuth 2.0 deployment before configuring ONTAP. For example, you need to assess the authorization server, including how its certificate was signed and if it's behind a firewall. See link:../authentication/oauth2-prepare.html[Prepare to deploy OAuth 2.0 with ONTAP] for more information.
+
+== Step 1: Install the authentication server certificate
+
+ONTAP includes a large number of pre-installed root CA certificates. So in many cases, the certificate for your authorization server will be immediately recognized by ONTAP without additional configuration. But depending on how the authorization server certificate was signed, you may need to install a root CA certificate and any intermediate certificates.
+
+Follow the instructions provided below to install the certificate if it's needed. You should install all the required certificates at the cluster level.
+
+Choose the correct procedure based on how you access ONTAP.
+
+.Steps
+
+// Start tabbed area -----------------------------------------------------------
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+. In System Manager, select *Cluster* > *Settings*.
+. Scroll down to the *Security* section.
+. Click *->* next to *Certificates*.
+. Under the *Trusted certificate authorities* tab click *Add*.
+. Click *Import* and select the certificate file.
+. Complete the configuration parameters for your environment.
+. Click *Add*.
+
+--
+.CLI
+--
+
+. Begin the installation:
++
+`security certificate install -type server-ca`
+
+. Look for the following console message:
++
+`Please enter Certificate: Press <Enter> when done`
+
+. Open the certificate file with a text editor.
+. Copy the entire certificate including the following lines:
++
+`-----BEGIN CERTIFICATE-----`
++
+`-----END CERTIFICATE-----`
+
+. Paste the certificate into the terminal after the command prompt.
+. Press *Enter* to complete the installation.
+. Confirm the certificate is installed using one of the following:
++
+`security certificate show-user-installed`
++
+`security certificate show`
+
+--
+
+====
+// End tabbed area -------------------------------------------------------------
+
+== Step 2: Configure the authorization server
+
+You need to define at least one authorization server to ONTAP. You should choose the parameter values based on your configuration and deployment plan. Review link:../authentication/oauth2-deployment-scenarios.html[OAuth2 deployment scenarios] to determine the exact parameters needed for your configuration.
+
+[TIP]
+To modify an authorization server definition, you can delete the existing definition and create a new one.
+
+The example provided below is based on the first simple deployment scenario at link:../authentication/oauth2-deployment-scenarios.html#local-validation[Local validation]. Self-contained scopes are used without a proxy.
+
+Choose the correct procedure based on how you access ONTAP. The CLI procedure uses symbolic variables that you need to replace before issuing the command.
+
+.Steps
+
+// Start tabbed area -----------------------------------------------------------
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+. In System Manager, select *Cluster* > *Settings*.
+. Scroll down to the *Security* section.
+. Click *+* next to *OAuth 2.0 authorization*.
+. Select *More options*.
+. Provide the required values for your deployment, such as:
++
+* Name
+* Application (http)
+* Provider JWKS URI
+* Issuer URI
+. Click *Add*.
+
+--
+.CLI
+--
+
+. Create the definition again:
++
+[source,cli]
+----
+security oauth2 client create -config-name <NAME> -provider-jwks-uri <URI_JWKS> -application http -issuer <URI_ISSUER>
+----
++
+For example:
++
+----
+security oauth2 client create \
+-config-name auth0 \
+-provider-jwks-uri https://superzap.dev.netapp.com:8443/realms/my-realm/protocol/openid-connect/certs \
+-application http \
+-issuer https://superzap.dev.netapp.com:8443/realms/my-realm
+----
+
+--
+
+====
+// End tabbed area -------------------------------------------------------------
+
+== Step 3: Enable OAuth 2.0
+
+The final step is to enable OAuth 2.0. This is a global setting for the ONTAP cluster.
+
+[CAUTION]
+Don't enable OAuth 2.0 processing until you confirm that ONTAP, the authorization servers, and any supporting services have all been properly configured.
+
+Choose the correct procedure based on how you access ONTAP.
+
+.Steps
+
+// Start tabbed area -----------------------------------------------------------
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+. In System Manager, select *Cluster* > *Settings*.
+. Scroll down to the *Security section*.
+. Click *->* next to *OAuth 2.0 authorization*.
+. Enable *OAuth 2.0 authorization*.
+
+--
+.CLI
+--
+
+. Enable OAuth 2.0:
++
+`security oauth2 modify -enabled true`
+
+. Confirm OAuth 2.0 is enabled:
++
+----
+security oauth2 show
+Is OAuth 2.0 Enabled: true
+----
+
+--
+
+====
+// End tabbed area -------------------------------------------------------------
