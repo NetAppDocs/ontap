@@ -18,9 +18,54 @@ You can reestablish the original data protection relationship between the source
 
 .Steps
 
-. Reverse the original data protection relationship:
+. From the original destination SVM or the original destination cluster, delete the original data protection relationship:
 +
-`snapmirror resync -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
+`snapmirror delete -source-path SVM: -destination-path SVM:`
++
+[NOTE]
+====
+You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options. See the example below.
+====
++
+The following example deletes the original relationship between the original source SVM, svm1, and the original destination SVM, `svm_backup`:
++
+----
+cluster_dst::> snapmirror delete -source-path svm1:volA -destination-path svm_backup:volA_dst
+----
+
+. From the original source SVM or the original source cluster, release the original relationship while keeping the Snapshot copies intact:
++
+`snapmirror release -source-path SVM:volume -destination-path SVM:volume -relationship-info-only true`
++
+[NOTE]
+====
+You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options. See the example below.
+====
++
+The following example releases the original relationship between the original source SVM, svm1, and the original destination SVM, `svm_backup`.
++
+----
+cluster_src::> snapmirror release -source-path svm1:volA -destination-path svm_backup:volA_dst -relationship-info-only true
+----
+
+. From the original source SVM or the original source cluster, create a reverse relationship using the same configuration, policy, and identity-preserve setting as the original relationship:
++
+`snapmirror create -source-path SVM:volume -destination-path SVM:volume`
++
+[NOTE]
+====
+You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options. See the example below.
+====
++
+The following example creates a relationship between the SVM from which you are serving data, `svm_backup:volA_dst`, and the original source SVM, `svm1:volA`:
++
+----
+cluster_src::> snapmirror create -source-path svm_backup:volA_dst -destination-path svm1:volA
+----
+
+. From the original source SVM or the original source cluster, reverse the original data protection relationship:
++
+`snapmirror resync -source-path _SVM:volume_ -destination-path _SVM:volume_`
 +
 For complete command syntax, see the man page.
 +
@@ -54,7 +99,7 @@ cluster_dst::> vserver stop svm_backup
 
 . Update the reversed relationship:
 +
-`snapmirror update -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
+`snapmirror update -source-path _SVM:volume_ -destination-path _SVM:volume_`
 +
 For complete command syntax, see the man page.
 +
@@ -71,7 +116,7 @@ cluster_src::> snapmirror update -source-path svm_backup:volA_dst -destination-p
 
 . From the original source SVM or the original source cluster, stop scheduled transfers for the reversed relationship:
 +
-`snapmirror quiesce -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
+`snapmirror quiesce -source-path _SVM:volume_ -destination-path _SVM:volume_`
 +
 For complete command syntax, see the man page.
 +
@@ -88,7 +133,7 @@ cluster_src::> snapmirror quiesce -source-path svm_backup:volA_dst -destination-
 
 . When the final update is complete and the relationship indicates "Quiesced" for the relationship status, run the following command from the original source SVM or the original source cluster to break the reversed relationship::
 +
-`snapmirror break -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
+`snapmirror break -source-path _SVM:volume_ -destination-path _SVM:volume_`
 +
 For complete command syntax, see the man page.
 +
@@ -103,9 +148,21 @@ The following example breaks the relationship between the original destination v
 cluster_scr::> snapmirror break -source-path svm_backup:volA_dst -destination-path svm1:volA
 ----
 
+. If needed, start the original destination SVM:
++
+`vserver start -vserver _SVM_`
++
+For complete command syntax, see the man page.
++
+The following example starts the original destination SVM:
++
+----
+cluster_dst::> vserver start svm_backup
+----
+
 . From the original source SVM or the original source cluster, delete the reversed data protection relationship:
 +
-`snapmirror delete -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
+`snapmirror delete -source-path _SVM:volume_ -destination-path _SVM:volume_`
 +
 For complete command syntax, see the man page.
 +
@@ -122,7 +179,7 @@ cluster_src::> snapmirror delete -source-path svm_backup:volA_dst -destination-p
 
 . Release the reversed relationship from the original destination SVM or the original destination cluster.
 +
-`snapmirror release -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
+`snapmirror release -source-path _SVM:volume_ -destination-path _SVM:volume_`
 +
 [NOTE]
 ====
@@ -135,21 +192,9 @@ The following example releases the reversed relationship between the original de
 cluster_dst::> snapmirror release -source-path svm_backup:volA_dst -destination-path svm1:volA
 ----
 
-. If needed, start the original destination SVM:
-+
-`vserver start -vserver _SVM_`
-+
-For complete command syntax, see the man page.
-+
-The following example starts the original destination SVM:
-+
-----
-cluster_dst::> vserver start svm_backup
-----
-
 . Reestablish the original data protection relationship from the original destination:
 +
-`snapmirror resync -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ...`
+`snapmirror resync -source-path _SVM:volume_ -destination-path _SVM:volume_`
 +
 For complete command syntax, see the man page.
 +
@@ -163,7 +208,7 @@ cluster_dst::> snapmirror resync -source-path svm1:volA -destination-path svm_ba
 
 Use the `snapmirror show` command to verify that the SnapMirror relationship was created. For complete command syntax, see the man page.
 
-
+// 2024-Feb-27, ONTAPDOC-1717
 // 2023-Aug-24, issue# 1062
 // 2023-Jan-10, issue# 737
 // 2022-2-2, BURT 1364426
