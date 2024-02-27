@@ -64,10 +64,10 @@ No ransomware detection or prevention system can completely guarantee safety fro
 
 ARP has two modes: 
 
-. Learning (or "dry run" mode)
-. Active (or "enabled" mode)
+* *Learning* (or "dry run" mode)
+* *Active* (or "enabled" mode)
 
-When you enable ARP, it runs in learning mode. In learning mode, the ONTAP system develops an alert profile based on the analytic areas: entropy, file extension types, and file IOPS. After running ARP in learning mode for enough time to assess workload characteristics, you can switch to active mode and start protecting your data. Once ARP has switched to active mode, ONTAP will create ARP snapshots to protect the data if a threat is detected. 
+When you enable ARP, it runs in _learning mode_. In learning mode, the ONTAP system develops an alert profile based on the analytic areas: entropy, file extension types, and file IOPS. After running ARP in learning mode for enough time to assess workload characteristics, you can switch to active mode and start protecting your data. Once ARP has switched to active mode, ONTAP creates ARP Snapshot copies to protect the data if a threat is detected. 
 
 It's recommended you leave ARP in learning mode for 30 days. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning period interval and automates the switch, which may occur before 30 days. 
 
@@ -75,7 +75,7 @@ In active mode, if a file extension is flagged as abnormal, you should evaluate 
 
 Beginning in ONTAP 9.11.1, you can customize the detection parameters for ARP. For more information, see xref:manage-parameters-task.html[manage ARP attack detection parameters].
 
-== Threat assessment and ARP Snapshots
+== Threat assessment and ARP Snapshot copies
 
 In active mode, ARP assesses threat probability based on incoming data measured against learned analytics. A measurement is assigned when ARP detects a threat:
 
@@ -83,21 +83,21 @@ In active mode, ARP assesses threat probability based on incoming data measured 
 * **Moderate**: multiple files with the same never-seen-before file extension are observed.
     ** In ONTAP 9.10.1, the threshold for escalation to moderate is 100 or more files. Beginning with ONTAP 9.11.1, the file quantity is modifiable; its default value is 20. 
 
-In a low threat situation, ONTAP detects an abnormality and creates a Snapshot of the volume to create the best recovery point. The ARP Snapshot uses the `anti-ransomware-backup` tag and is identifiable by its name, for example `Anti_ransomware_backup.2022-12-20_1248`. 
+In a low threat situation, ONTAP detects an abnormality and creates a Snapshot copy of the volume to create the best recovery point. ONTAP prepends the name of the ARP Snapshot copy with `Anti-ransomware-backup` to make it easily identifiable, for example `Anti_ransomware_backup.2022-12-20_1248`. 
 
 The threat escalates to moderate after ONTAP runs an analytics report determining if the abnormality matches a ransomware profile. Threats that remain at the low level are logged and visible in the **Events** section of System Manager. When the attack probability is moderate, ONTAP generates an EMS notification prompting you to assess the threat. ONTAP does not send alerts about low threats, however, beginning with ONTAP 9.14.1, you can xref:manage-parameters-task.html#modify-alerts[modify alerts settings]. For more information, see xref:respond-abnormal-task.html[Respond to abnormal activity].
 
 You can view information about a threat, regardless of level, in System Manager's **Events** section or with the `security anti-ransomware volume show` command. 
 
-ARP Snapshots are retained for a minimum of two days. Beginning with ONTAP 9.11.1, you can modify the retention settings. For more information, see xref:modify-automatic-shapshot-options-task.html[Modify options for Snapshot copies].
+ARP Snapshot copies are retained for a minimum of two days. Beginning with ONTAP 9.11.1, you can modify the retention settings. For more information, see xref:modify-automatic-shapshot-options-task.html[Modify options for Snapshot copies].
 
 == How to recover data in ONTAP after a ransomware attack
 
-When an attack is suspected, the system takes a volume Snapshot copy at that point in time and locks that copy. If the attack is confirmed later, the volume can be restored to this Snapshot, minimizing data loss.
+When an attack is suspected, the system takes a volume Snapshot copy at that point in time and locks that copy. If the attack is confirmed later, the volume can be restored using Snapshot, minimizing data loss.
 
 Locked Snapshot copies cannot be deleted by normal means. However, if you decide later to mark the attack as a false positive, the locked copy will be deleted. 
 
-With the knowledge of the affected files and the time of attack, it is possible to selectively recover the affected files from various Snapshot copies, rather than simply reverting the whole volume to one of the snapshots.
+With the knowledge of the affected files and the time of attack, it is possible to selectively recover the affected files from various Snapshot copies, rather than simply reverting the whole volume to one of the Snapshot copies.
 
 ARP thus builds on proven ONTAP data protection and disaster recovery technology to respond to ransomware attacks. See the following topics for more information on recovering data.
 
@@ -107,6 +107,8 @@ ARP thus builds on proven ONTAP data protection and disaster recovery technology
 
 * link:https://www.netapp.com/blog/smart-ransomware-recovery[Smart ransomware recovery^]
 
+
+// 2023-02-27, #1259
 // 21 dec 2023, ontapdoc-1550
 // 22 august 2023, ONTAPDOC-1303
 // 6 august 2023, ontapdoc-840
