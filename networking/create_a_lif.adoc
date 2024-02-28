@@ -14,10 +14,15 @@ summary: Create a LIF, which is an IP address associated with a physical or logi
 
 
 [.lead]
-A LIF (network interface) is an IP address associated with a physical or logical port. If there is a component failure, a LIF can fail over to or be migrated to a different physical port, thereby continuing to communicate with the network.
+An SVM serves data to clients through one or more network logical interfaces (LIFs). You must create LIFs on the ports you want to use to access data. A LIF (network interface) is an IP address associated with a physical or logical port. If there is a component failure, a LIF can fail over to or be migrated to a different physical port, thereby continuing to communicate with the network.
+
+.Best practice
+
+Switch ports connected to ONTAP should be configured as spanning-tree edge ports to reduce delays during LIF migration.
 
 .Before you begin
 
+* You must be a cluster administrator to perform this task.
 * The underlying physical or logical network port must have been configured to the administrative up status.
 * If you are planning to use a subnet name to allocate the IP address and network mask value for a LIF, the subnet must already exist.
 +
@@ -30,6 +35,8 @@ Subnets contain a pool of IP addresses that belong to the same layer 3 subnet. T
 * You cannot assign NAS and SAN protocols to the same LIF.
 +
 The supported protocols are SMB, NFS, FlexCache, iSCSI, and FC; iSCSI and FC cannot be combined with other protocols. However, NAS and Ethernet-based SAN protocols can be present on the same physical port.
+
+** You should not configure LIFs that carry SMB traffic to automatically revert to their home nodes. This recommendation is mandatory if the SMB server is to host a solution for nondisruptive operations with Hyper-V or SQL Server over SMB.
 
 * You can create both IPv4 and IPv6 LIFs on the same network port.
 * All the name mapping and host-name resolution services used by an SVM, such as DNS, NIS, LDAP, and Active Directory, must be reachable from at least one LIF handling data traffic of the SVM.
@@ -57,6 +64,8 @@ iSCSI LIF failover is automatically enabled (the failover policy is set to `sfo-
 If after you upgrade to ONTAP 9.11.1 or later, you have existing iSCSI LIFs in an SVM that have not been enabled with the iSCSI LIF failover feature and you create new iSCSI LIFs in the same SVM, the new iSCSI LIFs assume the same failover policy (`disabled`) of the existing iSCSI LIFs in the SVM.
 +
 link:../san-admin/asa-iscsi-lif-fo-task.html[iSCSI LIF failover for ASA platforms]
+
+Beginning with ONTAP 9.7, ONTAP automatically chooses the home port of a LIF, as long as at least one LIF already exists in the same subnet in that IPspace. ONTAP chooses a home-port in the same broadcast domain as other LIFs in that subnet. You can still specify a home port, but it is no longer required (unless no LIFs yet exist in that subnet in the specified IPspace).
 
 Beginning with ONTAP 9.12.0, the procedure you follow depends on the interface that you use--System Manager or the CLI:
 
@@ -111,7 +120,26 @@ Beginning with ONTAP 9.12.0, the procedure you follow depends on the interface t
 
 .Steps
 
-. Create a LIF:
+. Determine which broadcast domain ports you want to use for the LIF.
++
+`network port broadcast-domain show -ipspace _ipspace1_`
++
+....
+IPspace     Broadcast                       Update
+Name        Domain name   MTU   Port List   Status Details
+ipspace1
+            default       1500
+                                node1:e0d   complete
+                                node1:e0e   complete
+                                node2:e0d   complete
+                                node2:e0e   complete
+....
+
+. Verify that the subnet you want to use for the LIFs contains sufficient unused IP addresses.
++
+`network subnet show -ipspace _ipspace1_`
+
+. Create one or more LIFs on the ports you want to use to access data.
 +
 ....
 network interface create -vserver _SVM_name_ -lif _lif_name_ -service-policy _service_policy_name_ -home-node _node_name_ -home-port port_name {-address _IP_address_ - netmask _Netmask_value_ | -subnet-name _subnet_name_} -firewall- policy _policy_ -auto-revert {true|false}
@@ -140,9 +168,32 @@ The `network ndp prefix show` command is available at the advanced privilege lev
 +
 For deriving the `id`, choose a random 64-bit hexadecimal number.
 
-. Verify that the LIF was created by using the `network interface show` command.
-. Verify that the configured IP address is reachable:
+. Verify that the LIF interface configuration is correct.
++
+`network interface show -vserver vs1`
++
+....
+          Logical    Status     Network         Current   Current Is
+Vserver   Interface  Admin/Oper Address/Mask    Node      Port    Home
+--------- ---------- ---------- --------------- --------- ------- ----
+vs1
+           lif1       up/up      10.0.0.128/24   node1     e0d     true
+....
 
+. Verify that the failover group configuration is as desired.
++
+`network interface show -failover -vserver _vs1_`
++
+....
+         Logical    Home       Failover        Failover
+Vserver  interface  Node:Port  Policy          Group
+-------- ---------- ---------  ---------       --------
+vs1
+         lif1       node1:e0d  system-defined  ipspace1
+Failover Targets: node1:e0d, node1:e0e, node2:e0d, node2:e0e
+....
+
+. Verify that the configured IP address is reachable:
 
 |===
 
@@ -183,7 +234,6 @@ xref:../nfs-rdma/configure-lifs-task.html[Configure LIFs for NFS over RDMA]
 
 // IE-554, 2022-07-28
 // 06 OCT 2022, IE-582
-
 // IE-554, 2022-07-28
 // Created with NDAC Version 2.0 (August 17, 2020)
 // restructured: March 2021
@@ -192,4 +242,4 @@ xref:../nfs-rdma/configure-lifs-task.html[Configure LIFs for NFS over RDMA]
 // 08 DEC 2021, BURT 1430515
 // 16-JUN-2022 BURT 1477167
 // added iSCSI LIF failover bullet Jun 2022
-//
+// merge create_lifs file 
