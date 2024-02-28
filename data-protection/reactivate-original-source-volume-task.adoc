@@ -97,6 +97,12 @@ The following example stops the original destination SVM:
 cluster_dst::> vserver stop svm_backup
 ----
 
+. Verify that the original destination SVM is in the stopped state by using the `vserver show` command.
++
+----
+cluster_dst::> vserver show
+----
+
 . Update the reversed relationship:
 +
 `snapmirror update -source-path _SVM:volume_ -destination-path _SVM:volume_`
@@ -179,7 +185,7 @@ cluster_src::> snapmirror delete -source-path svm_backup:volA_dst -destination-p
 
 . Release the reversed relationship from the original destination SVM or the original destination cluster.
 +
-`snapmirror release -source-path _SVM:volume_ -destination-path _SVM:volume_`
+`snapmirror release -source-path _SVM:volume_ -destination-path _SVM:volume_ -relationship-info-only true`
 +
 [NOTE]
 ====
@@ -189,7 +195,22 @@ You must run this command from the original destination SVM or the original dest
 The following example releases the reversed relationship between the original destination volume, `volA_dst` on `svm_backup`, and the original source volume, `volA` on `svm1`:
 +
 ----
-cluster_dst::> snapmirror release -source-path svm_backup:volA_dst -destination-path svm1:volA
+cluster_dst::> snapmirror release -source-path svm_backup:volA_dst -destination-path svm1:volA -relationship-info-only true
+----
+
+. From the original destination SVM or the original destination cluster, recreate the original relationship. Use the same configuration, policy, and identity-preserve setting as the original SVM DR relationship:
++
+`snapmirror create -source-path SVM:volume -destination-path SVM:volume`
++
+[NOTE]
+====
+You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options. See the example below.
+====
++
+The following example creates a relationship between the original source SVM, `svm1`, and the original destination SVM, `svm_backup`:
++
+----
+cluster_dst::> snapmirror create -source-path svm1:volA -destination-path svm_backup:volA_dst
 ----
 
 . Reestablish the original data protection relationship from the original destination:
