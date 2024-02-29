@@ -1,0 +1,297 @@
+---
+sidebar: sidebar
+permalink: networking/use_cdp_to_detect_network_connectivity.html
+keywords: display, view, show, network, connectivity, neighbor, discovery, protocol, cdp, use cdp to detect network connectivity, considerations for using cdp, enable or disable cdp, view cdp neighbor information, example of showing and clearing statistics, cisco
+summary: In a data center, you can use neighbor discovery protocols to view network connectivity between a pair of physical or virtual systems and their network interfaces. ONTAP supports two neighbor discovery protocols, Cisco Discovery Protocol (CDP) and Link Layer Discovery Protocol (LLDP).
+---
+
+= Use CDP to detect network connectivity
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+
+// 16-FEB-2024 split out Use CDP to detect network connectivity topic
+
+
+[.lead]
+Using CDP to detect network connectivity consists of reviewing deployment considerations, enabling it on data ports, viewing neighbor devices, and adjusting CDP configuration values as needed. CDP is enabled by default on cluster ports.
+
+CDP must also be enabled on any switches and routers before information about neighbor devices can be displayed.
+
+[cols="30,70"]
+|===
+
+h|ONTAP release h|Description
+
+a|9.10.1 and earlier
+a|CDP is also used by the cluster switch health monitor to automatically discover your cluster and management network switches.
+a|9.11.1 and later
+a|CDP is also used by the cluster switch health monitor to automatically discover your cluster, storage, and management network switches.
+|===
+
+.Related information
+
+link:../system-admin/index.html[System administration^]
+
+== Considerations for using CDP
+
+By default, CDP-compliant devices send CDPv2 advertisements. CDP-compliant devices send CDPv1 advertisements only when they receive CDPv1 advertisements. ONTAP supports only CDPv1. Therefore, when an ONTAP node sends CDPv1 advertisements, CDP-compliant neighboring devices send back CDPv1 advertisements.
+
+You should consider the following information before enabling CDP on a node:
+
+* CDP is supported for all ports.
+* CDP advertisements are sent and received by ports that are in the up state.
+* CDP must be enabled on both the transmitting and receiving devices for sending and receiving CDP advertisements.
+* CDP advertisements are sent at regular intervals, and you can configure the time interval.
+* When IP addresses are changed for a LIF, the node sends the updated information in the next CDP advertisement.
+* ONTAP 9.10.1 and earlier:
+** CDP is always enabled on cluster ports.
+** CDP is disabled, by default, on all non-cluster ports.
+* ONTAP 9.11.1 and later:
+** CDP is always enabled on cluster and storage ports.
+** CDP is disabled, by default, on all non-cluster and non-storage ports.
+
+[NOTE]
+Sometimes when LIFs are changed on the node, the CDP information is not updated at the receiving device side (for example, a switch). If you encounter such a problem, you should configure the network interface of the node to the down status and then to the up status.
+
+* Only IPv4 addresses are advertised in CDP advertisements.
+* For physical network ports with VLANs, all of the LIFs configured on the VLANs on that port are advertised.
+* For physical ports that are part of an interface group, all of the IP addresses configured on that interface group are advertised on each physical port.
+* For an interface group that hosts VLANs, all of the LIFs configured on the interface group and the VLANs are advertised on each of the network ports.
+* Due to CDP packets being restricted to no more than 1500 bytes, on ports
+configured with a large number of LIFs only a subset of these IP addresses may be reported on the adjacent switch.
+
+== Enable or disable CDP
+
+To discover and send advertisements to CDP-compliant neighboring devices, CDP must be enabled on each node of the cluster.
+
+By default in ONTAP 9.10.1 and earlier, CDP is enabled on all cluster ports of a node and disabled on all non-cluster ports of a node.
+
+By default in ONTAP 9.11.1 and later, CDP is enabled on all cluster and storage ports of a node and disabled on all non-cluster and non-storage ports of a node.
+
+
+.About this task
+
+The `cdpd.enable` option controls whether CDP is enabled or disabled on the ports of a node:
+
+* For ONTAP 9.10.1 and earlier, on enables CDP on non-cluster ports.
+* For ONTAP 9.11.1 and later, on enables CDP on non-cluster and non-storage ports.
+* For ONTAP 9.10.1 and earlier, off disables CDP on non-cluster ports; you cannot disable CDP on cluster ports.
+* For ONTAP 9.11.1 and later, off disables CDP on non-cluster and non-storage ports; you cannot disable CDP on cluster ports.
+
+
+When CDP is disabled on a port that is connected to a CDP-compliant device, network traffic might not be optimized.
+
+.Steps
+
+. Display the current CDP setting for a node, or for all nodes in a cluster:
++
+[cols="30,70"]
+|===
+
+h|To view the CDP setting of... h|Enter...
+
+a|A node
+a|`run - node <node_name> options cdpd.enable`
+a|All nodes in a cluster
+a|`options cdpd.enable`
+|===
+
+. Enable or disable CDP on all ports of a node, or on all ports of all nodes in a cluster:
++
+[cols="30,70"]
+|===
+
+h|To enable or disable CDP on... h|Enter...
+
+a|A node
+a|`run -node node_name options cdpd.enable {on or off}`
+a|All nodes in a cluster
+a|`options cdpd.enable {on or off}`
+|===
+
+== View CDP neighbor information
+
+You can view information about the neighboring devices that are connected to each port of the nodes of your cluster, provided that the port is connected to a CDP-compliant device. You can use the `network device-discovery show -protocol cdp` command to view neighbor information.
+
+.About this task
+
+In ONTAP 9.10.1 and earlier, because CDP is always enabled for cluster ports, CDP neighbor information is always displayed for those ports. CDP must be enabled on non-cluster ports for neighbor information to appear for those ports.
+
+In ONTAP 9.11.1 and later, because CDP is always enabled for cluster and storage ports, CDP neighbor information is always displayed for those ports. CDP must be enabled on non-cluster and non-storage ports for neighbor information to appear for those ports.
+
+.Step
+
+Display information about all CDP-compliant devices that are connected to the ports on a node in the cluster:
+
+....
+network device-discovery show -node node -protocol cdp
+....
+
+The following command shows the neighbors that are connected to the ports on node sti2650-212:
+
+....
+network device-discovery show -node sti2650-212 -protocol cdp
+Node/       Local  Discovered
+Protocol    Port   Device (LLDP: ChassisID)  Interface         Platform
+----------- ------ ------------------------- ----------------  ----------------
+sti2650-212/cdp
+            e0M    RTP-LF810-510K37.gdl.eng.netapp.com(SAL1942R8JS)
+                                             Ethernet1/14      N9K-C93120TX
+            e0a    CS:RTP-CS01-510K35        0/8               CN1610
+            e0b    CS:RTP-CS01-510K36        0/8               CN1610
+            e0c    RTP-LF350-510K34.gdl.eng.netapp.com(FDO21521S76)
+                                             Ethernet1/21      N9K-C93180YC-FX
+            e0d    RTP-LF349-510K33.gdl.eng.netapp.com(FDO21521S4T)
+                                             Ethernet1/22      N9K-C93180YC-FX
+            e0e    RTP-LF349-510K33.gdl.eng.netapp.com(FDO21521S4T)
+                                             Ethernet1/23      N9K-C93180YC-FX
+            e0f    RTP-LF349-510K33.gdl.eng.netapp.com(FDO21521S4T)
+                                             Ethernet1/24      N9K-C93180YC-FX
+....
+
+The output lists the Cisco devices that are connected to each port of the specified node.
+
+== Configure the hold time for CDP messages
+
+Hold time is the period of time for which CDP advertisements are stored in cache in neighboring CDP-compliant devices. Hold time is advertised in each CDPv1 packet and is updated whenever a CDPv1 packet is received by a node.
+
+* The value of the `cdpd.holdtime` option should be set to the same value on both nodes of an HA pair.
+* The default hold time value is 180 seconds, but you can enter values ranging from 10 seconds to 255 seconds.
+* If an IP address is removed before the hold time expires, the CDP information is cached until the hold time expires.
+
+.Steps
+
+. Display the current CDP hold time for a node, or for all nodes in a cluster:
++
+[cols="30,70"]
+|===
+
+h| To view the hold time of... h|Enter...
+
+a|A node
+a|`run -node node_name options cdpd.holdtime`
+a|All nodes in a cluster
+a|`options cdpd.holdtime`
+|===
+
+. Configure the CDP hold time on all ports of a node, or on all ports of all nodes in a cluster:
++
+[cols="30,70"]
+|===
+
+h|To set the hold time on... h|Enter...
+
+a|A node
+a|`run -node node_name options cdpd.holdtime holdtime`
+a|All nodes in a cluster
+a|`options cdpd.holdtime holdtime`
+|===
+
+== Set the interval for sending CDP advertisements
+
+CDP advertisements are sent to CDP neighbors at periodic intervals. You can increase or decrease the interval for sending CDP advertisements depending on network traffic and changes in the network topology.
+
+* The value of the `cdpd.interval` option should be set to the same value on both nodes of an HA pair.
+* The default interval is 60 seconds, but you can enter a value from 5 seconds to 900 seconds.
+
+.Steps
+
+. Display the current CDP advertisement time interval for a node, or for all nodes in a cluster:
++
+[cols="30,70"]
+|===
+
+h| To view the interval for... h| Enter...
+
+a|A node
+a|`run -node node_name options cdpd.interval`
+a|All nodes in a cluster
+a|`options cdpd.interval`
+|===
+
+. Configure the interval for sending CDP advertisements for all ports of a node, or for all ports of all nodes in a cluster:
++
+[cols="30,70"]
+|===
+
+h| To set the interval for... h| Enter...
+
+a|A node
+a|`run -node node_name options cdpd.interval interval`
+a|All nodes in a cluster
+a|`options cdpd.interval interval`
+|===
+
+== View or clear CDP statistics
+
+You can view the CDP statistics for the cluster and non-cluster ports on each node to detect potential network connectivity issues. CDP statistics are cumulative from the time they were last cleared.
+
+.About this task
+
+In ONTAP 9.10.1 and earlier, because CDP is always enabled for ports, CDP statistics are always displayed for traffic on those ports. CDP must be enabled on ports for statistics to appear for those ports.
+
+In ONTAP 9.11.1 and later, because CDP is always enabled for cluster and storage ports, CDP statistics are always displayed for traffic on those ports. CDP must be enabled on non-cluster or non-storage ports for statistics to appear for those ports.
+
+
+.Step
+
+Display or clear the current CDP statistics for all ports on a node:
+
+[cols="30,70"]
+|===
+
+h|If you want to... h|Enter...
+
+a|View the CDP statistics
+a|`run -node node_name cdpd show-stats`
+a|Clear the CDP statistics
+a|`run -node node_name cdpd zero-stats`
+|===
+
+=== Example of showing and clearing statistics
+
+The following command shows the CDP statistics before they are cleared. The output displays the total number of packets that have been sent and received since the last time the statistics were cleared.
+
+....
+run -node node1 cdpd show-stats
+
+RECEIVE
+ Packets:         9116  | Csum Errors:       0  | Unsupported Vers:  4561
+ Invalid length:     0  | Malformed:         0  | Mem alloc fails:      0
+ Missing TLVs:       0  | Cache overflow:    0  | Other errors:         0
+
+TRANSMIT
+ Packets:         4557  | Xmit fails:        0  | No hostname:          0
+ Packet truncated:   0  | Mem alloc fails:   0  | Other errors:         0
+
+OTHER
+ Init failures:      0
+....
+
+The following command clears the CDP statistics:
+
+....
+run -node node1 cdpd zero-stats
+....
+
+....
+run -node node1 cdpd show-stats
+
+RECEIVE
+ Packets:            0  | Csum Errors:       0  | Unsupported Vers:     0
+ Invalid length:     0  | Malformed:         0  | Mem alloc fails:      0
+ Missing TLVs:       0  | Cache overflow:    0  | Other errors:         0
+
+TRANSMIT
+ Packets:            0  | Xmit fails:        0  | No hostname:          0
+ Packet truncated:   0  | Mem alloc fails:   0  | Other errors:         0
+
+OTHER
+ Init failures:      0
+....
+
+After the statistics are cleared, they begin to accumulate after the next CDP advertisement is sent or received.

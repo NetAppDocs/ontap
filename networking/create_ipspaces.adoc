@@ -12,7 +12,7 @@ summary: Create IPspaces for each SVM in a cluster
 :linkattrs:
 :imagesdir: ./media/
 
-//
+// 16-FEB-2024 merge with create_ipspaces_01
 // use _include/create_ipspaces.adoc
 // Used for workflow 9.8+ and 9.7-
 // restructured: March 2021
@@ -20,7 +20,16 @@ summary: Create IPspaces for each SVM in a cluster
 //
 
 [.lead]
-You can use an IPspace to create a distinct IP address space for each SVM in a cluster. Doing so enables clients in administratively separate network domains to access cluster data while using overlapping IP addresses from the same IP address subnet range.
+IPspaces are distinct IP address spaces in which storage virtual machines (SVMs) reside. You can create IPspaces when you need your SVMs to have their own secure storage, administration, and routing. You can use an IPspace to create a distinct IP address space for each SVM in a cluster. Doing so enables clients in administratively separate network domains to access cluster data while using overlapping IP addresses from the same IP address subnet range.
+
+.About this task
+
+There is a cluster-wide limit of 512 IPspaces. The cluster-wide limit is reduced to 256 IPspaces for clusters that contain nodes with 6 GB of RAM. See the Hardware Universe to determine whether additional limits apply to your platform.
+
+https://hwu.netapp.com/[NetApp Hardware Universe^]
+
+[NOTE]
+An IPspace name cannot be "all" because "all" is a system-reserved name.
 
 .Before you begin
 
@@ -28,12 +37,22 @@ You must be a cluster administrator to perform this task.
 
 .Step
 
-Create an IPspace.
+. Create an IPspace:
++
+....
+network ipspace create -ipspace ipspace_name
+....
++
+`ipspace_name` is the name of the IPspace that you want to create. The following command creates the IPspace ipspace1 on a cluster:
++
+....
+network ipspace create -ipspace ipspace1
+....
 
-`network ipspace create -ipspace ipspace1`
-
+. Display the IPspaces:
++
 `network ipspace show`
-
++
 ....
 IPspace             Vserver List          Broadcast Domains
 ------------------- --------------------- ----------------------------
@@ -41,5 +60,21 @@ Cluster             Cluster               Cluster
 Default             Cluster1              Default
 ipspace1            ipspace1              -
 ....
-
++
 The IPspace is created, along with the system SVM for the IPspace. The system SVM carries management traffic.
+
+.After you finish
+
+If you create an IPspace in a cluster with a MetroCluster configuration, IPspace objects must be manually replicated to the partner clusters. Any SVMs that are created and assigned to an IPspace before the IPspace is replicated will not be replicated to the partner clusters.
+
+Broadcast domains are created automatically in the "Default" IPspace and can be moved between IPspaces using the following command:
+
+....
+network port broadcast-domain move
+....
+
+For example, if you want to move a broadcast domain from "Default" to "ips1", using the following command:
+
+....
+network port broadcast-domain move -ipspace Default -broadcast-domain Default -to-ipspace ips1
+....
