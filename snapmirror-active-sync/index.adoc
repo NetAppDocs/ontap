@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar
 permalink: snapmirror-active-sync/index.html
-keywords: SM-BC, SMBC, overview, benefits, use cases, architecture, snapmirror active sync
+keywords: SM-BC, SMBC, failover, terms, benefits, snapmirror active sync
 summary: Beginning with ONTAP 9.8, you can use SnapMirror active sync (previously known as SnapMirror Business Continuity) to protect applications with LUNs, enabling applications to fail over transparently, ensuring business continuity in case of a disaster.
 ---
 = SnapMirror active sync overview
@@ -12,62 +12,36 @@ summary: Beginning with ONTAP 9.8, you can use SnapMirror active sync (previousl
 :imagesdir: ../media/
 
 [.lead]
-SnapMirror active sync (previously known as SnapMirror Business Continuity [SM-BC]), enables business services to continue operating even through a complete site failure, supporting applications to fail over transparently using a secondary copy. Neither manual intervention nor additional scripting is required to trigger a failover with SnapMirror active sync. 
+SnapMirror active sync (previously known as SnapMirror Business Continuity [SM-BC]), enables business services to continue operating even through a complete site failure, supporting applications to fail over transparently using a secondary copy. Manual intervention nor custom scripting are required to trigger a failover with SnapMirror active sync. 
 
-SnapMirror active sync is available beginning with ONTAP 9.8. SnapMirror active sync is supported on AFF clusters or All-Flash SAN Array (ASA) clusters, where the primary and secondary clusters can be either AFF or ASA. SnapMirror active sync protects applications with iSCSI or FCP LUNs.
+SnapMirror active sync is available beginning with ONTAP 9.8. SnapMirror active sync is supported on AFF clusters or All-Flash SAN Array (ASA) clusters. Primary and secondary clusters must be of the same type: either ASA or AFF. SnapMirror active sync protects applications with iSCSI or FCP LUNs.
 
 == Benefits
 
 SnapMirror active sync provides the following benefits:
 
-* Continuous availability for business-critical applications
-* Ability to host critical applications alternately from primary and secondary site
-* Simplified application management using consistency groups for dependent write-order consistency
-* The ability to test failover for each application
-* Instantaneous creation of mirror clones without impacting application availability
+* Continuous availability for business-critical applications.
+* Ability to host critical applications alternately from primary and secondary site.
+* Simplified application management using consistency groups for dependent write-order consistency.
+* The ability to test failover for each application.
+* Instantaneous creation of mirror clones without impacting application availability.
+* LUN identity remains the same, so the application sees them as a shared virtual device.
+* The ability to reuse secondary clusters with flexibility to create instantaneous clones for application usage for dev-test, UAT or reporting purposes without impacting application performance or availability. 
 * Beginning with ONTAP 9.11.1, SnapMirror active sync supports xref:../data-protection/restore-single-file-snapshot-task.html[single-file SnapRestore]. 
 * Beginning with ONTAP 9.14.1, SnapMirror active sync supports Windows Failover Clustering and link:https://kb.netapp.com/onprem/ontap/da/SAN/What_are_SCSI_Reservations_and_SCSI_Persistent_Reservations[SCSI 3 persistent reservations^], improving high availability. 
-//* You are entitled to use SnapMirror active sync if you have the data protection or one-time premium bundle on both the source and destination storage clusters.
 
-== Use cases
+SM-BC allows you to protect your data LUNs, which enables applications to fail over transparently for the purpose of business continuity in the event of a disaster.  
 
-.Application deployment for zero recovery time object (RTO)
-In an SnapMirror active sync deployment, you will have a primary and secondary cluster. A LUN in the primary cluster (`1LP`) will have a mirror (`L1s`) on the secondary; both LUNs share the same serial ID and are reported as read-write LUNs to the host. Read and write operations, however, are only serviced to the primary LUN, `1LP`. Any writes to the mirror `L1S` are served by proxy. 
 
-.Disaster scenario
-With SnapMirror active sync, you can synchronously replicate multiple volumes for an application between sites at geographically dispersed locations. You can automatically failover to the secondary copy in case of disruption of the primary, thus enabling business continuity for tier one applications.
-
-== Architecture
-
-The following figure illustrates the operation of the SnapMirror Business Continuity feature at a high level.
-
-image:workflow_san_snapmirror_business_continuity.png[SnapMirror Business Continuity workflow]
-
-In section one of the diagram, an application is deployed on a SVM in the primary data center. The volumes that have been added to the primary consistency group are protected with SnapMirror active sync and are mirrored to secondary consistency group at a secondary data center. The volumes in the primary consistency group will failover to the mirrored consistency group in the event of a disruption. Volumes not in a mirrored consistency group are not served in the event of a failover. 
-
-// key concepts 
+== Key concepts
 
 SnapMirror Business Continuity (SM-BC) utilizes features such as consistency groups and the ONTAP Mediator to ensure your data is replicated and served even in the event of a disaster scenario. When planning your SM-BC deployment, it is important to understand the essential concepts in SM-BC and its architecture. 
 
-== Architecture
-
-The following figure illustrates a high-level overview of an SM-BC deployment. 
-
-image:workflow_san_snapmirror_business_continuity.png[SnapMirror Business Continuity workflow]
-
-The diagram shows an enterprise application that is hosted on an storage VM (SVM) at the primary data center. The SVM contains five volumes, three of which are part of a consistency group. The three volumes in the consistency group are mirrored to a secondary data center. In normal circumstances, all write operations are performed to the primary data center; in effect, this data center serves as the source for I/O operations, while the secondary data center serves as a destination. 
-
-In the event of a disaster scenario at the primary data center, the ONTAP Mediator will direct the secondary data center to act as the primary, serving all I/O operations. Only the volumes that are mirrored in the consistency group will be served. Any operations pertaining to the other two volumes on the SVM will be affected by the disaster event. 
-
-== Essential concepts
-
-Understanding the following terms will help you deploy SM-BC. 
-
 .Consistency group
 
-A consistency group is a collection of volumes or LUNs that provide a write-order consistency guarantee for the application workload that needs to be protected for business continuity. A consistency group ensures all volumes of this data set are quiesced and then snapped at the same point in time, providing a data-consistent restore point across volumes for that data set.
+A consistency group is a collection of FlexVol volumes that provide a consistency guarantee for the application workload that must be protected for business continuity.
 
-In SM-BC, you will create a primary and secondary consistency group for replication and data protection. The secondary consistency group will serve your data in the event of a disruption. 
+The purpose of a consistency group is to take simultaneous snapshot images of multiple volumes, thus ensuring crash-consistent copies of a collection of volumes at a point in time. A consistency group ensures all volumes of a dataset are quiesced and then snapped at precisely the same point in time. This provides a data-consistent restore point across volumes supporting the dataset. A consistency group thereby maintains dependent write-order consistency. If you decide to protect applications for business continuity, the group of volumes corresponding to this application must be added to a consistency so a data protection relationship is established between a source and a destination consistency group. The source and destination consistency must contain the same number and type of volumes.  
 
 To learn more about consistency groups, see link:../consistency-groups/index.html[Consistency groups overview].
 
@@ -77,9 +51,16 @@ An individual volume or LUN that is part of a consistency group, which is protec
 
 .ONTAP Mediator
 
-The ONTAP Mediators monitors the two ONTAP clusters and orchestrates failover in case your primary storage system fails. With the ONTAP Mediator, your application automatically reconnects to the resources in the secondary storage system. 
+The ONTAP Mediators receives health information about peered ONTAP clusters and nodes, orchestrating between the two and determining if each node/cluster is healthy and running. ONTAP Mediator provides the health information about: 
 
-With the ONTAP Mediator's health information, clusters can differentiate between intercluster LIF failure and site failure. When the site goes down, ONTAP Mediator passes on the health information to the peer cluster on demand, facilitating the peer cluster to failover.
+* Peer ONTAP clusters
+* Peer ONTAP cluster nodes 
+* Consistency groups (which is the failover unit); for each consistency group, the following information is provided: 
+** Replication state: Uninitialized, In Sync, or Out of Sync 
+** Which cluster hosts the primary copy 
+** Operation context (used for planned failover) 
+
+With this ONTAP Mediator health information, clusters can differentiate between distinct types of failures and determine whether to perform an automated failover. ONTAP Mediator is one of the three parties in the SM-BC quorum along with both ONTAP clusters (primary and secondary). To reach consensus, at least two parties in the quorum must agree to a certain operation.  
 
 Learn more about the link:../mediator/index.html[ONTAP Mediator^].
 
