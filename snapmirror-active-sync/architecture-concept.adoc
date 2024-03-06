@@ -1,10 +1,10 @@
 ---
 sidebar: sidebar
 permalink: snapmirror-active-sync/architecture-concept.html
-keywords: SM-BC, SMBC, snapmirror active sync
-summary: Understand the architecture of SnapMirror active sync to ensure you properly configure protection for your applications. 
+keywords: SM-BC, SMBC, snapmirror SM-BC
+summary: Understand the architecture of SnapMirror SM-BC to ensure you properly configure protection for your applications. 
 ---
-= Architecture for SnapMirror active sync 
+= SnapMirror Business Continuity architecture
 :hardbreaks:
 :nofooter:
 :icons: font
@@ -12,7 +12,7 @@ summary: Understand the architecture of SnapMirror active sync to ensure you pro
 :imagesdir: ../media/
 
 [.lead]
-The SM-BC architecture enables active workloads on both clusters, where primary workloads can be served simultaneously from both clusters. Regulations for financial institutions in some countries require businesses to be periodically serviceable from their secondary data centers as well, called “Tick-Tock” deployments, which SM-BC enables. 
+The SnapMirror Business Continuity (SM-BC) architecture enables active workloads on both clusters, where primary workloads can be served simultaneously from both clusters. Regulations for financial institutions in some countries require businesses to be periodically serviceable from their secondary data centers as well, called “Tick-Tock” deployments, which SM-BC enables. 
 
 The data protection relationship to protect for business continuity is created between the source storage system and destination storage system, by adding the application specific LUNs from different volumes within a storage virtual machine (SVM) to the consistency group. Under normal operations, the enterprise application writes to the primary consistency group, which synchronously replicates this I/O to the mirror consistency group.  
 
@@ -27,13 +27,13 @@ Other points to consider:
 
 == ONTAP Mediator 
 
-ONTAP Mediator is installed in a third failure domain, distinct from the two ONTAP clusters. Its key role is to act as a passive witness to SnapMirror active sync copies. In the event of a network partition or unavailability of one copy, SnapMirror active sync uses Mediator to determine which copy will continue to serve I/O, while discontinuing I/O on the other copy. There are three key components in this setup:
+ONTAP Mediator is installed in a third failure domain, distinct from the two ONTAP clusters. Its key role is to act as a passive witness to SM-BC copies. In the event of a network partition or unavailability of one copy, SnapMirror SM-BC uses Mediator to determine which copy will continue to serve I/O, while discontinuing I/O on the other copy. There are three key components in this setup:
 
-* Primary ONTAP cluster hosting the SnapMirror active sync primary CG
+* Primary ONTAP cluster hosting the SnapMirror SM-BC primary CG
 * Secondary ONTAP cluster hosting the mirror CG
 * ONTAP Mediator
 
-The ONTAP Mediator plays a crucial role in SnapMirror active sync configurations as a passive quorum witness, ensuring quorum maintenance and facilitating data access during failures. It acts as a ping proxy for controllers to determine liveliness of peer controllers. Although the Mediator does not actively trigger switchover operations, it provides a vital function by allowing the surviving node to check its partner's status during network communication issues. In its role as a quorum witness, the ONTAP Mediator provides an alternate path (effectively serving as a proxy) to the peer cluster. The mediator provides a REST API for nodes to put configuration of cluster peers, node health, and CG relationship information (role [primary|secondary], status information [InSync, Out-of-Sync].
+The ONTAP Mediator plays a crucial role in SnapMirror SM-BC configurations as a passive quorum witness, ensuring quorum maintenance and facilitating data access during failures. It acts as a ping proxy for controllers to determine liveliness of peer controllers. Although the Mediator does not actively trigger switchover operations, it provides a vital function by allowing the surviving node to check its partner's status during network communication issues. In its role as a quorum witness, the ONTAP Mediator provides an alternate path (effectively serving as a proxy) to the peer cluster. The mediator provides a REST API for nodes to put configuration of cluster peers, node health, and CG relationship information (role [primary|secondary], status information [InSync, Out-of-Sync].
 
 Furthermore, it allows clusters to get this information as part of the quorum process. It utilizes the node management LIF and cluster management LIF for communication purposes. It establishes redundant connections through multiple paths to differentiate between site failure and InterSwitch Link (ISL) failure. When a cluster loses connection with the ONTAP Mediator software and all its nodes due to an event, it is considered not reachable. This triggers an alert and enables automated failover to the mirror Consistency Group (CG) in the secondary site, ensuring uninterrupted I/O for the client. The replication data path relies on a heartbeat mechanism, and if a network glitch or event persists beyond a certain period, it can result in heartbeat failures, causing the relationship to go out-of-sync. However, the presence of redundant paths, such as LIF failover to another port, can sustain the heartbeat and prevent such disruptions. 
 
