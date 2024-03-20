@@ -19,15 +19,15 @@ Consistency groups facilitate application workload management, providing easily 
 
 Consistency groups support any FlexVol volume regardless of protocol (NAS, SAN, or NVMe) and can be managed through the ONTAP REST API or in System Manager under the *Storage > Consistency Groups* menu item. Beginning with ONTAP 9.14.1, consistency groups can be managed with the ONTAP CLI. 
 
-Consistency groups can exist as individual entities--as a collection of volumes--or in a hierarchical relationship, which consists of other consistency groups. Individual volumes can have their own volume-granular Snapshot policy. In addition, there can be a consistency group-wide Snapshot policy. The consistency group can only have one SnapMirror Business Continuity (SM-BC) relationship and shared SM-BC policy, which can be used to recover the entire consistency group.
+Consistency groups can exist as individual entities--as a collection of volumes--or in a hierarchical relationship, which consists of other consistency groups. Individual volumes can have their own volume-granular Snapshot policy. In addition, there can be a consistency group-wide Snapshot policy. The consistency group can only have one SnapMirror active sync relationship and shared SnapMirror policy, which can be used to recover the entire consistency group.
 
 The following diagram illustrates how you might use an individual consistency group. The data for an application hosted on `SVM1` spans two volumes: `vol1` and `vol2`. A Snapshot policy on the consistency group captures Snapshot copies of the data every 15 minutes.   
 
 image:../media/consistency-group-single-diagram.gif[Diagram of a single consistency group with its constituent volumes and local Snapshot policy]
 
-Larger application workloads might require multiple consistency groups. In these situations, you can create hierarchical consistency groups, where a single consistency group becomes the child components of a parent consistency group. The parent consistency group can include up to five child consistency groups. Like in individual consistency groups, a remote SM-BC protection policy can be applied to the entire configuration of consistency groups (parent and children) to recover the application workload.
+Larger application workloads might require multiple consistency groups. In these situations, you can create hierarchical consistency groups, where a single consistency group becomes the child components of a parent consistency group. The parent consistency group can include up to five child consistency groups. Like in individual consistency groups, a remote SnapMirror active sync protection policy can be applied to the entire configuration of consistency groups (parent and children) to recover the application workload.
 
-In the following example, an application is hosted on `SVM1`. The administrator has created a parent consistency group, `SVM1_app`, which includes two child consistency groups: `SVM1appDataCG` for the data and `SVM1app_logCG` for the logs. Each child consistency group has its own Snapshot policy. Snapshot copies of the volumes in `SVM1appDataCG` are taken every 15 minutes. Snapshots of `SVM1app_logCG` are taken hourly. The parent consistency group `SVM1_app` has an SM-BC policy which replicates the data to ensure continued service in the event of a disaster.
+In the following example, an application is hosted on `SVM1`. The administrator has created a parent consistency group, `SVM1_app`, which includes two child consistency groups: `SVM1appDataCG` for the data and `SVM1app_logCG` for the logs. Each child consistency group has its own Snapshot policy. Snapshot copies of the volumes in `SVM1appDataCG` are taken every 15 minutes. Snapshots of `SVM1app_logCG` are taken hourly. The parent consistency group `SVM1_app` has an SnapMirror active sync policy which replicates the data to ensure continued service in the event of a disaster.
 
 image:../media/consistency-group-nested-diagram.gif[Diagram of a nested consistency group with its associated volumes]
 
@@ -57,7 +57,7 @@ In ONTAP 9.13.1, you can only retrieve historical metrics using the REST API. Be
 Consistency groups offer protection through:
 
 * Snapshot policies
-* xref:../smbc/index.html[SnapMirror Business Continuity (SM-BC)]
+* xref:../smbc/index.html[SnapMirror active sync]
 * <<mcc>> (beginning with ONTAP 9.11.1)
 * xref:../data-protection/snapmirror-disaster-recovery-concept.html[Asynchronous SnapMirror] (beginning with ONTAP 9.13.1)
 * link:../data-protection/snapmirror-svm-replication-concept.html[SVM disaster recovery] (beginning with ONTAP 9.14.1)
@@ -66,10 +66,10 @@ Creating a consistency group does not automatically enable protection. Local and
 
 To configure protection on a consistency group, see link:protect-task.html[Protect a consistency group].
 
-In order to utilize remote protection, you must meet the requirements for xref:../smbc/smbc_plan_prerequisites.html#licensing[SnapMirror Business Continuity deployments].
+In order to utilize remote protection, you must meet the requirements for xref:../snapmirror-active-sync/prerequisites-reference.html[SnapMirror active sync].
 
 [NOTE]
-SM-BC relationships cannot be established on volumes mounted for NAS access.
+SnapMirror active sync relationships cannot be established on volumes mounted for NAS access.
 
 [[mcc,MetroCluster]] 
 == Consistency groups in MetroCluster configurations
@@ -90,7 +90,7 @@ include::../_include/mirrored-aggregate-performance.adoc[]
 
 == Upgrade considerations
 
-Consistency groups created with SM-BC in ONTAP 9.8 and 9.9.1 will automatically be upgraded and become manageable under *Storage > Consistency Groups* in System Manager or the ONTAP REST API when upgrading to ONTAP 9.10.1 or later. For more information about upgrading from ONTAP 9.8 or 9.9.1, see link:../smbc/smbc_admin_upgrade_and_revert_considerations.html[SM-BC upgrade and revert considerations].
+When upgrading to ONTAP 9.10.1 or later, onsistency groups created with SnapMirror active sync (previously known as SnapMirror Business Continuity) in ONTAP 9.8 and 9.9.1 are automatically upgraded and become manageable under *Storage > Consistency Groups* in System Manager or the ONTAP REST API For more information about upgrading from ONTAP 9.8 or 9.9.1, see link:../smbc/smbc_admin_upgrade_and_revert_considerations.html[SnapMirror active sync upgrade and revert considerations].
 
 Consistency group Snapshot copies created in the REST API can be managed through System Manager's Consistency Group interface and through consistency group REST API endpoints. Beginning with ONTAP 9.14.1, consistency group Snapshots can also be managed with the ONTAP CLI. 
 
@@ -104,7 +104,7 @@ Snapshot copies created with the ONTAPI commands `cg-start` and `cg-commit` are 
 | | ONTAP 9.14.1 | ONTAP 9.13.1  | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
 | Hierarchical consistency groups | ✓ | ✓ | ✓ | ✓ | ✓
 | Local protection with Snapshot copies | ✓ | ✓ | ✓ | ✓ | ✓
-| SnapMirror Business Continuity | ✓ | ✓ | ✓ | ✓ | ✓
+| SnapMirror active sync | ✓ | ✓ | ✓ | ✓ | ✓
 | MetroCluster support | ✓ | ✓ | ✓ | ✓ | 
 | Two-phase commits (REST API only) | ✓ | ✓ | ✓ | ✓ | 
 | Application and component tags | ✓ | ✓ | ✓ | | 
@@ -126,7 +126,7 @@ video::j0jfXDcdyzE[youtube, width=848, height=480]
 
 .More information
 * link:https://docs.netapp.com/us-en/ontap-automation/[ONTAP Automation documentation^]
-* xref:../smbc/index.html[SnapMirror Business Continuity]
+* xref:../smbc/index.html[SnapMirror active sync]
 * xref:../data-protection/snapmirror-disaster-recovery-concept.html[Asynchronous SnapMirror disaster recovery basics]
 * link:https://docs.netapp.com/us-en/ontap-metrocluster/[MetroCluster documentation]
 
