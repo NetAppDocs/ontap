@@ -14,44 +14,41 @@ summary: Modify settings for Autonomous Ransomware Protection Snapshot copies th
 :imagesdir: ./media/
 
 [.lead]
-Beginning with ONTAP 9.11.1, you can use the CLI to control the number of and retention period for Autonomous Ransomware Protection (ARP) Snapshot copies that are automatically generated in response to suspected ransomware attacks.
+Beginning with ONTAP 9.11.1, you can use the CLI to control the retention settings for Autonomous Ransomware Protection (ARP) Snapshot copies that are automatically generated in response to suspected ransomware attacks.
 
-== Modifiable Snapshot options 
 
-The following options for automatic Snapshot copies can be modified:
+.Before you begin 
+You can only modify ARP Snapshots options on a node SVM. 
 
-arw.snap.max.count::
-Specifies the maximum number of ARP Snapshot copies that can exist in a volume at any given time. Older copies are deleted to ensure that the total number of ARP Snapshot copies are within this specified limit.
-arw.snap.create.interval.hours::
-Specifies the interval (in hours) between ARP Snapshot copies. A new Snapshot copy will be created when an attack is suspected and the copy created previously is older than this specified interval.
-arw.snap.normal.retain.interval.hours::
-Specifies the duration (in hours) for which an ARP Snapshot copy is retained. When an ARP Snapshot copy becomes this old, any other ARP Snapshot copy created before the latest copy to reach this age is deleted. No ARP Snapshot copy can be older than this duration.
-arw.snap.max.retain.interval.days::
-Specifies the maximum duration (in days) for which an ARP Snapshot copy can be retained. Any ARP Snapshot copy older than this duration will be deleted if there is no attack reported on the volume.
-[NOTE]
-The maximum retention interval for ARP Snapshot is ignored if a moderate threat is detected. The Snapshot created just before the threat will remain until the threat has been marked a false positive. Once marked as a false positive, all other ARP Snapshots on the volume will be deleted as well.
 
-arw.snap.create.interval.hours.post.max.count::
-Specifies the interval (in hours) between ARP Snapshot copies when the volume already contains the maximum number of ARP Snapshot copies. When the maximum number is reached, an ARP Snapshot copy is deleted to make room for a new copy. The new ARP Snapshot copy creation speed can be reduced to retain the older copy using this option. If the volume already contains maximum number of ARP Snapshot copies, then this interval specified in this option is used for next ARP Snapshot copy creation, instead of arw.snap.create.interval.hours.
-arw.surge.snap.interval.days::
-Specifies the interval (in days) between ARP surge Snapshot copies. A new ARP Snapshot surge copy is created when there is a surge in IO traffic and the last created ARP Snapshot copy is older than this specified interval. This option also specifies the duration (in days) for which an ARP surge Snapshot copy is retained.
-
-== CLI commands
-
-You can only modify options on a node SVM. 
-
+.Steps
+. To show all current ARP Snapshot copy settings, enter:
+`vserver options -vserver _svm_name_ arw*`
 [NOTE]
 The `vserver options` command is a hidden command. To view the man page, enter `man vserver options` at the ONTAP CLI.
-
-To show all current ARP Snapshot copy settings, enter:
-`vserver options -vserver _svm_name_ arw*`
-
-To show selected current ARP Snapshot copy settings, enter:
+. To show selected current ARP Snapshot copy settings, enter:
 `vserver options -vserver _svm_name_ -option-name _arw_setting_name_`
-
-To modify ARP Snapshot copy settings, enter:
+. To modify ARP Snapshot copy settings, enter:
 `vserver options -vserver _svm_name_ -option-name _arw_setting_name_ -option-value _arw_setting_value_`
++
+The following settings are modifiable:
++
+[cols="1,3", options="header"]
+|===
+| ARW setting | Description 
+| *arw.snap.max.count* | Specifies the maximum number of ARP Snapshot copies that can exist in a volume at any given time. Older copies are deleted to ensure that the total number of ARP Snapshot copies are within this specified limit.
+| *arw.snap.create.interval.hours* | Specifies the interval _in hours_ between ARP Snapshot copies. A new Snapshot copy is be created when an attack is suspected, and the copy created previously is older than this specified interval.
+| *arw.snap.normal.retain.interval.hours* | Specifies the duration _in hours_ for which an ARP Snapshot copy is retained. When an ARP Snapshot copy becomes this old, any other ARP Snapshot copy created before the latest copy to reach this age is deleted. No ARP Snapshot copy can be older than this duration. 
+| *arw.snap.max.retain.interval.days* 
+a| Specifies the maximum duration _in days_ for which an ARP Snapshot copy can be retained. Any ARP Snapshot copy older than this duration will be deleted if there is no attack reported on the volume.
++
+[NOTE]
+The maximum retention interval for ARP Snapshot is ignored if a moderate threat is detected. The Snapshot created in response to the threat is retained until you have responded to the threat. Marking a threat as a false positive delete the ARP Snapshot copies on the volume. 
+|*arw.snap.create.interval.hours.post.max.count* | Specifies the interval _in hours_ between ARP Snapshot copies when the volume already contains the maximum number of ARP Snapshot copies. When the maximum number is reached, an ARP Snapshot copy is deleted to make room for a new copy. The new ARP Snapshot copy creation speed can be reduced to retain the older copy using this option. If the volume already contains maximum number of ARP Snapshot copies, then this interval specified in this option is used for next ARP Snapshot copy creation, instead of arw.snap.create.interval.hours.
+| *arw.surge.snap.interval.days* | Specifies the interval _in days_ between ARP surge Snapshot copies. ONTAP creates an ARP Snapshot surge copy when there's a surge in IO traffic and the last created ARP Snapshot copy is older than this specified interval. This option also specifies retention period _in day_ for an ARP surge Snapshot. 
+|=== 
 
+// 2024-02-26, #1269
 // 8 august 2023, ontapdoc-840
 // 05 may 2023, ontap-issues #934
 // 2022-08-25, BURT 1499112
