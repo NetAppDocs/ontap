@@ -76,6 +76,53 @@ The following example creates two consistency groups: `cg_src_ on the source wit
 --
 ====
 
+== Configure active/active protection 
+
+
+=== Convert existing relationship to active/active 
+
+.Before you begin 
+
+* Both clusters must be running ONTAP 9.15.1 or later. 
+
+// what is a uniform vs non-uniform config 
+
+.Steps 
+. Modify the SnapMirror policy from `AutomatedFailover` to `AutomatedFailoverDuplex`:
++
+`snapmirror modify -destination-path _destination_path_ -policy AutomatedFailoverDuplex`
+. Modifying the policy to `AutomatedFailoverDuplex` takes the relationship out of sync and trigger an resync operation. When the resync operation succeeds, birectional sync replication has been established. Confirm the relationship is `Insync`:
++
+`snapmirror show -destination-path _destination_path_`
+. If the existing hosts are local to cluster-1, add the host to the second cluster and establish connectivity with respective access to each cluster depending on the configuration. 
+
+. Delete LUN maps on the Igroups associated with remote hosts. This is required to enable replication on the Igroup.
+
+Note: Also ensure the Igroup does not contain maps for non-replicated LUNs (non SMBC)
++
+`SiteB::> lun mapping delete -vserver vsB -igroup ig2 -path <>`
+. Modify the initiator configuration for existing hosts to set the proximal path for initiators on the local cluster. Initiator replication effectively inverses the host proximity on the remote cluster.
++
+`SiteA::> igroup initiator add-proximal-vserver -vserver _Svm_name_ -initiator _host_ -proximal-vserver _server_`
+
+. Add a new Igroup config/Initiators for the new hosts and set the host proximity for host affinity to its local site. For uniform config, enable Igroup replication which will replicate the config and inverse the host locality on the remote cluster. For Non-uniform config, a new Igroup has to be created if one doesn't exist and Map existing LUNs to this Igroup.
++
+**For a uniform configuration:**
+``
+SiteA::> igroup modify -vserver vsA -igroup ig1 -replication-peer vsB
+SiteA::> igroup initiator add-proximal-vserver -vserver vsA -initiator host2 -proximal-vserver vsB
+``
++
+**For a non-uniform configuration:**
+``
+SiteB::> igroup create -vserver _svm_name_ -igroup _igroup_name_
+SiteB::> igroup add -vserver _svm_name_ -igroup  _igroup_name_ -initiator _host_name_
+SiteB::> lun mapping create -igroup  _igroup_name_ -path _path_name_
+``
+. Discover the paths on the hosts and verify the hosts have an Active/Optimized path to the storage LUN from the preferred cluster
+. Deploy the VMSC application and distribute the VM workloads across clusters to achieve required Load balancing
+
+
 // ontapdoc-883, 7 march 2023
 //2Oct2020, BURT 1318823
 //16nov2021, BURT 1436974 
