@@ -2,39 +2,31 @@
 permalink: system-admin/single-node-clusters.html
 sidebar: sidebar
 keywords: ways, configure, iscsi, san, hosts, single, nodes
-summary: "You can configure the iSCSI SAN hosts to connect directly to a single node or by using either one or multiple IP switches. You should determine whether you want a single-switch configuration that is not completely redundant or a multi-switch configuration that is completely redundant."
+summary: "A single-node cluster is a special implementation of a cluster running on a standalone node.  Single-node clusters are not recommended because they do not provide redundancy.  If the node goes down, data access is lost."
 ---
-= Single node clusters
+= Manage single-node clusters
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
 
-A single-node cluster is a special implementation of a cluster running on a standalone node.  Single-node clusters do not provide the redundancy necessary to protect against loss of data access so are not recommended.  If the standalone node goes down, data access is loss. 
-
-You might want to deploy a single-node cluster in a branch office, for example, where the workloads are small and storage availability is not a critical concern.  In this scenario, the single-node cluster would use SnapMirror replication to back up the site's data to your organization's primary data center. ONTAP Select, with its support for ONTAP running on commodity hardware, would be a good candidate for this type of implementation.
-
-In single-fabric single-node configurations, multipathing software is not required if you only have a single path from the host to the node.
-
-Root volume encryption is not supported on single node configurations.
+A single-node cluster is a special implementation of a cluster running on a standalone node.  Single-node clusters are not recommended because they do not provide redundancy.  If the node goes down, data access is lost. 
 
 [NOTE]
 ====
-For fault tolerance and nondisruptive operations, it is highly recommended that you configure your cluster with link:../concepts/high-availability-pairs-concept.html[high-availability (HA pairs)].  Single-node clusters are not recommended and are no longer available for purchase.
+For fault tolerance and nondisruptive operations, it is highly recommended that you configure your cluster with link:../concepts/high-availability-pairs-concept.html[high-availability (HA pairs)]. 
 ====
 
-.Remove nodes from a cluster
-If you removed nodes to have a single-node cluster, you should modify the cluster ports to serve data traffic by modifying the cluster ports to be data ports, and then creating data LIFs on the data ports.
+For single-node clusters you should be aware of the following:
 
-.How the node and cluster configurations are backed up automatically
-For single-node clusters (including Data ONTAP Edge systems), you can specify the configuration backup destination during software setup. After setup, those settings can be modified using ONTAP commands.
+* Root volume encryption is not supported on single-node configurations.
+* If you remove nodes to have a single-node cluster, you should modify the cluster ports to serve data traffic by modifying the cluster ports to be data ports, and then creating data LIFs on the data ports.
+* For single-node clusters (including Data ONTAP Edge systems), you can specify the configuration backup destination during software setup. After setup, those settings can be modified using ONTAP commands.
 
 
 == Ways to configure iSCSI SAN hosts with single nodes
 
-You can configure the iSCSI SAN hosts to connect directly to a single node or by using either one or multiple IP switches. You should determine whether you want a single-switch configuration that is not completely redundant or a multi-switch configuration that is completely redundant.
-
-You can configure iSCSI SAN hosts in a direct-attached, single-switch, or multi-switch environment. If there are multiple hosts connecting to the node, each host can be configured with a different operating system. For single and multi-network configurations, the node can have multiple iSCSI connections to the switch, but multipathing software that supports ALUA is required.
+You can configure iSCSI SAN hosts to connect directly to a single node or to connect through one or more IP switches. If there are multiple hosts connecting to the node, each host can be configured with a different operating system. For single and multi-network configurations, the node can have multiple iSCSI connections to the switch, but multipathing software that supports ALUA is required.
 
 [NOTE]
 ====
@@ -63,21 +55,24 @@ image::../media/scrn-en-drw-iscsi-multinw-singlen.gif[Multi-network single-node 
 
 You can configure FC and FC-NVMe SAN hosts with single nodes through one or more fabrics. N-Port ID Virtualization (NPIV) is required and must be enabled on all FC switches in the fabric. You cannot directly attach FC or FC-NMVE SAN hosts to single nodes without using an FC switch.
 
-You can configure FC or FC-NVMe SAN hosts with single nodes through a single fabric or multifabrics. The FC target ports (0a, 0c, 0b, 0d) in the illustrations are examples. The actual port numbers vary depending on the model of your storage node and whether you are using expansion adapters.
-
 .Single-fabric single-node configurations
 
 In single-fabric single-node configurations, there is one switch connecting a single node to one or more hosts. Because there is a single switch, this configuration is not fully redundant. All hardware platforms that support FC and FC-NVMe support single-fabric single-node configurations. 
+
+In single-fabric single-node configurations, multipathing software is not required if you only have a single path from the host to the node.
 
 .Multifabric single-node configurations
 
 In multifabric single-node configurations, there are two or more switches connecting a single node to one or more hosts. For simplicity, the following figure shows a multifabric single-node configuration with only two fabrics, but you can have two or more fabrics in any multifabric configuration. In this figure, the storage controller is mounted in the top chassis and the bottom chassis can be empty or can have an IOMX module, as it does in this example.
 
+The FC target ports (0a, 0c, 0b, 0d) in the illustrations are examples. The actual port numbers vary depending on the model of your storage node and whether you are using expansion adapters.
+
+
 image::../media/scrn_en_drw_fc-62xx-multi-singlecontroller.png[diagram of a multifabric single-node configuration]
 
 .Related information
 
-http://www.netapp.com/us/media/tr-4684.pdf[NetApp Technical Report 4684: Implementing and Configuring Modern SANs with NVMe/FC^]
+http://www.netapp.com/us/media/tr-4684.pdf[NetApp Technical Report 4684: Implementing and Configuring Modern SANs with NVMe-oF^]
 
 
 
@@ -85,7 +80,7 @@ http://www.netapp.com/us/media/tr-4684.pdf[NetApp Technical Report 4684: Impleme
 
 Beginning with ONTAP 9.2, you can use the ONTAP CLI to perform an automated update of a single-node cluster. Because single-node clusters lack redundancy, updates are always disruptive. Disruptive upgrades cannot be performed using System Manager.
 
-* You must have satisfied upgrade link:../upgrade/prepare.html[preparation] requirements.
+* You must have completed upgrade link:../upgrade/prepare.html[preparation] steps.
 
 .Steps
 
@@ -181,6 +176,7 @@ autosupport invoke -node * -type all -message "Finishing_Upgrade"
 +
 If your cluster is not configured to send messages, a copy of the notification is saved locally.
 
+// 2024 Mar 26, Jira 1810
 // 2023 Dec 12, Jira 1275
 // 2023-12-07, ONTAPDOC-1007
 // 2023 Nov 09, Jira 1466
