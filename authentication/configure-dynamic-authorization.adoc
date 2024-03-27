@@ -11,14 +11,36 @@ summary: "Configure the Dynamic Authorization Framework to increase security of 
 [.lead]
 As an administrator, you can configure Dynamic Authorization to increase the security of remote administrator connections to ONTAP.
 
-.Before you begin
+You can configure the following Dynamic Authorization settings depending on your needs:
 
-.About this task
+* <<Configure Dynamic Authorization global settings>>
+* <<Configure Dynamic Authorization trust score component settings>>
+* <<Configure a custom trust score provider>>
+* <<Configure restricted commands>>
+* <<Configure Dynamic Authorization groups>>
+* <<Configure Dynamic Authorization groups>>
+
 
 == Configure Dynamic Authorization global settings
-You can configure global settings for Dynamic Authorization such as the storage VM to secure and the suppression interval for authentication challenges.
+You can configure global settings for Dynamic Authorization such as the storage VM to secure, the suppression interval for authentication challenges, and the trust score settings.
 
-== Configure Dynamic Authorization trust score global settings
+.Steps
+. 
+. Configure global settings for Dynamic Authorization. If you don't use the `-vserver` parameter, the command is run at the cluster level. Update the values in brackets <> to match your environment:
++
+[source,console]
+----
+security dynamic-authorization modify -lower-challenge-boundary <percent> -upper-challenge-boundary <percent> -suppression-interval <interval> [-vserver <storage_VM_name>]
+----
+. View the resulting configuration. If you don't use the `-vserver` parameter, the command displays the global configuration:
++
+[source,console]
+----
+security dynamic-authorization show [-vserver <storage_VM_name>]
+----
+
+
+== Configure Dynamic Authorization trust score component settings
 You can configure the trust score maximum score weight to change priority of scoring criteria or to remove certain criteria from risk scoring.
 
 The default raw score weights and percentage weights are the following:
@@ -52,21 +74,70 @@ h|Criteria h|Default raw score weight h|Default percentage weight
 
 |===
 
+
+.Steps
+
+. Modify trust score components. Update the values in brackets <> to match your environment. The following are the names of the components you can modify:
++
+[cols="2*"]
+|===
+h|Component name h|Description
+
+|trusted-device
+|Trusted device
+
+|authentication-history
+|User login authentication history
+
+|===
++
+[source,console]
+----
+security dynamic-authorization trust-score-component modify -component <component-name> -weight <integer> [-vserver <storage_VM_name>]
+----
+. View the resulting trust score component settings. If you don't use the `-vserver` parameter, the command displays the cluster-level configuration:
++
+[source,console]
+----
+security dynamic-authorization trust-score-component show [-vserver <storage_VM_name>]
+----
+
 === Reset the trust score for a user
 If a user is denied access due to system policies and is able to prove their identity, the administrator can use reset the user's trust score. 
 
-=== Display your own trust score
+.Steps
+
+. Add the command. Refer to <<Configure Dynamic Authorization trust score component settings>> for a list of trust score components that you can reset. Update the values in brackets <> to match your environment:
++
+[source,console]
+----
+security dynamic-authorization user-trust-score reset -username <username> -component <component-name> [-vserver <storage_VM_name>]
+----
+
+=== Display your trust score
 A user can display their own trust score for a login session.
 
-=== Show Dynamic Authorization trust score components
-You can display each component of the configured trust score and their weights.
+.Steps
+
+. Display your trust score:
++
+[source,console]
+----
+security login whoami
+----
++
+You should see output similar to the following:
++
+[source,console]
+----
+User: admin
+Role: admin
+Trust Score: 50
+----
 
 == Configure a custom trust score provider
 If you already receive scoring methods from an external trust score provider, you can add the custom provider to the Dynamic Authorization configuration.
 
-
-=== Add a custom trust score provider
-You can add a custom trust score provider.
 
 .Before you begin
 * The custom trust score provider must return a JSON response. The following syntax requirements must be met:
@@ -77,18 +148,118 @@ You can add a custom trust score provider.
 * The custom trust score provider must be be accessible via the REST API.
 * The custom trust score provider must be configurable using one of the supported parameters. Custom trust score providers that require configuration that is not in the supported parameter list are not supported.
 
-=== Use custom trust score provider tags
+.Steps
+
+. Add a custom trust score provider. Update the values in brackets <> to match your environment:
++
+[source,console]
+----
+security dynamic-authorization trust-score-component create -component<text> -provider-uri <text> -score-field <text> -min-score <integer> -max-score <integer> -weight <integer> -secret-access-key <text> -provider-http-headers <list<header,header,header>> [-vserver <storage_VM_name>]
+----
+. View the resulting trust score provider settings. If you don't use the `-vserver` parameter, the command displays the cluster-level configuration:
++
+[source,console]
+----
+security dynamic-authorization trust-score-component show [-vserver <storage_VM_name>]
+----
+
+=== Configure custom trust score provider tags
+You can communicate with external trust score providers using tags. This enables you to send information in the URL to the trust score provider without exposing sensitive information.
+
+.Steps
+
+
+. Enable trust score provider tags. Update the values in brackets <> to match your environment:
++
+[source,console]
+----
+security dynamic-authorization trust-score-component create -component comp1 -weight 20 -max-score 100 -provider-uri https://<url>/trust-scores/users/<user>/<ip>/component1.html?api-key=<access-key> -score-field score -access-key "fdkhsfdjjhgfljglkdgjkdfg"
+----
+
 
 == Configure restricted commands
+When you enable Dynamic Authorization, the feature includes a default set of restricted commands. You can modify this list to suit your needs. Refer to the link:../multi-admin-verify/index.html[multi-admin verification (MAV) documentation^] for information on the default list of restricted commands.
 
 === Add a restricted command
+You can add a command to the list of commands that are restricted with Dynamic Authorization.
+
+.Steps
+
+. Add the command. Update the values in brackets <> to match your environment:
++
+[source,console]
+----
+security dynamic-authorization rule create -query <query> -operation <text> [-index <integer>] [-vserver <storage_VM_name>]
+----
+. View the resulting list of restricted commands:
++
+[source,console]
+----
+security dynamic-authorization rule show
+----
+
 
 === Remove a restricted command
+You can remove a command from the list of commands that are restricted with Dynamic Authorization.
+
+.Steps
+
+. Remove the command. Update the values in brackets <> to match your environment:
++
+[source,console]
+----
+security dynamic-authorization rule delete -operation <text> [-vserver <storage_VM_name>]
+----
+. View the resulting list of restricted commands:
++
+[source,console]
+----
+security dynamic-authorization rule show
+----
 
 == Configure Dynamic Authorization groups
+By default, Dynamic Authorization applies to all users and groups as soon as you enable it. However, you can create groups using the `security dynamic-authorization group create` command, so that Dynamic Authorization only applies to those specific users.
 
 === Add a Dynamic Authorization group
+You can add a Dynamic Authorization group.
+
+.Steps
+
+. Create the group. Update the values in brackets <> to match your environment:
++
+[source,console]
+----
+security dynamic-authorization group create 
+----
+. View the resulting Dynamic Authorization groups:
++
+[source,console]
+----
+security dynamic-authorization group show
+----
 
 === Remove a Dynamic Authorization group
+You can remove a Dynamic Authorization group.
 
+.Steps
+
+. Delete the group. Update the values in brackets <> to match your environment:
++
+[source,console]
+----
+security dynamic-authorization group delete
+----
+. View the resulting Dynamic Authorization groups:
++
+[source,console]
+----
+security dynamic-authorization group show
+----
+
+=== Overriding restricted commands with excluded users or groups
+You can configure Dynamic Authorization to not be enforced for users in excluded groups.
+
+.Steps
+. Enable the `groupauth.cache.enable` option:
+. What are the other commands here??? Functional spec seems incomplete. How do you exclude an entire group, or list of groups?  It seems that you can only exclude users within a group.
 
