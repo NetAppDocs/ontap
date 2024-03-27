@@ -14,13 +14,27 @@ summary: Learn about deployment and best practices for SnapMirror active sync.
 [.lead]
 It is important that your data protection strategy clearly identifies the workloads threats need to be protected for business continuity. The most critical step in your data protection strategy is to have clarity in your enterprise application data layout so that you can decide how you are distributing the volumes and protecting business continuity. Because failover occurs at the consistency group level on a per-application basis, make sure to add the necessary data volumes to the consistency group.  
 
+== SVM configuration
+
+The diagram captures a recommended storage VM (SVM) configuration for SnapMirror active sync. 
+
 image:snapmirror-svm-layout.png[Diagram of SVM in a SnapMirror active sync deployment]
 
-* For data volume:
+* For data volumes:
 ** Random read workloads are isolated from sequential writes; therefore, depending on the database size, the data and log files are typically placed on separate volumes.  
 *** For large critical databases, the single data file is on FlexVol 1 and its corresponding log file is on FlexVol 2.  
 *** For better consolidation, small-to-medium-size noncritical databases are grouped such that all the data files are on FlexVol 1 and their corresponding log files are on FlexVol 2. However, you will lose application-level granularity through this grouping.  
 ** Another variant is to have all the files within the same FlexVol 3, with data files in LUN1 and its log files in LUN 2. 
 * If your environment is virtualized, you would have all the VMs for various enterprise applications shared in a datastore. Typically, the VMs and application binaries are asynchronously replicated using SnapMirror. 
 
- 
+== SnapMirror active sync symmetry
+
+In _asymmetric configurations_, the primary storage copy exposes an active-optimized path and actively serves client I/O. The secondary site uses a remote path paths for I/O. The storage paths for the secondary site are considered active-non-optimized and access to the write LUN is proxied from the secondary site. 
+
+image:snapmirror-active-sync-asymmetric.png[Diagram of an asymmetric active configuration]
+
+In _symmetric active/active configurations_, active-optimized paths are exposed on both sites, are host specific, and are configurable, meaning hosts on either side are able to access local storage for active I/O.
+
+image:snapmirror-active-sync-symmetric.png[Diagram of an symmetric active configuration]
+
+Symmetric active/active relationships are targeted for, but not limited to, VMware Metro Storage Cluster (vMSC) load-balancing deployments, enabling migration of VMs between the primary and secondary ESX Clusters for better performance and resource utilization.
