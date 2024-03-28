@@ -1,11 +1,26 @@
 
-If your cluster is not configured to use automatic disk ownership assignment, you must assign ownership manually.
+.About this task
 
-You cannot reassign ownership of a disk that is in use in a local tier.
+* If you are manually assigning ownership in an HA pair that is not being initialized and does not have only DS460C shelves, use option 1.
+* If you are initializing an HA pair that has only DS460C shelves, use option 2 to manually assign ownership for the root drives. 
+
+.Option 1: Most HA pairs
+[%collapsible]
+
+====
+For an HA pair that is not being initialized and does not have only DS460C shelves, use this procedure to manually assigning ownership.
+
+.About this task
+
+* The disks you are assigning ownership for must be in a shelf that is physically cabled to the node you are assigning ownership to.
+* If you are using disks in a local tier (aggregate):
+** Disks must be owned by a node before they can be used in a local tier (aggregate).
+** You cannot reassign ownership of a disk that is in use in a local tier (aggregate).
+
 
 .Steps
 
-. Using the CLI, display all unowned disks:
+. Use the CLI to display all unowned disks:
 +
 `storage disk show -container-type unassigned`
 . Assign each disk:
@@ -14,4 +29,49 @@ You cannot reassign ownership of a disk that is in use in a local tier.
 +
 You can use the wildcard character to assign more than one disk at once. If you are reassigning a spare disk that is already owned by a different node, you must use the "`-force`" option.
 
+====
+
+.Option 2: An HA pair with only DS460C shelves
+[%collapsible]
+
+====
+For an HA pair that you are initializing and that only has DS460C shelves, use this procedure to manually assign ownership for the root drives. 
+
+.About this task
+* When you initialize an HA pair that has only DS460C shelves, you must manually assign the root drives to conform to the half-drawer policy. 
++
+After HA pair initialization (boot up), automatic assignment of disk ownership is automatically enabled and uses the half-drawer policy to assign ownership to the remaining drives (other than the root drives) and any drives added in the future, such as replacing failed disks, responding to a “low spares” message, or adding capacity.
++
+Learn about the half-drawer policy in the topic link:disk-autoassignment-policy-concept.html[About automatic assignment of disk ownership].
+
+* RAID needs a minimum of 10 drives for each HA pair (5 for each node) for any greater than 8TB NL-SAS drives in a DS460C shelf.
+
+.Steps
+. If your DS460C shelves are not fully populated, complete the following substeps; otherwise, go to the next step.
+.. First, install drives in the front row (drive bays 0, 3, 6, and 9) of each drawer.
++
+Installing drives in the front row of each drawer allows for proper air flow and prevents overheating.
+.. For the remaining drives, evenly distribute them across each drawer.
++
+Fill drawer rows from front to back. If you don’t have enough drives to fill rows, then install them in pairs so that drives occupy the left and right side of a drawer evenly.
++
+The following illustration shows the drive bay numbering and locations in a DS460C drawer.
++
+image::../media/dwg_trafford_drawer_with_hdds_callouts.gif[]
++
+. Log into the clustershell using the node-management LIF or cluster-management LIF.
+. Manually assign the root drives in each drawer to conform to the half-drawer policy using the following substeps: 
++
+The half-drawer policy has you assign the left half of a drawer’s drives (bays 0 to 5) to node A, and the right half of a drawer’s drives (bays 6 to 11) to node B. 
++
+.. Display all unowned disks:  
+`storage disk show -container-type unassigned``
+.. Assign the root disks:
+`storage disk assign -disk disk_name -owner owner_name`
++
+You can use the wildcard character to assign more than one disk at a time. 
+
+====
+
+// ONTAPDOC-1176, 03-28-2024
 // BURT 1485072, 08-30-2022
