@@ -25,20 +25,24 @@ You can configure the following Dynamic Authorization settings depending on your
 You can configure global settings for Dynamic Authorization such as the storage VM to secure, the suppression interval for authentication challenges, and the trust score settings.
 
 .Steps
-. 
-. Configure global settings for Dynamic Authorization. If you don't use the `-vserver` parameter, the command is run at the cluster level. Update the values in brackets <> to match your environment:
+
+. Configure global settings for Dynamic Authorization. If you don't use the `-vserver` parameter, the command is run at the cluster level. Update the values in brackets <> to match your environment. Parameters in bold are required:
 +
-[source,console]
+[source,console,subs="verbatim,quotes"]
 ----
-security dynamic-authorization modify -lower-challenge-boundary <percent> -upper-challenge-boundary <percent> -suppression-interval <interval> [-vserver <storage_VM_name>]
+security dynamic-authorization modify \
+*-lower-challenge-boundary <percent>* \
+*-upper-challenge-boundary <percent>* \
+-suppression-interval <interval> \
+-vserver <storage_VM_name>
 ----
 . View the resulting configuration. If you don't use the `-vserver` parameter, the command displays the global configuration:
 +
 [source,console]
 ----
-security dynamic-authorization show [-vserver <storage_VM_name>]
+security dynamic-authorization show \
+-vserver <storage_VM_name>
 ----
-
 
 == Configure Dynamic Authorization trust score component settings
 You can configure the trust score maximum score weight to change priority of scoring criteria or to remove certain criteria from risk scoring.
@@ -68,16 +72,13 @@ h|Criteria h|Default raw score weight h|Default percentage weight
 |20
 |20
 
-|Total score
+a|*Total score*
 |100
 |100
 
 |===
 
-
-.Steps
-
-. Modify trust score components. Update the values in brackets <> to match your environment. The following are the names of the components you can modify:
+You can modify the following components:
 +
 [cols="2*"]
 |===
@@ -90,16 +91,24 @@ h|Component name h|Description
 |User login authentication history
 
 |===
+
+.Steps
+
+. Modify trust score components. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command runs at the cluster level. Parameters in bold are required: 
 +
-[source,console]
+[source,console,subs="verbatim,quotes"]
 ----
-security dynamic-authorization trust-score-component modify -component <component-name> -weight <integer> [-vserver <storage_VM_name>]
+security dynamic-authorization trust-score-component modify \
+-component <component-name> \
+-weight <integer> \
+-vserver <storage_VM_name>
 ----
 . View the resulting trust score component settings. If you don't use the `-vserver` parameter, the command displays the cluster-level configuration:
 +
 [source,console]
 ----
-security dynamic-authorization trust-score-component show [-vserver <storage_VM_name>]
+security dynamic-authorization trust-score-component show \
+[-vserver <storage_VM_name>]
 ----
 
 === Reset the trust score for a user
@@ -107,11 +116,14 @@ If a user is denied access due to system policies and is able to prove their ide
 
 .Steps
 
-. Add the command. Refer to <<Configure Dynamic Authorization trust score component settings>> for a list of trust score components that you can reset. Update the values in brackets <> to match your environment:
+. Add the command. Refer to <<Configure Dynamic Authorization trust score component settings>> for a list of trust score components that you can reset. Update the values in brackets <> to match your environment. Parameters in bold are required:
 +
-[source,console]
+[source,console,subs="verbatim,quotes"]
 ----
-security dynamic-authorization user-trust-score reset -username <username> -component <component-name> [-vserver <storage_VM_name>]
+security dynamic-authorization user-trust-score reset \
+-username <username> \
+-component <component-name> \
+-vserver <storage_VM_name>
 ----
 
 === Display your trust score
@@ -128,7 +140,6 @@ security login whoami
 +
 You should see output similar to the following:
 +
-[source,console]
 ----
 User: admin
 Role: admin
@@ -150,17 +161,27 @@ If you already receive scoring methods from an external trust score provider, yo
 
 .Steps
 
-. Add a custom trust score provider. Update the values in brackets <> to match your environment:
+. Add a custom trust score provider. Update the values in brackets <> to match your environment. Parameters in bold are required:
 +
-[source,console]
+[source,console,subs="verbatim,quotes"]
 ----
-security dynamic-authorization trust-score-component create -component<text> -provider-uri <text> -score-field <text> -min-score <integer> -max-score <integer> -weight <integer> -secret-access-key <text> -provider-http-headers <list<header,header,header>> [-vserver <storage_VM_name>]
+security dynamic-authorization trust-score-component create \
+-component<text> \
+-provider-uri <text> \
+-score-field <text> \
+-min-score <integer> \
+-max-score <integer> \
+-weight <integer> \
+-secret-access-key <text> \
+-provider-http-headers <list<header,header,header>> \
+-vserver <storage_VM_name>
 ----
 . View the resulting trust score provider settings. If you don't use the `-vserver` parameter, the command displays the cluster-level configuration:
 +
 [source,console]
 ----
-security dynamic-authorization trust-score-component show [-vserver <storage_VM_name>]
+security dynamic-authorization trust-score-component show \
+-vserver <storage_VM_name>
 ----
 
 === Configure custom trust score provider tags
@@ -169,13 +190,25 @@ You can communicate with external trust score providers using tags. This enables
 .Steps
 
 
-. Enable trust score provider tags. Update the values in brackets <> to match your environment:
+. Enable trust score provider tags. Update the values in brackets <> to match your environment. Parameters in bold are required:
++
+[source,console,subs="verbatim,quotes"]
+----
+security dynamic-authorization trust-score-component create \
+-component <component_name> \
+-weight <initial_score_weight> \
+-max-score <max_score_for_provider> \
+-provider-uri <provider_URI> \
+-score-field <REST_API_score_field> \
+-secret-access-key "<access_key_text>"
+----
++
+For example: 
 +
 [source,console]
 ----
-security dynamic-authorization trust-score-component create -component comp1 -weight 20 -max-score 100 -provider-uri https://<url>/trust-scores/users/<user>/<ip>/component1.html?api-key=<access-key> -score-field score -access-key "fdkhsfdjjhgfljglkdgjkdfg"
+security dynamic-authorization trust-score-component create -component comp1 -weight 20 -max-score 100 -provider-uri https://<url>/trust-scores/users/<user>/<ip>/component1.html?api-key=<access-key> -score-field score -access-key "MIIBBjCBrAIBArqyTHFvYdWiOpLkLKHGjUYUNSwfzX"
 ----
-
 
 == Configure restricted commands
 When you enable Dynamic Authorization, the feature includes a default set of restricted commands. You can modify this list to suit your needs. Refer to the link:../multi-admin-verify/index.html[multi-admin verification (MAV) documentation^] for information on the default list of restricted commands.
@@ -185,11 +218,15 @@ You can add a command to the list of commands that are restricted with Dynamic A
 
 .Steps
 
-. Add the command. Update the values in brackets <> to match your environment:
+. Add the command. Update the values in brackets <> to match your environment. Parameters in bold are required:
 +
-[source,console]
+[source,console,subs="verbatim,quotes"]
 ----
-security dynamic-authorization rule create -query <query> -operation <text> [-index <integer>] [-vserver <storage_VM_name>]
+security dynamic-authorization rule create \
+-query <query> \
+-operation <text> \
+-index <integer> \
+-vserver <storage_VM_name>
 ----
 . View the resulting list of restricted commands:
 +
@@ -204,11 +241,13 @@ You can remove a command from the list of commands that are restricted with Dyna
 
 .Steps
 
-. Remove the command. Update the values in brackets <> to match your environment:
+. Remove the command. Update the values in brackets <> to match your environment. Parameters in bold are required:
 +
-[source,console]
+[source,console,subs="verbatim,quotes"]
 ----
-security dynamic-authorization rule delete -operation <text> [-vserver <storage_VM_name>]
+security dynamic-authorization rule delete \
+-operation <text> \
+-vserver <storage_VM_name>
 ----
 . View the resulting list of restricted commands:
 +
@@ -225,7 +264,7 @@ You can add a Dynamic Authorization group.
 
 .Steps
 
-. Create the group. Update the values in brackets <> to match your environment:
+. Create the group. Update the values in brackets <> to match your environment. Parameters in bold are required:
 +
 [source,console]
 ----
@@ -243,7 +282,7 @@ You can remove a Dynamic Authorization group.
 
 .Steps
 
-. Delete the group. Update the values in brackets <> to match your environment:
+. Delete the group. Update the values in brackets <> to match your environment. Parameters in bold are required:
 +
 [source,console]
 ----
