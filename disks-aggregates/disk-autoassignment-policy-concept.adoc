@@ -2,43 +2,45 @@
 permalink: disks-aggregates/disk-autoassignment-policy-concept.html
 sidebar: sidebar
 keywords: disk, auto-assign, spare, policy, automatic, assignment, disk ownership
-summary: "The automatic assignment of unowned disks is enabled by default. Automatic disk ownership assignments occur 10 minutes after system initialization and every five minutes during normal system operation."
+summary: "The automatic assignment of unowned disks is enabled by default. Automatic disk ownership assignments occur 10 minutes after HA pair initialization and every five minutes during normal system operation."
 ---
 = About automatic assignment of disk ownership
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-The automatic assignment of unowned disks is enabled by default. Automatic disk ownership assignments occur 10 minutes after system initialization and every five minutes during normal system operation.
+The automatic assignment of unowned disks is enabled by default. Automatic disk ownership assignments occur 10 minutes after HA pair initialization and every five minutes during normal system operation.
 
-When you add new disks to a system – for example, when replacing failed disks, responding to a low spares message, or adding capacity – the default auto-assignment policy assigns ownership of the disk to a node as a spare. You can disable automatic assignment or select a different auto-assignment policy using the `storage disk option modify` command. 
+When you add a new disk to an HA pair, for example, when replacing a failed disk, responding to a “low spares” message, or adding capacity, the default auto-assignment policy assigns ownership of the disk to a node as a spare. 
 
-The default auto-assignment policy is based on platform-specific characteristics, but it uses one of the following methods to assign disk ownership:
+The default auto-assignment policy is based on platform-specific characteristics, or the DS460C shelf if your HA pair has only these shelves, and it uses one of the following methods (policies) to assign disk ownership:
 
 |===
 
-h| Assignment method h| Effect on node assignments h| Platforms
+h| Assignment method h| Effect on node assignments h| Platform configurations that default to the assignment method
 
 a| 
 bay	
 a|
 Even-numbered bays are assigned to node A and odd-numbered bays to node B.	
 a|
-Entry-level systems in an HA configuration with a single, shared shelf.
+Entry-level systems in an HA pair configuration with a single, shared shelf.
 
 a|
 shelf
 a|
 All disks in the shelf are assigned to node A.
 a|
-Entry-level systems in an HA configuration with one stack of two or more shelves, and MetroCluster configurations with one stack per node, two or more shelves.
+Entry-level systems in an HA pair configuration with one stack of two or more shelves, and MetroCluster configurations with one stack per node, two or more shelves.
 
 a|
 split shelf
+
+This policy falls under the "`default`" value for the `-autoassign-policy` parameter of the `storage disk option` command for applicable platform and shelf configurations.
 a|
-Disks on the left side of the shelf are assigned to node A and on the right side to Node B. Partial shelves on new systems are shipped from the factory with disks populated from the shelf edge toward the center.
+Disks on the left side of the shelf are assigned to node A and on the right side to Node B. Partial shelves on HA pairs are shipped from the factory with disks populated from the shelf edge toward the center.
 a|
-AFF C190 systems and some MetroCluster configurations.
+Most AFF platforms and some MetroCluster configurations.
 
 a|
 stack
@@ -46,22 +48,60 @@ a|
 All disks in the stack are assigned to node A.
 a|
 Stand-alone entry-level systems and all other configurations.
+a|
+half-drawer   
+
+This policy falls under the "`default`" value for the `-autoassign-policy` parameter of the `storage disk option` command for applicable platform and shelf configurations.
+
+a|
+All drives in the left half of a DS460C drawer (drive bays 0 to 5) are assigned to node A; all drives in the right half of a drawer (drive bays 6 to 11) are assigned to node B.
+
+When initializing an HA pair with only DS460C shelves, automatic assignment of disk ownership is not supported. You must manually assign ownership for drives containing root/container drives that have the root partition by conforming to the half-drawer policy. 
+
+a|
+HA pairs with only DS460C shelves, after HA pair initialization (boot up).
+
+After an HA pair boots up, automatic assignment of disk ownership is automatically enabled and uses the half-drawer policy to assign ownership to the remaining drives (other than the root drives/container drives that have the root partition) and any drives added in the future.
+
+If your HA pair has DS460C shelves in addition to other shelf models, the half-drawer policy is not used. The default policy used is dictated by platform-specific characteristics.
 
 |===
 
-If the default assignment method is not desirable in your environment, you can specify the bay, shelf, or stack assignment method using the `-autoassign-policy` parameter to the `storage disk option modify` command. Note the following rules:
+You can display the current auto-assignment settings (on/off) with the `storage disk option show` command. 
 
-* If you try to use the `bay autoassign-policy` for a non-entry level platform, it will fail.
-* There is no corresponding non-default policy for specifying the split-shelf method.
+You can disable automatic assignment by using the `storage disk option modify` command.
 
-You can also manage disk assignment manually using the `storage disk assign` command.
+If the default auto-assignment policy is not desirable in your environment, you can specify (change) the bay, shelf, or stack assignment method using the `-autoassign-policy` parameter in the `storage disk option modify` command.
 
-* If you disable auto-assignment, new disks are not available as spares until they are assigned to a node with the `storage disk assign` command. 
+Learn how to link:configure-auto-assignment-disk-ownership-task.html[Change settings for automatic assignment of disk ownership].
+
+[NOTE]
+====
+The half-drawer and split-shelf default auto-assignment policies are unique because they cannot be set by users like the bay, shelf, and stack policies can.
+====
+
+In Advanced Drive Partitioning (ADP) systems, to make auto-assign work on half-populated shelves, drives must be installed in the correct shelf bays based on what type of shelf you have: 
+
+* If your shelf is not a DS460C shelf, install drives equally on the far left side and far right side moving toward the middle. For example, six drives in bays 0-5 and six drives in bays 18-23 of a DS224C shelf.   
+* If your shelf is a DS460C shelf, install drives in the front row (drive bays 0, 3, 6, and 9) of each drawer. For the remaining drives, evenly distribute them across each drawer by filling drawer rows from front to back. If you don’t have enough drives to fill rows, then install them in pairs so that drives occupy the left and right side of a drawer evenly. 
++
+Installing drives in the front row of each drawer allows for proper air flow and prevents overheating.
+
+[NOTE]
+====
+If drives are not installed in the correct shelf bays on half-populated shelves, when a container drive fails and is replaced, ONTAP does not auto-assign ownership. In this case, assignment of the new container drive needs to be done manually. After you have assigned ownership for the container drive, ONTAP automatically handles any drive partitioning and partitioning assignments that are required.
+====
+
+
+In some situations where auto-assignment will not work, you need to manually assign disk ownership using the `storage disk assign` command:   
+
+* If you disable auto-assignment, new disks are not available as spares until they are manually assigned to a node.
 * If you want disks to be auto-assigned and you have multiple stacks or shelves that must have different ownership, one disk must have been manually assigned on each stack or shelf so that automatic ownership assignment works on each stack or shelf.
-* If auto-assignment is enabled and you manually assign a single drive to a node that isn’t specified in the active policy, auto-assignment stops working and an EMS message is displayed.
+* If auto-assignment is enabled and you manually assign a single drive to a node that isn’t specified in the active policy, auto-assignment stops working and an EMS message is displayed.  
 
-Learn more about link:manual-assign-ownership-partitioned-disks-task.html[manually assigning disk ownership].
+Learn how to link:manual-assign-disks-ownership-manage-task.html[Manually assign disk ownership of unpartitioned disks].
 
-You can display the current auto-assignment settings with the `storage disk option show` command.
+Learn how to link:manual-assign-ownership-partitioned-disks-task.html[Manually assign disk ownership of partitioned disks].
 
+// ONTAPDOC-1176, 03-24-2024
 // 2022 Nov 23, BURT 1352610
