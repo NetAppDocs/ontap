@@ -56,7 +56,7 @@ include::../_include/snapmirror-active-sync-name.adoc[]
 .CLI
 --
 . Create a consistency group relationship from the destination cluster.
-`destination::> snapmirror create -source-path _source-path_ -destination-path _destination-path_ -cg-item-mappings _volume-paths_ -policy _policy-name_
+`destination::> snapmirror create -source-path _source-path_ -destination-path _destination-path_ -cg-item-mappings _volume-paths_ -policy _policy-name_`
 +
 You can map up to 12 constituent volumes using the `cg-item-mappings` parameter on the `snapmirror create` command. 
 +
@@ -80,13 +80,14 @@ The following example creates two consistency groups: `cg_src_ on the source wit
 --
 ====
 
-== Configure active/active symmetric protection 
+== Configure symmetric active/active protection 
 
 You can establish symmetric protection using System Manager or the ONTAP CLI. In both interfaces, there are different steps for xref:index.html#key-concepts[uniform and non-uniform configurations]. 
 
 .Before you begin
 
 * Both clusters must be running ONTAP 9.15.1 or later.
+* Symmetric active/active configurations require the `AutomatedFailoverDuplex` protection policy. Alternately, you can xref:../data-protection/create-custom-replication-policy-concept.html[create a custom SnapMirror policy] provided the `-type` is `automated-failover-duplex`.
 
 .Steps
 
@@ -132,6 +133,7 @@ You can establish symmetric protection using System Manager or the ONTAP CLI. In
 +
 ``
 SiteA::> igroup create -vserver _svm_name_ -igroup _igroup_name_ -replication-peer _peer_svm_name_ -initiators _host_ -proximal-vserver local`
+
 SiteA::> igroup add -vserver _svm_name_ -igroup _igroup_name_ -initiators _host_ -proximal-vserver _peer_svm_
 ``
 . From the host, discover the paths and verify the hosts have an active/optimized path to the storage LUN from the preferred cluster. 
@@ -145,7 +147,8 @@ SiteA::> igroup add -vserver _svm_name_ -igroup _igroup_name_ -initiators _host_
 +
 `snapmirror show -destination-path _destination_path_`
 . On your host, configure host connectivity with access to each cluster according to your needs. 
-. Establish the igroup configurations on both the source and destination clusters. 
+. Establish the igroup configurations on both the source and destination clusters.
++
 ```
 # primary site
 SiteA::> igroup create -vserver _svm_name_ -igroup _igroup_name_ -initiators _host_1_name_
@@ -153,6 +156,7 @@ SiteA::> igroup create -vserver _svm_name_ -igroup _igroup_name_ -initiators _ho
 # secondary site
 SiteB::> igroup create -vserver _svm_name_ -igroup _igroup_name_ -initiators _host_2_name_
 ```
++
 . From the host, discover the paths and verify the hosts have an active/optimized path to the storage LUN from the preferred cluster. 
 . Deploy the application and distribute the VM workloads across clusters to achieve the required load balancing. 
 --

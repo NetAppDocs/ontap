@@ -28,7 +28,7 @@ Other points to consider:
 
 == ONTAP Mediator 
 
-ONTAP Mediator is installed in a third failure domain, distinct from the two ONTAP clusters. Its key role is to act as a passive witness to SnapMirror active sync copies. In the event of a network partition or unavailability of one copy, SnapMirror SnapMirror active sync uses Mediator to determine which copy will continue to serve I/O, while discontinuing I/O on the other copy. There are three key components in this setup:
+ONTAP Mediator is installed in a third failure domain, distinct from the two ONTAP clusters. Its key role is to act as a passive witness to SnapMirror active sync copies. In the event of a network partition or unavailability of one copy, SnapMirror SnapMirror active sync uses Mediator to determine which copy continues to serve I/O, while discontinuing I/O on the other copy. There are three key components in this setup:
 
 * Primary ONTAP cluster hosting the SnapMirror active sync primary CG
 * Secondary ONTAP cluster hosting the mirror CG
@@ -48,7 +48,7 @@ To summarize, ONTAP Mediator is used for the following purposes:
 ONTAP Mediator 1.7 can manage ten cluster pairs for the purpose of business continuity. 
 
 [NOTE]
-When ONTAP Mediator is not available, you cannot perform planned or automated failovers. Although the application data will continue to be synchronously replicated without any interruption to for zero data loss.
+When ONTAP Mediator is not available, you cannot perform planned or automated failovers. The application data continues to synchronously replicate without any interruption to for zero data loss.
 
 == Operations 
 
@@ -58,4 +58,18 @@ image:workflow_san_snapmirror_business_continuity.png[Diagram of SnapMirror acti
 
 The diagram shows an enterprise application that is hosted on an storage VM (SVM) at the primary data center. The SVM contains five volumes, three of which are part of a consistency group. The three volumes in the consistency group are mirrored to a secondary data center. In normal circumstances, all write operations are performed to the primary data center; in effect, this data center serves as the source for I/O operations, while the secondary data center serves as a destination. 
 
-In the event of a disaster scenario at the primary data center, the ONTAP Mediator will direct the secondary data center to act as the primary, serving all I/O operations. Only the volumes that are mirrored in the consistency group will be served. Any operations pertaining to the other two volumes on the SVM will be affected by the disaster event. 
+In the event of a disaster scenario at the primary data center, the ONTAP Mediator directs the secondary data center to act as the primary, serving all I/O operations. Only the volumes that are mirrored in the consistency group are served. Any operations pertaining to the other two volumes on the SVM is be affected by the disaster event. 
+
+== Symmetric active/active
+
+SnapMirror active sync offers asymmetric and symmetric solutions. 
+
+In _asymmetric configurations_, the primary storage copy exposes an active-optimized path and actively serves client I/O. The secondary site uses a remote path for I/O. The storage paths for the secondary site are considered active-non-optimized. Access to the write LUN is proxied from the secondary site. 
+
+image:snapmirror-active-sync-asymmetric.png[Diagram of an asymmetric active configuration]
+
+In _symmetric active/active configurations_, active-optimized paths are exposed on both sites, are host specific, and are configurable, meaning hosts on either side are able to access local storage for active I/O.
+
+image:snapmirror-active-sync-symmetric.png[Diagram of an symmetric active configuration]
+
+Symmetric active/active relationships are targeted for, but not limited to, VMware Metro Storage Cluster (vMSC) load-balancing deployments, enabling migration of VMs between the primary and secondary ESX Clusters for better performance and resource utilization.
