@@ -14,10 +14,14 @@ summary: Snapshot copies are created when ARP detects a potential attack. You ca
 :imagesdir: ../media/
 
 [.lead]
-Snapshot copies named “Anti_ransomware_backup” are created when Autonomous Ransomware Protection (ARP) detects a potential attack. You can restore data from these ARP copies or from other Snapshot copies.
+Autonomous Ransomware Protection (ARP) creates Snapshot copies named `Anti_ransomware_backup` when it detects a potential ransomware threat. You can use one of these ARP Snapshot copies or another Snapshot copy of your volume to restore data. 
 
 .About this task
 If the volume has SnapMirror relationships, manually replicate all mirror copies of the volume immediately after you restore from a Snapshot copy. Not doing so can result in unusable mirror copies that must be deleted and recreated.
+
+To restore from a Snapshot other than the `Anti_ransomware_backup` Snapshot after a system attack was identified, you must first release the ARP Snapshot.
+
+If no system attack was reported, you must first restore from the `Anti_ransomware_backup` Snapshot copy then complete a subsequent restoration of the volume from the Snapshot copy of your choosing. 
 
 .Steps
 
@@ -27,66 +31,54 @@ You can use System Manager or the ONTAP CLI to restore your data.
 ====
 .System Manager
 --
-. If you want to restore data from earlier Snapshot copies instead of from the ARP copies, you must release the anti-ransomware Snapshot lock. If you want to restore from the ARP copies, it is not necessary to release the lock and you can skip this step.
-+
-[cols=2, options="header"]
-|===
-| If a system attack was identified do this...
-| If a system attack was not identified do this...
 
-a|
+.Restore after a system attack
+. To restore from the ARP Snapshot, skip to step two. To restore from an earlier Snapshot copy, you must first release the lock on the ARP Snapshot.
 .. Select *Storage > Volumes*.
 .. Select *Security* then *View Suspected File Types*
 .. Mark the files as "False Positive" .
 .. Select *Update* and *Clear Suspect File Types*
-
-a| To release the Snapshot lock, you must restore from the ARP copies before you restore from earlier Snapshot copies.
-
-Follow steps 2-3 to restore data from the ARP copies, then repeat the process to restore from earlier Snapshot copies.
-
-|===
-
-.	Display the Snapshot copies in volumes:
+. Display the Snapshot copies in volumes:
 +
 Select *Storage > Volumes*, then select the volume and *Snapshot Copies*.
-
 . Select image:icon_kabob.gif[Menu Option] next to the Snapshot copy you want to restore then *Restore*.
 
+.Restore if a system attack was not identified 
+. Display the Snapshot copies in volumes:
++
+Select *Storage > Volumes*, then select the volume and *Snapshot Copies*.
+. Select image:icon_kabob.gif[Menu Option] them choose the `Anti_ransomware_backup` Snapshot. 
+. Select *Restore*.
+. Return to the *Snapshot Copies* menu, then choose the Snapshot copy you want to use. Select *Restore*. 
 --
 
 .CLI
 --
-. If you want to restore data from earlier Snapshot copies, instead of from the ARP copies, you must do the following to release the anti-ransomware Snapshot lock.  If you want to restore from the ARP copies, it is not necessary to release the lock and you can skip this step.
+.Restore after a system attack
+. To restore from the ARP Snapshot copy, skip to step two. To restore data from earlier Snapshot copies, you must release the lock on the ARP Snapshot.
 +
 NOTE: It is only necessary to release the anti-ransomware Snaplock before restoring from earlier Snapshot copies if you are using the `volume snap restore` command as outlined below.  If you are restoring data using Flex Clone, Single File Snap Restore or other methods, this is not necessary.
 +
-[cols=2, options="header"]
-|===
-| If a system attack was identified do this...
-| If a system attack was not identified do this...
-
-a|
-Mark the attack as a "false positive" and "clear suspect".
-
+Mark the attack as a "false positive" and "clear suspect":
 `anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive true`
-
 Use one of the following parameters to identify the extensions:
 `[-seq-no _integer_]` Sequence number of the file in the suspect list.
 `[-extension _text_, … ]` File extensions
 `[-start-time _date_time_ -end-time _date_time_]` Starting and ending times for the range of files to be cleared, in the form "MM/DD/YYYY HH:MM:SS".
-
-a| To release the Snapshot lock, you must restore from the ARP copies before you restore from earlier Snapshot copies.
-
-Follow steps 2-3 to restore data from the ARP copies, then repeat the process to restore from earlier Snapshot copies.
-|===
-
 include::../_include/restore-snapshots-cli.adoc[]
+
+
+.Restore if a system attack was not identified
+include::../_include/restore-snapshots-cli.adoc[]
+. Repeat steps 1 and 2 to restore the volume using the desire Snapshot copy. 
 --
 ====
 
 .More information
 * link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Ransomware_prevention_and_recovery_in_ONTAP[KB: Ransomware prevention and recovery in ONTAP^]
 
+
+// 2024-02-26, #1264
 // 2023 Mar 08, Jira 894
 // 2022-08-25, BURT 1499112
 // 2022-06-10, jira-kda-1532
