@@ -1,7 +1,7 @@
 ---
 permalink: upgrade/concept_upgrade_methods.html
 sidebar: sidebar
-keywords: upgrade, methods, andu, ndu, automated, automatic, system manager, cli, nondisruptive, disruptive
+keywords: upgrade, methods, andu, ndu, automated, automatic, system manager, cli, nondisruptive, disruptive, rolling upgrade, rolling update, batch upgrades, batch upgrade, rolling, batch
 summary: 'The method you use to upgrade depends upon your configuration.  If available, the automated nondisruptive upgrade (ANDU) using System Manager is the preferred method.'
 ---
 = ONTAP software upgrade methods
@@ -14,15 +14,38 @@ You can perform an automated upgrade of your ONTAP software using System Manage.
 
 An upgrade can be executed using the rolling upgrade process or the batch upgrade process. Both are nondisruptive.
 
+For automated upgrades, ONTAP automatically installs the target ONTAP image on each node, validates the cluster components to ensure that the cluster can be upgraded nondisruptively, and then executes a batch or rolling upgrade in the background based on the number of nodes. For manual upgrades, the administrator manually confirms that each node in the cluster is ready for upgrade, then performs steps to execute a rolling upgrade. 
+
 .ONTAP rolling upgrades
 
-In the rolling upgrade process, a node is taken offline and upgraded while its partner takes over its storage. When the node upgrade is complete, the partner node gives control back to the original owning node, and the process is repeated on the partner node. Each additional HA pair is upgraded in sequence until all HA pairs are running the target release. The rolling upgrade process is the default for clusters with fewer than 8 nodes.
+The rolling upgrade process is the default for clusters with fewer than 8 nodes.  In the rolling upgrade process, a node is taken offline and upgraded while its partner takes over its storage. When the node upgrade is complete, the partner node gives control back to the original owning node, and the process is repeated on the partner node. Each additional HA pair is upgraded in sequence until all HA pairs are running the target release. 
 
 .ONTAP batch upgrades
 
-In the batch upgrade process, the cluster is divided into several batches, each of which contains multiple HA pairs. In the first batch, one node of each HA pair is upgraded, followed by their HA partners. The process is then repeated sequentially for the remaining batches. The batch upgrade process is the default for clusters of 8 nodes or more.
+The batch upgrade process is the default for clusters of 8 nodes or more.  In the batch upgrade process, the cluster is divided into two batches.  Each batch contains multiple HA pairs. In the first batch, the first node of each HA pair is simultaneously upgraded with the first node of all other HA pairs in the batch. 
 
-For automated upgrades, ONTAP automatically installs the target ONTAP image on each node, validates the cluster components to ensure that the cluster can be upgraded nondisruptively, and then executes a batch or rolling upgrade in the background based on the number of nodes. For manual upgrades, the administrator manually confirms that each node in the cluster is ready for upgrade, then performs steps to execute a rolling upgrade. 
+In following example, there are two HA pairs in each batch.  When the batch upgrade begins, Node A and Node C are upgraded simultaneously.
+
+image::../media/batch_upgrade_set_1_ieops-1607.png[Batch upgrade step 1]
+
+After the upgrade of the first nodes of each HA pair is complete, then the partner nodes in batch 1 are simultaneously upgraded. 
+
+In the following example, after Node A and Node C are upgraded, then Node B and Node D are simultaneously upgraded.
+
+image::../media/batch_upgrade_set_2_ieops-1619.png[Batch upgrade step 2]
+
+The process is then repeated for the nodes in batch 2; the first node of each HA pair is simultaneously upgraded with the first node of all other HA pairs in the batch. 
+
+In the following example, Node E and Node G are upgraded simultaneously.
+
+image::../media/batch_upgrade_set_3_ieops-1612.png[Batch upgrade step 3]
+
+After the upgrade of the first nodes of each HA pair is complete, then the partner nodes in batch 2 are simultaneously upgraded. 
+
+In the following example, Node F and Node H are simultaneously upgraded to complete the batch upgrade process.
+
+image::../media/batch_upgrade_set_4_ieops-1620.png[Batch upgrade step 4]
+
 
 
 == Recommended ONTAP upgrade methods based on configuration
@@ -79,6 +102,7 @@ ANDU using System Manager is the recommended upgrade method for all patch upgrad
 A xref:task_updating_an_ontap_cluster_disruptively.html[manual disruptive upgrade] can be performed on any configuration.  However, you should not perform a disruptive upgrade unless you can take the cluster offline for the duration of the upgrade. If you are operating in a SAN environment, you should be prepared to shut down or suspend all SAN clients before performing a disruptive upgrade. Disruptive upgrades are performed using the ONTAP CLI.
 
 
+// 2024 Mar 27, Jira 1852
 // 2023 Oct 24, Git Issue 1149
 // 2023 Sept 29, Jira 1327 
 // 2023 Aug 30, Jira 1257
