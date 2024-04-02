@@ -9,25 +9,30 @@ summary: "Configure the Dynamic Authorization Framework to increase security of 
 :imagesdir: ../media/
 
 [.lead]
-As an administrator, you can enable Dynamic Authorization after you configure it. You can enable Dynamic Authorization in `visibility` mode to test the settings, and `enforced` mode to enforce the settings. If you no longer need Dynamic Authorization, you can disable it. When you disable Dynamic Authorization, the configuration settings remain intact and you can use them if you decide to re-enable it.
+As an administrator, you can configure and enable Dynamic Authorization `visibility` mode to test the settings, and `enforced` mode to enforce the settings. If you no longer need Dynamic Authorization, you can disable it. When you disable Dynamic Authorization, the configuration settings remain intact and you can use them later if you decide to re-enable it.
 
-.Before you begin
-Ensure that you have created a Dynamic Authorization configuration. Refer to link:configure-dynamic-authorization.html[Configure Dynamic Authorization] for instructions.
+//.Before you begin
+//Ensure that you have created a Dynamic Authorization configuration. Refer to link:configure-dynamic-authorization.html[Configure Dynamic Authorization] for instructions.
 
 .About this task
 For more information about the parameters for the `security dynamic-authorization modify` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-modify.html[ONTAP manual pages^].
 
 == Enable Dynamic Authorization for testing
-You can enable Dynamic Authorization in visibility mode, which enables you to test the feature and ensure that users will not be accidentally locked out. In this mode, the trust score is checked with every restricted activity, but not enforced. However, any activity that would have been denied or subject to additional authentication challenges is logged.
+You can enable Dynamic Authorization in visibility mode, which enables you to test the feature and ensure that users will not be accidentally locked out. In this mode, the trust score is checked with every restricted activity, but not enforced. However, any activity that would have been denied or subject to additional authentication challenges is logged. As a best practice, you should test your intended settings in this mode before enforcing them.
+
+NOTE: You can follow this step to enable Dynamic Authorization for the first time even if you haven't yet configured any other settings. Refer to link:configure-dynamic-authorization.html[Configure Dynamic Authorization^] for steps to configure other Dynamic Authorization settings.
 
 .Steps
 
-. Enable the feature in visibility mode by changing its state to `visibility`. If you don't use the `-vserver` parameter, the command is run at the cluster level. Update the values in brackets <> to match your environment. Parameters in bold are required:
+. Enable the feature in visibility mode by configuring global settings and changing the feature state to `visibility`. If you don't use the `-vserver` parameter, the command is run at the cluster level. Update the values in brackets <> to match your environment. Parameters in bold are required:
 +
 [source,subs="specialcharacters,quotes"]
 ----
 security dynamic-authorization modify \
 *-state visibility* \
+*-lower-challenge-boundary <percent>* \
+*-upper-challenge-boundary <percent>* \
+-suppression-interval <interval> \
 -vserver <storage_VM_name>
 ----
 . Check the result by using the `show` command to display the global configuration:
@@ -39,6 +44,8 @@ security dynamic-authorization show
 
 == Enable Dynamic Authorization in enforced mode
 You can enable Dynamic Authorization in enforced mode. Typically, you can use this mode after you have completed testing with visibility mode. In this mode, the trust score is checked with every restricted activity, and activity restrictions are enforced if the restriction conditions are met. The suppression interval is also enforced, preventing additional authentication challenges within the suppression interval. 
+
+NOTE: This step assumes that you have previously configured and enabled Dynamic Authorization in `visibility` mode.
 
 .Steps
 
@@ -76,3 +83,7 @@ security dynamic-authorization modify \
 ----
 security dynamic-authorization show
 ----
+
+== What's next
+
+(Optional) Depending on your environment, refer to link:configure-dynamic-authorization.html[Configure Dynamic Authorization^] to configure other Dynamic Authorization settings.
