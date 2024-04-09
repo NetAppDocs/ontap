@@ -1,22 +1,24 @@
 ---
 sidebar: sidebar
 permalink: networking/add_or_remove_ports_from_a_broadcast_domain.html
-keywords: adding, add, create, creating, remove, removing, delete, deleting, port, broadcast, domain, reachability, repair, physical, switch, configuration, add or remove ports from a broadcast domain
+keywords: adding, add, create, creating, remove, removing, delete, deleting, port, broadcast, domain, reachability, repair, physical, switch, configuration, add or remove ports from a broadcast domain, system manager, reassign, broadcast domain, port, unassign, move, change
 summary: Manually adding and removing ports from broadcast domains is not required or recommended
 ---
 
-= Add or remove ports from a broadcast domain
+= Add or remove ports from a broadcast domain (ONTAP 9.8 and later)
 :hardbreaks:
 :nofooter:
 :icons: font
 :linkattrs:
 :imagesdir: ./media/
 
-//
 // Created with NDAC Version 2.0 (August 17, 2020)
 // restructured: March 2021
 // enhanced keywords May 2021
-//
+// 2023 Oct 23, ONTAPDOC-1139
+// 28-FEB-2024, merged reassign ports bd task into this topic 
+// 29-FEB-2024 make titles consistent
+// 7-APR-2024 add cli steps
 
 [.lead]
 Broadcast domains are automatically created during the cluster create or join operation. You do not need to manually remove ports from broadcast domains.
@@ -24,3 +26,101 @@ Broadcast domains are automatically created during the cluster create or join op
 If network port reachability has changed, either through physical network connectivity or switch configuration, and a network port belongs in a different broadcast domain, see the following topic:
 
 link:repair_port_reachability.html[Repair port reachability]
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+Beginning with ONTAP 9.14.1, you can use System Manager to reassign Ethernet ports across broadcast domains. It is recommended that you assign every Ethernet port to a broadcast domain. So, if you unassign an Ethernet port from a broadcast domain, you must reassign it to a different broadcast domain.
+
+.Steps
+
+To reassign Ethernet ports, perform the following steps:
+
+. Select *Network > Overview*.
+
+. In the *Broadcast Domains* section, select image:icon_kabob.gif[menu icon] next to the domain name.
+
+. In the drop-down menu, select *Edit*.
+
+. On the *Edit Broadcast Domain* page, deselect the Ethernet ports that you want to reassign to another domain.
+
+. For each deselected port, the *Reassign Ethernet Port* window displays. Select the broadcast domain to which you want to reassign the port, and then select *Reassign*.
+
+. Select all the ports that you want to assign to the current broadcast domain and save your changes.
+--
+
+.CLI
+--
+If network port reachability has changed, either through physical network connectivity or switch configuration, and a network port belongs in a different broadcast domain, see the following topic:
+
+link:repair_port_reachability.html[Repair port reachability]
+
+Alternately, you can manually add or remove ports from broadcast domains using the `network port broadcast-domain add-ports` or the `network port broadcast-domain remove-ports` command.
+
+.Before you begin
+
+* You must be a cluster administrator to perform this task.
+* Ports you plan to add to a broadcast domain must not belong to another broadcast domain.
+* Ports that already belong to an interface group cannot be added individually to a broadcast domain.
+
+.About this task
+
+The following rules apply when adding and removing network ports:
+
+|===
+
+h| When adding ports... h| When removing ports...
+
+| The ports can be network ports, VLANs, or interface groups (ifgrps).
+| N/A
+| The ports are added to the system-defined failover group of the broadcast domain.
+| The ports are removed from all failover groups in the broadcast domain.
+| The MTU of the ports is updated to the MTU value set in the broadcast domain.
+| The MTU of the ports is unchanged.
+| The IPspace of the ports is updated to the IPspace value of the broadcast domain.
+| The ports are moved to the 'Default' IPspace with no broadcast domain attribute.
+|===
+
+[NOTE]
+If you remove the last member port of an interface group using the `network port ifgrp remove-port` command, it causes the interface group port to be removed from the broadcast domain because an empty interface group port is not allowed in a broadcast domain.
+
+.Steps
+
+. Display the ports that are currently assigned or unassigned to a broadcast domain by using the `network port show` command.
+. Add or remove network ports from the broadcast domain:
++
+
+[cols="40,60"]
+|===
+
+h| If you want to... h| Use...
+
+a| Add ports to a broadcast domain
+a| `network port broadcast-domain add-ports`
+a| Remove ports from a broadcast domain
+a| `network port broadcast-domain remove-ports`
+|===
+
+. Verify that the ports were added or removed from the broadcast domain:
++
+`network port show`
+
+For more information about these commands, see http://docs.netapp.com/ontap-9/topic/com.netapp.doc.dot-cm-cmpr/GUID-5CB10C70-AC11-41C0-8C16-B4D0DF916E9B.html[ONTAP 9 commands^].
+
+== Examples of adding and removing ports
+
+The following command adds port e0g on node cluster-1-01 and port e0g on node cluster-1-02 to broadcast domain bcast1 in the Default IPspace:
+
+`cluster-1::> network port broadcast-domain add-ports -broadcast-domain bcast1 -ports cluster-1-01:e0g,cluster1-02:e0g`
+
+The following command adds two cluster ports to broadcast domain Cluster in the Cluster IPspace:
+
+`cluster-1::> network port broadcast-domain add-ports -broadcast-domain Cluster -ports cluster-2-03:e0f,cluster2-04:e0f -ipspace Cluster`
+
+The following command removes port e0e on node cluster1-01 from broadcast domain bcast1 in the Default IPspace:
+
+`cluster-1::> network port broadcast-domain remove-ports -broadcast-domain bcast1 -ports cluster-1-01:e0e`
+
+--
+====

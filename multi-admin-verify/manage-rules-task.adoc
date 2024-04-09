@@ -11,75 +11,50 @@ summary: "You create multi-admin verification (MAV) rules to designate operation
 [.lead]
 You create multi-admin verification (MAV) rules to designate operations requiring approval. Whenever an operation is initiated, protected operations are intercepted and a request for approval is generated.
 
-Rules can be created before enabling MAV by any administrator with appropriate RBAC capabilities, but once MAV is enabled, any modification to the rule set requires MAV approval.
+Rules can be created before enabling MAV by any administrator with appropriate RBAC capabilities, but once MAV is enabled, any modification to the rule set requires MAV approval. 
 
-You can create rules for the following commands beginning with ONTAP 9.11.1.
+Only one MAV rule can be created per operation; for example, you cannot make multiple `volume-snapshot-delete` rules. Any desired rule constraints must be contained within one rule.
 
-[cols="2*"]
-|===
+== Rule-protected commands
 
-a|
-`cluster peer delete`
+You can create rules to protect the following commands beginning with ONTAP 9.11.1.
 
-`event config modify`
+include::../_include/mav-ontap-9111-operations-to-protect.adoc[]
 
-`security login create`
-
-`security login delete`
-
-`security login modify`
-
-`system node run`
-
-`system node systemshell`
-
-`volume delete`
-
-`volume flexcache delete`
-a|
-`volume snapshot autodelete modify`
-
-`volume snapshot delete`
-
-`volume snapshot policy add-schedule`
-
-`volume snapshot policy create`
-
-`volume snapshot policy delete`
-
-`volume snapshot policy modify`
-
-`volume snapshot policy modify-schedule`
-
-`volume snapshot policy remove-schedule`
-
-`volume snapshot restore`
-
-`vserver peer delete`
-|===
-
-You can create rules for the following command beginning with ONTAP 9.13.1:
+You can create rules to protect the following commands beginning with ONTAP 9.13.1:
+//shared with mav index topic
 
 * `volume snaplock modify`
+* `security anti-ransomware volume attack clear-suspect`
+* `security anti-ransomware volume disable`
+* `security anti-ransomware volume pause`
 
-In addition, the following commands are protected by default when MAV is enabled, but you can modify the rules to remove protection for these commands.
+You can create rules to protect the following commands beginning with ONTAP 9.14.1:
 
-* `security login password`
-* `security login unlock`
-* `set`
+include::../_include/mav-ontap-9141-operations-to-protect.adoc[]
 
-The rules for MAV system-default commands – the `security multi-admin-verify` commands – cannot be altered.
+The rules for MAV system-default commands, the `security multi-admin-verify` link:../multi-admin-verify/index.html#system-defined-rules[commands], cannot be altered.
 
-When you create a rule, you can optionally specify the `-query` option to limit the request to a subset of the command functionality. For example, in the default set command, `-query` is set to `-privilege diag`, meaning that a request is generated for the set command only when -privilege diag is specified.
+include::../_include/mav-ontap-default-protected-operations.adoc[]
+
+== Rule constraints
+
+When you create a rule, you can optionally specify the `-query` option to limit the request to a subset of the command functionality. The `-query` option can also be used to limit configuration elements, such as the SVM, the volume, and Snapshot names. 
+
+For example, in the `volume snapshot delete` command, `-query` can be set to `-snapshot !hourly*,!daily*,!weekly*`, meaning that volume Snapshots prefixed with hourly, daily, or weekly attributes are excluded from MAV protections.
+
 ----
 smci-vsim20::> security multi-admin-verify rule show
                                                Required  Approval
 Vserver Operation                              Approvers Groups
 ------- -------------------------------------- --------- -------------
-vs01    set                                    -         -
-          Query: -privilege diagnostic
+vs01    volume snapshot delete                 -         -
+          Query: -snapshot !hourly*,!daily*,!weekly*
 ----
-By default, rules specify that a corresponding `security multi-admin-verify request create _“protected_operation”_` command is generated automatically when a protected operation is entered. You can modify this default to require that the `request create` command be entered separate.
+
+NOTE: Any excluded configuration elements would not be protected by MAV, and any administrator could delete or rename them.
+
+By default, rules specify that a corresponding `security multi-admin-verify request create _“protected_operation”_` command is generated automatically when a protected operation is entered. You can modify this default to require that the `request create` command be entered separately.
 
 By default, rules inherit the following global MAV settings, although you can specify rule-specific exceptions:
 
@@ -113,11 +88,11 @@ NOTE: All `security multi-admin-verify rule` commands require MAV administrator 
 | If you want to…
 | Enter this command
 | Create a rule a| `security multi-admin-verify rule create -operation _“protected_operation”_ [-query _operation_subset_] [_parameters_]`
-| Modify credentials of current administrators a| `security login modify _<parameters>_`
+| Modify credentials of current administrators a| `security login modify <parameters>`
 
 *Example*: the following rule requires approval to delete the root volume.
 
-`security multi-admin-verify rule create  -operation "volume delete" -query "-vserver vs0`
+`security multi-admin-verify rule create  -operation "volume delete" -query "-vserver vs0"`
 | Modify a rule a| `security multi-admin-verify rule modify -operation _“protected_operation”_ [_parameters_]`
 |Delete a rule a| `security multi-admin-verify rule delete -operation _“protected_operation”_`
 | Show rules a| `security multi-admin-verify rule show`
@@ -126,5 +101,7 @@ NOTE: All `security multi-admin-verify rule` commands require MAV administrator 
 
 For command syntax details, see the `security multi-admin-verify rule` man pages.
 
+// 2024-03-29: ontapdoc-1792
+// 2024-2-13, jira-1646
 // 2023-May-25, issue# 937
 // 2022-04-27, jira-467
