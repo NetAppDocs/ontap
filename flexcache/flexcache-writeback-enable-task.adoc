@@ -1,0 +1,83 @@
+---
+permalink: flexcache/flexcache-writeback-enable-task.html
+sidebar: sidebar
+keywords: creating, flexcache, volume, flex cache, performance, writeback, write-back, write back, edge computing, remote cluster, data access
+summary: "You can enable FlexCache writeback mode on FlexCache volumes to provide better performance for edge computing environments and caches with write-heavy workloads. When writeback is enabled on the cache volume, write requests are sent to the local cache rather than to the origin volume."
+---
+= Enable FlexCache writeback
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.15.1, you can enable FlexCache writeback mode on FlexCache volumes to provide better performance for edge computing environments and caches with write-heavy workloads. When writeback is enabled on the cache volume, write requests are sent to the local cache rather than to the origin volume.
+
+
+.Before you begin
+You must be in advanced privilege mode.
+
+== Create a new FlexCache volume with writeback enabled
+
+.Steps
+You can enable FlexCache writeback using System Manager or the ONTAP CLI.
+
+[role="tabbed-block"]
+====
+.System Manager
+
+--
+. If the FlexCache volume is on a different cluster than the origin volume, create a cluster peer relationship:
+.. On the local cluster, clcik *Protection > Overview*.
+.. Expand *Intercluster Settings*, click *Add Network Interfaces*, and add intercluster interfaces to the cluster.
++
+Repeat this on the remote cluster.
+.. On the remote cluster, click *Protection > Overview*. Click image:icon_kabob.gif[menu options icon] in the Cluster Peers section and click *Generate Passphrase*.
+
+.. Copy the generated passphrase and paste it in the local cluster.
+
+.. On the local cluster, under Cluster Peers, click *Peer Clusters* and peer the local and remote clusters.
+
+.  If the FlexCache volume is on the same cluster as the origin volume but is in a different SVM, create an intercluster SVM peer relationship of type "flexcache":
++
+Under Storage VM Peers, click image:icon_kabob.gif[menu options icon] and then *Peer Storage VMs* to peer the storage VMs.
+
+. Select *Storage > Volumes*.
+. Select *Add*.
+. Select *More Options* and then select *Add as cache for a remote volume*.
+. Select *Enable FlexCache write-back*.
+
+--
+
+.CLI
+--
+. Create a FlexCache volume with writeback enabled:
+[source,cli]
+----
+volume flexcache create -vserver <cache_vserver_name> -volume <cache_flexgroup_name> -aggr-list <list_of_aggregates> -origin-volume <origin flexgroup> -origin-vserver <origin_vserver name> -junction-path <junction_path> -is-writeback-enabled true
+----
+--
+====
+
+== Enable FlexCache writeback on an existing FlexCache volume
+You can enable FlexCache writeback on an existing FlexCache volume using System Manager or the ONTAP CLI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Select *Storage > Volumes* and select an existing FlexCache volume. 
+. On the volume’s Overview page, click *Edit* in the upper right corner.
+. In the *Edit Volume* window, select *Enable FlexCache write-back*. 
+--
+
+.CLI
+--
+. Enable writeback on an existing FlexCache volume:
+[source,cli]
+----
+volume flexcache config modify -volume <cache_flexgroup_name> -is-writeback-enabled true
+----
+--
+====
+
+
+// 2024-April-11, ONTAPDOC-1652
