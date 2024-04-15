@@ -31,9 +31,33 @@ If you are performing a link:https://docs.netapp.com/us-en/ontap/upgrade/concept
 
 * For each HA pair, each node should have one or more ports on the same broadcast domain.
 +
-If you have 8 or more nodes, the batch upgrade method is used in the automatic nondisruptive upgrade.  In ONTAP 9.7 and earlier, if the batch method is used, LIFs are migrated to the HA partner of the node being upgraded.  If the partners don't have any ports in the same broadcast domain, then the LIF migration fails.
+If your ONTAP cluster has 8 or more nodes, the batch upgrade method is used in the automatic nondisruptive upgrade to preemptively force data LIF migration prior to SFO takeover.  How LIFs are migrated during a batch upgrade varies based on your version of ONTAP.
 +
-In ONTAP 9.8 and later, if the batch method is used, LIFs are migrated to the other batch group.
+[cols="2" options="header"]
+|===
+//header row
+| If you are running ONTAP...
+| LIFs are migrated...
+
+| 9.15.1 or later
+| To a node in the other batch group.
+
+If the migration to the other batch group fails, the LIFs are migrated to the node’s HA partner in the same batch group.
+
+| 9.8 through 9.14.1
+| To a node in the other batch group.
+
+If the network broadcast domain doesn’t allow LIF migration to the other batch group, the LIF migration fails and ANDU pauses.
+
+| 9.7 or earlier
+| To the HA partner of the node being upgraded.  
+
+If the partner doesn’t have any ports in the same broadcast domain, then LIF migration fails and ANDU pauses.
+
+//table end
+|===
+
+
 
 * If you are upgrading ONTAP in a MetroCluster FC configuration, the cluster should be enabled for automatic unplanned switchover.
 
@@ -431,6 +455,7 @@ video::xwwX8vrrmIk[youtube, width=848, height=480]
 * https://aiq.netapp.com/[Launch Active IQ]
 * https://docs.netapp.com/us-en/active-iq/[Active IQ documentation]
 
+// 2024 Apr 15, Jira 1598
 // 2023 Mar 27, Jira 1810
 // 2023 Dec 12, Jira 1275
 // 2023 Dec 05, Jira 1162
