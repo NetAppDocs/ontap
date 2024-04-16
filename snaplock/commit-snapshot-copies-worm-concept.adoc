@@ -13,14 +13,15 @@ You can use SnapLock for SnapVault to WORM-protect Snapshot copies on secondary 
 
 .Before you begin
 
-* The source cluster must be running ONTAP 8.2.2 or later.
 * If you want to use System Manager to configure the relationship, both the source and the destination clusters must be running ONTAP 9.15.1 or later.
+* On the destination cluster:
+** link:https://docs.netapp.com/us-en/ontap/system-admin/install-license-task.html[Install the SnapLock license]. 
+** link:https://docs.netapp.com/us-en/ontap/snaplock/initialize-complianceclock-task.html[Initialize the Compliance Clock]. 
+** If you are using an ONTAP release earlier than 9.10.1, link:https://docs.netapp.com/us-en/ontap/snaplock/create-snaplock-aggregate-task.html[create a SnapLock aggregate].
 * The protection policy must be of type "vault".
 * The source and destination aggregates must be 64-bit.
 * The source volume cannot be a SnapLock volume.
-* The source and destination volumes must be created in peered clusters and SVMs.
-+
-For more information, see link:https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html[Cluster Peering].
+* The source and destination volumes must be created in https://docs.netapp.com/us-en/ontap/peering/create-cluster-relationship-93-later-task.html:[peered clusters] and https://docs.netapp.com/us-en/ontap/peering/create-intercluster-svm-peer-relationship-93-later-task.html:[SVMs].
 
 * If volume autogrow is disabled, the free space on the destination volume must be at least five percent more than the used space on the source volume.
 
@@ -33,6 +34,10 @@ NOTE: You cannot rename a Snapshot copy that is committed to the WORM state.
 You can clone SnapLock volumes, but you cannot clone files on a SnapLock volume.
 
 NOTE: LUNs are not supported in SnapLock volumes. LUNs are supported in SnapLock volumes only in scenarios where Snapshot copies created on a non-SnapLock volume are transferred to a SnapLock volume for protection as part of SnapLock vault relationship. LUNs are not supported in read/write SnapLock volumes. Tamperproof Snapshot copies however are supported on both SnapMirror source volumes and destination volumes that contain LUNs. 
+
+Beginning with ONTAP 9.10.1, SnapLock and non-SnapLock volumes can exist on the same aggregate; therefore, you are no longer required to create a separate SnapLock aggregate if you are using ONTAP 9.10.1. You use the volume -snaplock-type option to specify a Compliance or Enterprise SnapLock volume type. In ONTAP releases earlier than ONTAP 9.10.1, the SnapLock mode, Compliance or Enterprise, is inherited from the aggregate. Version-flexible destination volumes are not supported. The language setting of the destination volume must match the language setting of the source volume.
+
+A SnapLock volume that is a vault destination has a default retention period assigned to it. The value for this period is initially set to a minimum of 0 years for SnapLock Enterprise volumes and a maximum of 30 years for SnapLock Compliance volumes. Each NetApp Snapshot copy is committed with this default retention period at first. The retention period can be extended later, if needed. For more information, see xref:set-retention-period-task.adoc[Set retention time overview].
 
 Beginning with ONTAP 9.14.1, you can specify retention periods for specific SnapMirror labels in the Snapmirror policy of the SnapMirror relationship so that the replicated Snapshot copies from the source to the destination volume are retained for the retention-period specified in the rule. If no retention period is specified, the default-retention-period of the destination volume is used.
 
@@ -65,13 +70,6 @@ You can use the ONTAP CLI to create a SnapLock vault relationship or, beginning 
 
 --
 .CLI
-. Identify the destination cluster.
-
-. On the destination cluster:
-.. link:https://docs.netapp.com/us-en/ontap/system-admin/install-license-task.html[Install the SnapLock license]. 
-.. link:https://docs.netapp.com/us-en/ontap/snaplock/initialize-complianceclock-task.html[Initialize the Compliance Clock]. 
-.. If you are using an ONTAP release earlier than 9.10.1, link:https://docs.netapp.com/us-en/ontap/snaplock/create-snaplock-aggregate-task.html[create a SnapLock aggregate].
-
 . On the destination cluster, create a SnapLock destination volume of type `DP` that is either the same or greater in size than the source volume:
 +
 [source,cli]
@@ -80,22 +78,13 @@ volume create -vserver <SVM_name> -volume <volume_name> -aggregate <aggregate_na
 ----
 
 +
-[NOTE]
-
-Beginning with ONTAP 9.10.1, SnapLock and non-SnapLock volumes can exist on the same aggregate; therefore, you are no longer required to create a separate SnapLock aggregate if you are using ONTAP 9.10.1. You use the volume -snaplock-type option to specify a Compliance or Enterprise SnapLock volume type. In ONTAP releases earlier than ONTAP 9.10.1, the SnapLock mode, Compliance or Enterprise, is inherited from the aggregate. Version-flexible destination volumes are not supported. The language setting of the destination volume must match the language setting of the source volume.
-
-+
-The following command creates a 2 GB SnapLock `Compliance` volume named `dstvolB` in `SVM2` on the aggregate `node01_aggr`:
+The following command creates a 2 GB SnapLock Compliance volume named `dstvolB` in `SVM2` on the aggregate `node01_aggr`:
 +
 ----
 cluster2::> volume create -vserver SVM2 -volume dstvolB -aggregate node01_aggr -snaplock-type compliance -type DP -size 2GB
 ----
 
 . On the destination cluster, set the default retention period, as described in xref:set-default-retention-period-task.adoc[Set the default retention period].
-+
-[NOTE]
-
-A SnapLock volume that is a vault destination has a default retention period assigned to it. The value for this period is initially set to a minimum of 0 years for SnapLock Enterprise volumes and a maximum of 30 years for SnapLock Compliance volumes. Each NetApp Snapshot copy is committed with this default retention period at first. The retention period can be extended later, if needed. For more information, see xref:set-retention-period-task.adoc[Set retention time overview].
 +
 
 . xref:../data-protection/create-replication-relationship-task.adoc[Create a new replication relationship] between the non-SnapLock source and the new SnapLock destination you created.
@@ -140,6 +129,7 @@ https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html[Cluster and SV
 
 https://docs.netapp.com/us-en/ontap-sm-classic/volume-backup-snapvault/index.html[Volume backup using SnapVault]
 
+// 2024-April-16, IDR-340
 // 2024-April-11, ONTAPDOC-1576
 // 2024-Feb-21, ONTAPDOC-1366
 // 2023-Oct-31, IDR-279
