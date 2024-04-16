@@ -26,7 +26,7 @@ You can enable FlexCache writeback using System Manager or the ONTAP CLI.
 
 --
 . If the FlexCache volume is on a different cluster than the origin volume, create a cluster peer relationship:
-.. On the local cluster, clcik *Protection > Overview*.
+.. On the local cluster, click *Protection > Overview*.
 .. Expand *Intercluster Settings*, click *Add Network Interfaces*, and add intercluster interfaces to the cluster.
 +
 Repeat this on the remote cluster.
@@ -49,6 +49,74 @@ Under Storage VM Peers, click image:icon_kabob.gif[menu options icon] and then *
 
 .CLI
 --
+. If the FlexCache volume to be created is in a different cluster, create a cluster peer relationship:
+
+.. On the destination cluster, create a peer relationship with the data protection source cluster:
++
+[source,cli]
+----
+cluster peer create -generate-passphrase -offer-expiration MM/DD/YYYY HH:MM:SS|1...7days|1...168hours -peer-addrs <peer_LIF_IPs> -initial-allowed-vserver-peers <svm_name>,..|* -ipspace <ipspace_name>
+----
++
+Beginning with ONTAP 9.6, TLS encryption is enabled by default when creating a cluster peer relationship. TLS encryption is supported for the intercluster communication between the origin and FlexCache volumes. You can also disable TLS encryption for the cluster peer relationship, if required.
++
+----
+cluster02::> cluster peer create -generate-passphrase -offer-expiration 2days -initial-allowed-vserver-peers *
+
+                     Passphrase: UCa+6lRVICXeL/gq1WrK7ShR
+                Expiration Time: 6/7/2017 08:16:10 EST
+  Initial Allowed Vserver Peers: *
+            Intercluster LIF IP: 192.140.112.101
+              Peer Cluster Name: Clus_7ShR (temporary generated)
+
+Warning: make a note of the passphrase - it cannot be displayed again.
+----
+
+.. On the source cluster, authenticate the source cluster to the destination cluster:
++
+[source, cli]
+----
+cluster peer create -peer-addrs <peer_LIF_IPs> -ipspace <ipspace>
+----
++
+----
+cluster01::> cluster peer create -peer-addrs 192.140.112.101,192.140.112.102
+
+Notice: Use a generated passphrase or choose a passphrase of 8 or more characters.
+        To ensure the authenticity of the peering relationship, use a phrase or sequence of characters that would be hard to guess.
+
+Enter the passphrase:
+Confirm the passphrase:
+
+Clusters cluster02 and cluster01 are peered.
+----
+
+. If the FlexCache volume is in a different SVM than that of the origin volume, create an SVM peer relationship with `flexcache` as the application:
+
+.. If the SVM is in a different cluster, create an SVM permission for the peering SVMs:
++
+[source, cli]
+----
+vserver peer permission create -peer-cluster <cluster_name> -vserver <svm-name> -applications flexcache
+----
++
+The following example illustrates how to create an SVM peer permission that applies for all of the local SVMs:
++
+----
+cluster1::> vserver peer permission create -peer-cluster cluster2 -vserver "*" -applications flexcache
+
+Warning: This Vserver peer permission applies to all local Vservers. After that no explict
+"vserver peer accept" command required for Vserver peer relationship creation request
+from peer cluster "cluster2" with any of the local Vservers. Do you want to continue? {y|n}: y
+----
+
+.. Create the SVM peer relationship:
++
+[source, cli]
+----
+vserver peer create -vserver <local_SVM> -peer-vserver <remote_SVM> -peer-cluster <cluster_name> -applications flexcache
+----
+
 . Create a FlexCache volume with writeback enabled:
 +
 [source,cli]
@@ -82,4 +150,5 @@ volume flexcache config modify -volume <cache_flexgroup_name> -is-writeback-enab
 ====
 
 
+// 2024-April-16, IDR-341
 // 2024-April-11, ONTAPDOC-1652
