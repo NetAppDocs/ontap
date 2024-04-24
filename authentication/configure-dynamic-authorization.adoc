@@ -9,7 +9,7 @@ summary: "Configure the dynamic authorization Framework to increase security of 
 :imagesdir: ../media/
 
 [.lead]
-As an administrator, you can customize different aspects of your dynamic authorization configuration to increase the security of remote administrator connections to your ONTAP cluster.
+As an administrator, you can customize different aspects of your dynamic authorization configuration to increase the security of remote administrator SSH connections to your ONTAP cluster.
 
 You can customize the following dynamic authorization settings depending on your security needs:
 
@@ -43,11 +43,109 @@ security dynamic-authorization modify \
 security dynamic-authorization show 
 ----
 
+== Configure restricted commands
+When you enable dynamic authorization, the feature includes a default set of restricted commands. You can modify this list to suit your needs. Refer to the link:../multi-admin-verify/index.html[multi-admin verification (MAV) documentation^] for information on the default list of restricted commands.
+
+=== Add a restricted command
+You can add a command to the list of commands that are restricted with dynamic authorization.
+
+For more information about the parameters for the `security dynamic-authorization rule create` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-rule-create.html[ONTAP manual pages^].
+
+.Steps
+
+. Add the command. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization rule create \
+-query <query> \
+*-operation <text>* \
+-index <integer> \
+-vserver <storage_VM_name>
+----
+
+. View the resulting list of restricted commands:
++
+[source,console]
+----
+security dynamic-authorization rule show
+----
+
+=== Remove a restricted command
+You can remove a command from the list of commands that are restricted with dynamic authorization.
+
+For more information about the parameters for the `security dynamic-authorization rule delete` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-rule-delete.html[ONTAP manual pages^].
+
+.Steps
+
+. Remove the command. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization rule delete \
+*-operation <text>* \
+-vserver <storage_VM_name>
+----
+. View the resulting list of restricted commands:
++
+[source,console]
+----
+security dynamic-authorization rule show
+----
+
+== Configure dynamic authorization groups
+By default, dynamic authorization applies to all users and groups as soon as you enable it. However, you can create groups using the `security dynamic-authorization group create` command, so that dynamic authorization only applies to those specific users.
+
+=== Add a dynamic authorization group
+You can add a dynamic authorization group.
+
+For more information about the parameters for the `security dynamic-authorization group create` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-group-create.html[ONTAP manual pages^].
+
+.Steps
+
+. Create the group. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization group create \
+*-group-name <group-name>* \
+-vserver <storage_VM_name> \
+-exclude-users <user1,user2,user3...>
+
+----
+. View the resulting dynamic authorization groups:
++
+[source,console]
+----
+security dynamic-authorization group show
+----
+
+=== Remove a dynamic authorization group
+You can remove a dynamic authorization group.
+
+.Steps
+
+. Delete the group. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization group delete \
+*-group-name <group-name>* \
+-vserver <storage_VM_name>
+----
+. View the resulting dynamic authorization groups:
++
+[source,console]
+----
+security dynamic-authorization group show
+----
+
 == Configure dynamic authorization trust score components
 You can configure the maximum score weight to change priority of scoring criteria or to remove certain criteria from risk scoring.
 
-For more information about the parameters for the `security dynamic-authorization trust-score-component modify` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-trust-score-component-modify.html[ONTAP manual pages^].
+NOTE: As a best practice, you should leave the default score weight values in place, and only adjust them if needed.
 
+For more information about the parameters for the `security dynamic-authorization trust-score-component modify` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-trust-score-component-modify.html[ONTAP manual pages^].
 
 The default raw score weights and percentage weights are the following:
 [cols="3*"]
@@ -79,6 +177,8 @@ a|*Total score*
 |100
 
 |===
+
+NOTE: In ONTAP 9.15.1, the "Geolocation", "Access time", and "History of user authentication failures" criteria have no effect.
 
 You can modify the following components:
 
@@ -214,103 +314,6 @@ For example:
 [source,console]
 ----
 security dynamic-authorization trust-score-component create -component comp1 -weight 20 -max-score 100 -provider-uri https://<url>/trust-scores/users/<user>/<ip>/component1.html?api-key=<access-key> -score-field score -access-key "MIIBBjCBrAIBArqyTHFvYdWiOpLkLKHGjUYUNSwfzX"
-----
-
-== Configure restricted commands
-When you enable dynamic authorization, the feature includes a default set of restricted commands. You can modify this list to suit your needs. Refer to the link:../multi-admin-verify/index.html[multi-admin verification (MAV) documentation^] for information on the default list of restricted commands.
-
-=== Add a restricted command
-You can add a command to the list of commands that are restricted with dynamic authorization.
-
-For more information about the parameters for the `security dynamic-authorization rule create` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-rule-create.html[ONTAP manual pages^].
-
-.Steps
-
-. Add the command. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
-+
-[source,subs="specialcharacters,quotes"]
-----
-security dynamic-authorization rule create \
--query <query> \
-*-operation <text>* \
--index <integer> \
--vserver <storage_VM_name>
-----
-
-. View the resulting list of restricted commands:
-+
-[source,console]
-----
-security dynamic-authorization rule show
-----
-
-=== Remove a restricted command
-You can remove a command from the list of commands that are restricted with dynamic authorization.
-
-For more information about the parameters for the `security dynamic-authorization rule delete` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-rule-delete.html[ONTAP manual pages^].
-
-.Steps
-
-. Remove the command. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
-+
-[source,subs="specialcharacters,quotes"]
-----
-security dynamic-authorization rule delete \
-*-operation <text>* \
--vserver <storage_VM_name>
-----
-. View the resulting list of restricted commands:
-+
-[source,console]
-----
-security dynamic-authorization rule show
-----
-
-== Configure dynamic authorization groups
-By default, dynamic authorization applies to all users and groups as soon as you enable it. However, you can create groups using the `security dynamic-authorization group create` command, so that dynamic authorization only applies to those specific users.
-
-=== Add a dynamic authorization group
-You can add a dynamic authorization group.
-
-For more information about the parameters for the `security dynamic-authorization group create` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-group-create.html[ONTAP manual pages^].
-
-.Steps
-
-. Create the group. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
-+
-[source,subs="specialcharacters,quotes"]
-----
-security dynamic-authorization group create \
-*-group-name <group-name>* \
--vserver <storage_VM_name> \
--exclude-users <user1,user2,user3...>
-
-----
-. View the resulting dynamic authorization groups:
-+
-[source,console]
-----
-security dynamic-authorization group show
-----
-
-=== Remove a dynamic authorization group
-You can remove a dynamic authorization group.
-
-.Steps
-
-. Delete the group. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
-+
-[source,subs="specialcharacters,quotes"]
-----
-security dynamic-authorization group delete \
-*-group-name <group-name>* \
--vserver <storage_VM_name>
-----
-. View the resulting dynamic authorization groups:
-+
-[source,console]
-----
-security dynamic-authorization group show
 ----
 
 //=== Overriding restricted commands with excluded users or groups
