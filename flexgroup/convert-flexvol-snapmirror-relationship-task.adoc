@@ -11,7 +11,19 @@ summary: "To convert a FlexVol volume SnapMirror relationship to a FlexGroup vol
 [.lead]
 To convert a FlexVol volume SnapMirror relationship to a FlexGroup volume SnapMirror relationship in ONTAP, you must first convert the destination FlexVol volume followed by the source FlexVol volume.
 
-.What you'll need
+.About this task
+
+* FlexGroup conversion is supported only for asynchronous SnapMirror relationships.
+
+* Conversion time depends on several variables. Some of the variables include:
+
+** CPU of the controller
+** Utilization of CPU by other applications
+** Amount of data in the initial Snapshot copy
+** Network bandwidth
+** Bandwidth used by other applications
+
+.Before you begin
 
 * The FlexVol volume that is being converted must be online.
 * The source FlexVol volume in the SnapMirror relationship must not be the source volume for multiple SnapMirror relationships.
@@ -22,15 +34,19 @@ Beginning with ONTAP 9.9.1, fanout SnapMirror relationships are supported for Fl
 +
 An error message is generated if the FlexVol volume has any incompatibility and the volume conversion is aborted. You can take corrective actions and retry the conversion.
 
-.About this task
-
-FlexGroup conversion is supported only for asynchronous SnapMirror relationships.
 
 .Steps
 
-. Verify that the SnapMirror relationship is healthy: `snapmirror show`
+. Verify that the SnapMirror relationship is healthy: 
++
+[source,cli]
+----
+snapmirror show
+----
 +
 Only XDP type mirror relationships can be converted.
++
+Example:
 +
 ----
 cluster2::> snapmirror show
@@ -45,18 +61,49 @@ vs0:src_xdp XDP  vs2:dst_xdp  Snapmirrored
 ----
 
 . Verify whether the source volume is compatible for conversion:
- .. Log in to the advance privilege mode: `set -privilege advanced`
- .. Verify the conversion process: `volume conversion start -vserver vs1 -volume src_vol -check-only true`
+ .. Log in to the advance privilege mode: 
++
+[source,cli]
+----
+set -privilege advanced
+----
+
+ .. Verify the conversion process: 
++
+[source,cli]
+----
+volume conversion start -vserver <src_svm_name> -volume <src_vol> -check-only true
+----
++
+Example:
++
+----
+volume conversion start -vserver vs1 -volume src_vol -check-only true
+----
 +
 You must rectify all errors before converting the volume.
 . Convert the destination FlexVol volume to FlexGroup volume.
- .. Quiesce the FlexVol SnapMirror relationship: `snapmirror quiesce -destination-path dest_svm:dest_volume`
+ .. Quiesce the FlexVol SnapMirror relationship: 
++
+[source,cli]
+----
+snapmirror quiesce -destination-path <dest_svm:dest_volume>
+----
++
+Example:
 +
 ----
 cluster2::> snapmirror quiesce -destination-path vs2:dst_xdp
 ----
 
- .. Start the conversion: `volume conversion start -vserver dest_svm -volume dest_volume`
+ .. Start the conversion: 
++
+[source,cli]
+----
+volume conversion start -vserver <dest_svm> -volume <dest_volume>
+----
++
+Example:
 +
 ----
 cluster-1::> volume conversion start -vserver vs2 -volume dst_xdp
@@ -69,7 +116,14 @@ Do you want to continue? {y|n}: y
 You must now convert the relationship's source volume, "vs0:src_xdp", to a FlexGroup.
 Then, re-establish the SnapMirror relationship using the "snapmirror resync" command.
 ----
-. Convert the source FlexVol volume to FlexGroup volume: `volume conversion start -vserver src_svm_name -volume src_vol_name`
+. Convert the source FlexVol volume to FlexGroup volume: ` 
++
+[source,cli]
+----
+volume conversion start -vserver <src_svm_name> -volume <src_vol_name>
+----
++
+Example:
 +
 ----
 cluster-1::> volume conversion start -vserver vs0 -volume src_xdp
@@ -82,7 +136,14 @@ Do you want to continue? {y|n}: y
 [Job 57] Job succeeded: success
 ----
 
-. Resync the relationship: `snapmirror resync -destination-path dest_svm_name:dest_volume`
+. Resync the relationship: 
++
+[source,cli]
+----
+snapmirror resync -destination-path dest_svm_name:dest_volume
+----
++
+Example:
 +
 ----
 cluster2::> snapmirror resync -destination-path vs2:dst_xdp
@@ -92,4 +153,5 @@ cluster2::> snapmirror resync -destination-path vs2:dst_xdp
 
 You must ensure that when the source FlexGroup volume is expanded to include more constituents, the destination volume is also expanded.
 
+// 2024-April-12, GitHub issue# 1319
 // 2023-Jan-30, GitHub issue# 789

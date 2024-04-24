@@ -15,7 +15,8 @@ summary: Use DNS to access either local or remote sources for host information
 // Created with NDAC Version 2.0 (August 17, 2020)
 // restructured: March 2021
 // enhanced keywords May 2021
-// 7-APR=2024 commented out step 2 and added a link to services policies for GH-1281
+// 7-APR-2024 commented out step 2 and added a link to services policies for GH-1281
+// 2024-APR-15 ontap pr-1323 and ontapdoc-1904
 
 [.lead]
 You use DNS to access either local or remote sources for host information. You must configure DNS to access one or both of these sources.
@@ -43,26 +44,27 @@ See xref:configure_dynamic_dns_services.html[Configure dynamic DNS services] for
 . Enable DNS on the SVM:
 +
 ....
-vserver services name-service dns create -vserver vserver_name -domains domain_name - name-servers ip_addresses -state enabled
+vserver services name-service dns create -vserver <vserver_name> -domains <domain_name> -name-servers <ip_addresses> -state enabled
 ....
 +
 The following command enables external DNS server servers on the SVM vs1:
 +
 ....
-vserver services name-service dns create -vserver <vs1.example.com> -domains <example.com> -name-servers <192.0.2.201,192.0.2.202> -state <enabled>
+vserver services name-service dns create -vserver vs1.example.com -domains example.com -name-servers 192.0.2.201,192.0.2.202 -state enabled
 ....
 +
 [NOTE]
-The vserver services name-service dns create command performs an automatic configuration validation and reports an error message if ONTAP cannot contact the name server.
+The `vserver services name-service dns create` command performs an automatic configuration validation and reports an error message if ONTAP cannot contact the name server.
 
 . Validate the status of the name servers by using the `vserver services name-service dns check` command.
 +
 ....
 vserver services name-service dns check -vserver vs1.example.com
-VserverName       Server     Status    Status Details
-----------------  ---------- -------   --------------------------
-vs1.example.com   10.0.0.50  up        Response time (msec): 2
-vs1.example.com   10.0.0.51  up        Response time (msec): 2
+                                    Name Server
+Vserver             Name Server     Status       Status Details
+-------------       --------------- ------------ --------------------------
+vs1.example.com     10.0.0.50       up           Response time (msec): 2
+vs1.example.com     10.0.0.51       up           Response time (msec): 2
 ....
 
 For information about service policies that relate to DNS, see link:lifs_and_service_policies96.html[LIFs and service policies in ONTAP 9.6 and later].
@@ -80,19 +82,19 @@ You must have decided which name service to use for host mapping in your environ
 . Add the necessary entries to the name service switch table:
 +
 ....
-vserver services name-service <ns-switch> create -vserver <vserver_name> -database <database_name> -source <source_names>
+vserver services name-service ns-switch modify -vserver <vserver_name> -database <database_name> -source <source_names>
 ....
 
 . Verify that the name service switch table contains the expected entries in the desired order:
 +
 ....
-vserver services name-service <ns-switch> show -vserver <vserver_name>
+vserver services name-service ns-switch show -vserver <vserver_name>
 ....
 
 .Example
 
-The following example creates an entry in the name service switch table for SVM vs1 to first use the local hosts file and then an external DNS server to resolve host names:
+The following example modifies an entry in the name service switch table for SVM vs1 to first use the local hosts file and then an external DNS server to resolve host names:
 
 ....
-vserver services name-service ns-switch create -vserver vs1 -database hosts -sources files dns
+vserver services name-service ns-switch modify -vserver vs1 -database hosts -sources files,dns
 ....
