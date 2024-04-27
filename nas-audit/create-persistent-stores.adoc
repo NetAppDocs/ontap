@@ -1,50 +1,119 @@
 ---
 permalink: nas-audit/create-persistent-stores.html
 sidebar: sidebar
-keywords: create, persistent store, fpolicy
-summary: "Beginning with ONTAP 9.14.1, FPolicy allows you to setup a persistent store to capture file access events for asynchronous non-mandatory policies in the SVM. Persistent stores can help decouple client I/O processing from the FPolicy notification processing to reduce client latency. Synchronous and asynchronous mandatory configurations are not supported."
+keywords: create, persistent store, fpolicy, asynchronous, non, mandatory
+summary: "Beginning with ONTAP 9.14.1, FPolicy allows you to set up a persistent store to capture file access events for asynchronous non-mandatory policies."
 ---
-= Create persistent stores
+= Create FPolicy persistent stores
 :icons: font
 :imagesdir: ../media/
 
+// 15-April-2024 ONTAPDOC-1605
+// 20 OCT 2023, ONTAPDOC-1344 updates
+// 17 OCT 2023, ONTAPDOC-1344
 
 [.lead]
-Beginning with ONTAP 9.14.1, FPolicy allows you to set up a link:persistent-stores.html[Persistent stores] to capture file access events for asynchronous non-mandatory policies in the SVM. Persistent stores can help decouple client I/O processing from FPolicy notification processing to reduce client latency. Synchronous (mandatory or non-mandatory) and asynchronous mandatory configurations are not supported.
+Persistent stores can help decouple client I/O processing from FPolicy notification processing to reduce client latency. Beginning with ONTAP 9.14.1, FPolicy allows you to set up link:persistent-stores.html[persistent stores] to capture file access events for asynchronous non-mandatory policies in the SVM. Synchronous (either mandatory or non-mandatory) and asynchronous mandatory configurations are not supported.
 
-.Best practices
+Beginning with ONTAP 9.15.1, FPolicy persistent store configuration is simplified. The `persistent-store-create` command automates volume creation for the SVM and configures the volume for the persistent store. 
 
-* Before using the persistent store functionality, please ensure your partner applications support this configuration.
-* The persistent store volume is setup on a per SVM basis. For each FPolicy enabled SVM you will need a persistent store volume. 
-* The persistent store volume name and the junction-path specified at the time of volume creation should match. 
-* Create the persistent store volume on the node with LIFs that expect maximum traffic to be monitored by Fpolicy.
-* Have the snapshot policy set to `none` for that volume instead of `default`. This is to ensure that there is no accidental restore of the snapshot leading to loss of current events and to prevent possible duplicate event processing.
-* Make the persistent store volume inaccessible for external user protocol access (CIFS/NFS) to avoid accidental corruption or deletion of the persisted event records. To achieve this, after enabling FPolicy, unmount the volume in ONTAP to remove the junction path, this makes it inaccessible for the user protocol access.
+There are two ways to create a persistent store, depending on the ONTAP release: 
+
+* ONTAP 9.15.1 or later: When you create the persistent store, ONTAP automatically creates and configures its volume at the same time. This simplifies FPolicy persistent store configuration and implements all best practices.  
+
+* ONTAP 9.14.1: Manually Ccreate and configure a volume and then create a persistent store for the newly created volume.  
+
+[Note]
+Only one persistent store can be set up on each SVM. This single persistent store needs to be used for all FPolicy configurations on that SVM, even if the policies are from different partners. 
+
+== Create a persistent store (ONTAP 9.15.1 or later) 
+
+Beginning with ONTAP 9.15.1, use the `fpolicy persistent-store-create` command to create the FPolicy persistent store with inline volume creation and configuration. ONTAP automatically blocks the volume from external user protocol access (CIFS/NFS).  
+
+.Before you begin 
+
+* The SVM where you want to create the persistent store must have at least one aggregate.  
+
+* You should have access to the aggregates available for the SVM and sufficient permissions to create volumes.
 
 .Steps
 
-. Create an empty volume on the SVM that can be provisioned for the persistent store:
+. Create the persistent store, which creates and configures the volume automatically: 
 +
-`volume create -vserver <SVM Name> -volume <volume> -state <online> -junction-path <path> -policy <default> -unix-permissions <777> -size <value> -aggregate <aggregate name> -snapshot-policy <none>`
+`vserver fpolicy persistent-store create -vserver <vserver> -persistent-store <name> -volume <volume_name> -size <size> -autosize-mode <off|grow|grow_shrink>`
 +
-* Size of the persistent store volume is based on the time duration for which you want to persist the events that are not delivered to the external server (partner application).
+* The `vserver` parameter is the name of the SVM. 
+* The `persistent-store` parameter is the name of the persistent store. 
+* The `volume` parameter is the name of the persistent store volume. 
 +
-For example, if you want 30 minutes of events to persist in a cluster with a 30K notifications per second capacity:
-+
-Required Volume Size = 30000 x 30 x 60 x 0.6KB (avg notification record size) = 32400000 KB = ~32 GB
-+
-To find the approximate notification rate, you can either reach out to your FPolicy partner application or utilize the FPolicy counter `requests_dispatched_rate`.
-+
-* It is expected that an administrator user with sufficient RBAC privileges (to create a volume) will create a volume (using the volume cli command or REST API) of the desired size and provide the name of that volume as the `-volume` in the persistent store create CLI command or REST API.
-. Create the persistent store:
-+
-`vserver fpolicy persistent store create -vserver <SVM> -persistent-store <PS_name> -volume <volume>`
-+
-* persistent-store: The persistent store name
-* volume: The persistent store volume
-. After the persistent store is created, you can create the FPolicy policy and add the persistent store name to that policy. 
-For more information, see link:https://docs.netapp.com/us-en/ontap/nas-audit/create-fpolicy-policy-task.html[Create the FPolicy policy].
+NOTE: If you want to use an existing, empty volume, use the `volume show` command to find it and specify it in the volume parameter. 
 
+* The `size` parameter is based on the time duration for which you want to persist the events that are not delivered to the external server (partner application). 
++
+For example, if you want 30 minutes of events to persist in a cluster with a 30K notifications per second capacity: 
++
+Required Volume Size = 30000 x 30 x 60 x 0.6KB (average notification record size) = 32400000 KB = ~32 GB 
++
+To find the approximate notification rate, you can either reach out to your FPolicy partner application or utilize the FPolicy counter `requests_dispatched_rate`. 
++
+NOTE: If you are using an existing volume, the size parameter is optional. If you do provide a value for the size parameter, it will modify the volume with the size you specify. 
 
-// 20 OCT 2023, ONTAPDOC-1344 updates
-// 17 OCT 2023, ONTAPDOC-1344
+* The `autosize-mode` parameter specifies the autosize mode for the volume. The supported autosize modes are: 
+
+** off - The volume does not grow or shrink in size in response to the amount of used space. 
+
+** grow - The volume automatically grows when used space in the volume is above the grow threshold. 
+
+** grow_shrink - The volume grows or shrinks in size in response to the amount of used space. 
+
+. Create the FPolicy policy and add the persistent store name to that policy. For more information, see link:create-fpolicy-policy-task.html[Create the FPolicy policy]. 
+
+== Create a persistent store (ONTAP 9.14.1) 
+
+You can create a volume, and then create a persistent store to use that volume. You can then block the newly created volume from external user protocol access (CIFS/NFS).
+
+.Steps 
+
+. Create an empty volume on the SVM that can be provisioned for the persistent store: 
++
+`volume create -vserver <SVM Name> -volume <volume> -state <online> -policy <default> -unix-permissions <777> -size <value> -aggregate <aggregate name> -snapshot-policy <none>` 
++
+[Note]
+It is expected that an administrator user with sufficient RBAC privileges (to create a volume) creates a volume (using the volume cli command or REST API) of the desired size and provide the name of that volume as the `-volume` in the persistent store create CLI command or REST API. 
++
+* The `vserver` parameter is the name of the SVM. 
+
+* The `volume` parameter is the name of the persistent store volume. 
+
+* The `state` parameter should be set to online so the volume is available for use. 
+
+* The `policy` parameter is set to the FPolicy service policy, if you have one already configured. If not, you can use the `volume modify` command later to add the policy. 
+
+* The `unix-permissions` parameter is optional.  
+
+* The `size` parameter is based on the time duration for which you want to persist the events that are not delivered to the external server (partner application). 
++
+For example, if you want 30 minutes of events to persist in a cluster with a 30K notifications per second capacity: 
++
+Required Volume Size = 30000 x 30 x 60 x 0.6KB (average notification record size) = 32400000 KB = ~32 GB 
++
+To find the approximate notification rate, you can either reach out to your FPolicy partner application or utilize the FPolicy counter `requests_dispatched_rate`. 
+
+* The aggregate parameter is needed for FlexVol volumes, otherwise it is not required.  
+
+* The `snapshot-policy` parameter must be set to none. This ensures that there is no accidental restore of the snapshot leading to loss of current events and prevents possible duplicate event processing. 
++
+[Note]
+If you want to use an existing, empty volume, use the `volume show` command to find it and the `volume modify` command to make any needed alterations. Ensure the policy, size, and `snapshot-policy` parameters are set correctly for the persistent store. 
+
+. Create the persistent store: 
++
+`vserver fpolicy persistent store create -vserver <SVM> -persistent-store <PS_name> -volume <volume>` 
+
+* The `vserver` parameter is the name of the SVM. 
+
+* The `persistent-store` parameter is the name of the persistent store. 
+
+* The `volume` parameter is the name of the persistent store volume. 
+
+. Create the FPolicy policy and add the persistent store name to that policy. For more information, see link:create-fpolicy-policy-task.html[Create the FPolicy policy].
