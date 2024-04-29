@@ -2,7 +2,7 @@
 permalink: snaplock/commit-snapshot-copies-worm-concept.html
 sidebar: sidebar
 keywords: snaplock, commit, snapshot, copy, worm, snapvault, protect, snapmirror, clone, snaplock type
-summary: "You can use SnapLock for SnapVault to WORM-protect Snapshot copies on secondary storage. You perform all of the basic SnapLock tasks on the SnapVault destination. The destination volume is automatically mounted read-only, so there is no need to explicitly commit the Snapshot copies to WORM; therefore, creating scheduled Snapshot copies on the destination volume using SnapMirror policies is not supported."
+summary: "You can use SnapLock for SnapVault to WORM-protect Snapshot copies on secondary storage. You perform all of the basic SnapLock tasks on the vault destination."
 ---
 = Commit Snapshot copies to WORM on a vault destination
 :icons: font
@@ -22,8 +22,6 @@ You can use SnapLock for SnapVault to WORM-protect Snapshot copies on secondary 
 * The source and destination aggregates must be 64-bit.
 * The source volume cannot be a SnapLock volume.
 * The source and destination volumes must be created in link:../peering/create-cluster-relationship-93-later-task.html[peered clusters] and link:../peering/create-intercluster-svm-peer-relationship-93-later-task.html[SVMs].
-
-* If volume autogrow is disabled, the free space on the destination volume must be at least five percent more than the used space on the source volume.
 
 .About this task
 
@@ -63,7 +61,7 @@ You can use the ONTAP CLI to create a SnapLock vault relationship or, beginning 
 . Navigate to *Storage > Volumes* and select *Add*.
 . In the *Add Volume* window, choose *More Options*.
 . Enter the volume name, size, export policy and share name.
-. Select *Lock destination snapshots to prevent deletion*, and in the *Locking method* section, choose *SnapLock for SnapVault*. This selection is not displayed if the policy type selected is not of type “vault”.
+. Select *Lock destination snapshots to prevent deletion*, and in the *Locking method* section, choose *SnapLock for SnapVault*. This selection is not displayed if the policy type selected is not of type “vault,” if the SnapLock license is not installed, or if the Compliance Clock is not initialized.
 . If it is not already enabled, select *Initialize SnapLock Compliance Clock*.
 . Save your changes.
 --
@@ -84,7 +82,7 @@ The following command creates a 2GB SnapLock Compliance volume named `dstvolB` i
 cluster2::> volume create -vserver SVM2 -volume dstvolB -aggregate node01_aggr -snaplock-type compliance -type DP -size 2GB
 ----
 
-. On the destination cluster, set the default retention period, as described in xref:set-default-retention-period-task.adoc[Set the default retention period].
+. On the destination cluster, xref:set-default-retention-period-task.adoc[set the default retention period].
 +
 
 . xref:../data-protection/create-replication-relationship-task.adoc[Create a new replication relationship] between the non-SnapLock source and the new SnapLock destination you created.
@@ -113,7 +111,7 @@ The following command initializes the relationship between the source volume `sr
 cluster2::> snapmirror initialize -destination-path SVM2:dstvolB
 ----
 
-. After the relationship is initialized and idle, use the `snapshot show` command on the destination to verify verify the SnapLock expiry time applied to the replicated Snapshot copies.
+. After the relationship is initialized and idle, use the `snapshot show` command on the destination to verify the SnapLock expiry time applied to the replicated Snapshot copies.
 +
 This example lists the Snapshot copies on volume `dstvolB` that have the SnapMirror label and the SnapLock expiration date:
 +
