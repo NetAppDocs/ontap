@@ -13,7 +13,7 @@ You can configure an ONTAP cluster to deliver AutoSupport messages to NetApp. As
 
 == Deliver AutoSupport messages to NetApp
 
-AutoSupport messages can be delivered to NetApp using one of two different protocols: HTTP or SMTP. In addition, you can use TLS with HTTP to improve security and also with SMTP depending on the release of ONTAP you have.
+AutoSupport messages can be delivered to NetApp using one of two different protocols: HTTP or SMTP. In addition, to improve security you can use TLS with HTTP and with SMTP depending on the release of ONTAP you have.
 
 [TIP]
 You should always use HTTP with TLS (HTTPS) where possible.
@@ -22,9 +22,10 @@ Also note the following:
 
 * Only one delivery channel to NetApp can be configured for the AutoSupport messages. You cannot use two protocols to deliver AutoSupport messages to NetApp.
 * AutoSupport limits the maximum file size for each protocol as described below.
-* If the size of an AutoSupport message exceeds the configured limit, AutoSupport delivers as much of the message as possible howvere truncation will occur.
+* If the size of an AutoSupport message exceeds the configured limit, AutoSupport delivers as much of the message as possible however truncation will occur.
 * You change the maximum size if need. See the command `system node autosupport modify` for more information.
 * Both protocols can be transported over IPv4 or IPv6 based on the address family to which the name resolves.
+* The TCP connection established by ONTAP to send the AutoSupport messages is temporary and short-lived.
 
 === HTTP
 
@@ -32,25 +33,25 @@ This provides the most robust features. Note the following:
 
 * AutoSupport OnDemand and the transfer of large files are supported.
 * An HTTP PUT request is attempted first. If the request fails during transmission, the request restarts where it stopped.
-* If the server does not support PUT, the delivery uses HTTP POST instead.
+* If the server does not support PUT, the HTTP POST method is used instead.
 * The default limit for HTTP transfers is 25 MB.
 * The unsecured HTTP protocol uses port 80. 
 
 === SMTP
 
-As a general rule, you should use SMTP only if HTTPS/HTTP is not allowed or supported for some reason. Note the following:
+As a general rule, you should use SMTP only if HTTPS/HTTP is not allowed or unsupported for some reason. Note the following:
 
 * AutoSupport OnDemand and transfers of large files are not supported.
 * If SMTP sign in credentials are configured, they are sent unencrypted and in the clear.
 * The default limit for HTTP transfers is 5 MB.
-* The unsecured HTTP protocol uses port 25.
+* The unsecured SMTP protocol uses port 25.
 
 === Improve security with TLS
 
-When either using HTTP or SMTP, all traffic is unencrypted and can be easily intercepted and read. When using HTTP, you should always configure the protocol to also use TLS (HTTPS).
+When using either HTTP or SMTP, all traffic is unencrypted and can be easily intercepted and read. When using HTTP, you should always configure the protocol to also use TLS (HTTPS).
 
 [NOTE]
-Beginning with ONTAP 9.15.1 you can also use TLS with SMTP (SMTPS). In this case, _explicit TLS_ is used to negotiate and activate the secure channel after the TCP connection is established.
+Beginning with ONTAP 9.15.1 you can also use TLS with SMTP (SMTPS). In this case, _explicit TLS_ is used which activates the secure channel after the TCP connection is established.
 
 .Ports for secure protocols
 
@@ -61,7 +62,7 @@ The following ports are typically used for the secure versions of these protocol
 
 .Certificate validation
 
-With TLS, the certificate downloaded from the server is validated by ONTAP based on root CA certificate. Before using HTTPS or SMTPS, you need to make sure the root certificate is installed in ONTAP. See link:../requirements-autosupport-reference.html#install-the-server-certificate[Install the server certificate] for more information.
+With TLS, the certificate downloaded from the server is validated by ONTAP based on the root CA certificate. Before using HTTPS or SMTPS, you need to make sure the root certificate is installed in ONTAP. See link:requirements-autosupport-reference.html#install-the-server-certificate[Install the server certificate] for more information.
 
 == Additional configuration considerations
 
@@ -80,11 +81,11 @@ Depending on your network configuration, the HTTPS protocol may require addition
 
 == Install the server certificate
 
-If you use TLS (HTTPS or SMTPS), you need to make sure ONTAP can validate the server certificate.
+If you use TLS (HTTPS or SMTPS), you need to make sure ONTAP can validate the server certificate. This validation is performed based on the CA that signed the server certificate.
 
 ONTAP includes a large number of pre-installed root CA certificates. So in many cases, the certificate for your server will be immediately recognized by ONTAP without additional configuration. But depending on how the server certificate was signed, you may need to install a root CA certificate and any intermediate certificates.
 
-Follow the instructions provided below to install the certificate if it's needed. You should install all the required certificates at the cluster level.
+Follow the instructions provided below to install the certificate if needed. You should install all the required certificates at the cluster level.
 
 .Steps
 
