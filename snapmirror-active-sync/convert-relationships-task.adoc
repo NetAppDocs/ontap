@@ -16,7 +16,7 @@ If you've configured SnapMirror protection, you can convert the relationship to 
 
 == Convert to a symmetric active/active relationship
 
-You can establish symmetric protection using System Manager or the ONTAP CLI.
+You can convert a SnapMirror active sync relationship with aysnchronous protection to use symmetric active/active. 
 
 .Before you begin 
 
@@ -82,7 +82,7 @@ Ensure the igroup does not contain maps for non-replicated LUNs.
 . On the primary site, modify the initiator configuration for existing hosts to set the proximal path for initiators on the local cluster.
 +
 `SiteA::> igroup initiator add-proximal-vserver -vserver _Svm_name_ -initiator _host_ -proximal-vserver _server_`
-. Add a new igroup and initiator for the new hosts and set the host proximity for host affinity to its local site. Ennable igroup replication to replicate the configuration and inverse the host locality on the remote cluster. 
+. Add a new igroup and initiator for the new hosts and set the host proximity for host affinity to its local site. Ennable igroup replication to replicate the configuration and invert the host locality on the remote cluster. 
 +
 ``
 SiteA::> igroup modify -vserver vsA -igroup ig1 -replication-peer vsB
@@ -123,7 +123,7 @@ SiteB::> lun mapping create -igroup  _igroup_name_ -path _path_name_
 
 == Convert to an asymmetric relationship 
 
-If you've configured symmetric active/active protection, you can convert the relationship to asymmetric protection.
+If you've configured symmetric active/active protection, you can convert the relationship to asymmetric protection using the ONTAP CLI. 
 
 .Steps
 . Move all the VM workloads to the host local to the source cluster.
@@ -153,15 +153,9 @@ The consistency group on the secondary site needs link:../consistency-groups/del
 . Re-discover the paths from the host.
 
 
-== Convert an existing SnapMirror relationship to an SnapMirror active sync relationship
+== Convert an existing SnapMirror relationship to a SnapMirror active sync relationship
 
 If you have an existing SnapMirror synchronous relationship between a source and destination cluster, you can convert it to an asymmetric SnapMirror active sync relationship. This allows you to associate the mirrored volumes with a consistency group, ensuring zero RPO across a multi-volume workload. Additionally, you can retain existing SnapMirror snapshots if you need to revert to a point in time prior to establishing the SnapMirror active sync relationship. 
-
-.Before you begin
-
-* A zero RPO SnapMirror synchrnous relationship must exist between the primary and secondary cluster.
-* All LUNs on the destination volume must be unmapped before the zero RTO SnapMirror relationship can be created.
-* SnapMirror active sync only supports SAN protocols (not NFS/CIFS). Ensure no constituent of the consistency group is mounted for NAS access.
 
 .About this task
 
@@ -169,7 +163,14 @@ If you have an existing SnapMirror synchronous relationship between a source and
 * You cannot convert zero RPO to zero RTO sync by changing the SnapMirror policy.
 * You must ensure the LUNs are unmapped before issuing the `snapmirror create` command.
 +
-If existing LUNs on the secondary volume are mapped and the `AutomatedFailover` policy is configured, the `snapmirror create` will trigger an error. 
+If existing LUNs on the secondary volume are mapped and the `AutomatedFailover` policy is configured, the `snapmirror create` command triggers an error. 
+* This procedure create an asynchronous SnapMirror active sync configuration. Once you complete these steps, you can then <<Convert to a symmetric active/active relationship>>.
+
+.Before you begin
+
+* A zero RPO SnapMirror synchrnous relationship must exist between the primary and secondary cluster.
+* All LUNs on the destination volume must be unmapped before the zero RTO SnapMirror relationship can be created.
+* SnapMirror active sync only supports SAN protocols (not NFS/CIFS). Ensure no constituent of the consistency group is mounted for NAS access.
 
 .Steps
 
@@ -209,4 +210,5 @@ If existing LUNs on the secondary volume are mapped and the `AutomatedFailover` 
 
 . Rescan host LUN I/O paths to restore all paths to the LUNs.
 
+// 6 may 2024, ontapdoc-1478
 //BURTs 1443418 & 1443978, 9 Dec 2021
