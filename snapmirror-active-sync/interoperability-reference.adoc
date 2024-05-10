@@ -2,7 +2,7 @@
 sidebar: sidebar
 permalink: snapmirror-active-sync/interoperability-reference.html
 keywords: SM-BC, SMBC, restrictions, consistency group, endpoint limits, solaris, aix, hp-ux, fanout, snapmirror active sync
-summary: SnapMirror active sync is compatible with numerous operating systems and other features in ONTAP 
+summary: SnapMirror active sync is compatible with numerous operating systems and other features in ONTAP.
 ---
 = SnapMirror active sync interoperability
 :icons: font
@@ -10,9 +10,13 @@ summary: SnapMirror active sync is compatible with numerous operating systems an
 :imagesdir: ../media/
 
 [.lead]
-SnapMirror active sync is compatible with numerous operating systems and other features in ONTAP. Learn about details and recommended configurations. 
+SnapMirror active sync is compatible with numerous operating systems, application hosts, and other features in ONTAP.
 
-== Supported application hosts 
+== Application hosts
+
+SnapMirror active sync support applications hosts including Hyper-V, Red Hat Enterprise Linux (RHEL), VMware, VMware vSphere Metro Storage Cluster (vMSC), Windows Server, and, beginning with ONTAP 9.14.1, Windows Server Failover Cluster. 
+
+== Operating systems  
 
 SnapMirror active sync is supported with numerous operating systems, including: 
 
@@ -20,24 +24,7 @@ SnapMirror active sync is supported with numerous operating systems, including:
 * HP-UX (beginning ONTAP 9.10.1)
 * Solaris 11.4 (beginning ONTAP 9.10.1)
 
-=== Configuring applications 
-
-.Application host
-The supported host operating systems are stand-alone Microsoft Windows Server, stand-alone Red Hat Enterprise Linux (RHEL), and VMware vMSC. {EH: The IE and TME docs cover totally different OS?]
-
-.Protocols
-Using iSCSI and FC protocols, SnapMirror active sync protects LUNs (logical units) in SAN environments which appear as disk devices to physical or ESXi hosts.
-
-.Host connectivity
-The host-to-storage network connectivity can use either FC or Ethernet (iSCSI) connectivity.
-
-.Host access type
-The consistency group volumes can be accessed by the application hosts by using either uniform or nonuniform SAN connectivity. Uniform storage access configuration allows each host connectivity to both ONTAP clusters, whereas nonuniform storage configuration enables host connecting to just the local storage array. 
-
-.Multipathing
-SnapMirror active sync uses ALUA, a standard SCSI mechanism that allows an application host multipathing software with paths advertised with priorities and access availability for the application host communication with the storage array. ALUA marks active optimized paths to the controllers owning the LUN and others as active nonoptimized paths, used only if the primary path fails. 
-
-== AIX
+=== AIX
 
 Beginning with ONTAP 9.11.1, AIX is supported with SnapMirror active syn. With an AIX configuration, the primary cluster is the "active" cluster.
 
@@ -45,26 +32,26 @@ In an AIX configuration, failovers are disruptive. With each failover, you will 
 
 To configure for AIX host with SnapMirror active syn, refer to the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/How_to_configure_an_AIX_host_for_SnapMirror_Business_Continuity_(SM-BC)[How to configure an AIX host for SnapMirror active sync].
 
-== HP-UX
+=== HP-UX
 
 Beginning in ONTAP 9.10.1, SnapMirror active sync for HP-UX is supported.
 
-=== Limitations with HP-UX
+.Automatic unplanned failover with HP-UX
 
 An automatic unplanned failover (AUFO) event on the isolated master cluster may be caused by dual event failure when the connection between the primary and the secondary cluster is lost and the connection between the primary cluster and the mediator is also lost. This is considered a rare event, unlike other AUFO events.
 
 * In this scenario, it might take more than 120 seconds for I/O to resume on the HP-UX host. Depending on the applications that are running, this might not lead to any I/O disruption or error messages.
 * To remediate, you must restart applications on the HP-UX host that have a disruption tolerance of less than 120 seconds.
 
-== Solaris Host setting recommendation
+=== Solaris
 
 Beginning with ONTAP 9.10.1, SnapMirror active sync supports Solaris 11.4.
 
 To ensure the Solaris client applications are non-disruptive when an unplanned site failover switchover occurs in an SnapMirror active sync environment, modify the default Solaris OS settings. To configure Solaris with the recommended settings, see the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Protection_and_Security/SnapMirror/Solaris_Host_support_recommended_settings_in_SnapMirror_Business_Continuity_(SM-BC)_configuration[Solaris Host support recommended settings in SnapMirror active sync^].
 
-== Windows Failover Clustering
+== ONTAP interoperability 
 
-Beginning with ONTAP 9.14.1, Windows Failover Clustering is supported with SnapMirror active sync.
+SnapMirror active sync integrates with components of ONTAP to extends its data protection capabilities. 
 
 === FabricPool 
 
@@ -78,7 +65,9 @@ image:fanout-diagram.png[Diagram of a fan-out configuration]
 
 SnapMirror active sync supports xref:../data-protection/supported-deployment-config-concept.html[fan-out configurations] with the `MirrorAllSnapshots` policy and, beginning in ONTAP 9.11.1, the `MirrorAndVault` policy. Fan-out configurations are not supported in SnapMirror active sync with the `XDPDefault` policy. 
 
-Beginning with ONTAP 9.15.1, SnapMirror active sync supports automatic reconfiguration in the fan-out leg after failover. For information about managing your fan-out configuration in earlier releases of ONTAP, see xref:recover-unplanned-failover-task.adoc[resume protection in the fan-out configuration].
+Beginning with ONTAP 9.15.1, SnapMirror active sync supports automatic reconfiguration in the fan-out leg after a failover event. If the failover from the primary to the secondary site has succeeded, the tertiary site is automatically reconfigured to treat the secondary site as the source. Reconfiguration is triggered by either a planned or unplanned failover. Reconfiguration also occurs upon failback to the primary site. 
+
+For information about managing your fan-out configuration in earlier releases of ONTAP, see xref:recover-unplanned-failover-task.adoc[resume protection in the fan-out configuration].
 
 === NDMP restore
 
@@ -98,7 +87,7 @@ Beginning with ONTAP 9.11.1, xref:../data-protection/restore-single-file-snapsho
 .Partial file SnapRestore
 Beginning in ONTAP 9.12.1, link:../data-protection/restore-part-file-snapshot-task.html[partial LUN restore] is supported for SnapMirror active sync volumes. You can restore a data from application-created Snapshot copies that have been replicated between the SnapMirror active sync source (volume) and the destination (Snapshot copy) volumes. Partial LUN or file restore may be necessary if you need to restore a database on a host that stores multiple databases on the same LUN. Using this functionality requires you to know the starting byte offset of the data and byte count.
 
-== Large LUNs and large volumes
+=== Large LUNs and large volumes
 
 Support for large LUNs and large volumes (greater than 100 TB) depends on the version of ONTAP you are using and your platform. 
 
