@@ -1,73 +1,140 @@
 ---
-permalink: system-admin/requirements-autosupport-reference.html
 sidebar: sidebar
-keywords: requirements, autosupport, messages, http, smtp, https, configuration, support, protocols
-summary: "You must use HTTPS with TLSv1.2 or secure SMTP for delivery of AutoSupport messages to provide the best security and to support all of the latest AutoSupport features."
+permalink: system-admin/requirements-autosupport-reference.html
+keywords: requirements, autosupport, messages, http, https, smtp, smtps
+summary: You need to use HTTPS with TLSv1.2 or secure SMTP for delivery of AutoSupport messages to provide the best security and support the latest AutoSupport features.
 ---
-= Requirements for using AutoSupport
+= Prepare to use AutoSupport
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You must use HTTPS with TLSv1.2 or secure SMTP for delivery of AutoSupport messages to provide the best security and to support all of the latest AutoSupport features. AutoSupport messages delivered with any other protocol will be rejected. 
+You can configure an ONTAP cluster to deliver AutoSupport messages to NetApp. As part of this, you can also send a copy of the messages to local email addresses, typically within your organization. You should prepare to configure AutoSupport by reviewing the available options.
 
-== Supported protocols
+== Deliver AutoSupport messages to NetApp
 
-All of these protocols run on IPv4 or IPv6, based on the address family to which the name resolves.
+AutoSupport messages can be delivered to NetApp using either the HTTP or SMTP protocol. To improve security you can use TLS with HTTP. Beginning with ONTAP 9.15.1, you can also use TLS with SMTP.
 
-[options="header"]
-|===
-| Protocol and port| Description
-a|
-HTTPS on port 443
-a|
-This is the default protocol. You should use this whenever possible.
+[TIP]
+Use HTTP with TLS (HTTPS) whenever possible.
 
-This protocol supports AutoSupport OnDemand and uploads of large files.
+Also note the following:
 
-The certificate from the remote server is validated against the root certificate, unless you disable validation.
+* Only one delivery channel to NetApp can be configured for the AutoSupport messages. You cannot use two protocols to deliver AutoSupport messages to NetApp.
+* AutoSupport limits the maximum file size for each protocol. If the size of an AutoSupport message exceeds the configured limit, AutoSupport delivers as much of the message as possible but truncation will occur.
+* You can change the maximum file size if needed. See the command `system node autosupport modify` for more information.
+* Both protocols can be transported over IPv4 or IPv6 based on the address family to which the name resolves.
+* The TCP connection established by ONTAP to send AutoSupport messages is temporary and short-lived.
 
-The delivery uses an HTTPS PUT request. With PUT, if the request fails during transmission, the request restarts where it stopped. If the server receiving the request does not support PUT, the delivery uses an HTTPS POST request.
+=== HTTP
 
-a|
-HTTP on port 80
-a|
-This protocol is preferred over SMTP.
+This provides the most robust features. Note the following:
 
-This protocol supports uploads of large files, but not AutoSupport OnDemand.
+* AutoSupport OnDemand and the transfer of large files are supported.
+* An HTTP PUT request is attempted first. If the request fails during transmission, the request restarts where it stopped.
+* If the server does not support PUT, the HTTP POST method is used instead.
+* The default limit for HTTP transfers is 25 MB.
+* The unsecured HTTP protocol uses port 80. 
 
-The delivery uses an HTTPS PUT request. With PUT, if the request fails during transmission, the request restarts where it stopped. If the server receiving the request does not support PUT, the delivery uses an HTTPS POST request.
+=== SMTP
 
-a|
-SMTP on port 25 or another port
-a|
-You should use this protocol only if the network connection does not allow HTTPS.
+As a general rule, you should use SMTP only if HTTPS/HTTP is not allowed or unsupported for some reason. Note the following:
 
-The default port value is 25, but you can configure AutoSupport to use a different port.
+* AutoSupport OnDemand and transfers of large files are not supported.
+* If SMTP sign-in credentials are configured, they are sent unencrypted and in the clear.
+* The default limit for HTTP transfers is 5 MB.
+* The unsecured SMTP protocol uses port 25.
 
-Keep the following limitations in mind when using SMTP:
+=== Improve security with TLS
 
-* AutoSupport OnDemand and uploads of large files are not supported.
-* Data is not encrypted.
-+
-SMTP sends data in clear text, making text in the AutoSupport message easy to intercept and read.
-
-* Limitations on message length and line length can be introduced.
-
-|===
-If you configure AutoSupport with specific email addresses for your internal support organization, or a support partner organization, those messages are always sent by SMTP.
-
-For example, if you use the recommended protocol to send messages to technical support and you also want to send messages to your internal support organization, your messages will be transported using both HTTPS and SMTP, respectively.
-
-AutoSupport limits the maximum file size for each protocol. The default setting for HTTP and HTTPS transfers is 25 MB. The default setting for SMTP transfers is 5 MB. If the size of the AutoSupport message exceeds the configured limit, AutoSupport delivers as much of the message as possible. You can edit the maximum size by modifying AutoSupport configuration. See the `system node autosupport modify` man page for more information.
+When using either HTTP or SMTP, all traffic is unencrypted and can be easily intercepted and read. When using HTTP, you should always configure the protocol to also use TLS (HTTPS).
 
 [NOTE]
-AutoSupport automatically overrides the maximum file size limit for the HTTPS and HTTP protocols when you generate and send AutoSupport messages that upload core dump or performance archive files to the NetApp support site or a specified URI. The automatic override applies only when you upload files by using the `system node autosupport invoke-core-upload` or the `system node autosupport invoke-performance-archive` commands.
+Beginning with ONTAP 9.15.1 you can also use TLS with SMTP (SMTPS). In this case, _explicit TLS_ is used which activates the secure channel after the TCP connection is established.
 
-== Configuration requirements
+.Ports for secure protocols
 
-Depending on your network configuration, the HTTPS protocol may require additional configuration of a proxy URL. If HTTPS to send AutoSupport messages to technical support and you have a proxy, you must identify the URL for that proxy. If the proxy uses a port other than the default port, which is 3128, you can specify the port for that proxy. You can also specify a user name and password for proxy authentication.
+The following ports are typically used for the secure versions of these protocols:
 
-If you use SMTP to send AutoSupport messages either to your internal support organization or to technical support, you must configure an external mail server. The storage system does not function as a mail server; it requires an external mail server at your site to send mail. The mail server must be a host that listens on the SMTP port (25) or another port, and it must be configured to send and receive 8-bit Multipurpose Internet Mail Extensions (MIME) encoding. Example mail hosts include a UNIX host running an SMTP server such as the sendmail program and a Windows server running the Microsoft Exchange server. You can have one or more mail hosts.
+* HTTPS - port 443
+* SMTPS - port 587
 
+.Certificate validation
+
+With TLS, the certificate downloaded from the server is validated by ONTAP based on the root CA certificate. Before using HTTPS or SMTPS, you need to make sure the root certificate is installed in ONTAP. See <<Install the server certificate>> for more information.
+
+// link:requirements-autosupport-reference.html#install-the-server-certificate[Install the server certificate]
+
+== Additional configuration considerations
+
+There are a few additional considerations when configuring AutoSupport.
+
+=== Sending a local copy using email
+
+Regardless of the protocol used to deliver AutoSupport messages to NetApp, you can also send a copy of each message to one or more local email addresses. For example, you might send messages to your internal support organization or a partner organization.
+
+[NOTE]
+If you deliver messages to NetApp using SMTP (or SMTPS) and you also send local email copies of those messages, the same email server configuration is used.
+
+=== HTTP proxy
+
+Depending on your network configuration, the HTTPS protocol may require additional configuration of a proxy URL. If HTTPS is used to send AutoSupport messages to technical support and you have a proxy, you must identify the URL for the proxy. If the proxy uses a port other than the default (port 3128) you can specify the port for that proxy. You can also optionally specify a user name and password for proxy authentication.
+
+== Install the server certificate
+
+If you use TLS (HTTPS or SMTPS), you need to make sure ONTAP can validate the server certificate. This validation is performed based on the CA that signed the server certificate.
+
+ONTAP includes a large number of pre-installed root CA certificates. So in many cases, the certificate for your server will be immediately recognized by ONTAP without additional configuration. But depending on how the server certificate was signed, you may need to install a root CA certificate and any intermediate certificates.
+
+Follow the instructions provided below to install the certificate if needed. You should install all the required certificates at the cluster level.
+
+.Steps
+
+// Start tabbed area -----------------------------------------------------------
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+. In System Manager, select *Cluster* > *Settings*.
+. Scroll down to the *Security* section.
+. Select image:icon_arrow.gif[right arrow] next to *Certificates*.
+. Under the *Trusted certificate authorities* tab click *Add*.
+. Click *Import* and select the certificate file.
+. Complete the configuration parameters for your environment.
+. Click *Add*.
+
+--
+.CLI
+--
+
+. Begin the installation:
++
+`security certificate install -type server-ca`
+
+. Look for the following console message:
++
+`Please enter Certificate: Press <Enter> when done`
+
+. Open the certificate file with a text editor.
+. Copy the entire certificate including the following lines:
++
+`-----BEGIN CERTIFICATE-----`
++
+`-----END CERTIFICATE-----`
+
+. Paste the certificate into the terminal after the command prompt.
+. Press *Enter* to complete the installation.
+. Confirm the certificate is installed using one of the following:
++
+`security certificate show-user-installed`
++
+`security certificate show`
+
+--
+
+====
+// End tabbed area -------------------------------------------------------------
+
+// 2024 May 17, ONTAP 9.15.1
 // 16 june 2023, ONTAPDOC-1094
