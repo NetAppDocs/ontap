@@ -1,0 +1,168 @@
+---
+sidebar: sidebar
+permalink: snapmirror-active-sync/protect-task.html
+keywords: SM-BC, snapmirror business continuity, consistency group, remote protection, destination
+summary: Configuring protection for business continuity involves selecting LUNs on the ONTAP source cluster and adding them to a consistency group.
+---
+
+= Protect with SnapMirror active sync
+:toclevels: 1
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+SnapMirror active sync offers asymmetric protection and, beginning with ONTAP 9.15.1, symmetric active/active protection. 
+
+== Configure asymmetric protection 
+
+Configuring asymmetric protection using SnapMirror active sync involves selecting LUNs on the ONTAP source cluster and adding them to a consistency group. 
+
+.Before you begin
+
+* You must have a SnapMirror synchronous license.
+* You must be a cluster or storage VM administrator.
+* All constituent volumes in a consistency group must be in a single storage VM (SVM).
+** LUNs can reside on different volumes.
+* The source and destination cluster cannot be the same.
+* You cannot establish SnapMirror active sync consistency group relationships across ASA clusters and non-ASA clusters.
+* The default IPspace is required by SnapMirror active sync for cluster peer relationships. Custom IPspace is not supported.
+* The name of the consistency group must be unique.
+* The volumes on the secondary (destination) cluster must be type DP.
+* The primary and the secondary SVMs must be in a peered relationship.
+
+.Steps 
+
+You can configure a consistency group using the ONTAP CLI or System Manager. 
+
+Beginning in ONTAP 9.10.1, ONTAP offers a consistency group endpoint and menu in System Manager, offering additional management utilities. If you are using ONTAP 9.10.1 or later, see link:../consistency-groups/configure-task.html[Configure a consistency group] then link:../consistency-groups/protect-task.html[configure protection] to create an SnapMirror active sync relationship. 
+
+include::../_include/snapmirror-active-sync-name.adoc[]
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. On the primary cluster, navigate to *Protection > Overview > Protect for Business Continuity > Protect LUNs*.
+. Select the LUNs you want to protect and add them to a protection group.
+. Select the destination cluster and SVM.
+. *Initialize relationship* is selected by default. Click *Save* to begin protection.
+. Go to *Dashboard > Performance* to verify IOPS activity for the LUNs.
+. On the destination cluster, use System Manager to verify that the protection for business continuity relationship is in sync: *Protection > Relationships*.
+--
+
+.CLI
+--
+. Create a consistency group relationship from the destination cluster.
+`destination::> snapmirror create -source-path _source-path_ -destination-path _destination-path_ -cg-item-mappings _volume-paths_ -policy _policy-name_`
++
+You can map up to 12 constituent volumes using the `cg-item-mappings` parameter on the `snapmirror create` command. 
++
+The following example creates two consistency groups: `cg_src_ on the source with `vol1` and `vol2` and a mirrored destination consistency group, `cg_dst`.
++
+`destination::> snapmirror create -source-path vs1_src:/cg/cg_src -destination-path vs1_dst:/cg/cg_dst -cg-item-mappings vol_src1:@vol_dst1,vol_src2:@vol_dst2 -policy AutomatedFailOver`
+. From the destination cluster, initialize the consistency group.
++
+`destination::>snapmirror initialize -destination-path _destination-consistency-group_`
+. Confirm that the initialization operation completed successfully. The status should be `InSync`.
++
+`snapmirror show`
+. On each cluster, create an igroup so you can map LUNs to the initiator on the application host.
+`lun igroup create -igroup _name_ -protocol _fcp|iscsi_ -ostype _os_ -initiator _initiator_name_`
++
+. On each cluster, map LUNs to the igroup:
++
+`lun map -path _path_name_ -igroup _igroup_name_`
+. Verify the LUN mapping completed successfully with the `lun map` command. Then, you can discover the new LUNs on the application host. 
+
+--
+====
+
+== Configure symmetric active/active protection 
+
+You can establish symmetric protection using System Manager or the ONTAP CLI. In both interfaces, there are different steps for xref:index.html#key-concepts[uniform and non-uniform configurations]. 
+
+.Before you begin
+
+* Both clusters must be running ONTAP 9.15.1 or later.
+* Symmetric active/active configurations require the `AutomatedFailoverDuplex` protection policy. Alternately, you can xref:../data-protection/create-custom-replication-policy-concept.html[create a custom SnapMirror policy] provided the `-type` is `automated-failover-duplex`.
+
+.Steps
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Steps for a uniform configuration
+. On the primary site, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes[create a consistency group using new LUNs.^]
+.. When creating the consistency group, specify host initiators to create igroups.
+.. Select the checkbox to **Enable SnapMirror** then choose the `AutomatedFailoverDuplex` policy.
+.. In the dialog box that appears, select  the **Replicate initiator groups** checkbox to replicate igroups. In **Edit proximal settings**, set proximal SVMs for your hosts.
+.. Select **Save**.
+
+
+.Steps for a non-uniform configuration
+. On the primary site, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes[create a consistency group using new LUNs.^]
+.. When creating the consistency group, specify host initiators to create igroups.
+.. Select the checkbox to **Enable SnapMirror** then choose the `AutomatedFailoverDuplex` policy.
+.. Select **Save** to create the LUNs, consistency group, igroup, SnapMirror relationship, and igroup mapping. 
+. On the secondary site, create an igroup and map the LUNs. 
+.. Navigate to **Hosts** > **SAN Initiator Groups**. 
+.. Select **+Add** to create a new igroup.
+.. Provide a **Name**, select the **Host Operating System**, then choose **Initiator Group Members**.
+.. Select **Save**.
+. Map the new igroup to the destination LUNs. 
+.. Navigate to **Storage** > **LUNs**.
+.. Select all the LUNs to map to the igroup.
+.. Select **More** then **Map to Initiator Groups**. 
+--
+
+.CLI
+--
+.Steps for a uniform configuration 
+. Create a new SnapMirror relationship grouping all the volumes in the application. Ensure you designate the `AutomatedFailOverDuplex`" policy to establish bidirectional sync replication.
++
+`snapmirror create -source-path _source_path_ -destination-path _destination_path_ -cg-item-mappings _source_volume:@destination_volume_ -policy AutomatedFailOverDuplex`
+. Confirm the operation has succeeded by waiting for the `Mirrored State` to show as `SnapMirrored` and the `Relationship Status` as `Insync`.
++
+`snapmirror show -destination-path _destination_path_`
+. On your host, configure host connectivity with access to each cluster according to your needs. 
+. Establish the igroup configuration. Set the preferred paths for initiators on the local cluster. Specify the option to replicate the configuration to the peer cluster inverse affinity. 
++
+----
+SiteA::> igroup create -vserver _svm_name_ -igroup _igroup_name_ -replication-peer _peer_svm_name_ -initiators _host_ -proximal-vserver local
+
+SiteA::> igroup add -vserver _svm_name_ -igroup _igroup_name_ -initiators _host_ -proximal-vserver _peer_svm_
+----
+. From the host, discover the paths and verify the hosts have an active/optimized path to the storage LUN from the preferred cluster. 
+. Deploy the application and distribute the VM workloads across clusters to achieve the required load balancing. 
+
+.Steps for a non-uniform configuration 
+. Create a new SnapMirror relationship grouping all the volumes in the application. Ensure you designate the `AutomatedFailOverDuplex`" policy to establish bidirectional sync replication.
++
+`snapmirror create -source-path _source_path_ -destination-path _destination_path_ -cg-item-mappings _source_volume:@destination_volume_ -policy AutomatedFailOverDuplex`
+. Confirm the operation has succeeded by waiting for the `Mirrored State` to show as `SnapMirrored` and the `Relationship Status` as `Insync`.
++
+`snapmirror show -destination-path _destination_path_`
+. On your host, configure host connectivity with access to each cluster according to your needs. 
+. Establish the igroup configurations on both the source and destination clusters.
++
+----
+# primary site
+SiteA::> igroup create -vserver _svm_name_ -igroup _igroup_name_ -initiators _host_1_name_
+ 
+# secondary site
+SiteB::> igroup create -vserver _svm_name_ -igroup _igroup_name_ -initiators _host_2_name_
+----
++
+. From the host, discover the paths and verify the hosts have an active/optimized path to the storage LUN from the preferred cluster. 
+. Deploy the application and distribute the VM workloads across clusters to achieve the required load balancing. 
+--
+====
+
+// 6 may 2024, ontapdoc-1478
+// ontapdoc-883, 7 march 2023
+//2Oct2020, BURT 1318823
+//16nov2021, BURT 1436974 
