@@ -2,7 +2,7 @@
 permalink: consistency-groups/protect-task.html
 sidebar: sidebar
 keywords: application protection, two-phase commit, 2 phase, smbc, async snapmirror, local, remote, snapshot, asynchronous, svm disaster recovery, snapmirror
-summary: "Use consistency groups to protect data using local Snapshots, Asynchronous SnapMirror, SM-BC, and SVM disaster recovery." 
+summary: "Use consistency groups to protect data using local Snapshots, Asynchronous SnapMirror, SnapMirror active sync, and SVM disaster recovery." 
 ---
 = Protect consistency groups
 :icons: font
@@ -15,9 +15,9 @@ Consistency groups offer easily managed local and remote protection for SAN, NAS
 Creating a consistency group does not automatically enable protection. Protection policies can be set at the time of creation or after creating your consistency group. You can protect consistency groups using:
 
 * Local Snapshot copies
-* SnapMirror Business Continuity (SM-BC)
+* SnapMirror active sync (referred to as SnapMirror Business Continuity in versions of ONTAP before 9.15.1)
 * xref:index.html#mcc[MetroCluster (beginning 9.11.1)]
-* Asynchronous SnapMirror (beginning 9.13.1)
+* SnapMirror asynchronous (beginning 9.13.1)
 * Asynchronous SVM disaster recovery (beginning 9.14.1)
 
 If you are utilizing nested consistency groups, you can set different protection policies for the parent and child consistency groups.
@@ -52,6 +52,8 @@ include::../_include/consistency-group-snapshot-minimum.adoc[]
 --
 Beginning with ONTAP 9.14.1, you can modify the protection policy of a consistency group using the CLI.
 
+include::../_include/consistency-group-cli.adoc[]
+
 .Step
 . Issue the following command to set or modify the protection policy:
 +
@@ -80,6 +82,8 @@ If you need to create a Snapshot copy of your consistency group outside of a nor
 .CLI
 --
 Beginning with ONTAP 9.14.1, you can create an on-demand Snapshot copy of a consistency group using the CLI. 
+
+include::../_include/consistency-group-cli.adoc[]
 
 .Step
 . Create the Snapshot copy:
@@ -118,6 +122,8 @@ If you invoke the Snapshot creation with the API, you must commit the Snapshot c
 .CLI
 --
 Beginning with ONTAP 9.14.1, you can create a two-phase Snapshot copy using the CLI. 
+
+include::../_include/consistency-group-cli.adoc[]
 
 .Steps
 . Initiate the Snapshot:
@@ -159,26 +165,26 @@ For more information about the ONTAP REST API, see link:https://docs.netapp.com/
 
 == Set remote protection for a consistency group
 
-Consistency groups offer remote protection through SM-BC and, Beginning with ONTAP 9.13.1, asynchronous SnapMirror.
+Consistency groups offer remote protection through SnapMirror active sync and, beginning with ONTAP 9.13.1, asynchronous SnapMirror.
 
-=== Configure protection with SM-BC
+=== Configure protection with SnapMirror active sync
 
-You can utilize SM-BC to ensure Snapshot copies of consistency groups created on your consistency group are copied to the destination. To learn more about SM-BC or how to configure SM-BC using the CLI, see xref:../task_san_configure_protection_for_business_continuity.html[Configure protection for business continuity].
+You can utilize SnapMirror active sync to ensure Snapshot copies of consistency groups created on your consistency group are copied to the destination. To learn more about SnapMirror active sync or how to configure SnapMirror active sync using the CLI, see xref:../task_san_configure_protection_for_business_continuity.html[Configure protection for business continuity].
 
 .Before you begin
-* SM-BC relationships cannot be established on volumes mounted for NAS access.
+* SnapMirror active sync relationships cannot be established on volumes mounted for NAS access.
 * The policy labels in the source and destination cluster must match.
-* SM-BC will not replicate Snapshot copies by default unless a rule with a SnapMirror label is added to the predefined `AutomatedFailOver` policy and the Snapshot copies are created with that label.
+* SnapMirror active sync will not replicate Snapshot copies by default unless a rule with a SnapMirror label is added to the predefined `AutomatedFailOver` policy and the Snapshot copies are created with that label.
 +
-To learn more about this process, refer to link:../task_san_configure_protection_for_business_continuity.html[Protect with SM-BC].
-* xref:../data-protection/supported-deployment-config-concept.html[Cascade deployments] are not supported with SM-BC. 
-* Beginning with ONTAP 9.13.1, you can non-disruptively xref:modify-task.html#add-volumes-to-a-consistency-group[add volumes to a consistency group] with an active SM-BC relationship. Any other changes to a consistency group require you to break the SM-BC relationship, modify the consistency group, then reestablish and resynchronize the relationship. 
+To learn more about this process, refer to link:../task_san_configure_protection_for_business_continuity.html[Protect with SnapMirror active sync].
+* xref:../data-protection/supported-deployment-config-concept.html[Cascade deployments] are not supported with SnapMirror active sync. 
+* Beginning with ONTAP 9.13.1, you can non-disruptively xref:modify-task.html#add-volumes-to-a-consistency-group[add volumes to a consistency group] with an active SnapMirror active sync relationship. Any other changes to a consistency group require you to break the SnapMirror active sync relationship, modify the consistency group, then reestablish and resynchronize the relationship. 
 
 [TIP]
-To configure SM-BC with the CLI, see xref:../task_san_configure_protection_for_business_continuity.html[Protect with SM-BC].
+To configure SnapMirror active sync with the CLI, see xref:../task_san_configure_protection_for_business_continuity.html[Protect with SnapMirror active sync].
 
 .Steps for System Manager
-. Ensure you have met the link:../smbc/smbc_plan_prerequisites.html[prerequisites for using SM-BC].
+. Ensure you have met the link:../snapmirror-active-sync/prerequisites-reference.html[prerequisites for using SnapMirror active sync].
 . Select *Storage > Consistency groups*.
 . Select the consistency group you have created from the Consistency group menu.
 . At the top right of the overview page, select *More* then *Protect*.
@@ -186,9 +192,9 @@ To configure SM-BC with the CLI, see xref:../task_san_configure_protection_for_b
 . Select *Save*.
 . The consistency group needs to initialize and synchronize. Confirm synchronization has completed successfully by returning to the *Consistency group* menu. The *SnapMirror (Remote)* status displays `Protected` next to image:../media/icon_shield.png[alt=green shield icon].
 
-=== Configure asynchronous SnapMirror protection
+=== Configure SnapMirror asynchronous protection
 
-Beginning with ONTAP 9.13.1, you can configure asynchronous SnapMirror protection for a single consistency group. Beginning with ONTAP 9.14.1, you can use asynchronous SnapMirror to replicate volume-granular Snapshot copies to the destination cluster using the consistency group relationship. 
+Beginning with ONTAP 9.13.1, you can configure SnapMirror asynchronous protection for a single consistency group. Beginning with ONTAP 9.14.1, you can use SnapMirror asynchronous to replicate volume-granular Snapshot copies to the destination cluster using the consistency group relationship. 
 
 .About this task
 
@@ -197,10 +203,11 @@ To replicate volume-granular Snapshot copies, you must be running ONTAP 9.14.1 o
 When resynchronizing the SnapMirror relationship with volume-granular Snapshot copies, you can preserve volume-granular Snapshot copies with the `-preserve` flag. Volume-granular Snapshot copies newer than consistency group Snapshot copies are preserved. If there is not a consistency group Snapshot copy, no volume-granular Snapshot copies can be transferred in the resync operation. 
 
 .Before you begin
-* Asynchronous SnapMirror protection is only available for single consistency groups. It is not supported for hierarchical consistency groups. To convert a hierarchical consistency group into a single consistency group, see xref:modify-geometry-task.html[modify consistency group architecture].
+* SnapMirror asynchronous protection is only available for a single consistency group. It is not supported for hierarchical consistency groups. To convert a hierarchical consistency group into a single consistency group, see xref:modify-geometry-task.html[modify consistency group architecture].
 * The policy labels in the source and destination cluster must match.
-* You can non-disruptively xref:modify-task.html#add-volumes-to-a-consistency-group[add volumes to a consistency group] with an active asynchronous SnapMirror relationship. Any other changes to a consistency group require you to break the SnapMirror relationship, modify the consistency group, then reestablish and resynchronize the relationship. 
-* If you have configured an asynchronous SnapMirror protection relationship for multiple individual volumes, you can convert those volumes into a consistency group while retaining the existing Snapshot copies. To convert volumes successfully:
+* You can non-disruptively xref:modify-task.html#add-volumes-to-a-consistency-group[add volumes to a consistency group] with an active SnapMirror asynchronous relationship. Any other changes to a consistency group require you to break the SnapMirror relationship, modify the consistency group, then reestablish and resynchronize the relationship. 
+* Consistency groups enabled for protection with SnapMirror asynchronous have different limits. For more information, see xref:limits.html[Consistency group limits].
+* If you have configured an SnapMirror asynchronous protection relationship for multiple individual volumes, you can convert those volumes into a consistency group while retaining the existing Snapshot copies. To convert volumes successfully:
 ** There must be a common Snapshot copy of the volumes.
 ** You must break the existing SnapMirror relationship, xref:configure-task.html[add the volumes to a single consistency group], then resynchronize the relationship using the following workflow.  
 
@@ -213,7 +220,7 @@ When resynchronizing the SnapMirror relationship with volume-granular Snapshot c
 When selecting an asynchronous policy, you have the option to **Override Transfer Schedule**. 
 +
 [NOTE]
-The minimum supported schedule (recovery point objective, or RPO) for consistency groups with asynchronous SnapMirror is 30 minutes.
+The minimum supported schedule (recovery point objective, or RPO) for consistency groups with SnapMirror asynchronous is 30 minutes.
 
 . Select *Save*.
 . The consistency group needs to initialize and synchronize. Confirm synchronization has completed successfully by returning to the *Consistency group* menu. The *SnapMirror (Remote)* status displays `Protected` next to image:../media/icon_shield.png[alt=green shield icon].
@@ -228,7 +235,7 @@ If you are adding a consistency group to an SVM that is in an active and healthy
 
 .Limitations 
 * SVM disaster recovery does not support hierarchical consistency groups. 
-* SVM disaster recovery does not support consistency groups protected with Asynchronous SnapMirror. You must break the SnapMirror relationship before configuring SVM disaster recovery. 
+* SVM disaster recovery does not support consistency groups protected with SnapMirror asynchronous. You must break the SnapMirror relationship before configuring SVM disaster recovery. 
 * Both clusters must be running ONTAP 9.14.1 or later.
 * Fan-out relationships are not supported for SVM disaster recovery configurations that contain consistency groups. 
 * For other limits, see xref:limits.html[consistency group limits].
@@ -243,11 +250,13 @@ System Manager visualizes LUN maps under the *Protection > Relationships* menu. 
 * link:../task_dp_create_custom_data_protection_policies.html[Create custom data protection policies] 
 * link:../task_dp_recover_snapshot.html[Recover from Snapshot copies] 
 * link:../task_dp_restore_from_vault.html[Restore a volume from an earlier Snapshot copy]
-* link:../smbc/index.html[SM-BC overview]
+* link:../snapmirror-active-sync/index.html[SnapMirror active sync overview]
 * link:https://docs.netapp.com/us-en/ontap-automation/[ONTAP Automation documentation^]
-* xref:../data-protection/snapmirror-disaster-recovery-concept.html[Asynchronous SnapMirror disaster recovery basics]
+* xref:../data-protection/snapmirror-disaster-recovery-concept.html[SnapMirror asynchronous disaster recovery basics]
 
 
+// 2024 april 26, ontapdoc-1659
+// 30 april 2024, ONTAPDOC-1539
 // 5 oct 2023, ontapdoc-1280, ontapdoc-1404, burt 155678
 // 16 august 2023, BURT 1556718
 // BURT 1556718, 9 june 2023

@@ -2,14 +2,22 @@
 permalink: nas-audit/requirements-best-practices-fpolicy-concept.html
 sidebar: sidebar
 keywords: requirements, considerations, best practices, configure, fpolicy
-summary: "Before you create and configure FPolicy configurations on your storage virtual machines (SVMs), you need to be aware of certain requirements, considerations, and best practices for configuring FPolicy."
+summary: "Before you create and configure FPolicy configurations on your SVMs, you need to be aware of certain requirements, considerations, and best practices."
 ---
 = Requirements, considerations, and best practices for configuring FPolicy
 :icons: font
 :imagesdir: ../media/
 
+// 15-April-2024 ONTAPDOC-1605
+// 20 OCT 2023, ONTAPDOC-1344 updates
+// 17 OCT 2023, ONTAPDOC-1344
+// 2023 May 23, ontap-issues-860
+// 2022 Dec 05, Jira ONTAPDOC-722
+// 2022 Oct 10, BURT 1495284 
+// 2022 Feb 04, BURT 1451789
+
 [.lead]
-Before you create and configure FPolicy configurations on your SVMs, you need to be aware of certain requirements, considerations, and best practices for configuring FPolicy.
+Before you create and configure FPolicy configurations on your storage virtual machines (SVMs), you need to be aware of certain requirements, considerations, and best practices for configuring FPolicy.
 
 FPolicy features are configured either through the command line interface (CLI) or through REST APIs.
 
@@ -34,13 +42,61 @@ Privileged data access is accomplished using SMB connections.
  ** All data LIFs used to communicate with the FPolicy servers must be configured to have `cifs` as one of the allowed protocols.
 +
 This includes the LIFs used for passthrough-read connections.
-+
-* Beginning with ONTAP 9.14.1, FPolicy allows you to set up a persistent store to capture file access events for asynchronous non-mandatory policies in the SVM. Persistent stores can help decouple client I/O processing from FPolicy notification processing to reduce client latency. Synchronous (mandatory or non-mandatory) and asynchronous mandatory configurations are not supported.
 
 == Best practices and recommendations when setting up FPolicy
 When setting up FPolicy on storage virtual machines (SVMs), get familiar with the general configuration best practices and recommendations to ensure that your FPolicy configuration provides robust monitoring performance and results that meet your requirements.
 
 For specific guidelines related to performance, sizing, and configuration, work with your FPolicy partner application.
+
+=== Persistent stores 
+
+Beginning with ONTAP 9.14.1, FPolicy allows you to set up a persistent store to capture file access events for asynchronous non-mandatory policies in the SVM. Persistent stores can help decouple client I/O processing from FPolicy notification processing to reduce client latency. Synchronous (either mandatory or non-mandatory) and asynchronous mandatory configurations are not supported.
+
+* Before using the persistent store functionality, ensure your partner applications support this configuration.
+
+* You need one persistent store for each SVM where FPolicy is enabled.
+
+** Only one persistent store can be set up on each SVM. This single persistent store needs to be used for all FPolicy configurations on that SVM, even if the policies are from different partners.
+
+* ONTAP 9.15.1 or later:
+
+** The persistent store, its volume, and its volume configuration is handled automatically when you create the persistent store.
+
+* ONTAP 9.14.1:
+
+** The persistent store, its volume, and its volume configuration is handled manually.
+
+* Create the persistent store volume on the node with LIFs that expect maximum traffic to be monitored by FPolicy.
+
+** ONTAP 9.15.1 or later: Volumes are automatically created and configured during persistent store creation.
+
+** ONTAP 9.14.1: Cluster administrators need to create and configure a volume for the persistent store on each SVM where FPolicy is enabled.
+
+* If the notifications accumulated in the persistent store exceed the size of the volume provisioned, FPolicy starts dropping the incoming notification with appropriate EMS messages.
+
+** ONTAP 9.15.1 or later: In addition to the `size` parameter, the `autosize-mode` parameter can help the volume grow or shrink in response to the amount of used space.
+
+** ONTAP 9.14.1: The `size` parameter is configured during volume creation to provide a maximum limit.
+
+* Set the snapshot policy to `none` for the persistent store volume instead of `default`. This is to ensure that there is no accidental restore of the snapshot leading to loss of current events and to prevent possible duplicate event processing.
+
+** ONTAP 9.15.1 or later: The `snapshot-policy` parameter is automatically configured to none during persistent store creation.
+
+** ONTAP 9.14.1: The `snapshot-policy` parameter is configured to `none` during volume creation.
+
+* Make the persistent store volume inaccessible for external user protocol access (CIFS/NFS) to avoid accidental corruption or deletion of the persisted event records.
+
+** ONTAP 9.15.1 or later: ONTAP automatically blocks the volume from external user protocol access (CIFS/NFS) during persistent store creation.
+
+** ONTAP 9.14.1: After enabling FPolicy, unmount the volume in ONTAP to remove the junction path. This makes it inaccessible for external user protocol access (CIFS/NFS).
+
+For more information, refer to link:persistent-stores.html[FPolicy persistent stores] and link:create-persistent-stores.html[Create persistent stores].
+
+==== Persistent store failover and giveback
+
+The persistent store remains as it was when the last event was received, when there is an unexpected reboot, or FPolicy is disabled and enabled again. After a takeover operation, new events are stored and processed by the partner node. After a giveback operation, the persistent store resumes processing any unprocessed events that might remain from when the node takeover occurred. Live events would be given priority over unprocessed events.
+
+If the persistent store volume moves from one node to another in the same SVM, the notifications that are yet to be processed also move to the new node. You need to re-run the `fpolicy persistent-store create` command on either node after the volume is moved to ensure the pending notifications are delivered to the external server.
 
 === Policy configuration 
 Configuration of the FPolicy external engine, events, and scope for SVMs can improve your overall experience and security.
@@ -175,9 +231,3 @@ Before reverting to a version of ONTAP that does not support FPolicy passthrough
 
 Before reverting to a version of ONTAP that does not support persistent stores, ensure that none of the Fpolicy policies have a configured persistent store. If a persistent store is configured, the revert will fail.
 
-// 20 OCT 2023, ONTAPDOC-1344 updates
-// 17 OCT 2023, ONTAPDOC-1344
-// 2023 May 23, ontap-issues-860
-// 2022 Dec 05, Jira ONTAPDOC-722
-// 2022 Oct 10, BURT 1495284 
-// 2022 Feb 04, BURT 1451789
