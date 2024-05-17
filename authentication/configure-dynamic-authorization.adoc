@@ -1,0 +1,329 @@
+---
+permalink: authentication/configure-dynamic-authorization.html
+sidebar: sidebar
+keywords: dynamic, authorization, framework, security, login, ssh
+summary: "Configure the dynamic authorization Framework to increase security of SSH logins and restrict execution of certain commands under suspicious circumstances."
+---
+= Customize dynamic authorization
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+As an administrator, you can customize different aspects of your dynamic authorization configuration to increase the security of remote administrator SSH connections to your ONTAP cluster.
+
+You can customize the following dynamic authorization settings depending on your security needs:
+
+* <<Configure dynamic authorization global settings>>
+* <<Configure dynamic authorization trust score components>>
+* <<Configure a custom trust score provider>>
+* <<Configure restricted commands>>
+* <<Configure dynamic authorization groups>>
+
+== Configure dynamic authorization global settings
+You can configure global settings for dynamic authorization, including the storage VM to secure, the suppression interval for authentication challenges, and the trust score settings. 
+
+//For more information about the parameters and default values for the `security dynamic-authorization modify` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-modify.html[ONTAP manual pages^].
+
+For more information about the parameters and default values for the `security dynamic-authorization modify` command, refer to the ONTAP manual pages.
+
+.Steps
+
+. Configure global settings for dynamic authorization. If you don't use the `-vserver` parameter, the command is run at the cluster level. Update the values in brackets <> to match your environment:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization modify \
+-lower-challenge-boundary <percent> \
+-upper-challenge-boundary <percent> \
+-suppression-interval <interval> \
+-vserver <storage_VM_name>
+----
+. View the resulting configuration: 
++
+[source,console]
+----
+security dynamic-authorization show 
+----
+
+== Configure restricted commands
+When you enable dynamic authorization, the feature includes a default set of restricted commands. You can modify this list to suit your needs. Refer to the link:../multi-admin-verify/index.html[multi-admin verification (MAV) documentation] for information on the default list of restricted commands.
+
+=== Add a restricted command
+You can add a command to the list of commands that are restricted with dynamic authorization.
+
+//For more information about the parameters and default values for the `security dynamic-authorization rule create` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-rule-create.html[ONTAP manual pages^].
+
+For more information about the parameters and default values for the `security dynamic-authorization rule create` command, refer to the ONTAP manual pages.
+
+.Steps
+
+. Add the command. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization rule create \
+-query <query> \
+*-operation <text>* \
+-index <integer> \
+-vserver <storage_VM_name>
+----
+
+. View the resulting list of restricted commands:
++
+[source,console]
+----
+security dynamic-authorization rule show
+----
+
+=== Remove a restricted command
+You can remove a command from the list of commands that are restricted with dynamic authorization.
+
+//For more information about the parameters and default values for the `security dynamic-authorization rule delete` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-rule-delete.html[ONTAP manual pages^].
+
+For more information about the parameters and default values for the `security dynamic-authorization rule delete` command, refer to the ONTAP manual pages.
+
+.Steps
+
+. Remove the command. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization rule delete \
+*-operation <text>* \
+-vserver <storage_VM_name>
+----
+. View the resulting list of restricted commands:
++
+[source,console]
+----
+security dynamic-authorization rule show
+----
+
+== Configure dynamic authorization groups
+By default, dynamic authorization applies to all users and groups as soon as you enable it. However, you can create groups using the `security dynamic-authorization group create` command, so that dynamic authorization only applies to those specific users.
+
+=== Add a dynamic authorization group
+You can add a dynamic authorization group.
+
+//For more information about the parameters and default values for the `security dynamic-authorization group create` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-group-create.html[ONTAP manual pages^].
+
+For more information about the parameters and default values for the `security dynamic-authorization group create` command, refer to the ONTAP manual pages.
+
+.Steps
+
+. Create the group. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization group create \
+*-group-name <group-name>* \
+-vserver <storage_VM_name> \
+-exclude-users <user1,user2,user3...>
+
+----
+. View the resulting dynamic authorization groups:
++
+[source,console]
+----
+security dynamic-authorization group show
+----
+
+=== Remove a dynamic authorization group
+You can remove a dynamic authorization group.
+
+.Steps
+
+. Delete the group. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization group delete \
+*-group-name <group-name>* \
+-vserver <storage_VM_name>
+----
+. View the resulting dynamic authorization groups:
++
+[source,console]
+----
+security dynamic-authorization group show
+----
+
+== Configure dynamic authorization trust score components
+You can configure the maximum score weight to change priority of scoring criteria or to remove certain criteria from risk scoring.
+
+NOTE: As a best practice, you should leave the default score weight values in place, and only adjust them if needed.
+
+//For more information about the parameters and default values for the `security dynamic-authorization trust-score-component modify` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-trust-score-component-modify.html[ONTAP manual pages^].
+
+For more information about the parameters and default values for the `security dynamic-authorization trust-score-component modify` command, refer to the ONTAP manual pages.
+
+The following are the components that you can modify, along with their default score and percentage weights:
+[cols="4*"]
+|===
+h|Criteria h|Component name h|Default raw score weight h|Default percentage weight
+
+// |Geolocation
+// |20
+// |20
+
+// |Access time
+// |20
+// |20
+
+|Trusted device
+|`trusted-device`
+|20
+|50
+
+|User login authentication history
+|`authentication-history`
+|20
+|50
+
+// |History of user authorization failures
+// |20
+// |20
+
+// a|*Total score*
+// |100
+// |100
+
+|===
+
+// NOTE: In ONTAP 9.15.1, the "Geolocation", "Access time", and "History of user authentication failures" criteria have no effect.
+
+.Steps
+
+. Modify trust score components. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required: 
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization trust-score-component modify \
+*-component <component-name>* \
+*-weight <integer>* \
+-vserver <storage_VM_name>
+----
+. View the resulting trust score component settings: 
++
+[source,console]
+----
+security dynamic-authorization trust-score-component show 
+----
+
+=== Reset the trust score for a user
+If a user is denied access due to system policies and is able to prove their identity, the administrator can reset the user's trust score. 
+
+
+//For more information about the parameters and default values for the `security dynamic-authorization user-trust-score reset` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-user-trust-score-reset.html[ONTAP manual pages^].
+
+For more information about the parameters and default values for the `security dynamic-authorization user-trust-score reset` command, refer to the ONTAP manual pages.
+
+.Steps
+
+. Add the command. Refer to <<Configure dynamic authorization trust score components>> for a list of trust score components that you can reset. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization user-trust-score reset \
+*-username <username>* \
+*-component <component-name>* \
+-vserver <storage_VM_name>
+----
+
+=== Display your trust score
+A user can display their own trust score for a login session.
+
+.Steps
+
+. Display your trust score:
++
+[source,console]
+----
+security login whoami
+----
++
+You should see output similar to the following:
++
+----
+User: admin
+Role: admin
+Trust Score: 50
+----
+
+== Configure a custom trust score provider
+If you already receive scoring methods from an external trust score provider, you can add the custom provider to the dynamic authorization configuration.
+
+
+.Before you begin
+* The custom trust score provider must return a JSON response. The following syntax requirements must be met:
+** The field that returns the trust score must be a scalar field and not an element of an array.
+** The field that returns the trust score can be a nested field, such as `trust_score.value`.
+** There must be a field within the JSON response that returns a numeric trust score. If this is not natively available, you can write a wrapper script to return this value.
+* The value provided can be either a trust score or a risk score. The difference is that the trust score is in ascending order with a higher score denoting a higher trust level, while the risk score is in descending order. For example, a trust score of 90 for a score range of 0 to 100 indicates that the score is very trustworthy and likely to result in an "allow" without additional challenge, while a risk score of 90 for a score range of 0 to 100 indicates high risk and likely to result in a "deny" without an additional challenge.
+* The custom trust score provider must be accessible via the ONTAP REST API.
+* The custom trust score provider must be configurable using one of the supported parameters. Custom trust score providers that require configuration that is not in the supported parameter list are not supported.
+
+//For more information about the parameters and default values for the `security dynamic-authorization trust-score-component create` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-trust-score-component-create.html[ONTAP manual pages^].
+
+For more information about the parameters and default values for the `security dynamic-authorization trust-score-component create` command, refer to the ONTAP manual pages.
+
+.Steps
+
+. Add a custom trust score provider. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization trust-score-component create \
+-component <text> \
+*-provider-uri <text>* \
+-score-field <text> \
+-min-score <integer> \
+*-max-score <integer>* \
+*-weight <integer>* \
+-secret-access-key "<key_text>" \
+-provider-http-headers <list<header,header,header>> \
+-vserver <storage_VM_name>
+----
+. View the resulting trust score provider settings:
++
+[source,console]
+----
+security dynamic-authorization trust-score-component show 
+----
+
+=== Configure custom trust score provider tags
+You can communicate with external trust score providers using tags. This enables you to send information in the URL to the trust score provider without exposing sensitive information.
+
+//For more information about the parameters and default values for the `security dynamic-authorization trust-score-component create` command, refer to the https://docs.netapp.com/us-en/ontap-cli-9151/security-dynamic-authorization-trust-score-component-create.html[ONTAP manual pages^].
+
+For more information about the parameters and default values for the `security dynamic-authorization trust-score-component create` command, refer to the ONTAP manual pages.
+
+.Steps
+
+. Enable trust score provider tags. Update the values in brackets <> to match your environment. If you don't use the `-vserver` parameter, the command is run at the cluster level. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization trust-score-component create \
+*-component <component_name>* \
+-weight <initial_score_weight> \
+-max-score <max_score_for_provider> \
+*-provider-uri <provider_URI>* \
+-score-field <REST_API_score_field> \
+*-secret-access-key "<key_text>"*
+----
++
+For example: 
++
+[source,console]
+----
+security dynamic-authorization trust-score-component create -component comp1 -weight 20 -max-score 100 -provider-uri https://<url>/trust-scores/users/<user>/<ip>/component1.html?api-key=<access-key> -score-field score -access-key "MIIBBjCBrAIBArqyTHFvYdWiOpLkLKHGjUYUNSwfzX"
+----
+
+//=== Overriding restricted commands with excluded users or groups
+//You can configure dynamic authorization to not be enforced for users in excluded groups.
+
+//.Steps
+//. Enable the `groupauth.cache.enable` option:
+//. What are the other commands here??? Functional spec seems incomplete. How do you exclude an entire group, or list of groups?  It seems that you can only exclude users within a group.
+
