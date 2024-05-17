@@ -1,0 +1,112 @@
+---
+sidebar: sidebar
+permalink: snapmirror-active-sync/remove-configuration-task.html
+keywords: SM-BC, SMBC, removing, protection relationship, snapmirror active sync
+summary: You can remove zero RTO SnapMirror synchronous protection and delete the SnapMirror active sync relationship configuration.
+---
+
+= Remove a SnapMirror active sync configuration
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+If you no longer require zero RTO SnapMirror synchronous protection, you can delete your SnapMirror active sync relationship. 
+
+== Remove an asymmetric configuration 
+
+* Before you delete the SnapMirror active sync relationship, all LUNs in the destination cluster must be unmapped.
+* After the LUNs are unmapped and the host is rescanned, the SCSI target notifies the hosts that the LUN inventory has changed. The existing LUNs on the zero RTO secondary volumes change to reflect a new identity after the zero RTO relationship is deleted. Hosts discover the secondary volume LUNs as new LUNs that have no relationship to the source volume LUNs.
+* The secondary volumes remain DP volumes after the relationship is deleted. You can issue the `snapmirror break` command to convert them to read/write.
+* Deleting the relationship is not allowed in the failed-over state when the relationship is not reversed.
+
+.Steps
+
+. From the secondary cluster, remove the SnapMirror active sync consistency group relationship between the source endpoint and destination endpoint:
++
+`destination::>snapmirror delete -destination-path vs1_dst:/cg/cg_dst`
+. From the primary cluster, release the consistency group relationship and the Snapshot copies created for the relationship:
++
+`source::>snapmirror release -destination-path vs1_dst:/cg/cg_dst`
++
+. Perform a host rescan to update the LUN inventory.
++ 
+. Beginning with ONTAP 9.10.1, deleting the SnapMirror relationship does not delete the consistency group. If you want to delete the consistency group, you must use System Manager or the ONTAP REST API. See xref:../consistency-groups/delete-task.adoc[Delete a consistency group] for more information.
+
+== Remove a symmetric active/active configuration 
+
+You can remove a symmetric configuration using System Manager or the ONTAP CLI. In both interfaces, there are different steps for xref:index.html#key-concepts[uniform and non-uniform configurations]. 
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Steps for a uniform configuration
+. On the primary site, remove the remote hosts from the igroup and terminate replication.
+.. Navigate to **Hosts** > *SAN Initiator Groups*. 
+.. Select the igroup you want to modify then **Edit**. 
+.. Remove the remote initiator and terminate igroup replication. Select **Save**. 
+. On the secondary site, delete the replicated relationship by unmapping the LUNs. 
+.. Navigate to **Hosts** > **SAN Initiator Groups**.
+.. Select the igroup with the SnapMirror relationship, then **Delete**.
+.. In the dialog box, select the **Unmap the associated LUNs** box then **Delete**.
+.. Navigate to **Protection** > **Relationships**. 
+.. Select the SnapMirror active sync relationship then **Release** to delete the relationships. 
+
+.Steps for a non-uniform configuration
+. On the primary site, remove the remote hosts from the igroup and terminate replication.
+.. Navigate to **Hosts** > *SAN Initiator Groups*. 
+.. Select the igroup you want to modify then **Edit**. 
+.. Remove the remote initiator and terminate igroup replication. Select **Save**. 
+. On the secondary site, remove the SnapMirror active sync relationship.
+.. Navigate to **Protection** > **Relationships**. 
+.. Select the SnapMirror active sync relationship then **Release** to delete the relationships. 
+--
+
+.CLI
+--
+.Steps for a uniform configuration 
+. Move all the VM workloads to the host local to source cluster of SnapMirror active sync. 
+. On the source cluster, remove the initiators from the igroup and modify the igroup configuration to terminate igroup replication. 
++
+`SiteA::> igroup remove -vserver _svm_name_ -igroup _igroup_name_ -initiator _host2_
+SiteA::> igroup modify -vserver _svm_name_ -igroup _igroup_name_ -replication-peer "-"`
++
+. On the secondary site, delete the LUN mapping and remove the igroup configuration:
++
+`SiteB::> lun mapping delete -vserver _svm_name_ -igroup _igroup_name_ -path <>
+SiteB::> igroup delete -vserver _svm_name_ -igroup _igroup_name_`
+
+. On the secondary site, delete the SnapMirror active sync relationship.
++
+`SiteB::> snapmirror delete -destination-path _destination_path_`
+. On the primary site, release the SnapMirror active sync relationship from primary site.
++
+`SiteA::> snapmirror release -destination-path _destination_path_`
+. Rediscover the paths to verify that only the local path is available to the host.
+
+.Steps for a non-uniform configuration
+. Move all the VM workloads to the host local to source cluster of SnapMirror active sync. 
+. On the source cluster, remove the initiators from the igroup.
++
+`SiteA::> igroup remove -vserver _svm_name_ -igroup _igroup_name_ -initiator _host2_`
++
+. On the secondary site, delete the LUN mapping and remove the igroup configuration:
++
+`SiteB::> lun mapping delete -vserver _svm_name_ -igroup _igroup_name_ -path <>
+SiteB::> igroup delete -vserver _svm_name_ -igroup _igroup_name_`
+
+. On the secondary site, delete the SnapMirror active sync relationship.
++
+`SiteB::> snapmirror delete -destination-path _destination_path_`
+. On the primary site, release the SnapMirror active sync relationship from primary site.
++
+`SiteA::> snapmirror release -destination-path _destination_path_`
+. Rediscover the paths to verify that only the local path is available to the host.
+--
+
+====
+
+// 6 may 2024, ontapdoc-1478
