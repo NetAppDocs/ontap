@@ -17,7 +17,7 @@ Beginning with ONTAP 9.10.1, you can convert a FlexVol volume to a FlexGroup vol
 * The operations and configurations on the FlexVol volume must be compatible with the conversion process.
 +
 An error message is generated if the FlexVol volume has any incompatibility, and the volume conversion is cancelled. You can take corrective actions and retry the conversion.
-For more details, see xref:convert-flexvol-concept.html[Considerations for converting FlexVol volumes to FlexGroup volumes]
+For more details, see link:convert-flexvol-concept.html[Considerations for converting FlexVol volumes to FlexGroup volumes]
 
 .Steps
 
@@ -25,25 +25,43 @@ For more details, see xref:convert-flexvol-concept.html[Considerations for conve
 
 . From the destination, update the SVM-DR relationship:
 +
-`*snapmirror update -destination-path destination_svm_name: -source-path source_svm_name:*`
+[source, cli]
+----
+snapmirror update -destination-path destination_svm_name: -source-path source_svm_name:
+----
 . Ensure that the SVM-DR relationship is in a SnapMirrored state and is not broken-off:
 +
-`*snapmirror show*`
+[source, cli]
+----
+snapmirror show
+----
 . From the destination SVM, verify that the FlexVol volume is ready for conversion:
 +
-`*volume conversion start -vserver svm_name -volume vol_name -check-only true*`
+[source, cli]
+----
+volume conversion start -vserver svm_name -volume vol_name -check-only true
+----
 +
 If this command generates any errors other than "This is a destination SVMDR volume," you can take the appropriate corrective action, run the command again, and continue the conversion.
 
 . From the destination, disable transfers on the SVM-DR relationship:
 +
-`*snapmirror quiesce -destination-path dest_svm:*`
-. Start the conversion:
+[source, cli]
+----
+snapmirror quiesce -destination-path dest_svm:
+----
+. From the source cluster, start the conversion:
 +
-`*volume conversion start -vserver svm_name -volume vol_name*`
+[source, cli]
+----
+volume conversion start -vserver svm_name -volume vol_name
+----
 . Verify that the conversion is successful:
 +
-`*volume show vol_name -fields -volume-style-extended,state*`
+[source, cli]
+----
+volume show vol_name -fields -volume-style-extended,state
+----
 +
 ----
 cluster-1::*> volume show my_volume -fields volume-style-extended,state
@@ -55,16 +73,28 @@ vs0     my_volume  online  flexgroup
 
 . From the destination cluster, resume transfers for the relationship:
 +
-`*snapmirror resume -destination-path dest_svm:*`
+[source, cli]
+----
+snapmirror resume -destination-path dest_svm:
+----
 . From the destination cluster, perform an update to propagate the conversion to the destination:
 +
-`*snapmirror update -destination-path dest_svm:*`
+[source, cli]
+----
+snapmirror update -destination-path dest_svm:
+----
 . Ensure that the SVM-DR relationship is in a SnapMirrored state and is not broken off:
 +
-`*snapmirror show*`
+[source, cli]
+----
+snapmirror show
+----
 . Ensure the conversion occurred on the destination:
 +
-`*volume show vol_name -fields -volume-style-extended,state*`
+[source, cli]
+----
+volume show vol_name -fields -volume-style-extended,state
+----
 +
 ----
 cluster-2::*> volume show my_volume -fields volume-style-extended,state
@@ -75,5 +105,6 @@ vs0_dst   my_volume  online  flexgroup
 ----
 
 
+// 2024-May-13, ONTAPDOC-1972
 // 2023-Jan-3, github issue# 748
 // 2021-11-3, Jira IE-429

@@ -2,14 +2,16 @@
 permalink: volumes/determine-space-usage-volume-aggregate-concept.html
 sidebar: sidebar
 keywords: determine, space usage, volume, aggregate
-summary: "Enabling a feature in ONTAP might consume space that you are not aware of or more space than you expected. ONTAP helps you determine how space is being consumed by providing three perspectives from which to view space: the volume, a volume’s footprint within the aggregate, and the aggregate."
+summary: "ONTAP helps you determine space consumption based on the volume, a volume’s footprint within the aggregate, and the aggregate."
 ---
 = Determine space usage in a volume or aggregate
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Enabling a feature in ONTAP might consume more space than you expected. ONTAP helps you determine how space is being consumed by providing three perspectives from which to view space: the volume, a volume's footprint within the aggregate, and the aggregate.
+In some cases, enabling a feature in ONTAP might consume more space than you expected. ONTAP helps you determine how space is being consumed by providing three perspectives from which to view space: the volume, a volume's footprint within the aggregate, and the aggregate.
+
+== View space allocation
 
 A volume can run out of space due to space consumption or insufficient space within the volume, aggregate, or a combination of both. By seeing a feature-oriented breakdown of space usage from different perspectives, you can assess which features you might want to adjust or turn off, or whether you should take other action (such as increasing the size of the aggregate or volume).
 
@@ -21,7 +23,7 @@ This perspective provides details about space usage within the volume, including
 +
 Use the `volume show-space` command to see a volume's space usage.
 +
-Beginning in ONTAP 9.14.1, on volumes with xref:enable-temperature-sensitive-efficiency-concept.html[temperature-sensitive storage efficiency (TSSE)] enabled, the amount of space used on the volume reported by the `volume show-space -physical used` command includes the space savings realized as a result of TSSE.
+Beginning with ONTAP 9.14.1, on volumes with xref:enable-temperature-sensitive-efficiency-concept.html[temperature-sensitive storage efficiency (TSSE)] enabled, the amount of space used on the volume reported by the `volume show-space -physical used` command includes the space savings realized as a result of TSSE.
 
 * The volume's footprint within the aggregate
 +
@@ -31,11 +33,11 @@ Use the `volume show-footprint` command to see a volume's footprint with the agg
 
 * The aggregate's space usage
 +
-This perspective includes totals of the volume footprints of all of the volumes contained in the aggregate, space reserved for aggregate Snapshot copies, and other aggregate metadata.
+This perspective includes totals of the volume footprints of all volumes contained in the aggregate, space reserved for aggregate Snapshot copies, and other aggregate metadata.
 +
 WAFL reserves 10% of the total disk space for aggregate level metadata and performance.  The space used for maintaining the volumes in the aggregate comes out of the WAFL reserve and cannot be changed.  
 +
-Beginning in ONTAP 9.12.1, the WAFL reserve for aggregates greater than 30TB is reduced from 10% to 5% for AFF platforms and for the FAS500f platforms.  Beginning in ONTAP 9.14.1, this same reduction applies to aggregates on all FAS platforms, resulting in 5% more usable space in the aggregates.
+Beginning with ONTAP 9.12.1, the WAFL reserve for aggregates greater than 30TB is reduced from 10% to 5% for AFF platforms and for the FAS500f platforms.  Beginning in ONTAP 9.14.1, this same reduction applies to aggregates on all FAS platforms, resulting in 5% more usable space in the aggregates.
 +
 Use the `storage aggregate show-space` command to see the aggregate's space usage.
 
@@ -43,10 +45,29 @@ Certain features, such as tape backup and deduplication, use space for metadata 
 
 .Related Information
 
-* link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Space_Usage[Knowledge Base article: Space Usage]
-* link:https://www.netapp.com/blog/free-up-storage-capacity-upgrade-ontap/[Free up 5% of your storage capacity by upgrading to ONTAP 9.12.1] 
+* link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Space_Usage[Knowledge Base article: Space Usage^]
+* link:https://www.netapp.com/blog/free-up-storage-capacity-upgrade-ontap/[Free up 5% of your storage capacity by upgrading to ONTAP 9.12.1^] 
 
+== Volume metadata and data metric reporting
 
+Historically, several of the volume space metrics have reported the total data consumed as a combination of two metrics: metadata and user data. Beginning with ONTAP 9.15.1, the metadata and user data metrics are reported separately. Two new metadata counters have been introduced to support this:
+
+* total-metadata
++
+This counter provides the total metadata size inside the volume. It does not include the aggregate resident volume metadata. Reporting it separately helps to determine the logical data allocated by the user.
+
+* total-metadata-footprint
++
+This counter is the sum of volume resident metadata and aggregate resident volume metadata. It provides the total metadata footprint of the volume inside the aggregate. Reporting it separately helps to determine the physical data allocated by the user.
+
+In addition, several existing counters have been updated to remove the metadata component and present only the user data:
+
+* User data
+* Volume data footprint
+
+These changes provide a more accurate view of the data consumed by the user. This has several benefits, including the ability to make more precise chargeback decisions.
+
+// 2024 May 17, ONTAP 9.15.1
 // 2023 Nov 02, Jira 1227
 // 2023 Nov 02, Jira 1119
 // 2023 Feb 07, ONTAPDOC594

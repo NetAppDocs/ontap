@@ -8,34 +8,18 @@ summary: "Beginning with ONTAP 9.14.1, FPolicy allows you to setup a persistent 
 :icons: font
 :imagesdir: ../media/
 
+// 15-May-2024 ONTAPDOC-1910
+// 15-April-2024 ONTAPDOC-1605
+// 20 to 25 OCT 2023, ONTAPDOC-1344 updates
+// 17 OCT 2023, ONTAPDOC-1344 
 
 [.lead]
-Beginning with ONTAP 9.14.1, FPolicy allows you to set up a persistent store to capture file access events for asynchronous non-mandatory policies in the SVM. Persistent stores can help decouple client I/O processing from FPolicy notification processing to reduce client latency. Synchronous (mandatory or non-mandatory) and asynchronous mandatory configurations are not supported.
+Persistent stores can help decouple client I/O processing from FPolicy notification processing to reduce client latency. Beginning with ONTAP 9.14.1, you can set up an FPolicy persistent store to capture file access events for asynchronous non-mandatory policies in the SVM. Synchronous (either mandatory or non-mandatory) and asynchronous mandatory configurations are not supported.
 
 This feature is only available in FPolicy external mode. The partner application you use needs to support this feature. You should work with your partner to ensure this FPolicy configuration is supported.
 
-== Best practices
+Beginning with ONTAP 9.15.1, FPolicy persistent store configuration is simplified. The `persistent-store create` command automates volume creation for the SVM and configures the volume with persistent store best practices.  
 
-Cluster administrators need to configure a volume for the persistent store on each SVM where FPolicy is enabled. When configured, a persistent store captures all matching FPolicy events, which are further processed in the FPolicy pipeline and sent to the external server.
+For more information on persistent store best practices, refer to link:requirements-best-practices-fpolicy-concept.html[Requirements, considerations, and best practices for configuring FPolicy].
 
-The persistent store remains as it was when the last event was received when there is an unexpected reboot or FPolicy is disabled and enabled again. After a takeover operation, new events will be stored and processed by the partner node. After a giveback operation, the persistent store resumes processing any unprocessed events that might remain from when the node takeover occurred. Live events would be given priority over unprocessed events. 
-
-If the persistent store volume moves from one node to another in the same SVM, the notifications that are yet to be processed will also move to the new node. You will need to re-run the `fpolicy persistent-store create` command on either node after the volume is moved to ensure the pending notification are delivered to the external server.
-
-The persistent store volume is setup on a per SVM basis. For each FPolicy enabled SVM you will need to create a persistent store volume. 
-
-Create the persistent store volume on the node with LIFs that expect maximum traffic to be monitored by Fpolicy.
-
-If the notifications accumulated in the persistent store exceed the size of the volume provisioned, FPolicy will start dropping the incoming notification with appropriate EMS messages. 
-
-The persistent Store volume name and the junction-path specified at the time of volume creation should match. 
-
-Have the snapshot policy set to `none` for that volume instead of `default`. This is to ensure that there is no accidental restore of the snapshot leading to loss of current events and to prevent possible duplicate event processing.
-
-Make the persistent store volume inaccessible for external user protocol access (CIFS/NFS) to avoid accidental corruption or deletion of the persisted event records. To achieve this, after enabling FPolicy, unmount the volume in ONTAP to remove the junction path, this makes it inaccessible for the user protocol access.
-
-For more information, see link:https://docs.netapp.com/us-en/ontap/nas-audit/create-persistent-stores.html[Create persistent stores]. 
-
-
-// 20 to 25 OCT 2023, ONTAPDOC-1344 updates
-// 17 OCT 2023, ONTAPDOC-1344 
+For information on adding persistent stores, refer to link:create-persistent-stores.html[Create persistent stores]. 
