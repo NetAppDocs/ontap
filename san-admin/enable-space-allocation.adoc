@@ -2,20 +2,23 @@
 permalink: san-admin/enable-space-allocation.html
 sidebar: sidebar
 keywords: enable, space allocation, space reclamation, unmap
-summary: "If you set the space-allocation option to enabled, ONTAP notifies the host when the volume has run out of space and the LUN in the volume cannot accept writes. This option also enables ONTAP to reclaim space automatically when your host deletes data."
+summary: "Enable space allocation to allow the host and storage system to cooperate on space management."
 ---
 = Enable space allocation for SAN
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-If your FC or iSCSI host supports SCSI thin provisioning, you can enable space allocation.  When space allocation is enabled and a volume runs out of space, the LUN in the volume remains online and is set to read-only mode.  The host is then notified that the LUN can no longer accept writes.  If space allocation is not supported on your host or is not enabled, when a volume runs out of space and cannot automatically grow, ONTAP takes the LUN offline.  
+Enable space allocation to allow your hosts and storage systems to cooperate on LUN space management. Enabling the `space-allocation` setting allows the following benefits:
 
-Also, when space allocation is enabled, host-side space management identifies blocks of data that have been deleted on the host file system and automatically issues one or more `SCSI UNMAP` commands to free corresponding blocks on the storage system and allow ONTAP to reclaim space.
+* *ONTAP can communicate to a host that no free space is available to service a write*: This communication is a more graceful way for hosts to handle out-of-space situations. The LUN remains online but is unable to service a write IO until space becomes available. Read IO can still be performed. The exact effect on a host OS depends on host configuration. In some cases, the OS retries write IO until it succeeds. In other cases, the filesystem could be placed offline. 
++
+NOTE: If the `space-allocation` setting is not enabled, a LUN enters a state of `space-error` when it reaches a low space threshold and all IO fails. The LUN needs to be changed back to `online` state after the space problem has been resolved. Rescanning LUN devices might also be required on the host to restore paths and devices to an operational state.
+
+* *A host can perform `SCSI UNMAP` (sometimes called `TRIM`) operations*: These operations allows a host to identify blocks of data on a LUN that are no longer required because they no longer contain valid data. Identification normally happens after file deletion. The storage system can then deallocate those data blocks so that the space can be consumed elsewhere. This deallocation greatly improves overall storage efficiency, especially with filesystems that have data high turnover.
 
 .Before you begin
-
-To enable space allocation, SCSI thin provisioning must be supported by your host. SCSI thin provisioning uses logical block provisioning as defined in the SCSI SBC-3 standard. Only hosts that support this standard can use SCSI thin provisioning in ONTAP.
+Enabling space allocation requires a host configuration that can correctly handle space allocation errors when a write cannot be completed. Leveraging `SCSI UNMAP` requires a configuration that can use logical block provisioning as defined in the SCSI SBC-3 standard. 
 
 The following hosts currently support SCSI thin provisioning when you enable space allocation:
 
@@ -36,40 +39,21 @@ Beginning with ONTAP 9.15.1, space allocation is enabled by default for newly cr
 [NOTE]
 When you upgrade your cluster to ONTAP 9.15.1, the space allocation setting for all LUNs created prior to the software upgrade remains the same after the upgrade, regardless of host type.  For example, if a LUN was created in ONTAP 9.13.1 for a VMware host with space allocation disabled, space allocation on that LUN remains disabled after upgrading to ONTAP 9.15.1. 
 
-You must take the LUN offline to enable space allocation; then you must perform discovery on the host before the host will recognize that space allocation has been enabled.
-
 .Steps
-
-. Take the LUN offline:
-+
-[source,cli]
-----
-lun modify -vserver vserver_name -volume volume_name -lun lun_name -state offline
-----
 
 . Enable space allocation:
 +
-[source,cli]
-----
-lun modify -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -space-allocation enabled
-----
+`lun modify -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -space-allocation enabled`
 
 . Verify that space allocation is enabled:
 +
-[source,cli]
-----
-lun show -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -fields space-allocation
-----
+`lun show -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -fields space-allocation`
 
-. Bring the LUN online:
+. Verify that space allocation is enabled on the host OS. 
 +
-[source,cli]
-----
-lun modify -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -state online
-----
+NOTE: Some host configurations, ESX in particular, can automatically recognize the setting change and do not require user intervention. Other configurations might require a device rescan. Some filesystems and volume managers might require additional specific settings to enable space reclamation using `SCSI UNMAP`. Remounting of filesystems or a full OS reboot might be required. Consult the documentation for your specific OS for guidance. 
 
-. On the host, rescan all disks to ensure that the change to the `-space-allocation` option is correctly discovered.
-
+// 2024 June 3, ONTAPDOC-2034
 // 2024 Apr 16, Jira 1662
 // 2023, Mar 18, Jira 1793
 // 2023 Nov 15, Jira 1446
