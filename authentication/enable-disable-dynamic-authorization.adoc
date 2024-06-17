@@ -1,0 +1,92 @@
+---
+permalink: authentication/enable-disable-dynamic-authorization.html
+sidebar: sidebar
+keywords: dynamic, authorization, framework, security, login, ssh
+summary: "Configure the dynamic authorization Framework to increase security of SSH logins and restrict execution of certain commands under suspicious circumstances."
+---
+= Enable or disable dynamic authorization
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.15.1, administrators can configure and enable dynamic authorization either in `visibility` mode to test the configuration, or in `enforced` mode to activate the configuration for CLI users connecting over SSH. If you no longer need dynamic authorization, you can disable it. When you disable dynamic authorization, the configuration settings remain available and you can use them later if you decide to re-enable it.
+
+//.Before you begin
+//Ensure that you have created a dynamic authorization configuration. Refer to link:configure-dynamic-authorization.html[Configure dynamic authorization] for instructions.
+
+//For more information about the parameters for the `security dynamic-authorization modify` command, refer to the https://docs.netapp.com/us-en/ontap-cli/security-dynamic-authorization-modify.html[ONTAP manual pages^].
+
+For more information about the parameters for the `security dynamic-authorization modify` command, refer to the ONTAP manual pages.
+
+== Enable dynamic authorization for testing
+You can enable dynamic authorization in visibility mode, which enables you to test the feature and ensure that users will not be accidentally locked out. In this mode, the trust score is checked with every restricted activity, but not enforced. However, any activity that would have been denied or subject to additional authentication challenges is logged. As a best practice, you should test your intended settings in this mode before enforcing them.
+
+NOTE: You can follow this step to enable dynamic authorization for the first time even if you haven't yet configured any other dynamic authorization settings. Refer to link:configure-dynamic-authorization.html[Customize dynamic authorization^] for steps to configure other dynamic authorization settings to customize it to your environment.
+
+.Steps
+
+. Enable dynamic authorization in visibility mode by configuring global settings and changing the feature state to `visibility`. If you don't use the `-vserver` parameter, the command is run at the cluster level. Update the values in brackets <> to match your environment. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization modify \
+*-state visibility* \
+-lower-challenge-boundary <percent> \
+-upper-challenge-boundary <percent> \
+-suppression-interval <interval> \
+-vserver <storage_VM_name>
+----
+. Check the result by using the `show` command to display the global configuration:
++
+[source,console]
+----
+security dynamic-authorization show
+----
+
+== Enable dynamic authorization in enforced mode
+You can enable dynamic authorization in enforced mode. Typically, you use this mode after you have completed testing with visibility mode. In this mode, the trust score is checked with every restricted activity, and activity restrictions are enforced if the restriction conditions are met. The suppression interval is also enforced, preventing additional authentication challenges within the specified interval. 
+
+NOTE: This step assumes that you have previously configured and enabled dynamic authorization in `visibility` mode, which is strongly recommended.
+
+.Steps
+
+. Enable dynamic authorization in `enforced` mode by changing its state to `enforced`. If you don't use the `-vserver` parameter, the command is run at the cluster level. Update the values in brackets <> to match your environment. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization modify \
+*-state enforced* \
+-vserver <storage_VM_name>
+----
+. Check the result by using the `show` command to display the global configuration:
++
+[source,console]
+----
+security dynamic-authorization show
+----
+
+== Disable dynamic authorization
+You can disable dynamic authorization if you no longer need the added authentication security.
+
+.Steps
+
+. Disable dynamic authorization by changing its state to `disabled`. If you don't use the `-vserver` parameter, the command is run at the cluster level. Update the values in brackets <> to match your environment. Parameters in bold are required:
++
+[source,subs="specialcharacters,quotes"]
+----
+security dynamic-authorization modify \
+*-state disabled* \
+-vserver <storage_VM_name>
+----
+. Check the result by using the `show` command to display the global configuration:
++
+[source,console]
+----
+security dynamic-authorization show
+----
+
+== What's next
+
+(Optional) Depending on your environment, refer to link:configure-dynamic-authorization.html[Customize dynamic authorization^] to configure other dynamic authorization settings.
+
+// 2024 may 16, ontapdoc-1986
