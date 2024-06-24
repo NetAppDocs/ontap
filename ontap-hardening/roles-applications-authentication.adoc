@@ -1,0 +1,239 @@
+---
+sidebar: sidebar
+permalink: ontap-deploy-secure/roles-applications-authentication.html
+keywords: ontap hardening guide, security, RBAC, roles, role, based access control, RBAC, login, application, authentication
+summary: "Roles, applications, and authentication"
+---
+== Roles, applications, and authentication
+:hardbreaks:
+:icons: font
+:linkattrs:
+:imagesdir: ../media
+
+[.lead]
+ONTAP provides the security-conscious enterprise with the ability to provide granular access to different administrators through different login applications and methods. This helps customers create a data centric zero trust model.
+
+These are the roles available for admin and storage virtual machine administrators. The login application methods and login authentication methods are specified.
+
+== Roles
+With role-based access control (RBAC), users have access to only the systems and options required for their job roles and functions. The RBAC solution in ONTAP limits users' administrative access to the level granted for their defined role, which allows administrators to manage users by assigned role. ONTAP provides several predefined roles. Operators and administrators can create, modify, or delete custom access control roles, and they can specify account restrictions for specific roles. 
+
+*Predefined roles for cluster administrators*
+|===
+
+h| This role... h| Has this level of access... h| To the following commands or command directories
+
+a|
+`admin`
+a|
+all
+a|
+All command directories (`DEFAULT`)
+
+.3+a|
+`admin-no-fsa` (available beginning in ONTAP 9.12.1)
+a| Read/Write
+a| 
+* All command directories (`DEFAULT`)
+* `security login rest-role`
+* `security login role`
+a| Read only
+a| 
+* `security login rest-role create`
+* `security login rest-role delete`
+* `security login rest-role modify`
+* `security login rest-role show`
+* `security login role create`
+* `security login role create`
+* `security login role delete`
+* `security login role modify`
+* `security login role show`
+* `volume activity-tracking`
+* `volume analytics`
+a| None
+a| `volume file show-disk-usage`
+
+.2+a|
+`autosupport`
+a|
+all
+a|
+
+* `set`
+* `system node autosupport`
+
+a|
+none
+a|
+All other command directories (`DEFAULT`)
+
+.3+a|
+`backup`
+a|
+all
+a|
+`vserver services ndmp`
+
+a|
+readonly
+a|
+`volume`
+
+a|
+none
+a|
+All other command directories (`DEFAULT`)
+
+.3+a|
+`readonly`
+a|
+all
+a|
+
+* `security login password`
++
+For managing own user account local password and key information only
+* `set`
+
+a|
+none
+a|
+`security`
+
+a|
+readonly
+a|
+All other command directories (`DEFAULT`)
+a|
+`none`
+a|
+none
+a|
+All command directories (`DEFAULT`)
+|===
+
+[NOTE]
+The `autosupport` role is assigned to the predefined `autosupport` account, which is used by AutoSupport OnDemand. ONTAP prevents you from modifying or deleting the `autosupport` account. ONTAP also prevents you from assigning the `autosupport` role to other user accounts.
+
+*Predefined roles for storage virtual machine (SVM) administrators*
+|===
+
+h| Role name  h| Capabilities
+a|
+`vsadmin`
+a|
+* Managing own user account local password and key information
+* Managing volumes, except volume moves
+* Managing quotas, qtrees, Snapshot copies, and files
+* Managing LUNs
+* Performing SnapLock operations, except privileged delete
+* Configuring protocols: NFS, SMB, iSCSI, FC, FCoE, NVMe/FC and NVMe/TCP
+* Configuring services: DNS, LDAP, and NIS
+* Monitoring jobs
+* Monitoring network connections and network interface
+* Monitoring the health of the SVM
+
+a|
+`vsadmin-volume`
+a|
+* Managing own user account local password and key information
+* Managing volumes, including volume moves
+* Managing quotas, qtrees, Snapshot copies, and files
+* Managing LUNs
+* Configuring protocols: NFS, SMB, iSCSI, FC, FCoE, NVMe/FC and NVMe/TCP
+* Configuring services: DNS, LDAP, and NIS
+* Monitoring network interface
+* Monitoring the health of the SVM
+
+a|
+`vsadmin-protocol`
+a|
+* Managing own user account local password and key information
+* Configuring protocols: NFS, SMB, iSCSI, FC, FCoE, NVMe/FC and NVMe/TCP
+* Configuring services: DNS, LDAP, and NIS
+* Managing LUNs
+* Monitoring network interface
+* Monitoring the health of the SVM
+
+a|
+`vsadmin-backup`
+a|
+* Managing own user account local password and key information
+* Managing NDMP operations
+* Making a restored volume read/write
+* Managing SnapMirror relationships and Snapshot copies
+* Viewing volumes and network information
+
+a|
+`vsadmin-snaplock`
+a|
+* Managing own user account local password and key information
+* Managing volumes, except volume moves
+* Managing quotas, qtrees, Snapshot copies, and files
+* Performing SnapLock operations, including privileged delete
+* Configuring protocols: NFS and SMB
+* Configuring services: DNS, LDAP, and NIS
+* Monitoring jobs
+* Monitoring network connections and network interface
+
+a|
+`vsadmin-readonly`
+a|
+* Managing own user account local password and key information
+* Monitoring the health of the SVM
+* Monitoring network interface
+* Viewing volumes and LUNs
+* Viewing services and protocols
+
+|===
+
+== Application methods
+The application method specifies the access type of the login method. Possible values include `console, http, ontapi, rsh, snmp, service-processor, ssh,` and `telnet.
+
+Setting this parameter to `service-processor` grants the user access to the Service Processor. When this parameter is set to `service-processor`, the `-authentication-method` parameter must be set to `password` because the Service Processor only supports password authentication. SVM user accounts cannot access the Service Processor. Therefore, operators and administrators cannot use the `-vserver` parameter when this parameter is set to `service-processor`.
+
+To further restrict access to the `service-processor` use the command `system service-processor ssh add-allowed-addresses`. The command `system service-processor api-service` can be used to update the configurations and certificates.
+
+For security reasons, Telnet and Remote Shell (RSH) are disabled by default because NetApp recommends Secure Shell (SSH) for secure remote access. If there is a requirement or unique need for Telnet or RSH, they must be enabled.
+
+The `security protocol modify` command modifies the existing cluster-wide configuration of RSH and Telnet. Enable RSH and Telnet in the cluster by setting the enabled field to `true`.
+
+== Authentication methods
+The authentication method parameter specifies the authentication method used for logins. 
+
+*Authentication methods*
+[width="100%",cols="33%,67%",options="header",]
+|===
+|Authentication method |Description
+|`cert` |SSL certificate authentication
+|`community` |SNMP community strings
+|`domain` |Active Directory authentication
+|`nsswitch` |LDAP or NIS authentication
+|`password` |Password
+|`publickey` |Public key authentication
+|`usm` |SNMP user security model
+|===
+
+[NOTE]
+The use of NIS is not recommended due to protocol security weaknesses.
+
+Starting with ONTAP 9.3, chained two-factor authentication is available for local SSH `admin` accounts using `publickey` and password as the two authentication methods. In addition to the `-authentication-method` field in the `security login` command, a new field named `-second-authentication-method` has been added. Either public key or password can be specified as the `-authentication-method` or the `-second-authentication-method`. However, during SSH authentication, the order is always public key with partial authentication, followed by the password prompt for full authentication.
+
+----
+[user@host01 ~]$ ssh ontap.netapp.local
+Authenticated with partial success.
+Password:
+cluster1::>
+----
+
+Beginning with ONTAP 9.4, `nsswitch` can be used as a second authentication method with `publickey`.
+
+Beginning with ONTAP 9.12.1, FIDO2 can also be used for SSH authentication using a YubiKey hardware authentication device or other FIDO2 compatible devices.
+
+Beginning with ONTAP 9.13.1:
+
+* `domain` accounts can be used as a second authentication method with `publickey`.
+* Time-based one-time password (`totp`) is a temporary passcode generated by an algorithm that uses the current time of day as one of its authentication factors for the second authentication method.
+* Public key revocation is supported with SSH publickeys as well as certificates which will be checked for expiration/revocation during SSH.
+
+For more information about multifactor authentication (MFA) for ONTAP System Manager, Active IQ Unified Manager, and SSH, see link:http://www.netapp.com/us/media/tr-4647.pdf[TR-4647: Multifactor Authentication in ONTAP 9^].

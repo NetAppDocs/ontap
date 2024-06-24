@@ -1,0 +1,60 @@
+---
+sidebar: sidebar
+permalink: ontap-deploy-secure/filesystem-auditing.html
+keywords: ontap hardening guide, security, vserver audit create, file, folder, share access, files created, modified, or deleted, successful file read access, failed attempts to read or write files, folder permission changes, restriction of REST access and manipulate SMB/CIFS or NFS files
+summary: "You must enable CIFS auditing to generate auditing events. Use the “vserver audit create” command to create an audit configuration."
+---
+= NAS file system auditing
+:hardbreaks:
+:icons: font
+:linkattrs:
+:imagesdir: ../media
+
+[.lead]
+NAS file systems occupy an increased footprint in today's threat landscape, audit functions are critical to support visibility.
+
+Security requires validation. ONTAP 9 provides increased auditing events and details across the solution. Because NAS file systems occupy an increased footprint in today's threat landscape, audit functions are critical to support visibility. Because of the improved audit capability in ONTAP 9, CIFS audit details are more plentiful than ever. Key details, including the following, are logged with events created:
+
+* File, folder, and share access
+* Files created, modified, or deleted
+* Successful file read access
+* Failed attempts to read or write files
+* Folder permission changes
+
+You must enable CIFS auditing to generate auditing events. Use the `vserver audit create` command to create an audit configuration. By default, the audit log uses a rotation method based on size. You can use a time-based rotation option if specified in the Rotation Parameters field. Additional log audit rotation configuration details include the rotation schedule, the rotation limits, the rotation days of the week, and the rotation size. The following text provides an example configuration depicting an audit configuration using a monthly time-based rotation scheduled for all days of the week at 12:30.
+
+----
+cluster1::> vserver audit create -vserver vs1 -destination /audit_log -rotate-schedule-month all -rotate-schedule-dayofweek all -rotate-schedule-hour 12 -rotate-schedule-minute 30
+----
+
+The new CIFS audit events are as follows:
+
+* *File share.* Generates an audit event when a CIFS network share is added, modified, or deleted using the related `vserver cifs share` commands.
+* *Audit policy change.* Generates an audit event when the audit policy is disabled, enabled, or modified using the related `vserver audit` commands.
+* *User account.* Generates an audit event when a local CIFS or UNIX user is created or deleted; a local user account is enabled, disabled, or modified; or a password is reset or changed. This event uses the `vserver cifs users-and-groups local-group` command or the related `vserver services name-service unix-user` command.
+* *Security group.* Generates an audit event when a local CIFS or UNIX security group is created or deleted using the `vserver cifs users-and-groups local-group` command or the related `vserver services name-service unix-group` command.
+* *Authorization policy change.* Generates an audit event when rights are granted or revoked for a CIFS user or a CIFS group using the `vserver cifs users-and-groups privilege` command.
+
+NOTE: This functionality is based on the system audit function, which enables an administrator to review what the system is allowing and performing from the perspective of a data user.
+
+== Effect of REST APIs on NAS auditing
+
+ONTAP includes the ability for administrator accounts to access and manipulate SMB/CIFS or NFS files using REST APIs. Although REST APIs can only be run by ONTAP administrators, REST API commands do bypass the system NAS audit log. Additionally, file permissions can also be bypassed by ONTAP administrators when using REST APIs. However, the administrator's actions with REST APIs on files are captured in the system command history log.
+
+You can prevent ONTAP administrators from using REST APIs for file access by creating a REST API role that does not have access to ONTAP volumes via REST. To provision this role, complete the following steps:
+
+[arabic]
+. Create a new REST role that has no access to storage volumes but has all other REST API access.
+----
+cluster1::> security login rest-role create nofiles -vserver cluster1 "/api/storage/volumes" -access none
+cluster1::> security login rest-role create nofiles -vserver cluster1 "/api" -access all
+----
+
+[arabic,start=2]
+. Assign the administrator account to the new REST API role you created in step 1.
+
+----
+cluster1::> security login modify -user-or-group-name user1 -application http -authentication-method password -vserver cluster1 -role nofile
+----
+
+NOTE: If you want to prevent the built-in ONTAP cluster administrator account from using REST APIs for file access, you need to first create a new administrator account and disable or delete the built in account using the steps provided in the section “Default administrative accounts.”

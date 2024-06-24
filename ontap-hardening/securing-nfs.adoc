@@ -1,0 +1,82 @@
+---
+sidebar: sidebar
+permalink: ontap-deploy-secure/securing-nfs.html
+keywords: ontap hardening guide, security, export policy, client ip address or hostname, read-only, read-write, super user, Kerberos 5 and Krb5p
+summary: "ONTAP uses the export policy feature to limit NFS volume access to clients that match specific parameters."
+---
+= Securing NFS
+:hardbreaks:
+:icons: font
+:linkattrs:
+:imagesdir: ../media
+
+[.lead]
+Export rules are the functional elements of an export policy. Export rules match client access requests for a volume against specific parameters you configure to determine how to handle the client access requests. An export policy must contain at least one export rule to allow access to clients. If an export policy contains more than one rule, the rules are processed in the order in which they appear in the export policy.
+
+Access control is central to maintaining a secure posture. Therefore, ONTAP uses the export policy feature to limit NFS volume access to clients that match specific parameters. Export policies contain one or more export rules that process each client access request. An export policy is associated with each volume to configure client access to the volume. The result of this process determines whether the client is granted or denied (with a permission-denied message) access to the volume. This process also determines what level of access is provided to the volume.
+
+NOTE: An export policy with export rules must exist on an SVM for clients to access data. An SVM can contain multiple export policies.
+
+The rule order is dictated by the rule index number. If a rule matches a client, the permissions of that rule are used, and no further rules are processed. If no rules match, the client is denied access.
+
+Export rules determine client access permissions by applying the following criteria:
+
+* The file access protocol used by the client sending the request (for example, NFSv4 or SMB)
+* A client identifier (for example, host name or IP address)
+* The security type used by the client to authenticate (for example, Kerberos v5, NTLM, or AUTH_SYS)
+
+If a rule specifies multiple criteria, and the client does not match one or more of them, the rule does not apply.
+
+An example export policy contains an export rule with the following parameters:
+
+* `-protocol nfs`
+* `-clientmatch 10.1.16.0/255.255.255.0`
+* `-rorule any`
+* `-rwrule any`
+
+The security type determines which level of access a client receives. The three access levels are read-only, read-write, and superuser (for clients with the user ID 0). Because the access level determined by the security type is evaluated in this order, you must observe the rules listed:
+
+*Rules for access-level parameters in export rules*
+[width="100%",cols="50%,50%",options="header",]
+|===
+|For a client to obtain the following access levels |These access parameters must match the client's security type
+|Normal user read-only |Read-only (`-rorule`)
+|Normal user read-write |Read-only (`-rorule`) and read-write (`-rwrule`)
+|Superuser read-only |Read-only (`-rorule`) and `-superuser`
+|Superuser read-write |Read-only (`-rorule`) and read-write (`-rwrule`) and `-superuser`
+|===
+
+The following are valid security types for each of these three access parameters:
+
+* Any
+* None
+* Never
+
+These security types are not valid for use with the `-superuser` parameter:
+
+* krb5
+* ntlm
+* sys
+
+*Rules for access parameter outcomes*
+[width="100%",cols="50%,50%",options="header",]
+|===
+|If the client's security type … |Then …
+|Matches a security type specified in the access parameter. |The client receives access for that level with its own user ID.
+|Does not match a specified security type, but the access parameter includes the option `none`. |The client receives access for that level and receives the anonymous user with the user ID specified by the `-anon` parameter.
+|Does not match a security type specified, and the access parameter does not include the option `none`. a|
+The client does not receive any access for that level.
+
+NOTE: This restriction does not apply to the `-superuser` parameter because this parameter always includes none, even when not specified.
+
+|===
+
+== Kerberos 5 and Krb5p
+
+Beginning with ONTAP 9, Kerberos 5 authentication with privacy service (krb5p) is supported. The krbp5 authentication mode is secure, and it protects against data tampering and snooping by using checksums to encrypt all traffic between client and server. The ONTAP solution supports 128-bit and 256-bit AES encryption for Kerberos. The privacy service includes verifying the integrity of the received data, authenticating users, and encrypting data before transmission.
+
+The krb5p option is most present in the export policy feature, where it is set as an encryption option. The krb5p authentication method can be used as an authentication parameter, as seen in the following text:
+
+----
+cluster1::> vserver export-policy check-access -vserver vs1 -client-ip 10.22.32.42 -volume flex_vol -authentication-method krb5p -protocol nfs3 -access- type read
+----
