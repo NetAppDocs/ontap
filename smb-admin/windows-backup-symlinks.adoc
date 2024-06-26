@@ -1,0 +1,89 @@
+---
+sidebar: sidebar
+permalink: smb-admin/windows-backup-symlinks.html
+keywords: windows, windows server, backup, backup application, symbolic link, symlink, unix, unix-style
+summary: When a backup application running on Windows encounters a Unix-style symbolic link (symlink), the link is followed and the data is backed up. Beginning with ONTAP 9.15.1, you have the option of backing up the symlinks instead of the data.
+---
+
+= Windows backup applications and Unix-style symlinks
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+When a backup application running on Windows encounters a Unix-style symbolic link (symlink), the link is followed and the data is backed up. Beginning with ONTAP 9.15.1, you have the option of backing up the symlinks instead of the data.
+
+[NOTE]
+Backing up the symlinks is fully supported with ONTAP FlexGroups and FlexVols. This feature offers several benefits, including improved performance of your backup applications.
+
+== Overview
+
+Before using the ONTAP symlink backup feature, you should be familiar with the key concepts, basic operation, and configuration options.
+
+=== Windows server environment
+
+Applications running on a Windows server can be granted a special privilege allowing them to bypass normal file security. This is typically done by adding the applications to the Backup Operators group. The apps can then back up and restore files as needed and perform other related system operations. The SMB protocol used by these applications changes slightly and can be detected by ONTAP as the data is read and written.
+
+Windows also supports extended attributes (EA). These attributes collectively form additional metadata optionally associated with each file. The backup applications can request the extended attributes for each file when reading data from ONTAP.
+
+[NOTE]
+The extended attributes are used by various applications, such as Windows Subsystem for Linux as described at https://learn.microsoft.com/en-us/windows/wsl/file-permissions[File Permissions for WSL^].
+
+=== Requirements
+
+The symlink backup feature has several requirements that span Windows, the backup application, and ONTAP.
+
+.Basic requirements and preparation
+
+The basic requirements for this feature include:
+
+* Running ONTAP 9.15.1 or later.
+* Windows backup application granted special backup privilege as part of Backup Operators group.
+* The symlink backup feature is enabled for the applicable ONTAP data SVM.
+* Client backup application requests extended attributes during read operations.
+
+.Importance of support for extended attributes
+
+The symlinks are returned to the backup application in the extended attributes and so the backup application must provide standard EA support that is used to store the metadata. Some Windows utilities support and preserve the extended attributes. However, if the backup software doesn’t support backing up and restoring the extended attributes, they will not preserve the metadata associated with each file and therefore fail to process the symlinks properly.
+
+=== Configuration options
+
+In addition to the ONTAP CLI, you can also manage this feature using the REST API. See https://docs.netapp.com/us-en/ontap-automation/whats-new.html[What's new with the ONTAP REST API and automation^] for more information. The configuration determining how ONTAP processes the Unix-style symlinks must be performed separately for each SVM. 
+
+== Administer the symlink backup feature in ONTAP
+
+A configuration option has been introduced to an existing CLI command with ONTAP 9.15.1. You can use this option to enable and disable the Unix-style symlink processing.
+
+.Before you begin
+
+Review the basic requirements in <<Requirements and basic operation>>. In addition:
+
+* Be able to elevate your CLI privilege to the advanced level.
+* Determine the data SVM you want to modify. The SVM `vs1` is used in the example commands.
+
+.Steps
+
+. Set the advanced privilege level.
++
+[source,cli]
+----
+set privilege advanced
+----
+
+. Enable symlink file backup.
++
+[source,cli]
+----
+vserver cifs options modify -vserver vs1 -is-backup-symlink-enabled true
+----
+
+. Disable symlink file backup.
++
+[source,cli]
+----
+vserver cifs options modify -vserver vs1 -is-backup-symlink-enabled false
+----
+
+// June 6 2024 - ONTAPDOC-1732
