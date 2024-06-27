@@ -17,8 +17,8 @@ When using the NetApp Manageability SDK API access to ONTAP, you must use certif
 
 A self-signed certificate can be generated and installed on ONTAP as follows:
 
-[arabic, start=1]
 . Using OpenSSL, generate a certificate by running the following command:
++
 ----
 openssl req -x509 -nodes -days 1095 -newkey rsa:2048 -keyout test.key -out test.pem \> -subj "/C=US/ST=NC/L=RTP/O=NetApp/CN=cert_user"
 Generating a 2048 bit RSA private key
@@ -26,27 +26,26 @@ Generating a 2048 bit RSA private key
 ..........................+++
 writing new private key to 'test.key'
 ----
-
++
 This command generates a public certificate named `test.pem` and a private key named `key.out`. The common name, CN, corresponds to the ONTAP user ID.
 
-[arabic, start=2]
 . Install the contents of the public certificate in privacy enhanced mail (pem) format in ONTAP by running the following command and pasting the certificate's contents when prompted:
++
 ----
 security certificate install -type client-ca -vserver cluster1
 
 Please enter Certificate: Press <Enter> when done
 ----
-[arabic, start=3]
-. Enable ONTAP to allow client access through SSL and define the user ID for API access.
 
-[source,asciidoc]
+. Enable ONTAP to allow client access through SSL and define the user ID for API access.
++
 ----
 security ssl modify -vserver cluster1 -client-enabled true
 security login create -user-or-group-name cert_user -application ontapi -authmethod cert -role admin -vserver cluster1
 ----
-
++
 In the following example, the user ID `cert_user` is now enabled to use certificate-authenticated API access. A simple Manageability SDK Python script using `cert_user` to display the ONTAP version appears as follows:
-[source,asciidoc]
++
 ----
 #!/usr/bin/python
 
@@ -78,29 +77,25 @@ if (output.results_status() == "failed"):
 ontap_version = output.child_get_string("version")
 print ("V: " + ontap_version)
 ----
-
++
 The output of the script displays the ONTAP version.
-
++
 ----
 ./version.py
 
 V: NetApp Release 9.5RC1: Sat Nov 10 05:13:42 UTC 2018
 ----
 
-[arabic, start=4]
 . To perform certificate-based authentication with the ONTAP REST API, complete the following steps:
 
-[loweralpha]
-. In ONTAP, define the user ID for http access:
-
-[source,asciidoc]
+.. In ONTAP, define the user ID for http access:
++
 ----
 security login create -user-or-group-name cert_user -application http -authmethod cert -role admin -vserver cluster1
 ----
 
-[loweralpha, start=2]
-. On your Linux client, run the following command that produces the ONTAP version as output:
-
+.. On your Linux client, run the following command that produces the ONTAP version as output:
++
 ----
 curl -k --cert-type PEM --cert ./test.pem --key-type PEM --key ./test.key -X GET "https://cluster1/api/cluster?fields=version"
 {
@@ -117,4 +112,7 @@ curl -k --cert-type PEM --cert ./test.pem --key-type PEM --key ./test.key -X GET
     }
 }
 ----
-For more information, see link:https://netapp.io/2016/11/08/certificate-based-authentication-netapp-manageability-sdk-ontap/[Certificate based authentication with the NetApp Manageability SDK for ONTAP].
+
+.More information 
+
+* link:https://netapp.io/2016/11/08/certificate-based-authentication-netapp-manageability-sdk-ontap/[Certificate based authentication with the NetApp Manageability SDK for ONTAP^].
