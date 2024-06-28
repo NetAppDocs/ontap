@@ -21,6 +21,8 @@ NOTE: ONTAP cannot remove or rename built-in accounts. However, NetApp recommend
 
 Although orphaned accounts are a significant security issue, NetApp strongly recommends testing the effect of removing accounts from the local account repository.
 
+== List local accounts
+
 To list the local accounts, run the `security login show` command.
 
 ----
@@ -40,17 +42,23 @@ autosupport      console     password  autosupport      no     no
 
 ----
 
-== Admin account
+== Remove the default admin account
 The `admin` account has the role of administrator and is allowed access using all applications.
 
+.Steps
+. Create another admin-level account.
++
 To completely remove the default `admin` account, you must first create another admin-level account that uses the `console` login application.
-
++
 NOTE: Making these changes might cause some undesired effects. Always test new settings that might affect the security status of the solution on a nonproduction cluster first.
 
++
+Example:
++
 ----
 cluster1::*> security login create -user-or-group-name NewAdmin -application console -authentication-method password -vserver cluster1
 ----
-
++
 ----
 cluster1::*> security login show -vserver cluster1
 
@@ -68,8 +76,10 @@ autosupport      console     password  autosupport      no     no
 7 entries were displayed.
 ----
 
-After the new admin account is created, test access to that account with the `NewAdmin` account login. With the `NewAdmin` login, configure the account to have to same login applications as the default or previous admin account (for example, `http`, `ontapi`, `service-processor`, or `ssh`). This step makes sure that access control is maintained.
-
+. After you create the new admin account, test access to that account with the `NewAdmin` account login. With the `NewAdmin` login, configure the account to have to same login applications as the default or previous admin account (for example, `http`, `ontapi`, `service-processor`, or `ssh`). This step makes sure that access control is maintained.
++
+Example:
++
 ----
 cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application ssh -authentication-method password
 cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application http -authentication-method password
@@ -77,14 +87,14 @@ cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmi
 cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application service-processor -authentication-method password
 ----
 
-After all functions have been tested, you can disable the admin account for all applications before removing it from ONTAP. This step serves as a final test to confirm that there are no lingering functions that rely on the previous admin account.
-
+. After all functions have been tested, you can disable the admin account for all applications before removing it from ONTAP. This step serves as a final test to confirm that there are no lingering functions that rely on the previous admin account.
++
 ----
 cluster1::*> security login lock -vserver cluster1 -user-or-group-name admin -application *
 ----
 
-To remove the default admin account and all entries for it, run the following command:
-
+. To remove the default admin account and all entries for it, run the following command:
++
 ----
 cluster1::*> security login delete -vserver cluster1 -user-or-group-name admin -application *
 cluster1::*> security login show -vserver cluster1
@@ -102,13 +112,15 @@ autosupport      console     password  autosupport      no     no
 7 entries were displayed.
 
 ----
+
 == Diag account
 
-CAUTION: The systemshell and the associated `diag` account are intended for low-level diagnostic purposes. Their access requires the diagnostic privilege level and is reserved only for technical support to perform troubleshooting tasks.
+A diagnostic account named `diag` is provided with your storage system. You can use the `diag` account to perform troubleshooting tasks in the `systemshell`.
 
-A diagnostic account named `diag` is provided with your storage system. You can use the `diag` account to perform troubleshooting tasks in the `systemshell`. The `diag` account and the `systemshell` are intended for low-level diagnostic purposes only and should be used only with guidance from technical support.
+CAUTION: The systemshell and the associated `diag` account are intended for low-level diagnostic purposes. Their access requires the diagnostic privilege level and is reserved only to be used with guidance from technical support to perform troubleshooting tasks.
 
-The `diag` account is the only account that can be used to access the systemshell through the diag privileged command `systemshell`. Before accessing the `systemshell`, you must set the `diag` account password by using the `security login password` command. You should use strong password principles and change the `diag` password on a regular interval. Neither the diag account nor the `systemshell` is intended for general administrative purposes.
+The `diag` account is the only account that can be used to access the systemshell through the diag privileged command `systemshell`. 
+Before accessing the `systemshell`, you must set the `diag` account password by using the `security login password` command. You should use strong password principles and change the `diag` password on a regular interval. Neither the diag account nor the `systemshell` is intended for general administrative purposes.
 
 ----
 cluster1::> set -privilege diag
