@@ -1,0 +1,64 @@
+---
+sidebar: sidebar
+permalink: ontap-security-hardening/create-fpolicy.html
+keywords: ontap hardening guide, security, native, external server, file policy, take actions, synchronous, asynchronous, storage workload security
+summary: "To provide visibility and access control for files, the ONTAP solution uses the NetApp FPolicy feature."
+---
+= Create and use a NetApp FPolicy
+:hardbreaks:
+:icons: font
+:linkattrs:
+:imagesdir: ../media
+
+[.lead]
+You can create and use an FPolicy, an infrastructure component of the ONTAP solution, that allows partner applications to monitor and set file access permissions. One of the more powerful applications is Storage Workload Security, a NetApp SaaS application that provides centralized visibility and control of all corporate data access across hybrid cloud environments to ensure security and compliance goals are met.
+
+Access control is a key security concept. Visibility and the ability to respond to file access and file operations are critical for maintaining your security posture. To provide visibility and access control for files, the ONTAP solution uses the NetApp FPolicy feature. 
+
+File policies can be set based on file type. FPolicy determines how the storage system handles requests from individual client systems for operations such as create, open, rename, and delete. Beginning with ONTAP 9, the FPolicy file access notification framework is enhanced with filtering controls and resiliency against short network outages.
+
+.Steps
+
+. To leverage the FPolicy feature, you must first create the FPolicy policy with the `vserver fpolicy policy create` command. 
++
+NOTE: In addition, use the `-events` parameter if you use FPolicy for visibility and the collection of events. The additional granularity provided by ONTAP enables filtering and access down to the user name level of control. To control privileges and access with user names, specify the `-privilege-user-name` parameter. 
++
+The following text provides an example of FPolicy creation:
++
+----
+cluster1::> vserver fpolicy policy create -vserver vs1.example.com -policy-name vs1_pol -events cserver_evt,v1e1 -engine native -is-mandatory true -allow-privileged-access no -is-passthrough-read-enabled false
+----
+
+. After you create the FPolicy policy, you must enable it with the `vserver fpolicy enable` command. This command also sets the priority or sequence of the FPolicy entry. 
++
+NOTE: The FPolicy sequence is important because, if multiple policies have subscribed to the same file access event, the sequence dictates the order in which access is granted or denied. 
+
++
+The following text provides a sample configuration for enabling the FPolicy policy and validating the configuration with the `vserver fpolicy show` command:
++
+----
+cluster1::> vserver fpolicy enable -vserver vs2.example.com -policy-name vs2_pol -sequence-number 5
+
+cluster1::> vserver fpolicy show
+Vserver                 Policy Name                    Sequence  Status   Engine
+----------------------- ------------------------------ --------  -------  -------
+vs1.example.com         vs1_pol
+vs2.example.com         vs2_pol
+ external
+2 entries were displayed.
+----
+
+== FPolicy enhancements
+
+ONTAP 9 includes the FPolicy enhancements described in the following sections.
+
+=== Filtering controls
+
+New filters are available for `SetAttr` and for removing notifications on directory activities.
+
+=== Async resiliency
+
+If an FPolicy server operating in asynchronous mode experiences a network outage, FPolicy notifications generated during the outage are stored on the storage node. When the FPolicy server comes back online, it is alerted of the stored notifications and can fetch them from the storage node. The length of time the notifications can be stored during an outage is configurable up to 10 minutes.
+
+
+//6-24-24 ontapdoc-1938

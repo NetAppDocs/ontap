@@ -1,0 +1,120 @@
+---
+sidebar: sidebar
+permalink: ontap-security-hardening/certificate-based-api-access.html
+keywords: ontap hardening guide, security, access, certificate, certificate-authenticated API access 
+summary: "Certificate-based authentication must be used for REST API or NetApp Manageability SDK API access to ONTAP instead of the user ID and password authentication."
+---
+= Certificate-based API access
+:hardbreaks:
+:icons: font
+:linkattrs:
+:imagesdir: ../media
+
+[.lead]
+Instead of user ID and password authentication for REST API or NetApp Manageability SDK API access to ONTAP, certificate-based authentication must be used. Or for REST API, use OAuth 2.0 token-based authentication as described in the next section.
+
+When using the NetApp Manageability SDK API access to ONTAP, you must use certificate-based authentication instead of the user ID and password authentication.
+
+A self-signed certificate can be generated and installed on ONTAP as follows:
+
+. Using OpenSSL, generate a certificate by running the following command:
++
+----
+openssl req -x509 -nodes -days 1095 -newkey rsa:2048 -keyout test.key -out test.pem \> -subj "/C=US/ST=NC/L=RTP/O=NetApp/CN=cert_user"
+Generating a 2048 bit RSA private key
+..............+++
+..........................+++
+writing new private key to 'test.key'
+----
++
+This command generates a public certificate named `test.pem` and a private key named `key.out`. The common name, CN, corresponds to the ONTAP user ID.
+
+. Install the contents of the public certificate in privacy enhanced mail (pem) format in ONTAP by running the following command and pasting the certificate's contents when prompted:
++
+----
+security certificate install -type client-ca -vserver cluster1
+
+Please enter Certificate: Press <Enter> when done
+----
+
+. Enable ONTAP to allow client access through SSL and define the user ID for API access.
++
+----
+security ssl modify -vserver cluster1 -client-enabled true
+security login create -user-or-group-name cert_user -application ontapi -authmethod cert -role admin -vserver cluster1
+----
++
+In the following example, the user ID `cert_user` is now enabled to use certificate-authenticated API access. A simple Manageability SDK Python script using `cert_user` to display the ONTAP version appears as follows:
++
+----
+#!/usr/bin/python
+
+import sys
+sys.path.append("/home/admin/netapp-manageability-sdk-9.5/netapp-manageability-sdk-9.5/lib/python/NetApp")
+from NaServer import *
+
+cluster = "cluster1"
+transport = "HTTPS"
+port = 443
+style = "CERTIFICATE"
+cert = "test.pem"
+key = "test.key"
+
+s = NaServer(cluster, 1, 30)
+s.set_transport_type(transport)
+s.set_port(port)
+s.set_style(style)
+s.set_server_cert_verification(0)
+s.set_client_cert_and_key(cert, key)
+
+api = NaElement("system-get-version")
+output = s.invoke_elem(api)
+if (output.results_status() == "failed"):
+    r = output.results_reason()
+    print("Failed: " + str(r))
+    sys.exit(2)
+
+ontap_version = output.child_get_string("version")
+print ("V: " + ontap_version)
+----
++
+The output of the script displays the ONTAP version.
++
+----
+./version.py
+
+V: NetApp Release 9.5RC1: Sat Nov 10 05:13:42 UTC 2018
+----
+
+. To perform certificate-based authentication with the ONTAP REST API, complete the following steps:
+
+.. In ONTAP, define the user ID for http access:
++
+----
+security login create -user-or-group-name cert_user -application http -authmethod cert -role admin -vserver cluster1
+----
+
+.. On your Linux client, run the following command that produces the ONTAP version as output:
++
+----
+curl -k --cert-type PEM --cert ./test.pem --key-type PEM --key ./test.key -X GET "https://cluster1/api/cluster?fields=version"
+{
+    "version": {
+        "full": "NetApp Release 9.7P1: Thu Feb 27 01:25:24 UTC 2020",
+        "generation": 9,
+        "major": 7,
+        "minor": 0
+    },
+    "_links": {
+        "self": {
+            "href": "/api/cluster"
+        }
+    }
+}
+----
+
+.More information 
+
+* link:https://netapp.io/2016/11/08/certificate-based-authentication-netapp-manageability-sdk-ontap/[Certificate based authentication with the NetApp Manageability SDK for ONTAP^].
+
+//6-24-24 ontapdoc-1938
