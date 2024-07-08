@@ -1,0 +1,62 @@
+---
+permalink: san-admin/enable-space-allocation.html
+sidebar: sidebar
+keywords: enable, space allocation, space reclamation, unmap
+summary: "Enable space allocation to allow the host and storage system to cooperate on space management."
+---
+= Enable space allocation for SAN
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Enable space allocation to allow your hosts and storage systems to cooperate on LUN space management. Enabling the `space-allocation` setting allows the following benefits:
+
+* *ONTAP can communicate to a host that no free space is available to service a write*: This communication is a more graceful way for hosts to handle out-of-space situations. The LUN remains online but is unable to service a write IO until space becomes available. Read IO can still be performed. The exact effect on a host OS depends on host configuration. In some cases, the OS retries write IO until it succeeds. In other cases, the filesystem could be placed offline. 
++
+NOTE: If the `space-allocation` setting is not enabled, a LUN enters a state of `space-error` when it reaches a low space threshold and all IO fails. The LUN needs to be changed back to `online` state after the space problem has been resolved. Rescanning LUN devices might also be required on the host to restore paths and devices to an operational state.
+
+* *A host can perform `SCSI UNMAP` (sometimes called `TRIM`) operations*: These operations allows a host to identify blocks of data on a LUN that are no longer required because they no longer contain valid data. Identification normally happens after file deletion. The storage system can then deallocate those data blocks so that the space can be consumed elsewhere. This deallocation greatly improves overall storage efficiency, especially with filesystems that have data high turnover.
+
+.Before you begin
+Enabling space allocation requires a host configuration that can correctly handle space allocation errors when a write cannot be completed. Leveraging `SCSI UNMAP` requires a configuration that can use logical block provisioning as defined in the SCSI SBC-3 standard. 
+
+The following hosts currently support SCSI thin provisioning when you enable space allocation:
+
+* Citrix XenServer 6.5 and later
+* ESXi 5.0 and later
+* Oracle Linux 6.2 UEK kernel and later
+* Red Hat Enterprise Linux 6.2 and later
+* SUSE Linux Enterprise Server 11 and later
+* Solaris 11.1 and later
+* Windows 
+
+Space allocation is not supported on NVMe hosts.  
+
+.About this task
+
+Beginning with ONTAP 9.15.1, space allocation is enabled by default for newly created VMware and Hyper-V LUNs and is disabled for all newly created LUNs not used by VMware and Hyper-V.  
+
+[NOTE]
+When you upgrade your cluster to ONTAP 9.15.1, the space allocation setting for all LUNs created prior to the software upgrade remains the same after the upgrade, regardless of host type.  For example, if a LUN was created in ONTAP 9.13.1 for a VMware host with space allocation disabled, space allocation on that LUN remains disabled after upgrading to ONTAP 9.15.1. 
+
+.Steps
+
+. Enable space allocation:
++
+`lun modify -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -space-allocation enabled`
+
+. Verify that space allocation is enabled:
++
+`lun show -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -fields space-allocation`
+
+. Verify that space allocation is enabled on the host OS. 
++
+NOTE: Some host configurations, ESX in particular, can automatically recognize the setting change and do not require user intervention. Other configurations might require a device rescan. Some filesystems and volume managers might require additional specific settings to enable space reclamation using `SCSI UNMAP`. Remounting of filesystems or a full OS reboot might be required. Consult the documentation for your specific OS for guidance. 
+
+// 2024 June 3, ONTAPDOC-2034
+// 2024 Apr 16, Jira 1662
+// 2023, Mar 18, Jira 1793
+// 2023 Nov 15, Jira 1446
+// 2023 Nov 08, Git Issue 1139
+// 2023 Oct 30, Git Issue 1139
+// 2022 Nov 4, Git Issue 689
