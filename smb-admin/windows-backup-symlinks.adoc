@@ -21,13 +21,21 @@ Before you change how ONTAP handles symlinks during a Windows backup operation, 
 
 === Benefits
 
-Backing up the symlinks instead of the data has several potential benefits, including improved speed of your backup applications and better overall performance of the cluster.
+When this feature is disabled or unavailable, each symlink is traversed and the data it links to is backed up. Because of this, unnecessary data can be backed up and in some situations the application can end up in a loop. Backing up just the symlink avoids these issues. And because the symlink files are very small compared to the data in most cases, the backups take less time to complete. The overall performance of the cluster can also improve because of the reduced IO operations.
 
 === Windows server environment
 
-Applications running on a Microsoft Windows server can be granted a special privilege allowing them to bypass normal file security. This is typically done by adding the applications to the Backup Operators group. The apps can then back up and restore files as needed and perform other related system operations. In this case, there are subtle changes to the SMB protocol used by the applications which can be detected by ONTAP as the data is read and written.
+This feature is supported for backup applications running on Windows. You should understand the relevant technical aspects of the environment before using it.
 
-Windows also supports extended attributes (EA). Extended attributes are used by various applications, such as the Windows Subsystem for Linux as described at https://learn.microsoft.com/en-us/windows/wsl/file-permissions[File Permissions for WSL^]. These attributes collectively form additional metadata that is optionally associated the files. Backup applications can request extended attributes for each file when reading data from ONTAP.
+.Extended attributes
+
+Windows supports extended attributes (EA) which collectively form additional metadata optionally associated with the files. These attributes are used by various applications, such as the Windows Subsystem for Linux as described at https://learn.microsoft.com/en-us/windows/wsl/file-permissions[File Permissions for WSL^].
+
+The backup applications can request extended attributes for each file when reading data from ONTAP. The symlinks are returned in the extended attributes when the feature is enabled. Because of this, a backup application must provide standard EA support that is used to store the metadata. Some Windows utilities support and preserve the extended attributes. However, if the backup software doesn’t support backing up and restoring the extended attributes, it will not preserve the metadata associated with each file and therefore fail to process the symlinks properly.
+
+.Windows configuration
+
+Applications running on a Microsoft Windows server can be granted a special privilege allowing them to bypass normal file security. This is typically done by adding the applications to the Backup Operators group. The apps can then back up and restore files as needed and perform other related system operations. In this case, there are subtle changes to the SMB protocol used by the applications which can be detected by ONTAP as the data is read and written.
 
 === Requirements
 
@@ -36,11 +44,7 @@ The symlink backup feature has several requirements that span Windows, the backu
 * Your cluster is running ONTAP 9.15.1 or later.
 * A Windows backup application that has been granted special backup privileges.
 * The symlink backup feature is enabled for the applicable ONTAP data SVM.
-* A client backup application requests extended attributes during read operations.
-
-.Importance of support for extended attributes
-
-The symlinks are returned to the backup application in the extended attributes and so the backup application must provide standard EA support that is used to store the metadata. Some Windows utilities support and preserve the extended attributes. However, if the backup software doesn’t support backing up and restoring the extended attributes, it will not preserve the metadata associated with each file and therefore fail to process the symlinks properly.
+* A client backup application supports and requests extended attributes during read operations.
 
 === Configuration options
 
