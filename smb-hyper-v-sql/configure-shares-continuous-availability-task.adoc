@@ -2,7 +2,7 @@
 permalink: smb-hyper-v-sql/configure-shares-continuous-availability-task.html
 sidebar: sidebar
 keywords: configure, shares, continuous, availability, hyper, v, sql, server, virutal, machine, database, file
-summary: "You can modify existing shares to become continuously available shares that the Hyper-V and SQL Server application servers use to nondisruptively access Hyper-V virtual machine and configuration files and SQL Server database files."
+summary: "Modify shares to be continuously available shares Hyper-V and SQL Server application servers use for nondisruptive access"
 ---
 = Configure existing shares for continuous availability
 :icons: font
@@ -38,38 +38,49 @@ The following share properties must not be set. If they are present in the list 
 
 . Display the current share parameter settings and the current list of configured share properties:
 +
-`*vserver cifs share show -vserver _vserver_name_ -share-name _share_name_*`
-. If necessary, modify the share parameters to disable symlinks and set offline files to manual by using the `vserver cifs share properties modify` command.
-+
-You can disable symlinks by setting the value of the `-symlink` parameter to `""`.
+[source,cli]
+----
+vserver cifs share show -vserver <vserver_name> -share-name <share_name>
+----
 
+. If necessary, modify the share parameters to disable symlinks and set offline files to manual by using the `vserver cifs share modify` command.
++
  ** You can disable symlinks by setting the value of the `-symlink` parameter to `""`.
  ** You can set the `-offline-files` parameter to the correct setting by specifying `manual`.
 
-. Add the `continuously-available` share property, and, if needed, the `oplocks` share property:
+. Add the `continuously-available` share property and, if needed, the `oplocks` share property:
 +
-`*vserver cifs share properties add -vserver _vserver_name_ -share-name _share_name_ -share-properties continuously-available[,oplock]*`
+----
+vserver cifs share properties add -vserver <vserver_name> -share-name <share_name> -share-properties continuously-available[,oplock]
+----
 +
 If the `oplocks` share property is not already set, you must add it along with the `continuously-available` share property.
 
 . Remove any share properties that are not supported on continuously available shares:
 +
-`*vserver cifs share properties remove -vserver _vserver_name_ -share-name _share_name_ -share-properties properties[,...]*`
+----
+vserver cifs share properties remove -vserver <vserver_name> -share-name <share_name> -share-properties properties[,...]
+----
 +
 You can remove one or more share properties by specifying the share properties with a comma-delimited list.
 
 . Verify that the `-symlink` and `-offline-files` parameters are set correctly:
 +
-`*vserver cifs share show -vserver _vserver_name_ -share-name _share_name_ -fields symlink-properties,offline-files*`
+----
+vserver cifs share show -vserver <vserver_name> -share-name <share_name> -fields symlink-properties,offline-files
+----
+
 . Verify that the list of configured share properties is correct:
 +
-`*vserver cifs shares properties show -vserver _vserver_name_ -share-name share_name*`
+----
+vserver cifs share properties show -vserver <vserver_name> -share-name <share_name>
+----
 
 .Examples
 
-The following example shows how to configure an existing share named "`share1`" on storage virtual machine (SVM) vs1 for NDOs with an application server over SMB:
+The following example shows how to configure an existing share named "share1" on storage virtual machine (SVM) "vs1" for NDOs with an application server over SMB:
 
-* Symlinks are disabled on the share by setting the `-symlink` parameter to "".
+* Symlinks are disabled on the share by setting the `-symlink` parameter to `""`.
 * The `-offline-file` parameter is modified and set to `manual`.
 * The `continuously-available` share property is added to the share.
 * The `oplocks` share property is already in the list of share properties; therefore, it does not need to be added.
@@ -116,4 +127,5 @@ Share Properties: oplocks
                   continuously-available
 ----
 
+// 2024-7-11 ontapdoc-2193
 // 2022-08-05, BURT 1493326
