@@ -11,9 +11,10 @@ summary: "You can create a custom replication policy if the default policy for a
 [.lead]
 You can create a custom replication policy if the default policy for a relationship is not suitable. You might want to compress data in a network transfer, for example, or modify the number of attempts SnapMirror makes to transfer Snapshot copies.
 
-You can use a default or custom policy when you create a replication relationship. For a custom archive (formerly SnapVault) or unified replication policy, you must define one or more _rules_ that determine which Snapshot copies are transferred during initialization and update.You might also want to define a schedule for creating local Snapshot copies on the destination.
+You can use a default or custom policy when you create a replication relationship. For a custom archive (formerly SnapVault) or unified replication policy, you must define one or more _rules_ that determine which Snapshot copies are transferred during initialization and update. You might also want to define a schedule for creating local Snapshot copies on the destination.
 
 The _policy type_ of the replication policy determines the type of relationship it supports. The table below shows the available policy types.
+
 
 [cols="2*"]
 |===
@@ -47,11 +48,45 @@ SnapMirror Synchronous in the Sync mode (supported beginning with ONTAP 9.5)
 When you create a custom replication policy, it is a good idea to model the policy after a default policy.
 ====
 
-.Step
+
+.Steps
+You can create custom data protection policies with System Manager or the ONTAP CLI. Beginning with ONTAP 9.11.1, you can use System Manager to create custom mirror and vault policies, and to display and select legacy policies. This capability is also available in ONTAP 9.8P12 and later patches of ONTAP 9.8.
+
+Create custom protection policies on both the source and destination cluster.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+. Click *Protection > Local Policy Settings*.
+
+. Under *Protection Policies*, click image:icon_arrow.gif[arrow].
+
+. In the *Protection Policies* pane, click image:icon_add.gif[plus].
+
+. Enter the new policy name, and select the policy scope.
+
+. Choose a policy type. To add a vault-only or mirror-only policy, choose *Asynchronous*, and click *Use a legacy policy type*.
+
+. Complete the required fields.
+
+. Click *Save*.
+
+. Repeat these steps on the other cluster.
+--
+====
+
+====
+.CLI
+--
 
 . Create a custom replication policy:
 +
-`snapmirror policy create -vserver _SVM_ -policy _policy_ -type async-mirror|vault|mirror-vault|strict-sync-mirror|sync-mirror -comment _comment_ -tries _transfer_tries_ -transfer-priority low|normal -is-network-compression-enabled true|false`
+[source, cli]
+----
+snapmirror policy create -vserver <SVM> -policy _policy_ -type <async-mirror|vault|mirror-vault|strict-sync-mirror|sync-mirror> -comment <comment> -tries <transfer_tries> -transfer-priority <low|normal> -is-network-compression-enabled <true|false>
+----
 +
 For complete command syntax, see the man page.
 +
@@ -86,5 +121,11 @@ cluster_dst::> snapmirror policy create -vserver svm1 -policy my_strictsync -typ
 For "`vault`" and "`mirror-vault`" policy types, you must define rules that determine which Snapshot copies are transferred during initialization and update.
 
 Use the `snapmirror policy show` command to verify that the SnapMirror policy was created. For complete command syntax, see the man page.
+--
+====
 
+// 2024-July-12, ONTAPDOC-1966
 // 07 DEC 2021, BURT 1430515
+// 1 Apr 2021 BURT 1381353
+// 7 DEC 2021, BURT 1430515
+// 2022-5-17, BURT 1474621 and BURT 1477321
