@@ -1,0 +1,165 @@
+---
+sidebar: sidebar
+permalink: ontap-security-hardening/sysadmin-methods.html
+keywords: tr-4569, ontap hardening guide, security, access, encryption, MFA, multi-factor authentication, ssh, MOTD, CLI timeout, SAML access for System Manager, Insights
+summary: "Deploy these methods for robust ONTAP system administration."
+---
+= System administration methods
+:hardbreaks:
+:icons: font
+:linkattrs:
+:imagesdir: ../media
+
+[.lead]
+These are important parameters to strengthen ONTAP system administration.
+
+== Command-line access
+Establishing secure access to systems is a critical part of maintaining a secure solution. The most common command-line access options are SSH, Telnet, and RSH. Of these, SSH is the most secure, industry-standard best practice for remote command-line access. NetApp highly recommends using SSH for command-line access to the ONTAP solution.
+
+=== SSH configurations
+
+The `security ssh show` command shows the configurations of the SSH key exchange algorithms, ciphers, and MAC algorithms for the cluster and SVMs. The key exchange method uses these algorithms and ciphers to specify how the one-time session keys are generated for encryption and authentication and how server authentication takes place.
+
+----
+cluster1::> security ssh show
+
+Vserver       Ciphers       Key Exchange Algorithms     MAC Algorithms
+--------  ----------------  --------------------------  --------------
+nsadhanacluster-2
+                aes256-ctr,   diffie-helman-group-      hmac-sha2-256
+                aes192-ctr,	   exchange-sha256,         hmac-sha2-512
+                aes128-ctr    ecdh-sha2-nistp384        
+vs0             aes128-gcm    curve25519-sha256         hmac-sha1
+vs1             aes256-ctr,   diffie-hellman-group-     hmac-sha1-96
+                aes192-ctr,   exchange-sha256           hmac-sha2-256
+                aes128-ctr,   ecdh-sha2-nistp384        hmac-sha2-256-       
+				3des-cbc,     ecdh-sha2-nistp512        etm             
+				aes128-gcm                              hmac-sha2-512
+3 entries were displayed.
+
+----
+
+=== Login banners
+Login banners allow an organization to present any operators, administrators, and even miscreants with terms and conditions of acceptable use, and they indicate who is permitted access to the system. This approach is helpful for establishing expectations for access and use of the system. The `security login banner modify` command modifies the login banner. The login banner is displayed just before the authentication step during the SSH and console device login process. The banner text must be in double quotes (“ ”), as shown in the following example.
+
+----
+cluster1::> security login banner modify -vserver cluster1 -message “Authorized users ONLY!”
+----
+
+=== Login banner parameters
+
+[width="100%",cols="19%,81%",options="header",]
+|===
+|Parameter |Description
+|`vserver` |Use this parameter to specify the SVM with the modified banner. Use the name of the cluster admin SVM to modify the cluster-level message. The cluster-level message is used as the default for data SVMs that do not have a message defined.
+|`message` a|
+This optional parameter can be used to specify a login banner message. If the cluster has a login banner message set, the cluster login banner is used by all data SVMs as well. Setting a data SVM's login banner overrides the display of the cluster login banner. To reset a data SVM login banner to use the cluster login banner, use this parameter with the value "-".
+
+If you use this parameter, the login banner cannot contain newlines (also known as ends of lines [EOLs] or line breaks). To enter a login banner message with newlines, do not specify any parameter. You are prompted to enter the message interactively. Messages entered interactively can contain newlines.
+
+Non-ASCII characters must use Unicode UTF-8.
+
+|`uri` a|
+`(ftp\|http)://(hostname\|IPv4`
+
+Use this parameter to specify the URI from which the login banner is downloaded.
+
+The message must not exceed 2048 bytes in length. Non-ASCII characters must be provided as Unicode UTF-8.
+
+|===
+
+=== Message of the day
+
+The `security login motd modify` command updates the message of the day (MOTD).
+
+There are two categories of MOTD: the cluster-level MOTD and the data SVM-level MOTD. A user logging in to a data SVM's clustershell might see two messages: the cluster-level MOTD followed by the SVM-level MOTD for that SVM.
+
+The cluster administrator can enable or disable the cluster-level MOTD on each SVM individually if needed. If the cluster administrator disables the cluster-level MOTD for an SVM, a user logging in to the SVM does not see the cluster-level message. Only a cluster administrator can enable or disable the cluster-level message.
+
+[width="100%",cols="22%,78%",options="header",]
+|===
+|MOTD Parameter |Description
+|Vserver |Use this parameter to specify the SVM for which the MOTD is modified. Use the name of the cluster admin SVM to modify the cluster-level message.
+|message a|
+This optional parameter can be used to specify a message. If you use this parameter, the MOTD cannot contain newlines. If you do not specify any parameter other than the `-vserver` parameter, you are prompted to enter the message interactively. Messages entered interactively can contain newlines. Non-ASCII characters must be provided as Unicode UTF-8. The message can contain dynamically generated content using the following escape sequences:
+
+* `\\` - A single backlash character
+* `\b` - No output (supported for compatibility with Linux only)
+* `\C` - Cluster name
+* `\d` - Current date as set on the login node
+* `\t` - Current time as set on the login node
+* `\I` - Incoming LIF IP address (prints console for a `console` login)
+* `\l` - Login device name (prints console for a `console` login)
+* `\L` - Last login for the user on any node in the cluster
+* `\m` - Machine architecture
+* `\n` - Node or data SVM name
+* `\N` - Name of user logging in
+* `\o` - Same as \O. Provided for Linux compatibility.
+* `\O` - DNS domain name of the node. Note that the output depends on the network configuration and may be empty.
+* `\r` - Software release number
+* `\s` - Operating system name
+* `\u` - Number of active clustershell sessions on the local node. For the cluster admin: all clustershell users. For the data SVM admin: only active sessions for that data SVM.
+* `\U` - Same as `\u`, but has `user` or `users` appended
+* `\v` - Effective cluster version string
+* `\W` - Active sessions across the cluster for the user logging in (`who`)
+
+|===
+
+For more information on configuring the Message of the Day in ONTAP, see the link:https://docs.netapp.com/us-en/ontap/system-admin/manage-banner-motd-concept.html[ONTAP documentation on message of the day].
+
+=== CLI session timeout
+The default CLI session timeout is 30 minutes. The timeout is important to prevent stale sessions and session piggybacking.
+
+Use the `system timeout show` command to view the current CLI session timeout. To set the timeout value, use the `system timeout modify -timeout <minutes>` command.
+
+== Web access with NetApp ONTAP System Manager
+If an ONTAP administrator prefers to use a graphical interface instead of the CLI for accessing and managing a cluster, use NetApp ONTAP System Manager. It is included with ONTAP as a web service, enabled by default, and accessible by using a browser. Point the browser to the host name if using DNS or the IPv4 or IPv6 address through `https://cluster-management-LIF`.
+
+If the cluster uses a self-signed digital certificate, the browser might display a warning indicating that the certificate is not trusted. You can either acknowledge the risk to continue access or install a certificate authority (CA) signed digital certificate on the cluster for server authentication.
+
+Beginning with ONTAP 9.3, Security Assertion Markup Language (SAML) authentication is an option for ONTAP System Manager.
+
+=== SAML authentication for ONTAP System Manager
+
+SAML 2.0 is a widely adopted industry standard that allows any third-party SAML-compliant identity provider (IdP) to perform MFA using mechanisms unique to the IdP of the enterprise's choosing and as a source of single sign-on (SSO).
+
+There are three roles defined in the SAML specification: the principal, the IdP, and the service provider. In the ONTAP implementation, a principal is the cluster administrator gaining access to ONTAP through ONTAP System Manager or NetApp Active IQ Unified Manager. The IdP is third-party IdP software. Beginning with ONTAP 9.3, Microsoft Active Directory Federated Services (ADFS) and the open-source Shibboleth IdP are supported IdPs. Beginning with ONTAP 9.12.1, Cisco DUO is a supported IdP. The service provider is the SAML capability built into ONTAP that is used by ONTAP System Manager or the Active IQ Unified Manager web application.
+
+Unlike the SSH two-factor configuration process, after SAML authentication is activated, ONTAP System Manager or ONTAP Service Processor access requires all existing administrators to authenticate through the SAML IdP. No changes are required to the cluster user accounts. When SAML authentication is enabled, a new authentication method of `saml` is added to existing users with administrator roles for `http` and `ontapi` applications.
+
+After SAML authentication is enabled, additional new accounts requiring SAML IdP access should be defined in ONTAP with the administrator role and the saml authentication method for `http` and `ontapi` applications. If SAML authentication is disabled at some point, these new accounts require the `password` authentication method to be defined with the administrator role for `http` and `ontapi` applications and addition of the console application for local ONTAP authentication to ONTAP System Manager.
+
+After the SAML IdP is enabled, the IdP performs authentication for ONTAP System Manager access by using methods available to the IdP, such as Lightweight Directory Access Protocol (LDAP), Active Directory (AD), Kerberos, password, and so on. The methods available are unique to the IdP. It is important that the accounts configured in ONTAP have user IDs that map to the IdP authentication methods.
+
+IdPs that have been validated by NetApp are Microsoft ADFS, Cisco DUO, and open-source Shibboleth IdP.
+
+Beginning with ONTAP 9.14.1, Cisco DUO can be used as a second authentication factor for SSH.
+
+For more information about MFA for ONTAP System Manager, Active IQ Unified Manager, and SSH, see link:http://www.netapp.com/us/media/tr-4647.pdf[TR-4647: Multifactor Authentication in ONTAP 9^].
+
+=== ONTAP System Manager insights
+Beginning with ONTAP 9.11.1, ONTAP System Manager provides insights to help cluster administrators streamline their day-to-day tasks. The security insights are based on the recommendations of this technical report.
+
+[width="100%",cols="43%,57%",options="header",]
+|===
+|Security Insight |Determination
+|Telnet is enabled |NetApp recommends Secure Shell (SSH) for secure remote access.
+|Remote Shell (RSH) is enabled |NetApp recommends SSH for secure remote access.
+|AutoSupport is using an insecure protocol |AutoSupport is not configured to be sent over link:httpS.
+|Login banner is not configured on the cluster at cluster level |Warning if login banner is not configured for the cluster.
+|SSH is using insecure ciphers |Warning if SSH uses insecure ciphers.
+|Too few NTP servers are configured |Warning if the number of NTP servers configured is less than three.
+|Default admin user not locked |When not using any default administrative accounts (admin or diag) to log in to System Manager, and these accounts are not locked, the recommendation is to lock them.
+|Ransomware defense — volumes don't have Snapshot policies |No adequate Snapshot policy is attached to one or more volumes.
+|Ransomware defense — disable Snapshot auto-delete |Snapshot auto-delete is set for one or more volumes.
+|Volumes are not being monitored for ransomware attacks |Autonomic ransomware protection is supported on several volumes but not yet configured.
+|SVMs are not configured for autonomic ransomware protection |Autonomic ransomware protection is supported on several SVMs but not yet configured.
+|Native FPolicy is not configured |FPolicy is not set for NAS SVMs.
+|Enable autonomic ransomware protection active mode |Several volumes have completed their learning mode and you can switch on active mode
+|Global FIPS 140-2 compliance is disabled |Global FIPS 140-2 compliance is not enabled.
+|Cluster is not configured for notifications |Emails, webhooks or SNMP traphosts are not configured to receive notifications.
+|===
+
+For more information about ONTAP System Manager insights, see the link:https://docs.netapp.com/us-en/ontap/insights-system-optimization-task.html#view-optimization-insights[ONTAP System Manager insights documentation].
+
+//6-24-24 ontapdoc-1938
