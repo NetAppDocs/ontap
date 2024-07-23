@@ -11,29 +11,55 @@ summary: "You need to resynchronize a replication relationship after you make a 
 [.lead]
 You need to resynchronize a replication relationship after you make a destination volume writeable, after an update fails because a common Snapshot copy does not exist on the source and destination volumes, or if you want to change the replication policy for the relationship.
 
+When your original source volume is available again after a disaster, you can resynchronize data from the destination volume and reestablish the protection relationship.
+
 .About this task
 
 * Although resync does not require a baseline transfer, it can be time-consuming. You might want to run the resync in off-peak hours.
 * Volumes that are part of a fan-out or cascade configuration can take longer to resynchronize. It is not uncommon to see the SnapMirror relationship reporting the status "preparing" for an extended time period.
 
-.Step
+This procedure replaces the data in the original source volume in an asynchronous relationship so that you can start serving data from the original source volume again and resume the original protection relationship.
+
+.Steps
+
+You can resynchronize replication relationships using System Manager or the ONTAP CLI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+. Click *Protection > Relationships* and then click the broken off relationship you want to resynchronize.
+
+. Click image:icon_kabob.gif[Menu Options] and then select *Resync*.
+
+. Under *Relationships*, monitor the resynchronization progress by checking the relationship state. The state changes to "Mirrored" when resynchronization is complete.
+
+--
+
+.CLI
+--
 
 . Resync the source and destination volumes:
 +
-`snapmirror resync -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ... -type DP|XDP -policy _policy_`
+[source,cli]
+----
+snapmirror resync -source-path <SVM:volume|cluster://SVM/volume> -destination-path <SVM:volume|cluster://SVM/volume> -type <DP|XDP> -policy <policy>
+----
 +
 For complete command syntax, see the man page.
 +
 [NOTE]
-====
 You must run this command from the destination SVM or the destination cluster.
-====
 +
-The following example resyncs the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
+The following example resynchronizes the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
 +
 ----
 cluster_dst::> snapmirror resync -source-path svm1:volA -destination-path svm_backup:volA_dst
 ----
+--
+====
 
+// 2024-July-22, ONTAPDOC-1966
 // 2024-April-10, ONTAPDOC-1873
 // 2022-2-2, BURT 1364426
