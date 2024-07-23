@@ -11,14 +11,40 @@ summary: "Beginning with ONTAP 9.7, you can perform an in-place conversion of a 
 [.lead]
 Beginning with ONTAP 9.7, you can perform an in-place conversion of a FlexVol volume to a FlexGroup volume without requiring a data copy or additional disk space.
 
-.What you'll need
+.Before you begin
 
-* Transitioned volumes can be converted to FlexGroup volumes beginning in ONTAP 9.8. If you are converting a transitioned volume to FlexGroup, see Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_To_Convert_a_Transitioned_FlexVol_to_FlexGroup[How To Convert a Transitioned FlexVol to FlexGroup] for more information.
+* Transitioned volumes can be converted to FlexGroup volumes beginning in ONTAP 9.8. 
 * The FlexVol volume that is being converted must be online.
 * The operations and configurations on the FlexVol volume must be compatible with the conversion process.
 +
-An error message is generated if the FlexVol volume has any incompatibility and the volume conversion is aborted. You can take corrective actions and retry the conversion.
-* If a FlexVol volume is very large (for example, 80 to 100 TB) and very full (80 to 100 percent), you should copy the data rather than convert it. 
+Check for the following conditions that can prevent the conversion from succeeding:
+
+** A FlexVol volume was transitioned from 7-Mode using 7MTT (ONTAP 9.7).
++ 
+Transitioned volumes can be converted as of ONTAP 9.8.
+** Something is enabled on the volume that is not yet supported with FlexGroup volume; for example, SAN LUNs, Windows
+NFS, SMB1, Snapshot naming/autodelete, vmalign set, SnapLock, space SLO, or logical space
+enforcement/reporting. For more information see link:supported-unsupported-config-concept.html[Supported and unsupported configurations for FlexGroup volumes].
+** The SVM where the FlexVol volume to be converted is located is currently using SVM DR.
+** NetApp FlexClone volumes are present, and the FlexVol volume is the parent volume. The volume
+being converted cannot be a parent or a clone.
+** The volume is a NetApp FlexCache origin volume.
+** For ONTAP 9.7 and earlier, NetApp Snapshot copies must not exceed 255. For ONTAP 9.8 and later, 1023 Snapshot copies are supported. 
+** Storage efficiencies are enabled. These must be disabled and can be reenabled after conversion.
+** The volume is a source of a SnapMirror relationship, and the destination has not yet been converted.
+** The volume is part of an active (not quiesced) SnapMirror relationship.
+** Quotas are enabled. These must be disabled and can be reenabled after conversion.
+** Volume names are longer than 197 characters.
+** The volume is associated with an application.
++
+This is applicable to ONTAP 9.7 only. The limitation is removed in ONTAP 9.8.
+** ONTAP processes are running, such as mirroring, jobs, wafliron, NDMP backup, and inode conversion in process.
+** The volume is an SVM root volume.
+** The volume is too full.
++
+If any of these incompatibilities exist, an error message is generated if the FlexVol volume, and the volume conversion is aborted. You can take corrective actions and retry the conversion.
+
+* If a FlexVol volume is currently at 80% or greater maximum capacity, consider copying the data to a newly created FlexGroup volume instead of performing an in-place conversion. Although FlexGroup member volumes will naturally rebalance over time, converting a high-capacity FlexVol volume to a FlexGroup volume may create performance or balance issues that will not quickly be rebalanced across member volumes.
 +
 [NOTE]
 ====
@@ -27,7 +53,7 @@ Converting a very large FlexGroup volume results in a very full FlexGroup volume
 
 .Steps
 
-. Verify that the FlexVol volume is online: `volume show vol_name -volume-style-extended,state`
+. Verify that the FlexVol volume is online: `volume show vol_name volume-style-extended,state`
 +
 ----
 cluster-1::> volume show my_volume -fields volume-style-extended,state
@@ -59,7 +85,7 @@ Do you want to continue? {y|n}: y
 [Job 57] Job succeeded: success
 ----
 
-. Verify that the conversion is successful: `volume show vol_name -fields -volume-style-extended,state`
+. Verify that the conversion is successful: `volume show vol_name -fields volume-style-extended,state`
 +
 ----
 cluster-1::*> volume show my_volume -fields volume-style-extended,state
@@ -76,6 +102,8 @@ The FlexVol volume is converted to a single-member FlexGroup volume.
 
 You can expand the FlexGroup volume, as required.
 
+// 2024-July-17, ONTAPDOC-1513
+// 2024-July-1, ONTAPDOC-2153
 // 2022-Sept-29, issue #665
 // 2022-06-16, Jira KDA-1534 and BURT 1485042
 // 08 DEC 2021, BURT 1430515
