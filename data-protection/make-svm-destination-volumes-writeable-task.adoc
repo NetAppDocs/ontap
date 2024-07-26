@@ -2,14 +2,16 @@
 permalink: data-protection/make-svm-destination-volumes-writeable-task.html
 sidebar: sidebar
 keywords: make, svm, destination, volume, writable
-summary: "You need to make SVM destination volumes writeable before you can serve data to clients. The procedure is largely identical to the procedure for volume replication, with one exception. If you set -identity-preserve true when you created the SVM replication relationship, you must stop the source SVM before activating the destination SVM."
+summary: "You need to make SVM destination volumes writeable before you can serve data to clients."
 ---
 = Make SVM destination volumes writeable
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You need to make SVM destination volumes writeable before you can serve data to clients. The procedure is largely identical to the procedure for volume replication, with one exception. If you set `-identity-preserve true` when you created the SVM replication relationship, you must stop the source SVM before activating the destination SVM.
+You need to make SVM destination volumes writeable before you can serve data to clients. 
+
+The procedure is largely identical to the procedure for volume replication, with one exception. If you set `-identity-preserve true` when you created the SVM replication relationship, you must stop the source SVM before activating the destination SVM.
 
 .About this task
 
@@ -20,16 +22,34 @@ For complete command syntax, see the man page.
 In a disaster recovery scenario, you cannot perform a SnapMirror update from the source SVM to the disaster recovery destination SVM because your source SVM and its data will be inaccessible, and because updates since the last resync might be bad or corrupt.
 ====
 
+Beginning with ONTAP 9.8, you can use System Manager to activate a destination storage VM after a disaster. Activating the destination storage VM makes the SVM destination volumes writable and enables you to serve data to clients.
+
 .Steps
+You can perform this task from System Manager or the ONTAP CLI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+. If the source cluster is accessible, verify that the SVM is stopped: navigate to *Storage > Storage VMs* and check the *State* column for the SVM. 
+. If the source SVM state is "Running", stop it: select image:icon_kabob.gif[kabob icon] and choose *Stop*.
+. On the destination cluster, locate the desired protection relationship: navigate to *Protection > Relationships*.
+. Click image:icon_kabob.gif[kabob icon] and choose *Activate Destination Storage VM*.
+--
+
+.CLI
+--
 
 . From the destination SVM or the destination cluster, stop scheduled transfers to the destination:
 +
-`snapmirror quiesce -source-path _SVM_: -destination-path _SVM_:`
+[source,cli]
+----
+snapmirror quiesce -source-path <SVM>: -destination-path <SVM>:
+----
 +
 [NOTE]
-====
 You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options. See the example below.
-====
 +
 The following example stops scheduled transfers between the source SVM `svm1` and the destination SVM `svm_backup`:
 +
@@ -39,12 +59,10 @@ cluster_dst::> snapmirror quiesce -source-path svm1: -destination-path svm_backu
 
 . From the destination SVM or the destination cluster, stop ongoing transfers to the destination:
 +
-`snapmirror abort -source-path _SVM_: -destination-path _SVM_:`
+`snapmirror abort -source-path <SVM>: -destination-path <SVM>:`
 +
 [NOTE]
-====
 You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options. See the example below.
-====
 +
 The following example stops ongoing transfers between the source SVM `svm1` and the destination SVM `svm_backup`:
 +
@@ -54,12 +72,10 @@ cluster_dst::> snapmirror abort -source-path svm1: -destination-path svm_backup:
 
 . From the destination SVM or the destination cluster, break the replication relationship:
 +
-`snapmirror break -source-path _SVM_: -destination-path _SVM_:`
+`snapmirror break -source-path <SVM>: -destination-path <SVM>:`
 +
 [NOTE]
-====
 You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options. See the example below.
-====
 +
 The following example breaks the relationship between the source SVM `svm1` and the destination SVM `svm_backup`:
 +
@@ -69,7 +85,7 @@ cluster_dst::> snapmirror break -source-path svm1: -destination-path svm_backup:
 
 . If you set `-identity-preserve true` when you created the SVM replication relationship, stop the source SVM:
 +
-`vserver stop -vserver _SVM_`
+`vserver stop -vserver <SVM>`
 +
 The following example stops the source SVM `svm1`:
 +
@@ -79,7 +95,7 @@ cluster_src::> vserver stop svm1
 
 . Start the destination SVM:
 +
-`vserver start -vserver _SVM_`
+`vserver start -vserver <SVM>`
 +
 The following example starts the destination SVM `svm_backup`:
 +
@@ -90,3 +106,9 @@ cluster_dst::> vserver start svm_backup
 .After you finish
 
 Configure SVM destination volumes for data access, as described in link:configure-destination-volume-data-access-concept.html[Configuring the destination volume for data access].
+
+--
+====
+
+// 2024-July-25, ONTAPDOC-1966
+// 2022-Dec-1, issue# 717
