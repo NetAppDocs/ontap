@@ -1,7 +1,7 @@
 ---
 permalink: san-admin/enable-space-allocation.html
 sidebar: sidebar
-keywords: enable, space allocation, space reclamation, unmap
+keywords: enable, space allocation, space reclamation, unmap, lun
 summary: "Enable space allocation to allow the host and storage system to cooperate on space management."
 ---
 = Enable space allocation for SAN
@@ -9,7 +9,11 @@ summary: "Enable space allocation to allow the host and storage system to cooper
 :imagesdir: ../media/
 
 [.lead]
-Enable space allocation to allow your hosts and storage systems to cooperate on LUN space management. Enabling the `space-allocation` setting allows the following benefits:
+Enable space allocation to allow your hosts and storage systems to cooperate on LUN space management. 
+
+Beginning with ONTAP 9.15.1, space allocation is enabled by default for newly created LUNs. Space allocation had been disabled by default in previous versions of ONTAP (9.14.1 and earlier).
+
+Enabling the `space-allocation` setting allows the following benefits:
 
 * *ONTAP can communicate to a host that no free space is available to service a write*: This communication is a more graceful way for hosts to handle out-of-space situations. The LUN remains online but is unable to service a write IO until space becomes available. Read IO can still be performed. The exact effect on a host OS depends on host configuration. In some cases, the OS retries write IO until it succeeds. In other cases, the filesystem could be placed offline. 
 +
@@ -30,29 +34,33 @@ The following hosts currently support SCSI thin provisioning when you enable spa
 * Solaris 11.1 and later
 * Windows 
 
-Space allocation is not supported on NVMe hosts.  
+Space allocation is not supported on NVMe hosts.
 
 .About this task
 
-Beginning with ONTAP 9.15.1, space allocation is enabled by default for newly created VMware and Hyper-V LUNs and is disabled for all newly created LUNs not used by VMware and Hyper-V.  
-
-[NOTE]
-When you upgrade your cluster to ONTAP 9.15.1, the space allocation setting for all LUNs created prior to the software upgrade remains the same after the upgrade, regardless of host type.  For example, if a LUN was created in ONTAP 9.13.1 for a VMware host with space allocation disabled, space allocation on that LUN remains disabled after upgrading to ONTAP 9.15.1. 
+When you upgrade your cluster to ONTAP 9.15.1, the space allocation setting for all LUNs created prior to the software upgrade remains the same after the upgrade, regardless of host type. For example, if a LUN was created in ONTAP 9.13.1 for a VMware host with space allocation disabled, space allocation on that LUN remains disabled after upgrading to ONTAP 9.15.1. 
 
 .Steps
 
 . Enable space allocation:
 +
-`lun modify -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -space-allocation enabled`
+[source,cli]
+----
+lun modify -vserver <vserver_name> -volume <volume_name> -lun <lun_name> -space-allocation enabled
+----
 
 . Verify that space allocation is enabled:
 +
-`lun show -vserver _vserver_name_ -volume _volume_name_ -lun _lun_name_ -fields space-allocation`
+[source,cli]
+----
+lun show -vserver <vserver_name> -volume <volume_name> -lun <lun_name> -fields space-allocation
+----
 
 . Verify that space allocation is enabled on the host OS. 
 +
 NOTE: Some host configurations, ESX in particular, can automatically recognize the setting change and do not require user intervention. Other configurations might require a device rescan. Some filesystems and volume managers might require additional specific settings to enable space reclamation using `SCSI UNMAP`. Remounting of filesystems or a full OS reboot might be required. Consult the documentation for your specific OS for guidance. 
 
+// 2024-7-17 ontapdoc-2220
 // 2024 June 3, ONTAPDOC-2034
 // 2024 Apr 16, Jira 1662
 // 2023, Mar 18, Jira 1793

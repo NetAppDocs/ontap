@@ -1,0 +1,44 @@
+---
+sidebar: sidebar
+permalink: ontap-security-hardening/ipsec-in-flight-encryption.html
+keywords: tr-4569, ontap hardening guide, NFS, iSCSI, SMB/CIFS, no Kerberos, IKE v2, SVM, PSK, certificate, no license
+summary: "IPsec provides an alternative to NFS or SMB/CIFS encryption and is the only encryption in flight option for iSCSI traffic."
+---
+= IPsec data-in-flight encryption
+:hardbreaks:
+:icons: font
+:linkattrs:
+:imagesdir: ../media
+
+[.lead]
+Customers who use data-at-rest encryption technologies such as NetApp Storage Encryption (NSE) or NetApp Volume Encryption (NVE) and Cluster Peering Encryption (CPE) for data replication traffic can now use end-to-end encryption between client and storage across their hybrid multi-cloud data fabric by upgrading to ONTAP 9.8 or later and using IPsec. IPsec provides an alternative to NFS or SMB/CIFS encryption and is the only encryption in flight option for iSCSI traffic.
+
+In some situations, there might be a requirement to protect all client data transported over the wire (or in flight) to the ONTAP SVM. Doing so prevents replay and malicious man-in-the-middle attacks against sensitive data while it is in flight.
+
+Starting with ONTAP 9.8, Internet Protocol Security (IPsec) provides end-to-end encryption support for all IP traffic between a client and an ONTAP SVM. IPsec data encryption for all IP traffic includes NFS, iSCSI, and SMB/CIFS protocols. IPsec provides the only encryption in flight option for iSCSI traffic.
+
+Providing NFS encryption over the wire is one of the main use cases for IPsec. Prior to ONTAP 9.8, NFS over-the-wire encryption required the setup and configuration of Kerberos to utilize krb5p to encrypt NFS data in flight. This is not always simple or easy to accomplish in every customer environment.
+
+Customers who use data-at-rest encryption technologies such as NetApp Storage Encryption (NSE) or NetApp Volume Encryption (NVE) and Cluster Peering Encryption (CPE) for data replication traffic can now use end-to-end encryption between client and storage across their hybrid multi-cloud data fabric by upgrading to ONTAP 9.8 or later and using IPsec.
+
+IPsec is an IETF standard. ONTAP uses IPsec in transport mode. It also leverages the Internet Key Exchange (IKE) protocol version 2, which uses a pre-shared key (PSK) for negotiating key material between the client and ONTAP with either IPv4 or IPv6. By default, IPsec uses Suite-B AES-GCM 256-bit encryption. Suite-B AES-GMAC256 and AES-CBC256 with 256-bit encryption are also supported.
+
+Although the IPsec capability must be enabled on the cluster, it applies to individual SVM IP addresses through the use of a Security Policy Database (SPD) entry. The policy (SPD) entry contains the client IP address (remote IP subnet), SVM IP address (local IP subnet), the encryption cipher suite to use, and the pre-shared secret (PSK) needed to authenticate via IKEv2 and establish the IPsec connection. In addition to the IPsec policy entry, the client must be configured with the same information (local and remote IP, PSK, and cipher suite) before traffic can flow over the IPsec connection. Beginning with ONTAP 9.10.1, IPsec certificate authentication support is added. This removes IPsec policy limits and enables Windows OS support for IPsec.
+
+If there is a firewall between the client and the SVM IP address, then it must allow the ESP and UDP (port 500 and 4500) protocols, both inbound (ingress) and outbound (egress), for the IKEv2 negotiation to succeed and thus allow IPsec traffic.
+
+For NetApp SnapMirror and cluster peering traffic encryption, cluster peering encryption (CPE) is still recommended over IPsec for secure in-transit over the wire. CPE performs better for these workloads than IPsec. You do not need a license for IPsec, and there are no import or export restrictions.
+
+You can enable IPsec on the cluster and create an SPD entry for a single client and a single SVM IP address as shown in the following example:
+
+----
+On the Destination Cluster Peer
+
+cluster1::> security ipsec config modify -is-enabled true
+
+cluster1::> security ipsec policy create -vserver vs1 -name test34 -local-ip-subnets 192.168.134.34/32 -remote-ip-subnets 192.168.134.44/32
+
+When prompted enter and confirm the pre shared secret (PSK).
+----
+
+//6-24-24 ontapdoc-1938
