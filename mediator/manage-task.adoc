@@ -346,7 +346,7 @@ Getting CA Private Key
 
 == Replace self-signed certificates with trusted third-party certificates
 
-CAUTION: Third-party certificates are *only* supported with ONTAP Mediator on systems running ONTAP 9.12.1Px, ONTAP 9.13.1Px, ONTAP 9.14.1Px, or ONTAP 9.15.1Px. 
+CAUTION: Third-party certificates are *only* supported with ONTAP Mediator on systems running ONTAP 9.12.1P15, ONTAP 9.13.1P12, ONTAP 9.14.1P8, or ONTAP 9.15.1P2. 
 
 If supported, you can replace self-signed certificates with trusted third-party certificates.
 
@@ -402,7 +402,7 @@ erARKhY9z0e8BHPl3g==
 
 . Send the certificate signing request `ca.csr` to a PKI authority for their signature.
 +
-The PKI authority verifies the request and signs the `.csr`, generating the certificate `ca.crt`. You also need to obtain the `root_ca.crt` certificate from the PKI. The `root_ca.crt` is used to sign the `ca.crt` certificate.
+The PKI authority verifies the request and signs the `.csr`, generating the certificate `ca.crt`. You also need to obtain the `root_ca.crt` certificate from the PKI authority, which signs the `ca.crt` certificate.
 +
 NOTE: For SnapMirror Business Continuity (SM-BC) clusters, you must add the `ca.crt` and `root_ca.crt` certificates to an ONTAP cluster. See link:https://docs.netapp.com/us-en/ontap/smbc/smbc_install_confirm_ontap_cluster.html#ontap-mediator[Configure the ONTAP Mediator and clusters for SM-BC].
 
@@ -424,7 +424,7 @@ NOTE: The `ca.crt` and `ca.key` files were obtained from the PKI. If you are usi
 +
 `openssl x509 -extfile openssl_server.cnf -extensions v3_req -CA ca.crt -CAkey ca.key -CAcreateserial -sha512 -days 1095 -req -in ontap_mediator_server.csr -out ontap_mediator_server.crt`
 +
-* The `-CAcreateserial` option is used to generate the `ca.srl` or `intermediate.srl` files depending on the certificate name you are using. 
+* The `-CAcreateserial` option is used to generate the `ca.srl` or `intermediate.srl` files, depending on the certificate name that you are using. 
 
 === Step 3: Replace new third-party CA certificate and server certificate in ONTAP Mediator configuration
 
@@ -478,9 +478,9 @@ You can use third-party certificates with a different name other than `ca.*` or 
 
 . Configure the file `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator.user_config.yaml` to override the default variable values in the `ontap_mediator.config.yaml` file. 
 +
-For example, if you obtain `intermediate.crt` from the PKI authority and store its private key `intermediate.key`at the location `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config`, then the `user_config` file should look like the following:
+For example, if you obtained `intermediate.crt` from the PKI authority and you store its private key `intermediate.key` at the location `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config`, the `ontap_mediator.user_config.yaml` file should look like the following example:
 +
-NOTE: If `intermediate.crt` is used to sign the `ontap_mediator_server.crt`, the  `intermediate.srl` file is generated. Refer to the note in <<step_2_intermediate_info, Step 2: Generate a server certificate by signing with a third-party CA certification>> for more information.
+NOTE: If `intermediate.crt` is used to sign the `ontap_mediator_server.crt`, the  `intermediate.srl` file is generated. Refer to the note under Step 2 in <<step_2_intermediate_info, Step 2: Generate a server certificate by signing with a third-party CA certification>> for more information.
 
 +
 ----
@@ -507,7 +507,7 @@ ca_serial_path: '/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/int
 
 .. If you are using a certificate structure where the `root_ca.crt` certificate provides an `intermediate.crt` certificate that signs the `ontap_mediator_server.crt` certificate, connect the two top-level certificates to create a single certificate:
 +
-NOTE: You should have obtained both top-level certificates from the PKI earlier in the procedure.
+NOTE: You should have obtained both top-level certificates from the PKI authority earlier in the procedure.
 +
 `cat ontap_mediator_server.crt intermediate.crt > ontap_mediator_server_chain.crt`
 
