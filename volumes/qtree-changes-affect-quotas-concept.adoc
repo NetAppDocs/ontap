@@ -1,12 +1,49 @@
 ---
 permalink: volumes/qtree-changes-affect-quotas-concept.html
 sidebar: sidebar
-keywords: how, qtree, changes, affect, quotas
+keywords: how, qtree, quota, delete qtree, rename qtree, tree quotas, security, style of a qtree, security style, style
 summary: "When you delete, rename, or change the security style of a qtree, the quotas applied by ONTAP might change, depending on the current quotas being applied."
 ---
-= How qtree changes affect quotas overview 
+= How qtree changes affect quotas
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
 When you delete, rename, or change the security style of a qtree, the quotas applied by ONTAP might change, depending on the current quotas being applied.
+
+== Qtree deletions and tree quotas
+
+When you delete a qtree, all quotas applicable to that qtree, whether they are explicit or derived, are no longer applied by ONTAP.
+
+Whether the quota rules persist depends on where you delete the qtree:
+
+* If you delete a qtree using ONTAP, the quota rules for that qtree are automatically deleted, including tree quota rules and any user and group quota rules configured for that qtree.
+* If you delete a qtree using your CIFS or NFS client, you must delete any quota rules for that qtree to avoid getting errors when you reinitialize quotas. If you create a new qtree with the same name as the one you deleted, the existing quota rules are not applied to the new qtree until you reinitialize quotas.
+
+// ONTAPDOC-2119/GH-1818 2024-6-26 (keywords added)
+
+== How renaming a qtree affects quotas
+
+When you rename a qtree using ONTAP, the quota rules for that qtree are automatically updated. If you rename a qtree using your CIFS or NFS client, you must update any quota rules for that qtree.
+
+NOTE: If you rename a qtree using your CIFS or NFS client and do not update quota rules for that qtree with the new name before you reinitialize quotas, quotas will not be applied to the qtree. Explicit quotas for the qtree, including tree quotas and user or group quotas for the qtree, might be converted into derived quotas.
+
+== Qtree security styles and user quotas
+
+You can apply Access Control Lists (ACLs) on qtrees by using NTFS or mixed security styles, but not by using the UNIX security style. Changing the security style of a qtree might affect how quotas are calculated. You should always reinitialize quotas after you change the security style of a qtree.
+
+If you change the security style of a qtree from NTFS or mixed to UNIX, any ACLs on files in that qtree are ignored and the file usage is charged against the UNIX user IDs.
+
+If you change the security style of a qtree from UNIX to either mixed or NTFS, the previously hidden ACLs become visible. In addition, any ACLs that were ignored become effective again, and the NFS user information is ignored. If no ACL existed before, the NFS information continues to be used in the quota calculation.
+
+NOTE: To make sure that quota usages for both UNIX and Windows users are properly calculated after you change the security style of a qtree, you must reinitialize quotas for the volume containing that qtree.
+
+.Example
+
+The following example shows how a change in the security style of a qtree results in a different user being charged for the usage of a file in the particular qtree.
+
+Suppose NTFS security is in effect on qtree A, and an ACL gives Windows user corp\joe ownership of a 5 MB file. User corp\joe is charged with 5 MB of disk space usage for qtree A.
+
+Now you change the security style of qtree A from NTFS to UNIX. After quotas are reinitialized, Windows user corp\joe is no longer charged for this file; instead, the UNIX user corresponding to the UID of the file is charged for the file. The UID could be a UNIX user mapped to corp\joe or the root user.
+
+// ONTAPDOC-2119/GH-1818 2024-6-24
