@@ -19,14 +19,6 @@ The following conditions must be met before you can use Telnet to access the clu
 +
 The `-application` parameter of the `security login` commands specifies the access method for a user account. For more information, see the `security login` man pages.
 
-* Telnet must already be enabled in the management firewall policy that is used by the cluster or node management LIFs so that Telnet requests can go through the firewall.
-+
-By default, Telnet is disabled. The `system services firewall policy show` command with the `-service telnet` parameter displays whether Telnet has been enabled in a firewall policy. For more information, see the `system services firewall policy` man pages.
-
-* If you use IPv6 connections, IPv6 must already be configured and enabled on the cluster, and firewall policies must already be configured with IPv6 addresses.
-+
-The `network options ipv6 show` command displays whether IPv6 is enabled. The `system services firewall policy show` command displays firewall policies.
-
 .About this task
 
 * Telnet is not a secure protocol.
@@ -41,13 +33,27 @@ If the rate of in-coming connections is higher than 10 per second, the service i
 
 * If you want to access the ONTAP CLI from a Windows host, you can use a third-party utility such as PuTTY.
 
+* RSH commands require advanced privileges.
+
 .Steps
 
-. From an administration host, enter the following command:
+. Confirm that the Telnet security protocol is enabled:
 +
-`*telnet _hostname_or_IP_*`
+`security protocol show`
+
+.. If the Telnet security protocol is enabled, continue to the next step.
+.. If the Telnet security protocol is not enabled, use the following command to enable it:
 +
-`_hostname_or_IP_` is the host name or the IP address of the cluster management LIF or a node management LIF. Using the cluster management LIF is recommended. You can use an IPv4 or IPv6 address.
+`security protocol modify -application telnet -enabled true` 
+
+. Confirm that the `management-telnet-server` service exists on the management LIFs:
++
+`network interface show -services management-telnet-server`
+
+.. If the `management-telnet-server` service exists, continue to the next step.
+.. If the `management-telnet-server` service does not exist, use the following command to add it:
++ 
+`network interface service-policy add-service -vserver cluster1 -policy default-management -service management-telnet-server`
 
 .Example of a Telnet request
 
@@ -60,3 +66,5 @@ login: joe
 Password:
 cluster1::>
 ----
+
+// 1-AUG-2024 GH-1401 and ONTAPDOC-1116
