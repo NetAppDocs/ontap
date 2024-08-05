@@ -1,65 +1,66 @@
 ---
 permalink: data-protection/manage-storage-efficiency-task.html
 sidebar: sidebar
-keywords: manage, storage, efficiency, snapmirror, snap mirror, compression, compress, postporcess, update relationship, volume
-summary: "SnapMirror preserves storage efficiency on the source and destination volumes, with one exception, when postprocess data compression is enabled on the destination. In that case, all storage efficiency is lost on the destination. To correct this issue, you need to disable postprocess compression on the destination, update the relationship manually, and re-enable storage efficiency."
+keywords: snapmirror, efficiency, manage, storage, snap mirror, compression, compress, postprocess, post-process, update relationship, volume
+summary: "To preserve storage efficiency between source and destination volumes with SnapMirror, you need to disable postprocess compression on the destination volume"
 ---
 = Manage storage efficiency
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-SnapMirror preserves storage efficiency on the source and destination volumes, with one exception, when postprocess data compression is enabled on the destination. In that case, all storage efficiency is lost on the destination. To correct this issue, you need to disable postprocess compression on the destination, update the relationship manually, and re-enable storage efficiency.
-
-.What you'll need
-
-* The source and destination clusters and SVMs must be peered.
-+
-https://docs.netapp.com/us-en/ontap-sm-classic/peering/index.html[Cluster and SVM peering]
-
-* You must disable postprocess compression on the destination.
+SnapMirror preserves storage efficiency on the source and destination volumes except when postprocess data compression is enabled on the destination volume. In that case, all storage efficiency is lost on the destination volume. To correct this issue, you need to disable postprocess compression on the destination volume, update the relationship manually, and re-enable storage efficiency.
 
 .About this task
 
 You can use the `volume efficiency show` command to determine whether efficiency is enabled on a volume. For more information, see the man pages.
 
-You can check if SnapMirror is maintaining storage efficiency by viewing the SnapMirror audit logs and locating the transfer description. If the transfer description displays `transfer_desc=Logical Transfer`, SnapMirror is not maintaining storage efficiency. If the transfer description displays `transfer_desc=Logical Transfer with Storage Efficiency`, SnapMirror is maintaining storage efficiency. For example:
+You can check if SnapMirror is maintaining storage efficiency by viewing the SnapMirror audit logs and locating the transfer description. If the transfer description displays `transfer_desc=Logical Transfer with Storage Efficiency`, SnapMirror is maintaining storage efficiency. If the transfer description displays `transfer_desc=Logical Transfer`, SnapMirror is not maintaining storage efficiency. For example:
 
 ----
 Fri May 22 02:13:02 CDT 2020 ScheduledUpdate[May 22 02:12:00]:cc0fbc29-b665-11e5-a626-00a09860c273 Operation-Uuid=39fbcf48-550a-4282-a906-df35632c73a1 Group=none Operation-Cookie=0 action=End source=<sourcepath> destination=<destpath> status=Success bytes_transferred=117080571 network_compression_ratio=1.0:1 transfer_desc=Logical Transfer - Optimized Directory Mode
 ----
 
-Logical Transfer with storage
+.Before you begin
 
-Beginning with ONTAP 9.3, manual update is no longer required to re-enable storage efficiency. If SnapMirror detects that postprocess compression has been disabled, it automatically re-enables storage efficiency at the next scheduled update. Both the source and the destination must be running ONTAP 9.3.
+* The source and destination clusters and SVMs must be peered.
++
+https://docs.netapp.com/us-en/ontap-system-manager-classic/peering/index.html[Cluster and SVM peering^]
 
-Beginning with ONTAP 9.3, AFF systems manage storage efficiency settings differently from FAS systems after a destination volume is made writeable:
+* You must disable postprocess compression on the destination volume.
 
-* After you make a destination volume writeable using the `snapmirror break` command, the caching policy on the volume is automatically set to "`auto`" (the default).
+* Logical Transfer with storage: Beginning with ONTAP 9.3, manual update is no longer required to re-enable storage efficiency. If SnapMirror detects that postprocess compression has been disabled, it automatically re-enables storage efficiency at the next scheduled update. Both the source and the destination must be running ONTAP 9.3.
+
+* Beginning with ONTAP 9.3, AFF systems manage storage efficiency settings differently from FAS systems after a destination volume is made writeable:
+
+** After you make a destination volume writeable using the `snapmirror break` command, the caching policy on the volume is automatically set to "`auto`" (the default).
 +
 [NOTE]
 ====
 This behavior is applicable to FlexVol volumes, only, and it does not apply to FlexGroup volumes.
 ====
 
-* On resync, the caching policy is automatically set to "`none`", and deduplication and inline compression are automatically disabled, regardless of your original settings. You must modify the settings manually as needed.
+** On resync, the caching policy is automatically set to "`none`", and deduplication and inline compression are automatically disabled, regardless of your original settings. You must modify the settings manually as needed.
 
 [NOTE]
 ====
 Manual updates with storage efficiency enabled can be time-consuming. You might want to run the operation in off-peak hours.
 ====
 
-.Step
+.Steps
 
 . Update a replication relationship and re-enable storage efficiency:
 +
-`snapmirror update -source-path _SVM:volume_|_cluster://SVM/volume_, ... -destination-path _SVM:volume_|_cluster://SVM/volume_, ... -enable-storage-efficiency true`
+[source,cli]
+----
+snapmirror update -source-path <SVM:volume>|<cluster://SVM/volume>, ... -destination-path <SVM:volume>|<cluster://SVM/volume>, ... -enable-storage-efficiency true
+----
 +
 For complete command syntax, see the man page.
 +
 [NOTE]
 ====
-You must run this command from the destination SVM or the destination cluster. The command fails if a common Snapshot copy does not exist on the source and destination. Use `snapmirror initialize` to re-initialize the relationship.
+You must run this command from the destination SVM or the destination cluster. The command fails if a common snapshot copy does not exist on the source and destination. Use `snapmirror initialize` to re-initialize the relationship.
 ====
 +
 The following example updates the relationship between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`, and re-enables storage efficiency:
@@ -68,4 +69,5 @@ The following example updates the relationship between the source volume `volA` 
 cluster_dst::> snapmirror update -source-path svm1:volA -destination-path svm_backup:volA_dst -enable-storage-efficiency true
 ----
 
+// 2024-7-16 ontapdoc-1329
 // 08 DEC 2021, BURT 1430515

@@ -19,14 +19,6 @@ The following conditions must be met before you can use RSH to access the cluste
 +
 The `-application` parameter of the `security login` commands specifies the access method for a user account. For more information, see the `security login` man pages.
 
-* RSH must already be enabled in the management firewall policy that is used by the cluster or node management LIFs so that RSH requests can go through the firewall.
-+
-By default, RSH is disabled. The `system services firewall policy show` command with the `-service rsh` parameter displays whether RSH has been enabled in a firewall policy. For more information, see the `system services firewall policy` man pages.
-
-* If you use IPv6 connections, IPv6 must already be configured and enabled on the cluster, and firewall policies must already be configured with IPv6 addresses.
-+
-The `network options ipv6 show` command displays whether IPv6 is enabled. The `system services firewall policy show` command displays firewall policies.
-
 .About this task
 
 * RSH is not a secure protocol.
@@ -37,17 +29,29 @@ You should consider using SSH to access the cluster. SSH provides a secure remot
 +
 If the cluster management LIF resides on the node, it shares this limit with the node management LIF.
 +
-If the rate of in-coming connections is higher than 10 per second, the service is temporarily disabled for 60 seconds.
+If the rate of incoming connections is higher than 10 per second, the service is temporarily disabled for 60 seconds.
+
+* RSH commands require advanced privileges.
 
 .Steps
 
-. From an administration host, enter the following command:
+. Confirm that the RSH security protocol is enabled:
 +
-`*rsh _hostname_or_IP_ -l _username:passwordcommand_*`
+`security protocol show`
+
+.. If the RSH security protocol is enabled, continue to the next step.
+.. If the RSH security protocol is not enabled, use the following command to enable it:
 +
-`_hostname_or_IP_` is the host name or the IP address of the cluster management LIF or a node management LIF. Using the cluster management LIF is recommended. You can use an IPv4 or IPv6 address.
+`security protocol modify -application rsh -enabled true` 
+
+. Confirm that the `management-rsh-server` service exists on the management LIFs:
 +
-`_command_` is the command you want to execute over RSH.
+`network interface show -services management-rsh-server`
+
+.. If the `management-rsh-server` service exists, continue to the next step.
+.. If the `management-rsh-server` service does not exist, use the following command to add it:
++ 
+`network interface service-policy add-service -vserver cluster1 -policy default-management -service management-rsh-server`
 
 .Example of an RSH request
 
@@ -65,3 +69,5 @@ node2                 true    true
 
 admin_host$
 ----
+
+// 27-JULY-2024 GH-1401
