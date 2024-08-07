@@ -1,7 +1,7 @@
 ---
 permalink: flexcache-writeback/flexcache-write-back-architecture.html
 sidebar: sidebar
-keywords: tr-4743, flexcache writeback, flexcache write-back, flexcache, write-back, writeback, lock delegations, data delegations, dirty data, cache scrubbers, disconnected mode, grok it, sequence diagrams, technical report, netapp tr, ontap tr
+keywords: tr-4743, flexcache writeback, flexcache write-back, flexcache, write-back, write back, lock delegations, data delegations, dirty data, cache scrubbers, disconnected mode, grok it, sequence diagrams, technical report, netapp tr, ontap tr
 summary: "Understand the finer details of how FlexCache write-back operates."
 ---
 = FlexCache write-back architecture
@@ -21,23 +21,23 @@ Lock delegations and data delegations helps FlexCache keep both write-back and w
 
 === Lock delegations
 
-A lock delegation is a protocol-level lock authority the origin grants on a per-file basis to a cache to issue protocol locks to clients as needed. These include xref:flexcache-write-back-overview.html#flexcache-writeback-terminology[exclusive lock delegations (XLD)] and xref:flexcache-write-back-overview.html#flexcache-writeback-terminology[shared lock delegations (SLD)].
+A lock delegation is a protocol-level lock authority the origin grants on a per-file basis to a cache to issue protocol locks to clients as needed. These include xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[exclusive lock delegations (XLD)] and xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[shared lock delegations (SLD)].
 
-.XLD
+.XLD and write-back
 To ensure ONTAP never has to reconcile a conflicting write, an XLD is granted to a cache where a client requests to write to a file. Importantly, only one XLD can exist for any file at any time, meaning there never will be more than one writer to a file at a time. 
 
 When the request to write to a file comes into a write-back enabled cache, the following steps take place:
 
 . The cache checks if it already has an XLD for the requested file. If so, it will grant the write lock to the client as long as another client isn't writing to the file at the cache. If the cache doesn't have an XLD for the requested file, it will request one from the origin. This is a proprietary call that traverses the intercluster network. 
-. Upon receiving the XLD request from the cache, the origin will check if there is an outstanding XLD for the file at another cache. If so, it will recall that file's XLD, which triggers a flush of any xref:xref:flexcache-write-back-overview.html#flexcache-writeback-terminology[dirty data] from that cache back to the origin.
+. Upon receiving the XLD request from the cache, the origin will check if there is an outstanding XLD for the file at another cache. If so, it will recall that file's XLD, which triggers a flush of any xref:xref:flexcache-write-back-overview.html#flexcache-write-back-terminology[dirty data] from that cache back to the origin.
 . Once the dirty data from that cache is flushed back and committed to stable storage at the origin, the origin will grant the XLD for the file to the requesting cache.
 . Once the file's XLD is received, the cache grants the lock to the client, and the write commences.
 
-A high level sequence diagram covering some of these steps is covered in the <<Write-back-sequence-diagram>> sequence diagram below.
+A high-level sequence diagram covering some of these steps is covered in the <<write-back-sequence-diagram>> sequence diagram.
 
 From a client perspective, all locking will work as if it were writing to a standard FlexVol or FlexGroup with a potential small delay when the write lock is requested.
 
-In it's current iteration, if a write-back enabled cache holds the XLD for a file, ONTAP will block *any* access to that file at other caches, including `READ` operations
+In it's current iteration, if a write-back enabled cache holds the XLD for a file, ONTAP will block *any* access to that file at other caches, including `READ` operations.
 
 NOTE: There is a limit of 170 XLDs per origin constituent.
 
@@ -64,8 +64,7 @@ In addition to the DDRs and scrubbers, some front-end NAS operations also trigge
 * `WRITE` at another cache 
 
 == Disconnected mode 
-When an XLD for a file is held at a write-around cache and that cache gets disconnected from the origin, reads for that file are still allowed at the other caches and origin. This behavior differs when an XLD is held by a write-back-enabled cache. In this case, if the cache is disconnected, reads to the file will hang everywhere. This helps ensure 100% consistency, currency, and coherence are maintained. The reads are allowed in write-around mode because the origin is guaranteed to have all of the data available that has been write-acknowledged to the client. In write-back mode during a
-disconnect, the origin can not guarantee that all of the data written to and acknowledged by the write-back-enabled cache made it to the origin before the disconnect occurred. 
+When an XLD for a file is held at a write-around cache and that cache gets disconnected from the origin, reads for that file are still allowed at the other caches and origin. This behavior differs when an XLD is held by a write-back-enabled cache. In this case, if the cache is disconnected, reads to the file will hang everywhere. This helps ensure 100% consistency, currency, and coherence are maintained. The reads are allowed in write-around mode because the origin is guaranteed to have all of the data available that has been write-acknowledged to the client. In write-back mode during a disconnect, the origin can not guarantee that all of the data written to and acknowledged by the write-back-enabled cache made it to the origin before the disconnect occurred. 
 
 In the event a cache with an XLD for a file is disconnected for an extended period of time, a system administrator can manually revoke the XLD at the origin. This will allow IO to the file to resume at the surviving caches and the origin. 
 
@@ -87,15 +86,15 @@ Scrubbers include:
 * *Space-based scrubber on the origin:* If a FlexCache origin volume reaches 90% full, the cache is scrubbed, evicting on an LRU basis. 
 
 == Sequence diagrams
-These sequence diagrams visualize the difference in write acknowledgements between write-around and write-back mode. 
+These sequence diagrams depict the difference in write acknowledgements between write-around and write-back mode. 
 
 [[Write-around-sequence-diagram]]
 === Write-around
-image::Write-around-sequence-diagram.png[Write-around sequence diagram]
+image::flexcache-write-around-sequence-diagram.png[FlexCache write-around sequence diagram]
 
 [[Write-back-sequence-diagram]]
 === Write-back
-image::Write-back-sequence-diagram.png[Write-back sequence diagram]
+image::flexcache-write-back-sequence-diagram.png[FlexCache-write-back sequence diagram]
 
 
 // 2024-Aug-6, ONTAPDOC-2272
