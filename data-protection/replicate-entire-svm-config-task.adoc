@@ -1,15 +1,15 @@
 ---
 permalink: data-protection/replicate-entire-svm-config-task.html
 sidebar: sidebar
-keywords: replicate, entire, svm, configuration, snapmirror, snap mirror, replication, mirror vault policy, snapshot
-summary: "You can use the -identity-preserve true option of the snapmirror create command to replicate an entire SVM configuration."
+keywords: replicate, entire, svm, storage vm, disaster, protection, configuration, snapmirror, snap mirror, replication, mirror vault policy, snapshot
+summary: "You can create an SVM disaster recovery (SVM DR) relationship to replicate one SVM configuration to another. In the event of a disaster at the primary site, you can quickly activate the destination SVM."
 ---
 = Replicate an entire SVM configuration
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You can use the `-identity-preserve true` option of the `snapmirror create` command to replicate an entire SVM configuration.
+You can create an SVM disaster recovery (SVM DR) relationship to replicate one SVM configuration to another. In the event of a disaster at the primary site, you can quickly activate the destination SVM.
 
 .Before you begin
 
@@ -24,11 +24,36 @@ This workflow assumes that you are already using a default policy or a custom re
 
 Beginning with ONTAP 9.9.1, when you use the mirror-vault policy, you can create different Snapshot policies on the source and destination SVM, and the Snapshot copies on the destination are not overwritten by Snapshot copies on the source. For more information, see link:snapmirror-svm-replication-concept.html[Understanding SnapMirror SVM replication].
 
+Complete this procedure from the destination. If you need to create a new protection policy, for instance, when your source storage VM has SMB configured, you should use System Manager to create the policy and select the *Identity preserve* option in the *Add Protection Policy* window.
+For details see link:create-custom-replication-policy-concept.html[Create custom data protection policies].
+
 .Steps
+You can perform this task from System Manager or the ONTAP CLI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+. On the destination cluster, click *Protection > Relationships*.
+
+. Under *Relationships*, click *Protect* and choose *Storage VMs (DR)*.
+
+. Select a protection policy. If you created a custom protection policy, select it, then choose the source cluster and storage VM you want to replicate. You can also create a new destination storage VM by entering a new storage VM name.
+
+. If desired, change the destination settings to override identity preserve and choosing to include or exclude network interfaces and protocols.
+
+. Click *Save*.
+--
+.CLI
+--
 
 . Create a destination SVM:
 +
-`vserver create -vserver _SVM_name_ -subtype dp-destination`
+[source,cli]
+----
+vserver create -vserver <SVM_name> -subtype dp-destination
+----
 +
 The SVM name must be unique across the source and destination clusters.
 +
@@ -44,14 +69,15 @@ For more information, see link:../peering/create-intercluster-svm-peer-relations
 
 . Create a replication job schedule:
 +
-`job schedule cron create -name _job_name_ -month _month_ -dayofweek _day_of_week_ -day _day_of_month_ -hour _hour_ -minute _minute_`
+[source,cli]
+----
+job schedule cron create -name <job_name> -month <month> -dayofweek <day_of_week> -day <day_of_month> -hour <hour> -minute <minute>
+----
 +
 For `-month`, `-dayofweek`, and `-hour`, you can specify `all` to run the job every month, day of the week, and hour, respectively.
 +
 [NOTE]
-====
 The minimum supported schedule (RPO) for FlexVol volumes in an SVM SnapMirror relationship is 15 minutes. The minimum supported schedule (RPO) for FlexGroup volumes in an SVM SnapMirror relationship is 30 minutes.
-====
 +
 The following example creates a job schedule named `my_weekly` that runs on Saturdays at 3:00 a.m.:
 +
@@ -61,12 +87,13 @@ cluster_dst::> job schedule cron create -name my_weekly -dayofweek saturday -hou
 
 . From the destination SVM or the destination cluster, create a replication relationship:
 +
-`snapmirror create -source-path _SVM_name_: -destination-path _SVM_name_: -type DP|XDP -schedule _schedule_ -policy _policy_ -identity-preserve true`
+[source,cli]
+----
+snapmirror create -source-path <SVM_name>: -destination-path <SVM_name>: -type <DP|XDP> -schedule <schedule> -policy <policy> -identity-preserve true
+----
 +
 [NOTE]
-====
 You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options.
-====
 +
 The following example creates a SnapMirror DR relationship using the default `MirrorAllSnapshots` policy:
 +
@@ -94,27 +121,42 @@ cluster_dst::> snapmirror create -source-path svm1: -destination-path svm_backup
 
 . Stop the destination SVM:
 +
-`vserver stop`
+[source,cli]
+----
+vserver stop -vserver <SVM_name>
+----
 +
-`_SVM name_`
-+
-The following example stops a destination SVM named dvs1:
+The following example stops a destination SVM named svm_backup:
 +
 ----
-cluster_dst::> vserver stop -vserver dvs1
+cluster_dst::> vserver stop -vserver svm_backup
 ----
 
-. From the destination SVM or the destination cluster, initialize the SVM replication relationship: +
+. From the destination SVM or the destination cluster, initialize the SVM replication relationship: 
 +
-`snapmirror initialize -source-path _SVM_name_: -destination-path _SVM_name_:`
+[source,cli]
+----
+snapmirror initialize -source-path <SVM_name>: -destination-path <SVM_name>:
+----
++
+[NOTE]
+You must enter a colon (:) after the SVM name in the `-source-path` and `-destination-path` options.
 +
 The following example initializes the relationship between the source SVM, `svm1`, and the destination SVM, `svm_backup`:
 +
 ----
 cluster_dst::> snapmirror initialize -source-path svm1: -destination-path svm_backup:
 ----
+--
+====
 
+// 2024-July-24, Git issue# 1421
+// 2024-July-24, ONTAPDOC-1966
 // 2023-May-9, issue# 913
 // 08 DEC 2021, BURT 1430515
 // 2022-2-2, CSAR BURT 1407735
 // 2022-2-15, IE issue 368
+// 2023-Nov-29, ONTAPDOC-1408
+// 01 APR 2021, BURT 1381353
+// 09 APR 2021, added link to Create custom policies topic and changed step 3 to specify new destination SVM
+// 4 FEB 2022, 1451789 
