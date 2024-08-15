@@ -1,8 +1,8 @@
 ---
 permalink: system-admin/enable-telnet-rsh-access-cluster-task.html
 sidebar: sidebar
-keywords: enable, telnet, rsh, access, cluster, mgmt, management, firewall, policy
-summary: "As a security best practice, Telnet and RSH are disabled in the predefined management firewall policy (mgmt). To enable the cluster to accept Telnet or RSH requests, you must create a new management firewall policy that has Telnet or RSH enabled, and then associate the new policy with the cluster management LIF."
+keywords: enable, telnet, rsh, access, cluster, mgmt, management, service, policy
+summary: "As a security best practice, Telnet and RSH are disabled by default. To enable the cluster to accept Telnet or RSH requests, you must enable the service in the default management service policy."
 ---
 = Enable Telnet or RSH access to the cluster
 :icons: font
@@ -10,26 +10,47 @@ summary: "As a security best practice, Telnet and RSH are disabled in the predef
 :hardbreaks-option:
 
 [.lead]
-As a security best practice, Telnet and RSH are disabled in the predefined management firewall policy (`mgmt`). To enable the cluster to accept Telnet or RSH requests, you must create a new management firewall policy that has Telnet or RSH enabled, and then associate the new policy with the cluster management LIF.
+As a security best practice, Telnet and RSH are disabled by default. To enable the cluster to accept Telnet or RSH requests, you must enable the service in the default management service policy.
 
 .About this task
 
-ONTAP prevents you from changing predefined firewall policies, but you can create a new policy by cloning the predefined `mgmt` management firewall policy, and then enabling Telnet or RSH under the new policy. However, Telnet and RSH are not secure protocols, so you should consider using SSH to access the cluster. SSH provides a secure remote shell and interactive network session.
+* RSH is not a secure protocol.
++
+You should consider using SSH to access the cluster. SSH provides a secure remote shell and interactive network session.
 
-Perform the following steps to enable Telnet or RSH access to the clusters:
+* ONTAP supports a maximum of 50 concurrent RSH sessions per node.
++
+If the cluster management LIF resides on the node, it shares this limit with the node management LIF.
++
+If the rate of incoming connections is higher than 10 per second, the service is temporarily disabled for 60 seconds.
+
+* RSH commands require advanced privileges.
 
 .Steps
 
-. Enter the advanced privilege mode:
-`*set advanced*`
-. Enable a security protocol (RSH or Telnet):
-`*security protocol modify -application _security_protocol_ -enabled true*`
-. Create a new management firewall policy based on the `mgmt` management firewall policy:
-`*system services firewall policy clone -policy mgmt -destination-policy _policy-name_*`
-. Enable Telnet or RSH in the new management firewall policy:
-`*system services firewall policy create -policy _policy-name_ -service _security_protocol_ -action allow -ip-list _ip_address/netmask_*`
-To allow all IP addresses, you should specify `-ip-list 0.0.0.0/0`
-. Associate the new policy with the cluster management LIF:
-`*network interface modify -vserver _cluster_management_LIF_ -lif cluster_mgmt -firewall-policy _policy-name_*`
+. Confirm that the RSH or Telnet security protocol is enabled:
++
+`security protocol show`
 
+.. If the RSH or Telnet security protocol is enabled, continue to the next step.
+.. If the RSH or Telnet security protocol is not enabled, use the following command to enable it:
++
+`security protocol modify -application <rsh/telnet> -enabled true` 
+
+. Confirm that the `management-rsh-server` or `management-telnet-server` service exists on the management LIFs:
++
+`network interface show -services management-rsh-server`
++
+or
++ 
+`network interface show -services management-telnet-server`
+
+.. If the `management-rsh-server` or `management-telnet-server` service exists, continue to the next step.
+.. If the `management-rsh-server` or `management-telnet-server` service does not exist, use the following command to add it:
++ 
+`network interface service-policy add-service -vserver cluster1 -policy default-management -service management-rsh-server`
++
+`network interface service-policy add-service -vserver cluster1 -policy default-management -service management-telnet-server`
+
+// 30-JULY-2024 GH-1401
 // 24 march 2022, issue #427 

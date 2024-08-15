@@ -2,24 +2,52 @@
 permalink: data-protection/make-destination-volume-writeable-task.html
 sidebar: sidebar
 keywords: destination, volume, writeable, write, serve data, snapmirror, quiesce, pause, abort, transfers
-summary: "You need to make the destination volume writeable before you can serve data from the volume to clients. You can use the snapmirror quiesce command to stop scheduled transfers to the destination, the snapmirror abort command to stop ongoing transfers, and the snapmirror break command to make the destination writeable."
+summary: "You need to make the destination volume writeable before you can serve data from the volume to clients."
 ---
 = Make the destination volume writeable
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You need to make the destination volume writeable before you can serve data from the volume to clients. You can use the `snapmirror quiesce` command to stop scheduled transfers to the destination, the `snapmirror abort` command to stop ongoing transfers, and the `snapmirror break` command to make the destination writeable.
+You need to make the destination volume writeable before you can serve data from the volume to clients. To serve data from a mirror destination when a source becomes unavailable, stop scheduled transfers to the destination, and then break the SnapMirror relationship to make the destination writable.
 
 .About this task
 
 You must perform this task from the destination SVM or the destination cluster.
 
 .Steps
+You can use System Manager or the ONTAP CLI to make a destination volume writable.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+
+. Select the protection relationship: click *Protection > Relationships*, and then click the desired volume name.
+
+. Click image:icon_kabob.gif[Menu options icon].
+
+. Stop scheduled transfers : click *Pause*.
+
+. Make the destination writable: click *Break*.
+
+. Go to the main *Relationships* page to verify that the relationship state displays as "broken off".
+
+.Next steps:
+You need to link:resynchronize-relationship-task.html[reverse resynchronize the replication relationship] after you make a destination volume writeable. 
+
+When the disabled source volume is available again, you should reverse resynchronize the relationship again to copy the current data to the original source volume. This process replaces the data on the original source volume.
+--
+
+.CLI
+--
 
 . Stop scheduled transfers to the destination:
 +
-`snapmirror quiesce -source-path <SVM:volume>|<cluster://SVM/volume>, ... -destination-path <SVM:volume>|<cluster://SVM/volume>, ...`
+[source,cli]
+----
+snapmirror quiesce -source-path <SVM:volume|cluster://SVM/volume> -destination-path <SVM:volume|cluster://SVM/volume>
+----
 +
 For complete command syntax, see the man page.
 +
@@ -31,14 +59,15 @@ cluster_dst::> snapmirror quiesce -source-path svm1:volA -destination-path svm_b
 
 . Stop ongoing transfers to the destination:
 +
-`snapmirror abort -source-path <SVM:volume>|<cluster://SVM/volume>, ... -destination-path <SVM:volume>|<cluster://SVM/volume>, ...`
+[source,cli]
+----
+snapmirror abort -source-path <SVM:volume|cluster://SVM/volume> -destination-path <SVM:volume|cluster://SVM/volume>
+----
 +
 For complete command syntax, see the man page.
 +
 [NOTE]
-====
 This step is not required for SnapMirror Synchronous relationships (supported beginning with ONTAP 9.5).
-====
 +
 The following example stops ongoing transfers between the source volume `volA` on `svm1` and the destination volume `volA_dst` on `svm_backup`:
 +
@@ -48,7 +77,10 @@ cluster_dst::> snapmirror abort -source-path svm1:volA -destination-path svm_bac
 
 . Break the SnapMirror DR relationship:
 +
-`snapmirror break -source-path <SVM:volume>|<cluster://SVM/volume>, ... -destination-path <SVM:volume>|<cluster://SVM/volume>, ...`
+[source,cli]
+----
+snapmirror break -source-path <SVM:volume|cluster://SVM/volume> -destination-path <SVM:volume|cluster://SVM/volume>
+----
 +
 For complete command syntax, see the man page.
 +
@@ -57,17 +89,20 @@ The following example breaks the relationship between the source volume `volA` o
 ----
 cluster_dst::> snapmirror break -source-path svm1:volA -destination-path svm_backup:volA_dst
 ----
+.Next steps:
+You need to link:resynchronize-relationship-task.html[resynchronize the replication relationship] after you make a destination volume writeable. 
+--
+====
 
 == Other ways to do this in ONTAP
 
 [cols=2,options="header"]
 |===
 | To perform these tasks with... | See this content...
-| The redesigned System Manager (available with ONTAP 9.7 and later) | link:https://docs.netapp.com/us-en/ontap/task_dp_serve_data_from_destination.html[Serve data from a SnapMirror destination^]
 | System Manager Classic (available with ONTAP 9.7 and earlier) | link:https://docs.netapp.com/us-en/ontap-system-manager-classic/volume-disaster-recovery/index.html[Volume disaster recovery overview^]
 
 |===
 
-// 2024-7-10 ontapdoc-2192
+// 2024-July-22, ONTAPDOC-1966
 // 2022-1-26, BURT 1446392
 // 08 DEC 2021, BURT 1430515
