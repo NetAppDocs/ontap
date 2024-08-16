@@ -1,0 +1,78 @@
+---
+permalink: flexcache-writeback/flexcache-write-back-overview.html
+sidebar: sidebar
+keywords: tr-4743, flexcache writeback, flexcache write-back, overview, technical report, netapp tr, ontap tr
+summary: "Introduced in ONTAP 9.15.1, FlexCache write-back is an alternate mode of operation for writing at a cache."
+---
+= FlexCache write-back overview
+
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+Introduced in ONTAP 9.15.1, FlexCache write-back is an alternate mode of operation for writing at a cache. Writeback allows the write to be committed to stable storage at the cache and acknowledged to the client without waiting for the data to make it to the origin. The data is asynchronously flushed back to the origin. The result is a globally distributed file system that enables writes to perform at near-local speeds for specific workloads and environments, offering significant performance benefits.
+
+NOTE: ONTAP 9.12.1 introduced a write-back feature as a public preview. This is referred to as write-back version 1 (wbv1) and shouldn't be thought of as the same as write-back in ONTAP 9.15.1, which is referred to as write-back version 2 (wbv2).
+
+NOTE: Beginning in July 2024, content from technical reports previously published as PDFs has been integrated with ONTAP product documentation. The ONTAP security documentation now includes content from _TR-4743: FlexCache in ONTAP 9.11.1_.
+
+== Writeback vs write-around
+
+Since FlexCache was introduced in ONTAP 9.5, it has been a read-writable cache; however, it operated in write-around mode. Writes at the cache were shipped to the origin to be committed to stable storage. After the origin successfully committed the write to stable storage, it acknowledged the write to the cache. The cache would then acknowledge the write to the client. This made every write incur the penalty of traversing the network between the cache and origin. FlexCache write-back changes this.
+
+NOTE: After upgrading to ONTAP 9.15.1, you can convert a traditional write-around cache to a write-back cache, and, if necessary, back to write-around. This can, however, make reading diagnostic logs harder should a problem arise. 
+
+[width="100%",options="header",]
+|===
+| |Write-around |Write-back
+|ONTAP Version |9.6+ |9.15.1+
+
+|Use case |Read-heavy workload |Write-heavy workload
+
+|Data committed at |Origin |Cache
+
+|Client experience |WAN-like |LAN-lke
+
+|Limits |100 per origin |10 per origin
+
+|https://en.wikipedia.org/wiki/CAP_theorem[CAP Theorem^] |Available and tolerant to partition |Available and consistent
+|===
+
+== FlexCache write-back terminology
+
+Understand key concepts and terms working with FlexCache write-back.
+
+[width="100%",cols="12%,88%",options="header",]
+|===
+|Term |Definition
+|[[dirty-data]]*Dirty data* |Data that has been committed to stable storage at the cache, but has not been flushed to the origin.
+
+|*Exclusive Lock Delegation (XLD)* |A protocol-level lock authority granted on a per-file basis to a cache. This authority allows the cache to hand out exclusive write locks to clients without contacting the origin.
+
+|*Shared Lock Delegation (SLD)* |A protocol-level lock authority granted on a per-file basis to a cache. This authority allows the cache to hand out shared read locks to clients without contacting the origin.
+
+|*Writeback* |A mode of FlexCache operation where writes to a cache are committed to stable storage at that cache and immediately acknowledged to the client. Data is asynchronously written back to the origin.
+
+|*Write-around* |A mode of FlexCache operation where writes to a cache are forwarded to the origin to be committed to stable storage. Once committed, the origin will acknowledge the write to the cache, and the cache will acknowledge the write to the client.
+
+|*Dirty Data Record System (DDRS)* |A proprietary mechanism that keeps track of the dirty data in a write-back-enabled cache on a per-file basis.
+
+|*Origin* |A FlexGroup or FlexVol that contains the source data for all FlexCache cache volumes. It is the single source of truth, orchestrates locking, and ensures 100% data consistency, currency, and coherency.
+
+|*Cache* |A FlexGroup that is a sparse cache volume of the FlexCache origin.
+|===
+
+=== Consistent, current, and coherent
+
+FlexCache is NetApp's solution to having the right data, everywhere, every time. FlexCache is 100% consistent, current, and coherent 100% of the time:
+
+* *Consistent:* The data is the same wherever it is accessed.
+* *Current:* The data is always up-to-date.
+* *Coherent:* The data is correct/uncorrupted.
+
+
+// 2024-Aug-15, GITHUB-1441
+// 2024-Aug-6, ONTAPDOC-2272
