@@ -1,7 +1,7 @@
 ---
 permalink: system-admin/enable-telnet-rsh-access-cluster-task.html
 sidebar: sidebar
-keywords: enable, telnet, rsh, access, cluster, mgmt, management, service, policy
+keywords: enable, telnet, rsh, access, cluster, mgmt, management, service, policy, firewall, roles
 summary: "As a security best practice, Telnet and RSH are disabled by default. To enable the cluster to accept Telnet or RSH requests, you must enable the service in the default management service policy."
 ---
 = Enable Telnet or RSH access to the cluster
@@ -11,6 +11,13 @@ summary: "As a security best practice, Telnet and RSH are disabled by default. T
 
 [.lead]
 As a security best practice, Telnet and RSH are disabled by default. To enable the cluster to accept Telnet or RSH requests, you must enable the service in the default management service policy.
+
+include::_include/firewall_policy_lif_roles.adoc[]
+
+[role="tabbed-block"]
+====
+.ONTAP 9.6 or later
+--
 
 .About this task
 
@@ -51,6 +58,43 @@ or
 `network interface service-policy add-service -vserver cluster1 -policy default-management -service management-rsh-server`
 +
 `network interface service-policy add-service -vserver cluster1 -policy default-management -service management-telnet-server`
+--
 
+.ONTAP 9.5 or earlier
+--
+
+.About this task
+
+ONTAP prevents you from changing predefined firewall policies, but you can create a new policy by cloning the predefined mgmt management firewall policy, and then enabling Telnet or RSH under the new policy. However, Telnet and RSH are not secure protocols, so you should consider using SSH to access the cluster. SSH provides a secure remote shell and interactive network session.
+
+.Steps
+
+. Enter the advanced privilege mode:
++
+`set advanced`
+
+. Enable a security protocol (RSH or Telnet):
++
+`security protocol modify -application security_protocol -enabled true`
+
+. Create a new management firewall policy based on the mgmt management firewall policy:
++
+`system services firewall policy clone -policy _mgmt_ -destination-policy _policy-name_`
+
+. Enable Telnet or RSH in the new management firewall policy:
++
+`system services firewall policy create -policy _policy-name_ -service _security_protocol_ -action allow -ip-list _ip_address/netmask_`
++
+To allow all IP addresses, you should specify `-ip-list _0.0.0.0/0_`
+5. Associate the new policy with the cluster management LIF:
+network interface modify -vserver cluster_management_LIF -lif cluster_mgmt
+-firewall-policy policy-name
+
+--
+====
+
+// 23-AUG-2024 add firewall policy content and create tabs for new and old content
+// 9-AUG-2024 added repeated section as an include
+// 6-AUG-2024 ONTAPDOC-2161
 // 30-JULY-2024 GH-1401
 // 24 march 2022, issue #427 
