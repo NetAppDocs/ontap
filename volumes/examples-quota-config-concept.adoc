@@ -1,7 +1,7 @@
 ---
 permalink: volumes/examples-quota-config-concept.html
 sidebar: sidebar
-keywords: examples, quota, configuration
+keywords: examples, quota, configuration, volume quota policy
 summary: "These examples help you understand how to configure quotas and read quota reports."
 ---
 = Examples of quota configuration
@@ -11,34 +11,38 @@ summary: "These examples help you understand how to configure quotas and read qu
 [.lead]
 These examples help you understand how to configure quotas and read quota reports.
 
-For the following examples, assume that you have a storage system that includes an SVM, vs1, with one volume, vol1. To start setting up quotas, you create a new quota policy for the SVM with the following command:
+.About these examples
 
+For the following examples, assume that you have a storage system that includes an SVM, `vs1`, with one volume, `vol1`. 
+
+. To start setting up quotas, you create a new quota policy for the SVM:
++
 ----
 cluster1::>volume quota policy create -vserver vs1 -policy-name quota_policy_vs1_1
 ----
 
-Since the quota policy is new, you assign it to the SVM:
-
+. Because the quota policy is new, you assign it to the SVM:
++
 ----
 cluster1::>vserver modify -vserver vs1 -quota-policy quota_policy_vs1_1
 ----
 
 .Example 1: Default user quota
 
-You decide to impose a hard limit of 50 MB for each user in vol1:
-
+. You decide to impose a hard limit of 50MB for each user in `vol1`:
++
 ----
 cluster1::>volume quota policy rule create -vserver vs1 -policy-name quota_policy_vs1_1 -volume vol1 -type user -target "" -disk-limit 50MB -qtree ""
 ----
 
-To activate the new rule, you initialize quotas on the volume:
-
+. To activate the new rule, you initialize quotas on the volume:
++
 ----
 cluster1::>volume quota on -vserver vs1 -volume vol1 -foreground
 ----
 
-To view the quota report, you enter the following command:
-
+. You view the quota report:
++
 ----
 cluster1::>volume quota report
 ----
@@ -55,28 +59,28 @@ vol1               user    jsmith    49MB   50MB      37       -   *
 vol1               user    root        0B      -       1       -
 ----
 
-The first line shows the default user quota that you created, including the disk limit. Like all default quotas, this default user quota does not display information about disk or file usage. In addition to the quota that was created, two other quotas appear--one quota for each user that currently owns files on vol1. These additional quotas are user quotas that were derived automatically from the default user quota. The derived user quota for the user jsmith has the same 50-MB disk limit as the default user quota. The derived user quota for the root user is a tracking quota (without limits).
+The first line shows the default user quota that you created, including the disk limit. Like all default quotas, this default user quota does not display information about disk or file usage. In addition to the quota that was created, two other quotas appear. There is one quota for each user that currently owns files on `vol1`. These additional quotas are user quotas that were derived automatically from the default user quota. The derived user quota for the user `jsmith` has the same 50MB disk limit as the default user quota. The derived user quota for the root user is a tracking quota (without limits).
 
-If any user on the system (other than the root user) tries to perform an action that would use more than 50 MB in vol1 (for example, writing to a file from an editor), the action fails.
+If any user on the system (other than the root user) tries to perform an action that would use more than 50MB in `vol1` (for example, writing to a file from an editor), the action fails.
 
 .Example 2: Explicit user quota overriding a default user quota
 
-If you need to provide more space in volume vol1 to the user jsmith, then you enter the following command:
-
+. If you need to provide more space in volume `vol1` to the user `jsmith`, then you enter the following command:
++
 ----
 cluster1::>volume quota policy rule create -vserver vs1 -policy-name quota_policy_vs1_1 -volume vol1 -type user -target jsmith -disk-limit 80MB -qtree ""
 ----
-
++
 This is an explicit user quota, because the user is explicitly listed as the target of the quota rule.
++
+This is a change to an existing quota limit, because it changes the disk limit of the derived user quota for the user `jsmith` on the volume. Therefore, you do not need to reinitialize quotas on the volume to activate the change.
 
-This is a change to an existing quota limit, because it changes the disk limit of the derived user quota for the user jsmith on the volume. Therefore, you do not need to reinitialize quotas on the volume to activate the change.
-
-To resize quotas:
-
+. To resize quotas:
++
 ----
 cluster1::>volume quota resize -vserver vs1 -volume vol1 -foreground
 ----
-
++
 Quotas remain in effect while you resize, and the resizing process is short.
 
 The resulting quota report is similar to the following report:
@@ -93,23 +97,25 @@ vol1               user    root        0B      -       1       -
 3 entries were displayed.
 ----
 
-The second line now shows a Disk Limit of 80 MB and a Quota Specifier of jsmith.
+The second line now shows a disk limit of `80MB` and a quota specifier of `jsmith`.
 
-Therefore, jsmith can use up to 80 MB of space on vol1, even though all other users are still limited to 50 MB.
+Therefore, `jsmith` can use up to 80MB of space on `vol1` even though all other users are still limited to 50MB.
 
 .Example 3: Thresholds
 
-Suppose you want to receive a notification when users reach within 5 MB of their disk limits. To create a threshold of 45 MB for all users, and a threshold of 75 MB for jsmith, you change the existing quota rules:
+Suppose you want to receive a notification when users reach within 5MB of their disk limits. 
 
+. To create a threshold of 45MB for all users, and a threshold of 75MB for `jsmith`, you change the existing quota rules:
++
 ----
 cluster1::>volume quota policy rule modify -vserver vs1 -policy quota_policy_vs1_1 -volume vol1 -type user -target "" -qtree "" -threshold 45MB
 cluster1::>volume quota policy rule modify -vserver vs1 -policy quota_policy_vs1_1 -volume vol1 -type user -target jsmith -qtree "" -threshold 75MB
 ----
++
+Because the sizes of the existing rules are changed, you resize quotas on the volume in order to activate the changes. You wait until the resize process is finished.
 
-Since the sizes of the existing rules are changed, you resize quotas on the volume in order to activate the changes. You wait until the resize process is finished.
-
-To see the quota report with thresholds, you add the `-thresholds` parameter to the `volume quota report` command:
-
+. To see the quota report with thresholds, you add the `-thresholds` parameter to the `volume quota report` command:
++
 ----
 cluster1::>volume quota report -thresholds
 Vserver: vs1
@@ -125,23 +131,25 @@ vol1               user    root        0B      -       1       -
                                            ( -)
 3 entries were displayed.
 ----
-
++
 The thresholds appear in parentheses in the Disk Limit column.
 
 .Example 4: Quotas on qtrees
 
-Suppose you need to partition some space for two projects. You can create two qtrees, named proj1 and proj2, to accommodate those projects within vol1.
+Suppose you need to partition some space for two projects. You can create two qtrees, named `proj1` and `proj2`, to accommodate those projects within `vol1`.
 
-Currently, users can use as much space in a qtree as they are allotted for the entire volume (provided they did not exceed the limit for the volume by using space in the root or another qtree). In addition, each of the qtrees can grow to consume the entire volume. If you want to ensure that neither qtree grows beyond 20 GB, you can create default tree quota on the volume:
+Currently, users can use as much space in a qtree as they are allotted for the entire volume (provided they did not exceed the limit for the volume by using space in the root or another qtree). In addition, each of the qtrees can grow to consume the entire volume. 
 
+. If you want to ensure that neither qtree grows beyond 20GB, you can create default tree quota on the volume:
++
 ----
 cluster1:>>volume quota policy rule create -vserver vs1 -policy-name quota_policy_vs1_1 -volume vol1 -type tree -target "" -disk-limit 20GB
 ----
++
+NOTE: The correct type is _tree_, not qtree.
 
-Note that the correct type is _tree_, not qtree.
-
-Because this is a new quota, you cannot activate it by resizing. You reinitialize quotas on the volume:
-
+. Because this is a new quota, you cannot activate it by resizing. You reinitialize quotas on the volume:
++
 ----
 cluster1:>>volume quota off -vserver vs1 -volume vol1
 cluster1:>>volume quota on -vserver vs1 -volume vol1 -foreground
@@ -155,7 +163,7 @@ You must ensure that you wait for about five minutes before reactivating the quo
 
 Quotas are not enforced during the reinitialization process, which takes longer than the resizing process.
 
-When you display a quota report, it has several new lines: some lines are for tree quotas and some lines are for derived user quotas.
+When you display a quota report, it has several new lines. Some lines are for tree quotas and some lines are for derived user quotas.
 
 The following new lines are for the tree quotas:
 
@@ -171,7 +179,7 @@ vol1     proj2     tree    2           0B   20GB       1       -   proj2
 ...
 ----
 
-The default tree quota that you created appears in the first new line, which has an asterisk (*) in the ID column. In response to the default tree quota on a volume, ONTAP automatically creates derived tree quotas for each qtree in the volume. These are shown in the lines where proj1 and proj2 appear in the Tree column.
+The default tree quota that you created appears in the first new line, which has an asterisk (*) in the ID column. In response to the default tree quota on a volume, ONTAP automatically creates derived tree quotas for each qtree in the volume. These are shown in the lines where `proj1` and `proj2` appear in the `Tree` column.
 
 The following new lines are for derived user quotas:
 
@@ -194,16 +202,16 @@ Because the root user is the owner of a file, when default user quotas were crea
 
 .Example 5: User quota on a qtree
 
-You decide to limit users to less space in the proj1 qtree than they get in the volume as a whole. You want to keep them from using any more than 10 MB in the proj1 qtree. Therefore, you create a default user quota for the qtree:
-
+. You decide to limit users to less space in the `proj1` qtree than they get in the volume as a whole. You want to keep them from using any more than 10MB in the `proj1` qtree. Therefore, you create a default user quota for the qtree:
++
 ----
 cluster1::>volume quota policy rule create -vserver vs1 -policy-name quota_policy_vs1_1 -volume vol1 -type user -target "" -disk-limit 10MB -qtree proj1
 ----
-
++
 This is a change to an existing quota, because it changes the default user quota for the proj1 qtree that was derived from the default user quota on the volume. Therefore, you activate the change by resizing quotas. When the resize process is complete, you can view the quota report.
-
++
 The following new line appears in the quota report showing the new explicit user quota for the qtree:
-
++
 ----
 
                                     ----Disk----  ----Files-----   Quota
@@ -211,14 +219,16 @@ Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
 -------  --------  ------  -------  -----  -----  ------  ------   ---------
 vol1     proj1     user    *           0B   10MB       0       -   *
 ----
++
+However, the user `jsmith` is being prevented from writing more data to the proj1 qtree because the quota you created to override the default user quota (to provide more space) was on the volume. As you have added a default user quota on the `proj1` qtree, that quota is being applied and limiting all the users' space in that qtree, including `jsmith`. 
 
-However, the user jsmith is being prevented from writing more data to the proj1 qtree because the quota you created to override the default user quota (to provide more space) was on the volume. As you have added a default user quota on the proj1 qtree, that quota is being applied and limiting all the users' space in that qtree, including jsmith. To provide more space to the user jsmith, you add an explicit user quota rule for the qtree with an 80 MB disk limit to override the default user quota rule for the qtree:
-
+. To provide more space to the user `jsmith`, you add an explicit user quota rule for the qtree with an 80MB disk limit to override the default user quota rule for the qtree:
++
 ----
 cluster1::>volume quota policy rule create -vserver vs1 -policy-name quota_policy_vs1_1 -volume vol1 -type user -target jsmith -disk-limit 80MB -qtree proj1
 ----
-
-Since this is an explicit quota for which a default quota already existed, you activate the change by resizing quotas. When the resize process is complete, you display a quota report.
++
+Because this is an explicit quota for which a default quota already existed, you activate the change by resizing quotas. When the resize process is complete, you display a quota report.
 
 The following new line appears in the quota report:
 
@@ -252,8 +262,11 @@ vol1     proj1     user    jsmith    61MB   80MB      57       -   jsmith
 11 entries were displayed.
 ----
 
-The user jsmith is required to meet the following quota limits to write to a file in proj1:
+The user `jsmith` is required to meet the following quota limits to write to a file in `proj1`:
 
-. The tree quota for the proj1 qtree.
-. The user quota on the proj1 qtree.
+. The tree quota for the `proj1` qtree.
+. The user quota on the `proj1` qtree.
 . The user quota on the volume.
+
+
+// ONTAPDOC-2119/GH-1818
