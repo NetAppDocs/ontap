@@ -45,22 +45,35 @@ ONTAP does not process any incoming route announcements from the router; therefo
 
 Setting up BGP involves optionally creating a BGP configuration, creating a BGP LIF, and creating a BGP peer group. ONTAP automatically creates a default BGP configuration with default values when the first BGP peer group is created on a given node. A BGP LIF is used to establish BGP TCP sessions with peer routers. For a peer router, a BGP LIF is the next hop to reach a VIP LIF. Failover is disabled for the BGP LIF. A BGP peer group advertises the VIP routes for all the SVMs in the peer group's IPspace.
 
-Beginning with ONTAP 9.8, these fields have been added to the `network bgp peer-group` command:
+Beginning with ONTAP 9.16.1, MD5 authentication support can be enabled on BGP peer groups to protect BGP sessions from spurious TCP resets.  
 
-* -asn-prepend-type
-* -asn-prepend-count
-* -community
+The following fields have been added to the `network bgp peer-group create` and `network bgp peer-group modify` commands: 
 
-These BGP attributes allows you to configure the AS Path and community attributes for the BGP peer group.
+* `md5-enabled <true/false>`
+* `md5-secret <md5 secret in string or hex format>`
+
+These parameters enable you to configure a BGP peer group with a MD5 signature for enhanced security. The following requirements apply to using MD5 authentication:
+
+* You can only specify the `-md5-secret` parameter when the `-md5-enabled` parameter is set to “true”.   
+* IPsec must be enabled before you can enable MD5. 
+* NetApp recommends that you configure MD5 on the router before configuring it on the ONTAP controller. 
 
 Beginning with ONTAP 9.9.1, these fields have been added:
 
-* -asn or -peer-asn (4-byte value)
+* `-asn` or `-peer-asn` (4-byte value)
 The attribute itself is not new, but it now uses a 4-byte integer.
-* -med
-* -use-peer-as-next-hop
+* `-med`
+* `-use-peer-as-next-hop`
 
 You can make advanced route selections with Multi-Exit Discriminator (MED) support for path prioritization. MED is an optional attribute in the BGP update message that tells routers to select the best route for the traffic. The MED is an unsigned 32-bit integer (0 - 4294967295); lower values are preferred.
+
+Beginning with ONTAP 9.8, these fields have been added to the `network bgp peer-group` command:
+
+* `-asn-prepend-type`
+* `-asn-prepend-count`
+* `-community`
+
+These BGP attributes allows you to configure the AS Path and community attributes for the BGP peer group.
 
 [NOTE]
 While ONTAP supports the above BGP attributes, routers need not honor them. NetApp highly recommends you confirm which attributes are supported by your router and configure BGP peer-groups accordingly. For details, refer to the BGP documentation provided by your router.
@@ -137,6 +150,24 @@ network bgp peer-group create -peer-group group_name -ipspace ipspace_name -bgp-
 ....
 network bgp peer-group create -peer-group group1 -ipspace Default -bgp-lif bgp1 -peer-address 10.10.10.1 -peer-asn 65502 -use-peer-as-next-hop true -route-preference 100 -asn-prepend-type local-asn -asn-prepend-count 2 -med 100 -community 9000:900,8000:800
 ....
++
+Sample 3: Create a peer group with MD5 enabled 
+
+.. Enable IPsec: 
++
+`security ipsec config modify -is-enabled true` 
+
+.. Create the BGP peer group with MD5 enabled:
++
+`network bgp peer-group create -ipspace Default -peer-group <group_name> -bgp-lif bgp_lif -peer-address <peer_router_ip_address> -md5-enabled true -md5-secret <md5 secret in string or hex format>`
++
+Example using a hex key:
++
+`network bgp peer-group create -ipspace Default -peer-group peer1 -bgp-lif bgp_lif1 -peer-address 10.1.1.100 -md5-enabled true -md5-secret 0x7465737420736563726574`
++
+Example using a string:
++
+`network bgp peer-group create -ipspace Default -peer-group peer1 -bgp-lif bgp_lif1 -peer-address 10.1.1.100 -md5-enabled true -md5-secret ”test secret”`
 
 == Create a virtual IP (VIP) data LIF
 
@@ -190,15 +221,15 @@ Beginning with ONTAP 9.5, you use the `network bgp` commands to manage the BGP s
 h|If you want to... h|Use this command...
 
 |Create a BGP configuration
-|network bgp config create
+|`network bgp config create`
 |Modify BGP configuration
-|network bgp config modify
+|`network bgp config modify`
 |Delete BGP configuration
-|network bgp config delete
+|`network bgp config delete`
 |Display BGP configuration
-|network bgp config show
+|`network bgp config show`
 |Displays the BGP status for the SVM of the VIP LIF
-|network bgp vserver-status show
+|`network bgp vserver-status show`
 |===
 
 === Manage BGP default values
@@ -209,9 +240,9 @@ h|If you want to... h|Use this command...
 h|If you want to... h|Use this command...
 
 |Modify BGP default values
-|network bgp defaults modify
+|`network bgp defaults modify`
 |Display BGP default values
-|network bgp defaults show
+|`network bgp defaults show`
 |===
 
 === Manage BGP peer groups
@@ -222,19 +253,34 @@ h|If you want to... h|Use this command...
 h|If you want to... h|Use this command...
 
 |Create a BGP peer group
-|network bgp peer-group create
+|`network bgp peer-group create`
 |Modify a BGP peer group
-|network bgp peer-group modify
+|`network bgp peer-group modify`
 |Delete a BGP peer group
-|network bgp peer-group delete
+|`network bgp peer-group delete`
 |Display BGP peer groups information
-|network bgp peer-group show
+|`network bgp peer-group show`
 |Rename a BGP peer group
-|network bgp peer-group rename
+|`network bgp peer-group rename`
+|===
+
+=== Manage BGP peer groups with MD5
+
+NOTE:  If you enable or disable MD5 on an existing BGP peer group, the BGP connection is terminated and re-created to apply the MD5 configuration changes.
+
+|===
+
+h|If you want to... h|Use this command...
+
+|Enable MD5 on an existing BGP peer group
+|`network bgp peer-group modify -ipspace Default -peer-group <group_name> -bgp-lif <bgp_lif>  -peer-address <peer_router_ip_address> -md5-enabled true -md5-secret <md5 secret in string or hex format>`
+|Disable MD5 on an existing BGP peer group
+|`network bgp peer-group modify -ipspace Default -peer-group <group_name>  -bgp-lif <bgp_lif> -md5-enabled false`
 |===
 
 .Related information
 https://docs.netapp.com/us-en/ontap-cli[ONTAP command reference^]
 
+// 2024 Sep 03, ONTAPDOC-2297
 // 16 may 2024, ontapdoc-1986
 // 08 DEC 2021, BURT 1430515
