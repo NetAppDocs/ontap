@@ -11,8 +11,6 @@ summary: "Beginning with ONTAP 9.16.1, you can enable and disable TLS secure cha
 [.lead]
 Beginning with ONTAP 9.16.1, you can configure TLS secure channel for NVMe/TCP connections. You can use System Manager or the ONTAP CLI to either add a new NVMe subsystem with TLS enabled, or enable TLS for an existing NVMe subsystem.
 
-== 
-
 // start tabbed area
 
 [role="tabbed-block"]
@@ -40,8 +38,6 @@ Beginning with ONTAP 9.16.1, you can use System Manager to configure TLS for NVM
 . To verify that TLS secure channel is enabled, select *System Manager > Hosts > NVMe Subsystem > Grid > Peek view*.
 //+
 // A transparent key icon next to the host name indicates that unidirectional mode is enabled. An opaque key next to the host name indicates bidirectional mode is enabled.
-
-
 --
 
 .CLI
@@ -49,14 +45,24 @@ Beginning with ONTAP 9.16.1, you can use System Manager to configure TLS for NVM
 
 .Steps
 
-. Add DH-HMAC-CHAP authentication to your NVMe subsystem:
+. Add an NVMe subsystem host that supports TLS secure channel. You can provide a pre-shared key (PSK) using the `tls-configured-psk` argument, or use a generated PSK using the `tls-generated-psk` argument:
 +
 [source,cli]
 ----
-
+vserver nvme subsystem host add -vserver <svm_name> -subsystem <subsystem> -host-nqn <host_nqn> {-tls-configured-psk <key_text> | -tls-generated-psk true}
 ----
-
-
+. Verify that the NVMe subsystem host is configured for TLS secure channel. You can optionally use the `tls-key-type` argument to only display hosts that are using that key type:
++
+[source,cli]
+----
+vserver nvme subsystem host show -vserver <svm_name> -subsystem <subsystem> -host-nqn <host_nqn> -tls-key-type {none|configured|generated}
+----
+. Verify that the NVMe subsystem host controller is configured for TLS secure channel. You can optionally use the `tls-key-type`, `tls-identity`, and `tls-cipher` arguments to only display the controllers that have those TLS attributes:
++
+[source,cli]
+----
+vserver nvme subsystem controller show -vserver <svm_name> -subsystem <subsystem> -host-nqn <host_nqn> -tls-key-type {none|configured|generated} -tls-identity <text> -tls-cipher {none|TLS_AES_128_GCM_SHA256|TLS_AES_256_GCM_SHA384}
+----
 --
 ====
 // end tabbed area
