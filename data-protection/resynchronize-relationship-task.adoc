@@ -1,7 +1,7 @@
 ---
 permalink: data-protection/resynchronize-relationship-task.html
 sidebar: sidebar
-keywords: resynchronize, replication, relationship
+keywords: resynchronize, replication, relationship, snapmirror, mirror, snapshot copy, restore, disaster recovery, DR, resync, protection relationship, data protection
 summary: "You need to resynchronize a replication relationship after you make a destination volume writeable, after an update fails because a common Snapshot copy does not exist on the source and destination volumes, or if you want to change the replication policy for the relationship."
 ---
 = Resynchronize a replication relationship
@@ -16,37 +16,40 @@ Beginning with ONTAP 9.8, you can use System Manager to perform a reverse resync
 .About this task
 
 * Although resync does not require a baseline transfer, it can be time-consuming. You might want to run the resync in off-peak hours.
-* Volumes that are part of a fan-out or cascade configuration can take longer to resynchronize. It is not uncommon to see the SnapMirror relationship reporting the status "preparing" for an extended time period.
-
-This procedure replaces the data in the original source volume in an asynchronous relationship so that you can start serving data from the original source volume again and resume the original protection relationship.
-
+* Volumes that are part of a fan-out or cascade configuration can take longer to resynchronize. It is not uncommon to see the SnapMirror relationship reporting the status "preparing" for an extended time period. 
 
 [NOTE]
 ====
 System Manager does not support reverse resynchronization with intracluster relationships. You can use the ONTAP CLI to perform reverse resync operations with intracluster relationships.
 ====
 
-When you perform a reverse resync operation, any data on the source volume that is newer than the data in the common Snapshot copy is deleted.
+// This doesn't look correct. Removing for now and checking with SME. When you perform a _reverse resync_ operation, any data on the source volume that is newer than the data in the common Snapshot copy is deleted.
 
 .Steps
 
-You can resynchronize replication relationships using System Manager or the ONTAP CLI. After you make a destination volume writable, you can reverse resynchronize a replication relationship using System Manager. If you use the ONTAP CLI, the procedure is the same regardless of whether you are making a destination volume writable or you are updating the replication relationship.
+You can use System Manager or the ONTAP CLI to perform this task. If you use the ONTAP CLI, the procedure is the same regardless of whether you are making a destination volume writable or you are updating the replication relationship.
 
 [role="tabbed-block"]
 ====
 .System Manager reverse resync
 --
+After you link:make-destination-volume-writeable-task.html[break a relationship] to make a destination writable, reverse resynchronize the relationship: 
+
 . On the destination cluster, click *Protection > Relationships*.
 
-. Hover over the broken off relationship you want to reverse, click image:icon_kabob.gif[kabob icon], and select *Reverse Resync*.
+. Hover over the broken off relationship you want to reverse, click image:icon_kabob.gif[Menu options icon], and select *Reverse Resync*.
 
 . In the *Reverse resync relationship* window, click *Reverse resync*.
 
 . Under *Relationships*, monitor the reverse resynchronization progress by viewing *Transfer Status* for the relationship.
+
+.Next steps
+When the original source is available again, you can reestablish the original relationship by breaking the reversed relationship and performing another reverse resync operation. The reverse resync process will copy any changes from the site that is serving data to the original source and make the original source read-writable again.
 --
 
 .System Manager resync
 --
+
 
 . Click *Protection > Relationships*.
 
@@ -84,3 +87,6 @@ cluster_dst::> snapmirror resync -source-path svm1:volA -destination-path svm_ba
 // 2024-July-22, ONTAPDOC-1966
 // 2024-April-10, ONTAPDOC-1873
 // 2022-2-2, BURT 1364426
+// 2023-Apr-12, ONTAPDOC-745
+// 2 Oct 2020, BURT 1323866
+// 7 DEC 2021, BURT 1430515
