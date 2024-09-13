@@ -4,6 +4,7 @@ sidebar: sidebar
 keywords: access, cluster, rsh, cluster, administrative, task, secure, protocol, service, policy, lif, firewall, role
 summary: "You can issue RSH requests to the cluster to perform administrative tasks. RSH is not a secure protocol and is disabled by default."
 ---
+
 = Access the cluster by using RSH
 :icons: font
 :imagesdir: ../media/
@@ -11,15 +12,7 @@ summary: "You can issue RSH requests to the cluster to perform administrative ta
 [.lead]
 You can issue RSH requests to the cluster to perform administrative tasks. RSH is not a secure protocol and is disabled by default.
 
-include::../_include/firewall_policy_lif_roles.adoc[]
-
-Telnet and RSH are not secure protocols, you should consider using SSH to access the cluster. SSH provides a secure remote shell and interactive network session. For more information, refer to link:./access-cluster-ssh-task.html[Access the cluster using SSH]
-
-
-[role="tabbed-block"]
-====
-.ONTAP 9.6 or later
---
+Telnet and RSH are not secure protocols; you should consider using SSH to access the cluster. SSH provides a secure remote shell and interactive network session. For more information, refer to link:./access-cluster-ssh-task.html[Access the cluster using SSH].
 
 .Before you begin
 
@@ -31,10 +24,6 @@ The `-application` parameter of the `security login` commands specifies the acce
 
 .About this task
 
-* RSH is not a secure protocol.
-+
-You should consider using SSH to access the cluster. SSH provides a secure remote shell and interactive network session.
-
 * ONTAP supports a maximum of 50 concurrent RSH sessions per node.
 +
 If the cluster management LIF resides on the node, it shares this limit with the node management LIF.
@@ -42,6 +31,11 @@ If the cluster management LIF resides on the node, it shares this limit with the
 If the rate of incoming connections is higher than 10 per second, the service is temporarily disabled for 60 seconds.
 
 * RSH commands require advanced privileges.
+
+[role="tabbed-block"]
+====
+.ONTAP 9.6 or later
+--
 
 .Steps
 
@@ -63,6 +57,36 @@ If the rate of incoming connections is higher than 10 per second, the service is
 + 
 `network interface service-policy add-service -vserver cluster1 -policy default-management -service management-rsh-server`
 
+--
+
+.ONTAP 9.5 or earlier
+--
+
+.Before you begin
+
+The following conditions must be met before you can use RSH to access the cluster:
+
+* RSH must already be enabled in the management firewall policy that is used by the cluster or node management LIFs so that RSH requests can go through the firewall.
++
+By default, RSH is disabled. The system services firewall policy show command with the `-service rsh` parameter displays whether RSH has been enabled in a firewall policy. For more information, see the `system services firewall policy` man pages.
+
+* If you use IPv6 connections, IPv6 must already be configured and enabled on the cluster, and firewall policies must already be configured with IPv6 addresses.
++
+The `network options ipv6 show` command displays whether IPv6 is enabled. The `system services firewall policy show` command displays firewall policies.
+
+.Steps
+
+. From an administration host, enter the following command:
++
+`rsh hostname_or_IP -l username:passwordcommand`
++
+`hostname_or_IP` is the host name or the IP address of the cluster management LIF or a node management LIF. Using the cluster management LIF is recommended. You can use an IPv4 or IPv6 address.
++
+`command` is the command you want to execute over RSH.
+
+--
+====
+
 .Example of an RSH request
 
 The following example shows how the user named "`joe`", who has been set up with RSH access, can issue an RSH request to run the `cluster show` command:
@@ -80,71 +104,7 @@ node2                 true    true
 admin_host$
 ----
 
---
-
-.ONTAP 9.5 or earlier
---
-
-.Before you begin
-
-The following conditions must be met before you can use RSH to access the cluster:
-
-* You must have a cluster local user account that is configured to use RSH as an access method.
-+
-The -application parameter of the security login commands specifies the access method for a user account. For more information, see the security login man pages.
-
-* RSH must already be enabled in the management firewall policy that is used by the cluster or node management LIFs so that RSH requests can go through the firewall.
-+
-By default, RSH is disabled. The system services firewall policy show command with the `-service rsh` parameter displays whether RSH has been enabled in a firewall policy. For more information, see the `system services firewall policy` man pages.
-
-* If you use IPv6 connections, IPv6 must already be configured and enabled on the cluster, and firewall policies must already be configured with IPv6 addresses.
-+
-The `network options ipv6 show` command displays whether IPv6 is enabled. The `system services firewall policy show` command displays firewall policies.
-
-.About this task
-
-* RSH is not a secure protocol.
-+
-You should consider using SSH to access the cluster. SSH provides a secure remote shell and interactive network session.
-
-* ONTAP supports a maximum of 50 concurrent RSH sessions per node.
-+
-If the cluster management LIF resides on the node, it shares this limit with the node management LIF.
-+
-If the rate of in-coming connections is higher than 10 per second, the service is temporarily disabled for 60 seconds.
-
-.Steps
-
-. From an administration host, enter the following command:
-+
-`rsh hostname_or_IP -l username:passwordcommand`
-+
-`hostname_or_IP` is the host name or the IP address of the cluster management LIF or a node management LIF. Using the cluster management LIF is recommended. You can use an IPv4 or IPv6 address.
-+
-`command` is the command you want to execute over RSH.
-
-.Example of an RSH request
-
-The following example shows how the user named “joe”, who has been set up with RSH access, can issue an RSH request to run the cluster show command:
-
-----
-admin_host$ rsh 10.72.137.28 -l joe:password cluster show
-
-Node  Health Eligibility
-----  ------ -----------
-node1 true   true
-node2 true   true
-
-2 entries were displayed.
-
-admin_host
-
-----
-
-
---
-====
-
+// 3-SEP-2024 implement Ed's feedback, repush changes
 // 23-AUG-2024 add firewall policy content and create tabs for new and old content
 // 9-AUG-2024 added repeated section as an include
 // 6-AUG-2024 ONTAPDOC-2161
