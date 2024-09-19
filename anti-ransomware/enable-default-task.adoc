@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar
 permalink: anti-ransomware/enable-default-task.html
-keywords:  system manager, cli, enable, anti-ransomware, anti ransomware, antiransom, antiransomware, autonomous, ransomware, protection, arp, default, volumes, configure, storage volumes, enable anti-ransomware in system manager, modify, storage VM, SVM, create
-summary: Beginning with ONTAP 9.10.1, you can configure SVM so that new volumes are enabled by default for anti-ransomware protection.
+keywords: ransomware, arp, enable, set up, autonomous ransomware protection, default, volume default
+summary: Beginning with ONTAP 9.10.1, you can configure an SVM so that new volumes are enabled by default for Autonomous Ransomware Protection (ARP).
 ---
 = Enable Autonomous Ransomware Protection by default in new volumes
 :toclevels: 1
@@ -13,17 +13,21 @@ summary: Beginning with ONTAP 9.10.1, you can configure SVM so that new volumes 
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.10.1, you can configure storage VMs (SVMs) such that new volumes are enabled by default for Autonomous Ransomware Protection (ARP).
+Beginning with ONTAP 9.10.1, you can configure storage VMs (SVMs) so that new volumes are enabled by default with Autonomous Ransomware Protection (ARP). You can modify this setting using System Manager or with the CLI. 
 
-For ARP 9.10.1 to 9.15.1, you can configure new volumes to enable ARP in learning mode, in which the system analyzes the workload to characterize normal behavior. For ARP/AI 9.16.1, ARP is enabled automatically in active mode for new volumes and no learning period is required.
+If you want to configure only individual new or existing volumes without making ARP the default, see this link:enable-task.html[related ARP procedure].
 
 .About this task
 
-By default, new volumes are created with ARP in disabled mode. You can modify this setting in System Manager and with the CLI. Volumes enabled by default are set to ARP in learning (or dry-run) mode. 
+By default, new volumes are created with ARP in disabled mode. ARP will only be enabled by default on new volumes created in the SVM after you have enable ARP for NAS volumes functionality. 
 
-ARP will only be enabled on volumes created in the SVM after you have changed the setting. ARP will not be enabled on existing volumes. Learn how to link:enable-task.html[enable ARP in an existing volume].
+ARP will not be enabled on existing volumes. Setting changes described in this procedure only affect new volumes. Learn how to link:enable-task.html[enable ARP for existing volumes].
 
-Beginning in ONTAP 9.13.1, adaptive learning has been added to ARP analytics, and the switch from learning mode to active mode is done automatically. For more information, see link:index.html#learning-and-active-modes[Learning and active modes]. 
+* *For ARP 9.10.1 to 9.15.1* 
+By default, new volumes enabled with ARP enabled are set to link:index.html#learning-and-active-modes[learning mode] (or "dry-run") mode in which the system analyzes the workload to characterize normal behavior. Learning mode can be transitioned to active mode manually (all ARP versions) or automatically (beginning in ARP 9.13.1). With ARP 9.13.1 and later, adaptive learning has been added to ARP analytics so that the switch from learning mode to active mode is done automatically. 
+
+* *For ARP/AI 9.16.1 and later*
+ARP is automatically enabled in active mode by default for new volumes and no learning period is required.
 
 .Before you begin 
 
@@ -32,27 +36,9 @@ Beginning in ONTAP 9.13.1, adaptive learning has been added to ARP analytics, an
 * Junction paths must be active. 
 * Beginning in ONTAP 9.13.1, it's recommended you enable multi-admin verification (MAV) so that two or more authenticated user admins are required for anti-ransomware operations. link:../multi-admin-verify/enable-disable-task.html[Learn more^].
 
-.Switch ARP from learning to active mode
-[%collapsible]
-====
-Beginning in ONTAP 9.13.1, adaptive learning has been added to ARP analytics. The switch from learning mode to active mode is done automatically. The autonomous decision by ARP to automatically switch from learning mode to active mode is based on the configuration settings of the following options:
-
-----
- -anti-ransomware-auto-switch-minimum-incoming-data-percent
- -anti-ransomware-auto-switch-duration-without-new-file-extension
- -anti-ransomware-auto-switch-minimum-learning-period
- -anti-ransomware-auto-switch-minimum-file-count
- -anti-ransomware-auto-switch-minimum-file-extension
-----
-
-After 30 days of learning, a volume is automatically switched to active mode even if one or more of these conditions are not satisfied. That is, if auto-switch is enabled, the volume switches to active mode after a maximum of 30 days. The maximum value of 30 days is fixed and not modifiable. 
-
-For more information on ARP configuration options, including default values, see the link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-auto-switch-to-enable-mode-show.html[ONTAP command reference^].
-====
-
 .Steps
 
-You can use System Manager or the ONTAP CLI to enable ARP by default. 
+You can use System Manager or the ONTAP CLI to enable ARP by default on new volumes. 
 
 [role="tabbed-block"]
 ====
@@ -62,21 +48,42 @@ You can use System Manager or the ONTAP CLI to enable ARP by default.
 .	Navigate to the *Settings* tab. Under *Security*, locate the **Anti-ransomware** tile then select image:icon_pencil.gif[Edit icon]
 . Check the box to enable ARP for NAS volumes. Check the additional box to enable ARP on all eligible NAS volumes in the storage VM.
 +
-NOTE: If you have upgraded to ONTAP 9.13.1, the *Switch automatically from learning to active mode after sufficient learning* setting is enabled automatically. This allows ARP to determine the optimal learning period interval and automate the switch to active mode. Turn off the setting if you want to manually transition to active mode.
+[NOTE]
+For ARP 9.16.1, active mode is automatically enabled by default for new volumes and no learning period is required.
++
+[NOTE]
+In existing volumes, learning and active modes only apply to newly written data, not to already existing data in the volume. The existing data is not scanned and analyzed, because the characteristics of earlier normal data traffic are assumed based on the new data after the volume is enabled for ARP.
+
+. If you have upgraded to ARP 9.13.1 to ARP 9.15.1, optionally select *Switch automatically from learning to active mode after sufficient learning*. This allows ARP to determine the optimal learning period interval and automate the switch to active mode.
 
 --
 
 .CLI
 --
-.	Modify an existing SVM to enable ARP by default in new volumes:
-`vserver modify -vserver _svm_name_ -anti-ransomware-default-volume-state dry-run`
+* Modify an existing SVM to enable ARP by default in new volumes:
+
+** For 9.15.1 and earlier, set the default state to `dry-run` (learning mode):
 +
-At the CLI, you can also create a new SVM with ARP enabled by default for new volumes.
-`vserver create -vserver svm_name -anti-ransomware-default-volume-state dry-run [_other parameters as needed_]`
+`vserver modify -vserver <svm_name> -anti-ransomware-default-volume-state dry-run`
+
+** For 9.16.1 and later, set the default state to `active` (active mode):
 +
-If you upgraded to ONTAP 9.13.1 or later, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, use the following command:
+`vserver modify -vserver <svm_name> -anti-ransomware-default-volume-state active`
+
+* Create a new SVM with ARP enabled by default for new volumes:
+
+** For 9.15.1 and earlier, set the default state to `dry-run` (learning mode):
 +
-`vserver modify _svm_name_ -anti-ransomware-auto-switch-from-learning-to-enabled false`
+`vserver create -vserver <svm_name> -anti-ransomware-default-volume-state dry-run <other parameters as needed>`
+
+** For 9.16.1 and later, set the default state to `active` (active mode):
++
+`vserver modify -vserver <svm_name> -anti-ransomware-default-volume-state active`
+
+* If you upgraded to ARP 9.13.1 to 9.15.1, adaptive learning is enabled so that the change to active state is done automatically. Modify the existing SVM if you do not want this behavior to be automatically enabled:
++
+`vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false`
+
 --
 ====
 
