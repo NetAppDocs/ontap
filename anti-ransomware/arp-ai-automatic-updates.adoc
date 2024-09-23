@@ -2,7 +2,7 @@
 sidebar: sidebar
 permalink: anti-ransomware/arp-ai-automatic-updates.html
 keywords: ransomware, arp, automatic, ai, update, upgrade, autonomous ransomware protection
-summary: Beginning with ONTAP 9.10.1, you can enable Autonomous Ransomware Protection (ARP) on new or existing volumes.
+summary: Keep up-to-date ARP/AI protection against ransomware threats by automatically or manually updating security bundles.
 ---
 
 = Update Automatic Ransomware Protection with AI (ARP/AI)
@@ -14,102 +14,32 @@ summary: Beginning with ONTAP 9.10.1, you can enable Autonomous Ransomware Prote
 :imagesdir: ./media/
 
 [.lead]
-Beginning with ONTAP 9.10.1, you can enable Autonomous Ransomware Protection (ARP) on an existing volume or create a new volume and enable ARP from the beginning.
-
-If you want to configure new volumes to be enabled by default for Autonomous Ransomware Protection (ARP), see this link:enable-default-task.html[related ARP procedure].
+To keep up-to-date protection against the latest ransomware threats, ARP/AI (available beginning with ONTAP 9.16.1) offers automatic updates that occur outside of regular ONTAP release cadences. If you have enabled automatic system and firmware updates then you will also be able to start receiving automatic updates to ARP/AI. If you have not enabled this setting, you can do so using this procedure or elect to install ARP/AI update security bundles manually.
 
 .About this task
 
-* *For ARP 9.10.1 to 9.15.1* 
-For these versions of ARP, you should always enable ARP initially in link:index.html#learning-and-active-modes[learning mode] (or "dry-run" mode). When you first enable ARP in learning mode, the system analyzes the workload to characterize normal behavior. Beginning in active mode can lead to excessive false positive reports.
+The default method of updating ARP/AI is link:../update/enable-automatic-updates-task.html[automatic updates]. Beginning with ONTAP 9.16.1, security downloads are available in System Manager in addition to system and firmware bundles.
 
-It's recommended you let ARP run in learning mode for a minimum of 30 days. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning period interval and automates the switch, which might occur before 30 days.
-
-* *For ARP/AI 9.16.1 and later*
-ARP is enabled automatically in active mode and no learning period is required.
-
-[NOTE]
-In existing volumes, learning and active modes only apply to newly written data, not to already existing data in the volume. The existing data is not scanned and analyzed, because the characteristics of earlier normal data traffic are assumed based on the new data after the volume is enabled for ARP.
+Manual updates are also available from the NetApp Support Site. These can also be downloaded and installed from System Manager.
 
 .Before you begin
 
-* You must have a storage VM (SVM) enabled for NFS or SMB (or both).
-* The xref:index.html#licenses-and-enablement[correct license] must be installed for your ONTAP version.
-* You must have NAS workload with clients configured.
-* The volume you want to set ARP on must be protected and have an active link:../concepts/namespaces-junction-points-concept.html[junction path^].
-* The volume must be less than 100% full.
-* It's recommended you configure the EMS system to send email notifications, which will include notices of ARP activity. For more information, see link:../error-messages/configure-ems-events-send-email-task.html[Configure EMS events to send email notifications^].
-* Beginning in ONTAP 9.13.1, it's recommended that you enable multi-admin verification (MAV) so that two or more authenticated user admins are required for Autonomous Ransomware Protection (ARP) configuration. For more information, see link:../multi-admin-verify/enable-disable-task.html[Enable multi-admin verification^].
+For manual updates:
 
-== Enable ARP on a new or existing volume
+* Access to the NetApp Support Site downloads.
+* Subscription to NetApp Support Site download monitoring to be informed of new updates.
+* You have turned off automatic downloads in the cluster settings for security.
 
-You can enable ARP using System Manager or the ONTAP CLI. 
+== Manually update ARP/AI with the latest security bundle
 
-[role="tabbed-block"]
-====
-.System Manager
---
+You can only update ARP/AI with security bundles using System Manager. 
+
 .Steps
-. Select *Storage > Volumes*, then select the volume you want to protect.
-. In the *Security* tab of the *Volumes* overview, select *Status* to switch from Disabled to Enabled. 
 
-* If you are using ONTAP 9.15.1 or earlier, select *Enabled in learning-mode* in the *Anti-ransomware* box.
-+
-NOTE: Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning period interval and automates the switch. You can link:enable-default-task.html[disable this setting on the associated storage VM] if you want to control the learning mode to active mode transition manually. 
-
-* If you are using ONTAP 9.16.1 or later, ARP/AI functionality does not require a learning period and active mode is selected by default.
-
-. You can verify the ARP state of the volume in the *Anti-ransomware* box.
-+
-To display ARP status for all volumes: In the *Volumes* pane, select *Show/Hide* then ensure that *Anti-ransomware* status is checked.
-
---
-
-.CLI
---
-
-The process to enable ARP with the CLI differs if you are enabling it on an existing volume versus a new volume. 
-
-.Enable ARP on an existing volume
-. Modify an existing volume to enable ransomware protection in learning mode:
-+
-`security anti-ransomware volume dry-run -volume <vol_name> -vserver <svm_name>`
-+
-If you're running ONTAP 9.13.1 or later, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, change the setting at the SVM level on all associated volumes:
-+
-`vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false`
-
-. Verify the ARP state of the volume.
-+
-`security anti-ransomware volume show`
-
-
-.Enable ARP on a new volume
-. Create a new volume with ARP enabled before provisioning data.
-+
-`volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state dry-run -junction-path </_path_name_>`
-+
-If you're running ONTAP 9.13.1 or later, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, change the setting at the SVM level on all associated volumes:
-+
-`vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false`
-
-. Verify the ARP state of the volume.
-+
-`security anti-ransomware volume show`
---
-====
+. 
 
 .Related information
 
-* link:switch-learning-to-active-mode.html[Switch to active mode after a learning period]
+* link:enable-arp-ai-with-au.html[Enable ARP/AI]
 
 // 2024-9-17, ontapdoc-2204
-// 2023-02-27, #1261
-// 18 may 2023, ontapdoc-1046
-// 2023-04-06, ONTAPDOC-931
-// 2023 Mar 06, Git Issue 826
-// 2022-08-25, BURT 1499112
-// 2022 June 2, BURT 1466313
-// 2022-03-30, Jira IE-517
-// 2022-03-22, ontap-issues-419
-// 2021-10-29, Jira IE-353

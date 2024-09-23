@@ -14,99 +14,30 @@ summary: "Beginning with ONTAP 9.16.1, either automatically enable ARP/AI for Fl
 :imagesdir: ./media/
 
 [.lead]
-Beginning with ONTAP 9.16.1, ARP has adopted Autonomous Ransomware Protection with Artificial Intelligence (ARP/AI) to improve threat detection. After upgrading your cluster to ONTAP 9.16.1, ARP/AI will be automatically enabled for existing and new FlexVol volumes if ARP is already enabled for those volumes. If you have not enabled ARP or have not enabled automatic updates your cluster, you can do so using this procedure.
-
-To keep up to date with protection against the latest ransomware threats, ARP/AI offers automatic updates that occur outside of regular ONTAP release cadences. If you have enabled automatic system and firmware updates then you will also be able to start receiving automatic updates to ARP/AI. If you have not enabled this setting, you can do so using this procedure or elect to install ARP/AI update service bundles manually.
+Beginning with ONTAP 9.16.1, ARP has adopted Autonomous Ransomware Protection with Artificial Intelligence (ARP/AI) to improve threat detection and response. After upgrading your cluster to ONTAP 9.16.1, ARP/AI will be automatically enabled for existing and new FlexVol volumes if ARP is already enabled for those volumes. If you have not enabled ARP or have not enabled automatic updates your cluster, you can do so using this procedure.
 
 IMPORTANT: Before upgrading to ONTAP 9.16.1, link:respond-abnormal-task.html[close out any existing ARP detections].
 
 //Change this to upgrade warning
 
-.About this task
-
-Consider these scenarios:
-
-* For new clusters running ONTAP 9.16.1, ARP/AI functionality is automatically enabled in active mode on the volumes you choose to protect after you enable ARP. 
-* For existing clusters recently upgraded to ONTAP 9.16.1 that have ARP enabled, ARP/AI will automatically become the new ARP method of threat detection on the volumes you've chosen to protect. 
-* For existing clusters recently upgraded to ONTAP 9.16.1 that do not ARP enabled, ARP/AI will automatically become the new ARP method of threat detection after you enable ARP.
-
-After ARP/AI is enabled, 
-
 .Before you begin
 
-* You must have FlexVol volumes to use ARP/AI. If you have FlexGroup, you will continue the existing pre-AI ARP model after upgrading to ONTAP 9.16.1.
+* You must have FlexVol volumes to use ARP/AI. If you have FlexGroup, the pre-AI ARP model continues to operate after upgrading to ONTAP 9.16.1.
 
 NOTE: When you upgrade to ONTAP 9.16.1, ARP is enabled automatically in active mode for any existing ARP instances. Because AI is trained on an extensive machine learning model, a learning period is no longer required. Any learning periods that have not been completed prior to upgrade will be automatically be ended and the volumes transitioned to active mode.
 
-== Enable ARP/AI on a new or existing volume
-
-You can enable ARP using System Manager or the ONTAP CLI. 
-
-[role="tabbed-block"]
-====
-.System Manager
---
 .Steps
-. Select *Storage > Volumes*, then select the volume you want to protect.
-. In the *Security* tab of the *Volumes* overview, select *Status* to switch from Disabled to Enabled. 
 
-* If you are using ONTAP 9.15.1 or earlier, select *Enabled in learning-mode* in the *Anti-ransomware* box.
-+
-NOTE: Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning period interval and automates the switch. You can link:enable-default-task.html[disable this setting on the associated storage VM] if you want to control the learning mode to active mode transition manually. 
+. Follow the scenario that is specific to your configuration:
 
-* If you are using ONTAP 9.16.1 or later, ARP/AI functionality does not require a learning period and active mode is selected by default.
+* *For new clusters running ONTAP 9.16.1*: Enable ARP. ARP is not enabled by default. After you enable ARP, ARP/AI functionality is automatically enabled in active mode on the volumes you choose to protect. 
+* *For existing clusters recently upgraded to ONTAP 9.16.1 that have ARP enabled*: No action needed. ARP/AI will automatically become the new ARP method of threat protection on the volumes you've chosen to protect. 
+* *For existing clusters recently upgraded to ONTAP 9.16.1 that do not have ARP enabled*: Enable ARP. ARP/AI will automatically become the new ARP method of threat protection after you enable ARP.
 
-. You can verify the ARP state of the volume in the *Anti-ransomware* box.
-+
-To display ARP status for all volumes: In the *Volumes* pane, select *Show/Hide* then ensure that *Anti-ransomware* status is checked.
-
---
-
-.CLI
---
-
-The process to enable ARP with the CLI differs if you are enabling it on an existing volume versus a new volume. 
-
-.Enable ARP on an existing volume
-. Modify an existing volume to enable ransomware protection in learning mode:
-+
-`security anti-ransomware volume dry-run -volume <vol_name> -vserver <svm_name>`
-+
-If you're running ONTAP 9.13.1 or later, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, change the setting at the SVM level on all associated volumes:
-+
-`vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false`
-
-. Verify the ARP state of the volume.
-+
-`security anti-ransomware volume show`
-
-
-.Enable ARP on a new volume
-. Create a new volume with ARP enabled before provisioning data.
-+
-`volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state dry-run -junction-path </_path_name_>`
-+
-If you're running ONTAP 9.13.1 or later, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, change the setting at the SVM level on all associated volumes:
-+
-`vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false`
-
-. Verify the ARP state of the volume.
-+
-`security anti-ransomware volume show`
---
-====
+. After ARP/AI is enabled, decide whether you want ARP/AI protection updates to be delivered and installed link:arp-ai-automatic-updates.html[automatically or manually] installed. 
 
 .Related information
 
-* link:switch-learning-to-active-mode.html[Switch to active mode after a learning period]
+* link:arp-ai-automatic-updates.html[Update ARP/AI]
 
 // 2024-9-17, ontapdoc-2204
-// 2023-02-27, #1261
-// 18 may 2023, ontapdoc-1046
-// 2023-04-06, ONTAPDOC-931
-// 2023 Mar 06, Git Issue 826
-// 2022-08-25, BURT 1499112
-// 2022 June 2, BURT 1466313
-// 2022-03-30, Jira IE-517
-// 2022-03-22, ontap-issues-419
-// 2021-10-29, Jira IE-353
