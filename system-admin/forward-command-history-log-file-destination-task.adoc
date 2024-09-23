@@ -1,9 +1,10 @@
 ---
 permalink: system-admin/forward-command-history-log-file-destination-task.html
 sidebar: sidebar
-keywords: forward, audit, log, destination, cluster, forwarding, splunk
+keywords: forward, audit, log, destination, cluster, forwarding, splunk, RFC-3164, RFC-5424
 summary: "You can forward the audit log to a maximum of 10 destinations. For example, you can forward the log to a Splunk or syslog server for monitoring, analysis, or backup purposes."
 ---
+
 = Manage audit log destinations
 :icons: font
 :imagesdir: ../media/
@@ -13,14 +14,21 @@ You can forward the audit log to a maximum of 10 destinations. For example, you 
 
 .About this task
 
-To configure forwarding, you must provide the IP address of the syslog or Splunk host, its port number, a transmission protocol, and the syslog facility to use for the forwarded logs. https://datatracker.ietf.org/doc/html/rfc5424[Learn about syslog facilities^].
+To configure forwarding, you must provide the IP address of the syslog or Splunk host, its port number, a transmission protocol, and the syslog facility to use for the forwarded logs. https://datatracker.ietf.org/doc/html/rfc5424[Learn about syslog facilities^]. 
 
-You can select one of the following transmission values:
+You can select one of the following transmission values using the `-protocol` parameter:
 
 UDP Unencrypted:: User Datagram Protocol with no security (default)
 TCP Unencrypted:: Transmission Control Protocol with no security
 TCP Encrypted:: Transmission Control Protocol with Transport Layer Security (TLS) +
 A *Verify server* option is available when the TCP Encrypted protocol is selected.
+
+The default port is 514 for UDP and 6514 for TCP, but you can designate any port that meets the needs of your network.
+
+You can select one of the following message format using the `-message-format` command:
+
+legacy-netapp:: A variation of the RFC-3164 Syslog format (format: <PRIVAL>TIMESTAMP HOSTNAME: MSG)
+rfc-5424:: Syslog format as per RFC-5424 (format: <PRIVAL>VERSION TIMESTAMP HOSTNAME: MSG)
 
 You can forward audit logs from the ONTAP CLI, and beginning with ONTAP 9.11.1, from System Manager.
 
@@ -47,7 +55,7 @@ cluster1::> cluster log-forwarding create -destination 192.168.123.96
 -port 514 -facility user
 
 cluster1::> cluster log-forwarding create -destination 192.168.123.98
--port 514 -protocol tcp-encrypted -facility user
+-port 6514 -protocol tcp-encrypted -facility user
 ----
 +
 * If the `cluster log-forwarding create` command cannot ping the destination host to verify connectivity, the command fails with an error. Although not recommended, using the `-force` parameter with the command bypasses the connectivity verification.
@@ -62,12 +70,13 @@ cluster1::> cluster log-forwarding show
 Destination Host          Port   Protocol        Server Facility
 ------------------------- ------ --------        ------ --------
 192.168.123.96            514    udp-unencrypted false  user
-192.168.123.98            514    tcp-encrypted   true   user
+192.168.123.98            6514   tcp-encrypted   true   user
 2 entries were displayed.
 ----
 
-See the man pages for details.
+See the `cluster log-forwarding create` man page for details.
 --
 ====
 
+// 23-SEP-2024, ONTAPDOC-1318 
 // 2022-04-11, jira-481
