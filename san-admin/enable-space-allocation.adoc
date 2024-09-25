@@ -9,17 +9,23 @@ summary: "Enable space allocation to allow the host and storage system to cooper
 :imagesdir: ../media/
 
 [.lead]
-Enable space allocation to allow your hosts and storage systems to cooperate on LUN space management. 
+Enable space allocation to prevent your LUNs from being taken offline if they run out of space and to enable your host to reclaim space. 
 
-Beginning with ONTAP 9.15.1, space allocation is enabled by default for newly created LUNs. Space allocation had been disabled by default in previous versions of ONTAP (9.14.1 and earlier).
+Beginning with ONTAP 9.15.1, space allocation is enabled for newly created LUNs by default . Space allocation is disabled in ONTAP 9.14.1 and earlier by default.
 
-Enabling the `space-allocation` setting allows the following benefits:
+Enabling space allocation allows the following benefits:
 
-* *ONTAP can communicate to a host that no free space is available to service a write*: This communication is a more graceful way for hosts to handle out-of-space situations. The LUN remains online but is unable to service a write IO until space becomes available. Read IO can still be performed. The exact effect on a host OS depends on host configuration. In some cases, the OS retries write IO until it succeeds. In other cases, the filesystem could be placed offline. 
+* LUNs are not taken offline if they run out of space.
 +
-NOTE: If the `space-allocation` setting is not enabled, a LUN enters a state of `space-error` when it reaches a low space threshold and all IO fails. The LUN needs to be changed back to `online` state after the space problem has been resolved. Rescanning LUN devices might also be required on the host to restore paths and devices to an operational state.
+When space allocation is enabled, if a LUN runs out of space, ONTAP communicates to the host that no free space is available for write operations, the LUN remains online and read operations continue to be serviced.  Depending upon the host configuration, the host retries write operations until it succeeds or the host filesystem is placed offline.
++
+Write operations resume when additional free space becomes available to the LUN.
++
+If space allocation is not enabled, when a LUN reaches a low space threshold, all I/O operations fail and the LUN is taken offline. The space issue must be resolved before the LUN is brought back online.  Rescanning LUN devices might also be required on the host to restore paths and devices to an operational state.
 
-* *A host can perform `SCSI UNMAP` (sometimes called `TRIM`) operations*: These operations allows a host to identify blocks of data on a LUN that are no longer required because they no longer contain valid data. Identification normally happens after file deletion. The storage system can then deallocate those data blocks so that the space can be consumed elsewhere. This deallocation greatly improves overall storage efficiency, especially with filesystems that have data high turnover.
+* A host can perform `SCSI UNMAP` (sometimes called `TRIM`) operations.
++
+SCSI UNMAP operations allow a host to identify blocks of data on a LUN that are no longer required because they no longer contain valid data. Identification normally happens after file deletion. The storage system can then deallocate those data blocks so that the space can be consumed elsewhere. This deallocation greatly improves overall storage efficiency, especially with filesystems that have data high turnover.
 
 .Before you begin
 Enabling space allocation requires a host configuration that can correctly handle space allocation errors when a write cannot be completed. Leveraging `SCSI UNMAP` requires a configuration that can use logical block provisioning as defined in the SCSI SBC-3 standard. 
@@ -58,7 +64,7 @@ lun show -vserver <vserver_name> -volume <volume_name> -lun <lun_name> -fields s
 
 . Verify that space allocation is enabled on the host OS. 
 +
-NOTE: Some host configurations, ESX in particular, can automatically recognize the setting change and do not require user intervention. Other configurations might require a device rescan. Some filesystems and volume managers might require additional specific settings to enable space reclamation using `SCSI UNMAP`. Remounting of filesystems or a full OS reboot might be required. Consult the documentation for your specific OS for guidance. 
+NOTE: Some host configurations, ESX in particular, can automatically recognize the setting change and do not require user intervention. Other configurations might require a device rescan. Some filesystems and volume managers might require additional specific settings to enable space reclamation using `SCSI UNMAP`. Remounting of filesystems or a full OS reboot might be required. Consult the documentation for your specific host for guidance. 
 
 // 2024-7-17 ontapdoc-2220
 // 2024 June 3, ONTAPDOC-2034
