@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar
 permalink: s3-snapmirror/s3-snapshot-overview.html
-keywords: s3 snapshots, snapshot overview
+keywords: s3 snapshots, S3 Snapshot copy creation
 summary: You can create a point-in-time backup of your S3 bucket using the S3 Snapshot technology. Point-in-time Snapshots provide a comprehensive backup solution, eliminating the need for full and continuous bucket replication.
 ---
 
@@ -16,8 +16,6 @@ summary: You can create a point-in-time backup of your S3 bucket using the S3 Sn
 [.lead]
 Beginning with 9.16.1, you can use S3 Snapshot technology to generate point-in-time backup of your ONTAP S3 buckets. By creating Snapshot copies of your buckets, you can eliminate the need for full and continuous bucket replication. 
 
-For information about volume snapshots in ONTAP, refer to https://docs.netapp.com/us-en/ontap/concepts/snapshot-copies-concept.html[Snapshot copies^]. 
-
 The S3 Snapshot feature leverages bucket versioning to track the objects captured in a bucket snapshot. Snapshot copies of S3 buckets do not contain object version history and should be governed by snapshot policies to manage the retention tenure of snapshots. The default snapshot policy preserves: 
 
 * Six hourly snapshots
@@ -26,7 +24,15 @@ The S3 Snapshot feature leverages bucket versioning to track the objects capture
 
 Object versioning history and point-in-time tags will be included in a future release.
 
-Using the S3 Snapshot feature, you can manually create snapshots or automatically generate them through snapshot policies. Additionally, you can browse snapshots to determine errors, restore a bucket, and delete snapshots to free up space.
+Using the S3 Snapshot feature, you can manually create snapshots or automatically generate them through snapshot policies. Additionally, you can browse snapshots to determine errors, restore a bucket by using the snapshot at the source volume, and delete snapshots to free up space.
+
+.Quota and space usage
+Quota is used to track the number of objects and logical size used in a bucket. When snapshots are created, the objects captured in the snapshots are counted towards the bucket object count and size used, until the objects are deleted from the file system.
+
+You can calculate the total snapshot size information by browsing the list of snapshots created.
+
+.Multipart objects
+When creating snapshots from multipart object uploads, only the final multipart objects are captured. Partial uploads of multipart objects are not captured in snapshots.
 
 == Snapshots on versioned and non-versioned buckets
 You can create snapshots on both versioned and non-versioned buckets, but the snapshot contains only the current object versions at a time when the snapshot is captured. 
@@ -43,10 +49,14 @@ Consider this example: In a bucket were versioning is unavailable, object `obj1`
 
 == Object expiration and snapshots
 
-Object expiration and S3 snapshot features function independent of each other. Object expiration feature expire latest and earlier versions according to the lifecycle management rules defined on the bucket. The snapshot captures the version of the objects at a point in time when the snapshot is created.
+Object expiration and S3 snapshot features function independent of each other. Object expiration feature expire latest and earlier versions according to the lifecycle management rules defined on the bucket. The snapshot is a static copy of the bucket objects at a point in time when the snapshot is created.
 
-If versioning is enabled in a bucket, when a specific version (non-current version) of an object is deleted due to an expiration rule defined for that bucket, the content of the expired object continues to remain in a snapshot if the snapshot was created from the non-current version. That version of the object will cease to exist on the file system only when that snapshot is deleted.
+If versioning is enabled in a bucket, when a specific version (non-current version) of an object is deleted due to an expiration rule defined for that bucket, the content of the expired object continues to remain in a snapshot if the snapshot was created from the non-current version. That object version will cease to exist on the file system only when that snapshot is deleted.
 
 Similarly, in a non-versioned bucket or a bucket in which versioning is disabled, if an object gets deleted based on an expiration rule, the content of the expired object is still retained in any snapshot that was previously created from the object. The object will be permanently removed from the file system when the snapshots capturing it are deleted.
 
 For information about lifecycle management rules, refer to https://docs.netapp.com/us-en/ontap/s3-config/create-bucket-lifecycle-rule-task.html[Create a bucket lifecycle management rule].
+
+.Related information
+
+* For information about volume snapshots in ONTAP, refer to https://docs.netapp.com/us-en/ontap/concepts/snapshot-copies-concept.html[Snapshot copies^]. 
