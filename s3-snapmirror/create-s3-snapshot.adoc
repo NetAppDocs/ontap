@@ -22,7 +22,23 @@ S3 Snapshot copies help you in protecting your object data in buckets with or wi
 Snapshots can be especially useful in establishing data protection when versioning is not enabled in a bucket.
 
 .About this task
+* The following naming rules apply to snapshot (for both manual and automatic snapshots):
 
+* The snapshot names can be up to 30 characters
+* The snapshot names can consist only of lowercase letters, numbers, dots (.), and hyphens (-)
+* The snapshot names must end with a letter or number
+* The snapshot names cannot contain substring `s3snap`
+* In the context of S3 protocol, the bucket naming restrictions impose a limit of 63 characters for a bucket's name. Since snapshots will be presented as buckets from S3 protocol, similar restrictions apply to the synthetic snapshot bucket names. By default, the original bucket name would be used as the base bucket name.
+* To make identifying which snapshot belongs to which bucket easier, the synthetic snapshot bucket name consists of the base bucket name, along with a special string, `-s3snap-` prefixed with the snapshot name. The synthetic bucket names are formatted as `<base-bucket-name>-s3snap-<snapshot-name>`.
++
+For example, running the following command to create `snap1` on `bucketA`
+----
+vserver object-store-server bucket snapshot create -bucket bucketA -snapshot snap1
+----
++
+Creates a synthetic snapshot bucket with name `bucketA-s3snap-snap1`.
+* You cannot create a snapshot that results in synthetic snapshot bucket name with more than 63 characters.
+* The automatic snapshot name contains the policy schedule name and the timestamp, which is similar to the naming convention for the traditional volume snapshot. For example, the scheduled snapshot names can be `daily-2024-01-01-0015` and `hourly-2024-05-22-1105`.
 
 
 == Manually create Snapshot copies
@@ -41,9 +57,9 @@ vserver object-store-server bucket snapshot create -vserver vs0 -bucket website-
 ----
 
 == Assign a Snapshot policy on a bucket to generate snapshots
+You can not only create manual snapshots, but also configure snapshot policies at the bucket level that creates scheduled snapshots automatically. The policies can be used to actively delete old snapshots. Similar to the traditional snapshot policies, up to five schedules can be configured for S3 snapshots.
 
-Assigning a Snapshot policy on a versioned or non-versioned bucket enables you to protect your data by automatically generating Snapshot copies of your S3 objects. 
-A Snapshot policy specifies the time to create Snapshot copies, number of copies to retain, and their naming convention. For example, a system might create one Snapshot copy every day at 12:10 AM, retain two most recent copies, and name them `daily.timestamp`.
+A Snapshot policy typically specifies the time to create Snapshot copies, number of copies to retain, and their naming convention. For example, a system might create one Snapshot copy every day at 12:10 AM, retain two most recent copies, and name them `daily.timestamp`.
 
 .Before you begin
 A Snapshot policy must have been created before assigning it to the S3 bucket. 
@@ -58,7 +74,7 @@ vserver object-store-server bucket modify/create -snapshot-policy <POLICY>
 ----
 
 [NOTE]
-If you need to revert a cluster, all buckets should have snapshot policy set to `none` or `-`.
+If you need to revert a cluster, ensure that the value for `snapshot_policy` for all the buckets is set to `none` or `-`.
 
 
 .Related information
