@@ -1,0 +1,118 @@
+---
+permalink: flexgroup/enable-adv-capacity-flexgroup-task.html
+sidebar: sidebar
+keywords: flexgroup advanced capacity balancing, flexgroup granular data distribution, gdd, flexgroup, volume, balancing
+summary: "Beginning with ONTAP 9.16.1, advanced capacity balancing is introduced to provide data distribution between FlexGroup member volumes when very large files grow and consume space on one member volume."
+---
+= Rebalance FlexGroup volumes by redistributing file data
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.16.1, advanced capacity balancing is introduced to enable data distribution between FlexGroup member volumes when very large files grow and consume space on one member volume. 
+
+Advanced capacity balancing expands the granular data functionality introduced in ONTAP 9.12.1, which enables ONTAP to link:manage-flexgroup-rebalance-task.adoc[rebalance FlexGroup volumes] by moving files to other members. In ONTAP 9.16.1, when advanced capacity balancing is enabled, both the “basic” file rebalancing capabilities as well as the advanced capacity capabilities are activated. 
+
+You can use System Manager or the ONTAP CLI to enable advanced capacity balancing.
+
+[NOTE]
+====
+File rebalancing and advanced capacity balancing are disabled by default, and once enabled they cannot be disabled. If you need to disable capacity balancing, you must restore from a snapshot that was created before advanced capacity balancing was enabled. 
+====
+
+Advanced capacity balancing is triggered only when a large file in a FlexGroup member volume reaches at least 10GB.
+
+== How files are distributed
+If a file is created or grows large enough to trigger advanced capacity rebalancing, the file is distributed in stripes between 1GB and 10GBs across the member FlexGroup volumes. The size of the stripes depends on the size of the member volumes, but if volumes are 1TB or more, stripes are typically about 10GB. 
+After advanced capacity balancing is enabled, ONTAP will not retroactively stripe existing large files. If an existing large file continues to grow after advanced capacity balancing is enabled, new content in existing large files might be striped across member FlexGroup volumes depending on the file’s size and available space.
+Advanced capacity balancing uses several factors to determine stripe width: 
+
+* Free space available: Advanced capacity balancing tries choosing a stripe width that is 1% of the free space available on the member volume. This means that stripes can start out larger if more space is available, and they become smaller as the FlexGroup fills up.
+
+* Minimum stripe width: The smallest stripe width ever chosen is 1GB.
+
+* Maximum stripe width: The largest possible stripe width is 10GB.
+
+* Granularity: Stripes are always a multiple of 1GB.
+
+== Supported protocols
+Advanced capacity balancing is supported with the following protocols:
+
+* NFSv3, NFSv4, NFSv4.1
+* pNFS
+* SMB
+
+== Enabled advanced capacity balancing
+
+Advanced capacity balancing is disabled by default. You must enable advanced capacity balancing to automatic FlexGroup capacity balancing. Keep in mind that you cannot disable this feature once you enable it. 
+
+.Before you begin
+All nodes in the cluster must be running ONTAP 9.16.1 or later.
+
+=== Enable advanced capacity balancing during FlexGroup creation
+
+.Steps
+
+You can use System Manager or the ONTAP CLI to enable advanced capacity rebalancing when you create a new FlexGroup volume.
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+
+. Navigate to *Storage > Volumes* and click image:icon_add_blue_bg.gif[Add icon].
+. In the *Add volume* window, enter the volume name and size, then click *More Options*.
+. Under *Storage and optimization*, select *Distribute volume data across the cluster (FlexGroup)*.
+. Select *Advanced capacity rebalancing*.
+. Finish configuring the volume, and click *Save*.
+
+--
+.CLI
+--
+. Create a volume with advanced capacity balancing enabled:
++
+[source,cli]
+----
+volume create -vserver <svm name> -volume <volume name> -size <volume size> -auto-provision-as flexgroup -junction-path /<path> -granular-data advanced
+----
++
+Example:
++
+'volume create -vserver vs0 -volume newvol -size 1TB -auto-provision-as flexgroup -junction-path /newvol -granular-data advanced'
+--
+====
+
+=== Enable advanced capacity balancing on existing FlexGroup volumes
+
+.Steps
+
+You can use System Manager or the ONTAP CLI to enable advanced capacity rebalancing.
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+
+. Navigate to *Storage > Volumes*, click image:icon_kabob.gif[Menu options icon], and choose *Edit > Volume*.
+. In the *Edit volume* window, under *Storage and optimization*, select *Advanced capacity rebalancing*.
+. Click *Save*.
+
+--
+.CLI
+--
+. Modify an existing FlexGroup volume to enable advanced capacity balancing:
++
+[source,cli]
+----
+volume modify -vserver <svm name> -volume <volume name> -granular-data advanced
+----
++
+Example:
++
+'volume modify -vserver vs0 -volume newvol  -granular-data advanced'
+--
+====
+
+// 2024-Oct-1, ONTAPDOC-2178
