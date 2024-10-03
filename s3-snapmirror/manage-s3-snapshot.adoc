@@ -14,86 +14,91 @@ summary: You can browse and delete S3 bucket snapshots using the S3 Snapshot tec
 :imagesdir: ../media/
 
 [.lead]
-With the S3 Snapshot feature, you have the option to manually generate snapshots or set up snapshot policies to automatically create them. Snapshots serve as static copies of objects that you use for data backup and recovery. For determining the tenure of snapshot retention, you can create snapshot policies that facilitate automatic snapshot creation at specified intervals.
+The ONTAP S3 snapshot feature enables you to browse S3 snapshots for your buckets, restore them when you need to, and delete them when they are no longer useful for you. 
 
 .Before you begin
-
-.About this task
-
-.Steps
-You can manually create a Snapshot copy by using the ONTAP CLI. The procedure creates a Snapshot copy on the local cluster only.
-
-. Create a snapshot:
-
-----
-vserver object-store-server bucket snapshot create -vserver <vserner-name> -bucket <bucket-name> -snapshot <snapshot-name>
-----
-
-The following example creates a Snapshot copy named `pre-update` on the `vs0` storage VM and `website-data` bucket:
-
-----
-vserver object-store-server bucket snapshot create -vserver vs0 -bucket website-data -snapshot pre-update
-----
+For managing ONTAP S3 snapshots on your buckets, the snapshots should have been created and should be accessible to you. 
 
 == Browse S3 snapshots
-You browse S3 snapshots to view their details, compare them, and identify and rectify errors from the snapshots. Using the ONTAP CLI, you can list all snapshots created on ONTAP S3 buckets. 
+You browse S3 snapshots to view their details, compare them, and identify and rectify errors. If you notice any failures or issues in your environment, you can browse the content of the S3 snapshots for a bucket to identify and fix the error, or restore a previous, error-free version.
 
+Using the ONTAP CLI, you can list all snapshots created on your S3 buckets. 
 
-
-From the S3 protocol side, snapshots will be presented as a synthetic bucket with bucket name formatted as
 
 .Steps
-. View snapshot:
+. List and browse S3 snapshots:
 
 ----
 vserver object-store-server bucket snapshot show
 ----
+You can view the snapshot names, storage VMs, buckets, and creation time for all the S3 snapshots created for your buckets on the cluster.
 
-You can view the snapshot names, storage VMs, buckets, and creation time for all the snapshots on the cluster.
+Specifying the bucket name retrieves the name and creation time of all the S3 snapshots created for that bucket.
 
-<base-bucket-name>-s3snap-<snapshot-name>
+----
+vserver object-store-server bucket snapshot show -vserver <vserver_name> -bucket <bucket_name>
+----
 
-The synthetic snapshot buckets will be returned in the ListBuckets result. 
-
-When browsing the object in snapshot, the "expiration" header of the object won't be populated in the HeadObject and GetObject response even if the lifecycle rules are configured on the bucket.
-
-which is occasionally updated. Two days ago, the developers noticed that something in the AI training runs were failing.  Luckily, Alex has set up a snapshot policy with a daily schedule that retains one week worth of these daily snapshots.
-
-Alex identifies the nightly snapshots for the last few days, and starts attempting to bisect when the issue started. 
-
-vserver object-store-server bucket snapshot show -vserver vs0 -bucket training-data
-By re-running the training runs against each bucket snapshot, they can narrow down what has changed. Once the first passing and failing snapshots are identified, Alex shares these with the developers to help pinpoint what changes may be causing the failures.
 
 == Restore S3 snapshots
 
-aws cp" command based on the contents provided by the snapshot browsing functionality.
+You can restore ONTAP S3 snapshots only locally. You can link:../s3-snapmirror/manage-s3-snapshot.html#browse-s3-snapshots[browse] snapshots and determine the snapshot content to copy objects from the required snapshots and restore. You can restore the entire bucket, objects with a prefix, or a single object, by using the `aws s3 cp` command. 
 
-Alex decides to create a snapshot of the bucket before the update takes place, just in case:
+.Steps
 
-vserver object-store-server bucket snapshot create -vserver vs0 -bucket website-data -snapshot pre-update
-
-Alex can restore the whole bucket, objects with a prefix or a single object using the "aws s3 cp" command.
-
-Restore the bucket
-
-aws --endpoint http://<IP> s3 cp s3://website-data-s3snap-pre-update s3://website-data  --recursive
-Restore objects under a directory with prefix
-
-aws --endpoint http://<IP> s3 cp s3://website-data-s3snap-pre-update/dir1 s3://website-data/dir1 --recursive
-
-Restore a single object
-
-aws --endpoint http://<IP> s3 cp s3://website-data-s3snap-pre-update/web.py s3://website-data/web.py
+. Take a snapshot of the S3 bucket that you will replace by the S3 snapshot restore.
++
+----
+vserver object-store-server bucket snapshot create -vserver <vserver_name> -bucket <bucket_name> -snapshot <snapshot_name>
+----
++
+. Perform the restore:
+** Restore an entire bucket:
++
+----
+aws --endpoint http://<IP> s3 cp s3://website-data-<synthetic-bucket-name> s3://website-data  --recursive
+----
++
+In this case, use the bucket name of the synthetic bucket, that is in the format `<base-bucket-name>-s3snap-<snapshot-name>`.
++
+** Restore objects under a directory with the default prefix `s3snap`:
++
+----
+aws --endpoint http://<IP> s3 cp s3://website-data-s3snap-<snapshot_name>/dir1 s3://website-data/dir1 --recursive
+----
++
+** Restore a single object with the default prefix `s3snap`:
++
+----
+aws --endpoint http://<IP> s3 cp s3://website-data-s3snap-<snapshot_name>/web.py s3://website-data/web.py
+----
 
 == Delete S3 snapshots
+You can delete S3 snapshots that you no longer require and free up storage space in your buckets. You can manually remove S3 snapshots or modify the S3 snapshot policies to schedule their removal. 
 
-Alex modifies the bucket to the default snapshot policy:
+Specifying the retention period in the S3 snapshot policies ensures the snapshots to be maintained for a specified period. Policies for S3 snapshots follow the same deletion rules as other ONTAP snapshot policies. Post the retention period specified in the S3 snapshot policies, the S3 snapshots are automatically deleted. For more information about creating snapshot policies, refer to https://docs.netapp.com/us-en/ontap/data-protection/create-snapshot-policy-task.html[Create a snapshot policy^].
 
-vserver object-store-server bucket modify -vserver vs0 -bucket feature3-tests -snapshot-policy web-policy
-Alex also takes this opportunity to free up some space by deleting the history of unnecessary snapshots for this bucket:
+.About this task
 
-vserver object-store-server bucket snapshot delete -vserver vs0 -bucket feature3-tests -snapshot snapshot*
+* An S3 snapshot deletion request (manual or policy-driven) removes the corresponding records from the S3 snapshot database.
+*  If multiple snapshots maintain versions of the same S3 object that is eventually deleted, the object is completely deleted from the buckets (original and synthetic) only when the last snapshot protecting it is removed.
+* If you need to delete an S3 bucket containing objects with snapshots, ensure that you have deleted all the corresponding snapshots of all the objects in that bucket.
+* You can't delete an S3 snapshot that is being restored.
+* If you need to revert a cluster to an ONTAP version earlier than ONTAP 9.16.1, ensure that you have deleted all the S3 snapshots for all the buckets.
+* When you delete snapshots in batches, you can remove a large number of objects captured in several snapshots, effectively freeing up more space than individual snapshot deletion would cause. As a result, you can reclaim more space for your storage objects.
 
-When snapshot deletion is initiated by the user or snapshot policy, we will remove the corresponding record in the snapshot database. 
+.Steps
 
-In this case, the progress of individual snapshot deletion does not matter as much as being able to efficiently remove a large number of objects captured in several snapshots.
+. To delete S3 snapshots manually, run this command: 
++
+----
+vserver object-store-server bucket snapshot delete
+----
++
+. Optionally, you can free up additional space by deleting the history of the redundant snapshots:
++
+----
+vserver object-store-server bucket snapshot delete -vserver <vserver_name> -bucket <bucket_name> -snapshot snapshot*
+----
+ 
+
