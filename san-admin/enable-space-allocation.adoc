@@ -9,17 +9,54 @@ summary: "Enable space allocation to allow the host and storage system to cooper
 :imagesdir: ../media/
 
 [.lead]
-Enable space allocation to prevent your LUNs from being taken offline if they run out of space and to enable your host to reclaim space. 
+Enable space allocation to prevent your LUNs or NVMe namespaces from being taken offline if they run out of space and to enable your host to reclaim space. 
 
-Beginning with ONTAP 9.15.1, space allocation is enabled for newly created LUNs by default . Space allocation is disabled in ONTAP 9.14.1 and earlier by default.
+Space allocation is supported based upon your SAN protocol and your version of ONTAP.
+
+[cols="2,2,4a" options="header"]
+|===
+// header row
+| ONTAP version
+| Protocols
+| Space allocations is...
+
+// first body row
+| 9.16.1 or later
+a| 
+* iSCSI
+* FC
+* NVMe
+| Enabled by default
+
+.2+| 9.15.1
+a|
+* iSCSI
+* FC
+| Enabled by default for newly created LUNs
+
+| NVMe
+| Not supported
+
+.2+| 9.14.1 and earlier
+a| 
+* iSCSI
+* FC
+| Disabled by default
+
+| NVMe
+| Not supported
+
+// table end
+|===
+
 
 Enabling space allocation allows the following benefits:
 
-* LUNs are not taken offline if they run out of space.
+* LUNs and NVMe namespaces are not taken offline if they run out of space.
 +
-When space allocation is enabled, if a LUN runs out of space, ONTAP communicates to the host that no free space is available for write operations, the LUN remains online and read operations continue to be serviced.  Depending upon the host configuration, the host retries write operations until it succeeds or the host filesystem is placed offline.
+When space allocation is enabled, if a LUN or namespace runs out of space, ONTAP communicates to the host that no free space is available for write operations, the LUN or namespaces remains online and read operations continue to be serviced.  Depending upon the host configuration, the host retries write operations until it succeeds or the host filesystem is placed offline.
 +
-Write operations resume when additional free space becomes available to the LUN.
+Write operations resume when additional free space becomes available to the LUN or namespace.
 +
 If space allocation is not enabled, when a LUN reaches a low space threshold, all I/O operations fail and the LUN is taken offline. The space issue must be resolved before the LUN is brought back online.  Rescanning LUN devices might also be required on the host to restore paths and devices to an operational state.
 
@@ -28,6 +65,7 @@ If space allocation is not enabled, when a LUN reaches a low space threshold, al
 SCSI UNMAP operations allow a host to identify blocks of data on a LUN that are no longer required because they no longer contain valid data. Identification normally happens after file deletion. The storage system can then deallocate those data blocks so that the space can be consumed elsewhere. This deallocation greatly improves overall storage efficiency, especially with filesystems that have data high turnover.
 
 .Before you begin
+
 Enabling space allocation requires a host configuration that can correctly handle space allocation errors when a write cannot be completed. Leveraging `SCSI UNMAP` requires a configuration that can use logical block provisioning as defined in the SCSI SBC-3 standard. 
 
 The following hosts currently support SCSI thin provisioning when you enable space allocation:
@@ -40,11 +78,9 @@ The following hosts currently support SCSI thin provisioning when you enable spa
 * Solaris 11.1 and later
 * Windows 
 
-Space allocation is not supported on NVMe hosts.
-
 .About this task
 
-When you upgrade your cluster to ONTAP 9.15.1, the space allocation setting for all LUNs created prior to the software upgrade remains the same after the upgrade, regardless of host type. For example, if a LUN was created in ONTAP 9.13.1 for a VMware host with space allocation disabled, space allocation on that LUN remains disabled after upgrading to ONTAP 9.15.1. 
+When you upgrade your cluster to ONTAP 9.15.1 or later, the space allocation setting for all LUNs created prior to the software upgrade remains the same after the upgrade, regardless of host type. For example, if a LUN was created in ONTAP 9.13.1 for a VMware host with space allocation disabled, space allocation on that LUN remains disabled after upgrading to ONTAP 9.15.1. 
 
 .Steps
 
