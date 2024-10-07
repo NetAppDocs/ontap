@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar
-permalink: s3-snapmirror/create-s3-snapshot.html
-keywords: s3 snapshots, snapshot verview
-summary: You can create a point-in-time backup of your S3 bucket using the S3 Snapshot technology. 
+permalink: s3-snapshots/create-s3-snapshot.html
+keywords: s3 snapshots, snapshot create
+summary: You can either manually generate S3 snapshots or set up snapshot policies to automatically create S3 snapshots for you. 
 ---
 
 = Create S3 snapshots
@@ -28,15 +28,15 @@ Snapshots can be especially useful in establishing data protection when object v
 ** S3 snapshot names can consist only of lowercase letters, numbers, dots (.), and hyphens (-)
 ** S3 snapshot names must end with a letter or number
 ** S3 snapshot names cannot contain substring `s3snap`
-* In the context of the S3 protocol, the bucket naming restrictions limit a bucket name to 63 characters. Because ONTAP S3 snapshots are presented as buckets through the S3 protocol, similar restrictions apply to the synthetic snapshot bucket names. By default, the original bucket name is used as the base bucket name.
-* To make it easier to identify which snapshot belongs to which bucket, the synthetic snapshot bucket name consists of the base bucket name, along with a special string, `-s3snap-`, that's prefixed to the snapshot name. The synthetic bucket names are formatted as `<base-bucket-name>-s3snap-<snapshot-name>`.
+* In the context of the S3 protocol, the bucket naming restrictions limit a bucket name to 63 characters. Because ONTAP S3 snapshots are presented as buckets through the S3 protocol, similar restrictions apply to the snapshot bucket names. By default, the original bucket name is used as the base bucket name.
+* To make it easier to identify which snapshot belongs to which bucket, the snapshot bucket name consists of the base bucket name, along with a special string, `-s3snap-`, that's prefixed to the snapshot name. The snapshot bucket names are formatted as `<base-bucket-name>-s3snap-<snapshot-name>`.
 +
-For example, running the following command to create `snap1` on `bucketA` creates a synthetic snapshot bucket with name `bucketA-s3snap-snap1`.
+For example, running the following command to create `snap1` on `bucket-a` creates a snapshot bucket with name `bucket-a-s3snap-snap1`.
 +
 ----
-vserver object-store-server bucket snapshot create -bucket bucketA -snapshot snap1
+vserver object-store-server bucket snapshot create -bucket bucket-a -snapshot snap1
 ----
-* You cannot create a snapshot that results in synthetic snapshot bucket name with more than 63 characters.
+* You cannot create a snapshot that results in a snapshot bucket name with more than 63 characters.
 * The automatic snapshot name contains the policy schedule name and the timestamp, which is similar to the naming convention for the traditional volume snapshots. For example, the scheduled snapshot names can be `daily-2024-01-01-0015` and `hourly-2024-05-22-1105`.
 
 
@@ -57,12 +57,15 @@ vserver object-store-server bucket snapshot create -vserver vs0 -bucket website-
 ----
 
 == Assign an S3 snapshot policy to a bucket
-When you configure snapshot policies at the S3 bucket level, ONTAP creates scheduled S3 snapshots for you automatically. You can also use S3 snapshot policies to actively delete old snapshots. Like traditional snapshot policies, up to five schedules can be configured for S3 snapshots.
+When you configure snapshot policies at the S3 bucket level, ONTAP creates scheduled S3 snapshots for you automatically. Like traditional snapshot policies, up to five schedules can be configured for S3 snapshots.
 
-A Snapshot policy typically specifies the time to create snapshots, the number of copies to retain, and their naming convention. For example, a policy can create one S3 snapshot every day at 12:10 AM, retain the two most recent copies, and name them `daily.timestamp`.
+A snapshot policy typically specifies the schedules to create snapshots, the number of copies to retain for each schedule, and the schedule prefix. For example, a policy can create one S3 snapshot every day at 12:10 AM, retain the two most recent copies, and name them `daily-timestamp`.
 
 .Before you begin
-A snapshot policy must have been created before assigning it to the S3 bucket. Policies for S3 snapshots follow the same rules as other ONTAP snapshot policies. For more information about creating snapshot policies for autogenerating snapshots, refer to https://docs.netapp.com/us-en/ontap/data-protection/create-snapshot-policy-task.html[Create a snapshot policy^].
+A snapshot policy must have been created before assigning it to the S3 bucket. Policies for S3 snapshots follow the same rules as other ONTAP snapshot policies. 
+However, a snapshot policy with a retention period configured in any of the snapshot schedules cannot be assigned to an S3 bucket. 
+
+For more information about creating snapshot policies for autogenerating snapshots, refer to https://docs.netapp.com/us-en/ontap/data-protection/configure-custom-snapshot-policies-concept.html[Configure custom snapshot policies overview^].
 
 .Steps
 
@@ -78,5 +81,5 @@ If you need to revert a cluster to an ONTAP version earlier than ONTAP 9.16.1, e
 
 .Related information
 
-* For information about S3 snapshots, refer to link:../s3-snapshot-overview.html[S3 Snapshot overview].
-* For information about ONTAP volume snapshots, refer to https://docs.netapp.com/us-en/ontap/concepts/snapshot-copies-concept.html[Snapshot copies^].
+link:../s3-snapshot-overview.html[S3 Snapshot overview].
+
