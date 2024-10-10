@@ -44,7 +44,9 @@ ONTAP does not process any incoming route announcements from the router; therefo
 
 .About this task
 
-Setting up BGP involves optionally creating a BGP configuration, creating a BGP LIF, and creating a BGP peer group. ONTAP automatically creates a default BGP configuration with default values when the first BGP peer group is created on a given node. A BGP LIF is used to establish BGP TCP sessions with peer routers. For a peer router, a BGP LIF is the next hop to reach a VIP LIF. Failover is disabled for the BGP LIF. A BGP peer group advertises the VIP routes for all the SVMs in the peer group's IPspace.
+Setting up BGP involves optionally creating a BGP configuration, creating a BGP LIF, and creating a BGP peer group. ONTAP automatically creates a default BGP configuration with default values when the first BGP peer group is created on a given node.
+
+A BGP LIF is used to establish BGP TCP sessions with peer routers. For a peer router, a BGP LIF is the next hop to reach a VIP LIF. Failover is disabled for the BGP LIF. A BGP peer group advertises the VIP routes for all SVMs in the IPspace used by the peer group. The IPspace used by the peer group is inherited from the BGP LIF.
 
 Beginning with ONTAP 9.16.1, MD5 authentication is supported on BGP peer groups to protect BGP sessions from spurious TCP resets.  
 
@@ -77,7 +79,7 @@ Beginning with ONTAP 9.8, these fields have been added to the `network bgp peer-
 These BGP attributes allows you to configure the AS Path and community attributes for the BGP peer group.
 
 [NOTE]
-While ONTAP supports the above BGP attributes, routers need not honor them. NetApp highly recommends you confirm which attributes are supported by your router and configure BGP peer groups accordingly. For details, refer to the BGP documentation provided by your router.
+While ONTAP supports the above BGP attributes, routers do not need to honor them. NetApp strongly recommends you confirm which attributes are supported by your router and configure BGP peer groups accordingly. For details, refer to the BGP documentation provided by your router.
 
 .Steps
 
@@ -121,11 +123,11 @@ network bgp defaults modify -asn 65502
 * `asn_integer` specifies the ASN. Beginning with ONTAP 9.8, ASN for BGP supports a 2-byte non-negative integer. This is a 16-bit number (1 - 65534 available values). Beginning with ONTAP 9.9.1, ASN for BGP supports a 4-byte non-negative integer (1 - 4294967295). The default ASN is 65501. ASN 23456 is reserved for ONTAP session establishment with peers that do not announce 4-byte ASN capability.
 * `hold_time` specifies the hold time in seconds. The default value is 180s.
 +
-NOTE: ONTAP supports only one global ASN, `holdtime` and `routerid`, even when you configure BGP for multiple IPspaces. However, the BGP, and all IP routing information, is completely isolated within one IPspace. An IPspace is equivalent to a virtual routing and forwarding (VRF) instance.
+NOTE: ONTAP only supports one global ASN, `holdtime` and `routerid`, even if you configure BGP for multiple IPspaces. The BGP and all IP routing information is completely isolated within one IPspace. An IPspace is equivalent to a virtual routing and forwarding (VRF) instance.
 
 . Create a BGP LIF for the system SVM:
 +
-For additional IPspaces, the SVM name is identical to the IPspace name. For the default IPspace, the SVM name is the cluster name.
+For the default IPspace, the SVM name is the cluster name. For additional IPspaces, the SVM name is identical to the IPspace name.
 +
 ....
 network interface create -vserver <system_svm> -lif <lif_name> -service-policy default-route-announce -home-node <home_node> -home-port <home_port> -address <ip_address> -netmask <netmask>
@@ -144,8 +146,7 @@ Sample 1: Create a peer group without an auto default route
 In this case, the admin has to create a static route to the BGP peer.
 +
 ....
-network bgp peer-group create -peer-group <group_name> -ipspace <ipspace_name> -bgp-lif <bgp_lif> -peer-address <peer-router_ip_address> -peer-asn 65502 -route-preference <integer>
--asn-prepend-type <ASN_prepend_type> -asn-prepend-count <integer> -med <integer> -community BGP community list <0-65535>:<0-65535>
+network bgp peer-group create -peer-group <group_name> -ipspace <ipspace_name> -bgp-lif <bgp_lif> -peer-address <peer-router_ip_address> -peer-asn 65502 {-route-preference <integer>} {-asn-prepend-type <ASN_prepend_type>} {-asn-prepend-count <integer>} {-med <integer>} {-community BGP community list <0-65535>:<0-65535>}
 ....
 +
 ....
