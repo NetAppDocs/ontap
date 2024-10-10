@@ -1,10 +1,10 @@
 ---
 permalink: s3-multiprotocol/index.html
 sidebar: sidebar
-keywords: multiprotocol, s3, configuration, overview, nfs, smb
+keywords: multiprotocol, s3, configuration, overview, nfs, smb, multipart
 summary: "Beginning with ONTAP 9.12.1, you can enable clients running the S3 protocol to access the same data that are being served to clients that use the NFS and SMB protocols without reformatting."
 ---
-= S3 multiprotocol overview
+= S3 multiprotocol support in ONTAP
 :icons: font
 :imagesdir: ../media/
 
@@ -20,12 +20,12 @@ If your existing data was created using traditional NAS clients (NFS or SMB) and
 +
 You can now provide integrated access for applications such as Spark and Kafka that can read and write the same data using both NAS and S3 protocols.
 
-== How S3 multiprotocol works 
-ONTAP multiprotocol allows you to present the same data set as a file hierarchy or as objects in a bucket. To do so, ONTAP creates “S3 NAS buckets” that allow S3 clients to create, read, delete, and enumerate files in NAS storage using S3 object requests. This mapping conforms to the NAS security configuration, observing file and directory access permissions as well as writing to the security audit trail as necessary.
+== How S3 multiprotocol spuport works 
+ONTAP multiprotocol support allows you to present the same data set as a file hierarchy or as objects in a bucket. To do so, ONTAP creates “S3 NAS buckets” that allow S3 clients to create, read, delete, and enumerate files in NAS storage using S3 object requests. This mapping conforms to the NAS security configuration, observing file and directory access permissions as well as writing to the security audit trail as necessary.
 
 This mapping is accomplished by presenting a specified NAS directory hierarchy as an S3 bucket. Each file in the directory hierarchy is represented as an S3 object whose name is relative from the mapped directory downwards, with directory boundaries represented by the slash character ('/').
 
-Normal ONTAP-defined S3 users can access this storage, as governed by the bucket policies defined for the bucket that maps to the NAS directory. For this to be possible, mappings must be defined between the S3 users and SMB/NFS users. The credentials of the SMB/NFS user will be used for the NAS permissions checking and included in any audit records resulting from these accesses.
+ONTAP-defined S3 users can access this storage, as governed by the bucket policies defined for the bucket that maps to the NAS directory. For this to be possible, mappings must be defined between the S3 users and SMB/NFS users. The credentials of the SMB/NFS user will be used for the NAS permissions checking and included in any audit records resulting from these accesses.
 
 When created by SMB or NFS clients, a file is immediately placed in a directory, and therefore visible to clients, before any data is written to it. S3 clients expect different semantics, in which the new object is not visible in the namespace until all its data has been written. This mapping of S3 to NAS storage creates files using S3 semantics, keeping the files invisible externally until the S3 creation command completes.
 
@@ -48,13 +48,13 @@ Nonetheless, the NAS files and directories that are mapped in S3 NAS buckets can
 Learn about link:../nas-audit/index.html[auditing NAS events on SVMs].
 
 == Object multipart upload
+Beginning with ONTAP 9.16.1, object multipart upload is supported when link:../flexgroup/enable-adv-capacity-flexgroup-task.html[advanced capacity balancing] on FlexGroup volumes is enabled. 
+
 Object multipart upload on NAS file storage enables an S3 protocol client to upload a large object as smaller parts. Object multipart upload has the following benefits:
 
 * It enables objects to be uploaded in parallel.
-* In case of failure or pause, only the parts that haven't been uploaded yet will need to be uploaded. Upload of the entire object does not need to be restarted.
+* In case of an upload failure or pause, only the parts that haven't been uploaded yet will need to be uploaded. Upload of the entire object does not need to be restarted.
 * If the object size is not known in advance (for example, when a large object is still being written), clients can begin uploading parts of the object immediately and complete the upload after the entire object has been created. 
-
-Beginning with ONTAP 9.16.1, object multipart upload is supported when link:../flexgroup/enable-adv-capacity-flexgroup-task.html[advanced capacity balancing] on FlexGroup volumes is enabled. 
 
 Multipart upload supports the following S3 actions:
 
