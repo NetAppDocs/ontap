@@ -13,7 +13,8 @@ summary: Failover LIFs across subnets
 :imagesdir: ./media/
 
 [.lead]
-Some next-generation data centers use Network-Layer-3 mechanisms that require LIFs to be failed over across subnets. Beginning with ONTAP 9.5, VIP data LIFs and the associated routing protocol, border gateway protocol (BGP), are supported, which enable ONTAP to participate in these next-generation networks.
+Some next-generation data centers use layer-3 (IP) network mechanisms that require LIFs
+to be failed over across subnets. Beginning with ONTAP 9.5, VIP data LIFs and the associated routing protocol, border gateway protocol (BGP), are supported, which enable ONTAP to participate in these next-generation networks.
 
 .About this task
 
@@ -28,7 +29,7 @@ VIP data LIFs provide the following advantages:
 
 Before creating VIP LIFs, you must set up BGP, which is the routing protocol used for announcing the existence of a VIP LIF to peer routers.
 
-Beginning with ONTAP 9.9.1, VIP BGP provides default route automation using BGP peer grouping to simplify configuration.
+Beginning with ONTAP 9.9.1, VIP provides optional default route automation using BGP peer groups to simplify configuration.
 
 ONTAP has a simple way to learn default routes using the BGP peers as next-hop routers when the BGP peer is on the same subnet. To use the feature, set the `-use-peer-as-next-hop` attribute to `true`. By default, this attribute is `false`.
 
@@ -39,7 +40,7 @@ If you have static routes configured, those are still preferred over these autom
 The peer router must be configured to accept a BGP connection from the BGP LIF for the configured autonomous system number (ASN).
 
 [NOTE]
-ONTAP does not process any incoming route announcements from the router; therefore, you should configure the peer router to not send any route updates to the cluster.
+ONTAP does not process any incoming route announcements from the router; therefore, you should configure the peer router to not send any route updates to the cluster. This helps speed up the time it takes for communication with the peer to become fully functional and reduces internal memory usage within ONTAP.
 
 .About this task
 
@@ -55,7 +56,7 @@ The following fields have been added to the `network bgp peer-group create` and 
 These parameters enable you to configure a BGP peer group with an MD5 signature for enhanced security. The following requirements apply to using MD5 authentication:
 
 * You can only specify the `-md5-secret` parameter when the `-md5-enabled` parameter is set to “true”.   
-* IPsec must be enabled before you can enable MD5. 
+* IPsec must be enabled globally before you can enable MD5 BGP authentication. The BGP LIF is not required to have an active IPsec configuration. See, link:..networking/configure_ip_security_@ipsec@_over_wire_encryption.html[Configure IP security (IPsec) over wire encryption].
 * NetApp recommends that you configure MD5 on the router before configuring it on the ONTAP controller. 
 
 Beginning with ONTAP 9.9.1, these fields have been added:
@@ -76,7 +77,7 @@ Beginning with ONTAP 9.8, these fields have been added to the `network bgp peer-
 These BGP attributes allows you to configure the AS Path and community attributes for the BGP peer group.
 
 [NOTE]
-While ONTAP supports the above BGP attributes, routers need not honor them. NetApp highly recommends you confirm which attributes are supported by your router and configure BGP peer-groups accordingly. For details, refer to the BGP documentation provided by your router.
+While ONTAP supports the above BGP attributes, routers need not honor them. NetApp highly recommends you confirm which attributes are supported by your router and configure BGP peer groups accordingly. For details, refer to the BGP documentation provided by your router.
 
 .Steps
 
@@ -88,9 +89,15 @@ While ONTAP supports the above BGP attributes, routers need not honor them. NetA
 .. Create a BGP configuration:
 +
 ....
-network bgp config create -node {node_name | local} -asn asn_integer -holdtime
-hold_time -routerid local_router_IP_address
+network bgp config create -node {node_name | local} -asn <asn_integer> -holdtime
+<hold_time> -routerid <local_router_IP_address>
 ....
++
+[NOTE]
+====
+* The `- routerid` parameter accepts a dotted-decimal 32-bit value that only needs to be unique within an AS domain. NetApp recommends that you use the node management IP (v4) address for `- routerid` which guarantees uniqueness.
+* Although ONTAP BGP supports 32-bit ASN numbers, only standard decimal notation is supported. Dotted ASN notation, such as 65000.1 instead of 4259840001 for a private ASN, is not supported.
+====
 +
 Sample with a 2-byte ASN:
 +
@@ -106,8 +113,10 @@ network bgp config create -node node1 -asn 85502 -holdtime 180 -routerid 1.1.1.1
 
 .. Modify the default BGP configuration:
 +
+NOTE: ONTAP supports only one global ASN, `holdtime` and `routerid`, even when you configure BGP for multiple IPspaces. However, the BGP, and all IP routing information, is completely isolated within one IPspace. An IPspace is equivalent to a virtual routing and forwarding (VRF) instance.
++
 ....
-network bgp defaults modify -asn asn_integer -holdtime hold_time
+network bgp defaults modify -asn <asn_integer> -holdtime <hold_time>
 network bgp defaults modify -asn 65502
 ....
 +
@@ -116,8 +125,10 @@ network bgp defaults modify -asn 65502
 
 . Create a BGP LIF for the system SVM:
 +
+For additional IPspaces, the SVM name is identical to the IPspace name. For the default IPspace, the SVM name is the cluster name.
++
 ....
-network interface create -vserver system_svm -lif lif_name -service-policy default-route-announce -home-node home_node -home-port home_port -address ip_address -netmask netmask
+network interface create -vserver <system_svm> -lif <lif_name> -service-policy default-route-announce -home-node <home_node> -home-port <home_port> -address <ip_address> -netmask <netmask>
 ....
 +
 You can use the `default-route-announce` service policy for the BGP LIF or any custom service policy which contains the "management-bgp" service.
@@ -133,8 +144,8 @@ Sample 1: Create a peer group without an auto default route
 In this case, the admin has to create a static route to the BGP peer.
 +
 ....
-network bgp peer-group create -peer-group group_name -ipspace ipspace_name -bgp-lif bgp_lif -peer-address peer-router_ip_address -peer-asn 65502 -route-preference integer
--asn-prepend-type <ASN_prepend_type> -asn-prepend-count integer -med integer -community BGP community list <0-65535>:<0-65535>
+network bgp peer-group create -peer-group <group_name> -ipspace <ipspace_name> -bgp-lif <bgp_lif> -peer-address <peer-router_ip_address> -peer-asn 65502 -route-preference <integer>
+-asn-prepend-type <ASN_prepend_type> -asn-prepend-count <integer> -med <integer> -community BGP community list <0-65535>:<0-65535>
 ....
 +
 ....
@@ -144,7 +155,7 @@ network bgp peer-group create -peer-group group1 -ipspace Default -bgp-lif bgp1 
 Sample 2: Create a peer group with an auto default route
 +
 ....
-network bgp peer-group create -peer-group group_name -ipspace ipspace_name -bgp-lif bgp_lif -peer-address peer-router_ip_address -peer-asn 65502 -use-peer-as-next-hop true -route-preference integer -asn-prepend-type <ASN_prepend_type> -asn-prepend-count integer -med integer -community BGP community list <0-65535>:<0-65535>
+network bgp peer-group create -peer-group <group_name> -ipspace <ipspace_name> -bgp-lif <bgp_lif> -peer-address <peer-router_ip_address> -peer-asn 65502 -use-peer-as-next-hop true -route-preference <integer> -asn-prepend-type <ASN_prepend_type> -asn-prepend-count <integer> -med <integer> -community BGP community list <0-65535>:<0-65535>
 ....
 +
 ....
@@ -175,6 +186,8 @@ Example using a string:
 network bgp peer-group create -ipspace Default -peer-group peer1 -bgp-lif bgp_lif1 -peer-address 10.1.1.100 -md5-enabled true -md5-secret "test secret"
 ....
 
+NOTE: After you create the BGP peer group, a virtual ethernet port (starting with v0a..v0z,v1a...) is listed when you run the `network port show` command. The MTU of this interface is always reported at 1500 - the actual MTU used for traffic is derived from the physical port (BGP LIF) which is determined when traffic is sent.
+
 == Create a virtual IP (VIP) data LIF
 
 The existence of a VIP data LIF is advertised to peer routers through the routing protocol, Border Gateway Protocol (BGP).
@@ -193,8 +206,8 @@ If multipath routing is not enabled, all the outgoing VIP traffic goes from a si
 . Create a VIP data LIF:
 +
 ....
-network interface create -vserver svm_name -lif lif_name -role data -data-protocol
-{nfs|cifs|iscsi|fcache|none|fc-nvme} -home-node home_node -address ip_address -is-vip true
+network interface create -vserver <svm_name> -lif <lif_name> -role data -data-protocol
+{nfs|cifs|iscsi|fcache|none|fc-nvme} -home-node <home_node> -address <ip_address> -is-vip true -failover-policy broadcast-domain-wide
 ....
 +
 A VIP port is automatically selected if you do not specify the home port with the `network interface create` command.
@@ -289,6 +302,7 @@ h|If you want to... h|Use this command...
 .Related information
 https://docs.netapp.com/us-en/ontap-cli[ONTAP command reference^]
 
+// 2024 Oct 10, ONTAPDOC-2484
 // 2024 Sep 03, ONTAPDOC-2297
 // 16 may 2024, ontapdoc-1986
 // 08 DEC 2021, BURT 1430515
