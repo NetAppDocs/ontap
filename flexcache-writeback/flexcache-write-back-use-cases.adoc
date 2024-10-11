@@ -1,0 +1,64 @@
+---
+permalink: flexcache-writeback/flexcache-write-back-use-cases.html
+sidebar: sidebar
+keywords: tr-4743, flexcache writeback, flexcache write-back, use cases, workloads, technical report, netapp tr, ontap tr
+summary: "These are write profiles best suited for a write-back-enabled FlexCache. You should test your workload to see if write-back or write-around provides the best performance."
+---
+= FlexCache writeback use cases
+
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+    
+[.lead]
+These are write profiles best suited for a write-back-enabled FlexCache. You should test your workload to see if write-back or write-around provides the best performance.
+
+NOTE: Write-back is not a replacement for write-around. Although write-back is designed with write-heavy workloads, write-around is still the better choice for many workloads. 
+
+== Target workloads
+
+.File size
+
+File size is less important than the number of writes issued between the `OPEN` and `CLOSE` calls for a file. Small files inherently have fewer `WRITE` calls, making them less ideal for write-back. Large files might have more writes between `OPEN` and `CLOSE` calls, but this isn't guaranteed.
+
+[write-size]
+.Write size 
+
+When writing from a client, other NAS calls are involved other than write calls:
+
+* `CREATE`
+* `OPEN`
+* `CLOSE`
+* `READDIR/READDIRPLUS`
+* `SETATTR`: `SETATTR` calls that only modify `mtime`, `atime`, or `ctime` are processed at the cache.
+
+These calls must be processed at the origin and trigger a write-back of any dirty data accumulated at the write-back-enabled cache for the file being operated on. IO to the file will be quiesced until the write-back is complete.
+
+Knowing that these calls must traverse the WAN helps you to identify workloads suited for write-back. Generally, the more writes that can be done between `OPEN` and `CLOSE` calls without one of the other calls listed above being issued, the better the performance gain write-back provides.
+
+.Read-after-write
+
+Read-after-write workloads have historically performed poorly at FlexCache. This is due to the write-around mode of operation before 9.15.1. The `WRITE` call to the file has to be committed at the origin, and the subsequent `READ` call would have to pull the data back to the cache. This results in both operations incurring the penalty of the WAN. Therefore, read-after-write workloads are discouraged for FlexCache in write-around mode. With the introduction of write-back in 9.15.1, data is now committed at the cache, and can immediately be read from the cache, eliminating the WAN penalty. If your workload includes read-after-write at FlexCache volumes, you should configure the cache to operate in write-back mode.
+
+TIP: If read-after-write is a critical part of your workload, you should configure your cache to operate in write-back mode.
+
+.Write-after-write
+When a file accumulates dirty data in a cache, the cache asynchronously writes the data back to the origin. This naturally leads to times when the client closes the file with dirty data still waiting to be flushed back to origin. If another open or write comes in for the file that was just closed and still has dirty data, the write will be suspended until all the dirty data has been flushed to origin. 
+
+== Latency considerations
+
+When FlexCache operates in write-back mode, it becomes more beneficial to NAS clients as latency increases. There is a point, however, at which the overhead of write-back outweighs the advantages gained in low-latency environments. In some NetApp tests, writeback benefits started around a minimum latency between cache and origin of 8ms. This latency varies with workload, so be sure to test to know your benefits point-of-return.
+
+The following graph shows the point-of-return for write-back in NetApp lab tests. The `x` axis is the file-size, and the `y` axis is the elapsed time. The test used NFSv3, mounting with an `rsize` and `wsize` of 256KB, and 64ms of WAN latency. This test was performed using a small ONTAP Select instance for both the cache and origin, and a single threaded-write operation. Your results might vary.
+
+image::flexcache-write-back-point-of-return-nfs3.png[Point of Return]
+
+IMPORTANT: Write-back should not be used for intracluster caching. Intracluster caching occurs when the origin and cache are in the same cluster.
+
+// 2024-Aug-6, ONTAPDOC-2272
+
+
+
+
