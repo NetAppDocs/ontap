@@ -2,16 +2,94 @@
 permalink: ndmp/configure-lifs-svm-scoped-task.html
 sidebar: sidebar
 keywords: configure, lifs
-summary: "You must identify the LIFs that will be used for establishing a data connection between the data and tape resources, and for control connection between the admin SVM and the backup application. After identifying the LIFs, you must verify that firewall and failover policies are set for the LIFs, and specify the preferred interface role."
+summary: "You must identify the LIFs that will be used for establishing a data connection between the data and tape resources, and for control connection between the admin SVM and the backup application. After identifying the LIFs, you must verify the service and failover policies are set."
 ---
 = Configure LIFs
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You must identify the LIFs that will be used for establishing a data connection between the data and tape resources, and for control connection between the admin SVM and the backup application. After identifying the LIFs, you must verify that firewall and failover policies are set for the LIFs, and specify the preferred interface role.
+You must identify the LIFs that will be used for establishing a data connection between the data and tape resources, and for control connection between the admin SVM and the backup application. After identifying the LIFs, you must verify the service and failover policies are set. 
 
-Beginning with ONTAP 9.10.1, firewall policies are deprecated and wholly replaced with LIF service policies. For more information, see link:../networking/lifs_and_service_policies96.html[LIFs and service policies in ONTAP 9.6 and later].
+NOTE: Beginning with ONTAP 9.10.1, firewall policies are deprecated and wholly replaced with LIF service policies. For more information, see link:../networking/manage_supported_traffic.html[Manage supported traffic].
+
+[role="tabbed-block"]
+====
+.ONTAP 9.10.1 or later
+--
+
+.Steps
+
+. Identify the intercluster LIF hosted on the nodes by using the `network interface show` command with the `-service-policy` parameter.
++
+`network interface show -service-policy default-intercluster`
+
+. Identify the management LIF hosted on the nodes by using the `network interface show` command with the `-service-policy` parameter.
++
+`network interface show -service-policy default-management`
+
+. Ensure that the intercluster LIF includes the `backup-ndmp-control` service:
++
+`network interface service-policy show`
+
+. Ensure that the failover policy is set appropriately for all the LIFs:
+ .. Verify that the failover policy for the cluster-management LIF is set to `broadcast-domain-wide`, and the policy for the intercluster and node-management LIFs is set to `local-only` by using the `network interface show -failover` command.
++
+The following command displays the failover policy for the cluster-management, intercluster, and node-management LIFs:
++
+----
+cluster1::> network interface show -failover
+
+           Logical            Home              Failover              Failover
+Vserver    Interface          Node:Port         Policy                Group
+---------- -----------------  ----------------- --------------------  --------
+cluster    cluster1_clus1     cluster1-1:e0a    local-only            cluster
+                                                     Failover Targets:
+                   	                                 .......
+
+**cluster1   cluster_mgmt       cluster1-1:e0m    broadcast-domain-wide Default**
+                                                     Failover Targets:
+                                                     .......
+           **IC1                 cluster1-1:e0a    local-only           Default**
+                                                     Failover Targets:
+           **IC2                 cluster1-1:e0b    local-only           Default**
+                                                     Failover Targets:
+                                                     .......
+**cluster1-1 cluster1-1_mgmt1   cluster1-1:e0m    local-only            Default**
+                                                     Failover Targets:
+                                                     ......
+**cluster1-2 cluster1-2_mgmt1   cluster1-2:e0m    local-only            Default**
+                                                     Failover Targets:
+                                                     ......
+----
+
+ .. If the failover policies are not set appropriately, modify the failover policy by using the `network interface modify` command with the `-failover-policy` parameter.
++
+----
+cluster1::> network interface modify -vserver cluster1 -lif IC1 -failover-policy local-only
+----
+. Specify the LIFs that are required for data connection by using the `vserver services ndmp modify` command with the `preferred-interface-role` parameter.
++
+----
+cluster1::> vserver services ndmp modify -vserver cluster1 -preferred-interface-role intercluster,cluster-mgmt,node-mgmt
+----
+
+. Verify that the preferred interface role is set for the cluster by using the `vserver services ndmp show` command.
++
+----
+cluster1::> vserver services ndmp show -vserver cluster1
+
+                             Vserver: cluster1
+                        NDMP Version: 4
+                        .......
+                        .......
+            Preferred Interface Role: intercluster, cluster-mgmt, node-mgmt
+----
+
+--
+
+.ONTAP 9.9 or earlier
+--
 
 .Steps
 

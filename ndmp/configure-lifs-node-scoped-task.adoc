@@ -11,7 +11,53 @@ summary: "You must identify a LIF that will be used for establishing a data conn
 [.lead]
 You must identify a LIF that will be used for establishing a data connection and control connection between the node and the backup application. After identifying the LIF, you must verify that firewall and failover policies are set for the LIF.
 
-NOTE: Beginning with ONTAP 9.10.1, firewall policies are deprecated and wholly replaced with LIF service policies. For more information, see link:../networking/configure_firewall_policies_for_lifs.html[Configure firewall policies for LIFs].
+NOTE: Beginning with ONTAP 9.10.1, firewall policies are deprecated and wholly replaced with LIF service policies. For more information, see link:../networking/manage_supported_traffic.html[Manage supported traffic].
+
+[role="tabbed-block"]
+====
+.ONTAP 9.10.1 or later
+--
+
+.Steps
+
+. Identify the intercluster LIF hosted on the nodes by using the `network interface show` command with the `-service-policy` parameter.
++
+`network interface show -service-policy default-intercluster`
+
+. Ensure that the intercluster LIF includes the `backup-ndmp-control` service:
++
+`network interface service-policy show`
+
+. Ensure that the failover policy is set appropriately for the intercluster LIFs:
+ .. Verify that the failover policy for the intercluster LIFs is set to `local-only` by using the `network interface show -failover` command.
++
+----
+cluster1::> network interface show -failover
+            Logical          Home              Failover     Failover
+Vserver     Interface        Node:Port         Policy       Group
+--------    ---------------  ----------------- ------------ --------
+cluster1    **IC1               cluster1-1:e0a    local-only   Default**
+                                                    Failover Targets:
+                                                    .......
+            **IC2               cluster1-2:e0b    local-only   Default**
+                                                    Failover Targets:
+                                                    .......
+cluster1-1  cluster1-1_mgmt1 cluster1-1:e0m    local-only    Default
+                                                    Failover Targets:
+                                                    .......
+----
+
+ .. If the failover policy is not set appropriately, modify the failover policy by using the `network interface modify` command with the `-failover-policy` parameter.
++
+----
+cluster1::> network interface modify -vserver cluster1 -lif IC1 -failover-policy local-only
+----
+
+
+--
+
+.ONTAP 9.9 or earlier
+--
 
 .Steps
 
@@ -81,4 +127,8 @@ cluster1-1  cluster1-1_mgmt1 cluster1-1:e0m    local-only    Default
 cluster1::> network interface modify -vserver cluster1 -lif IC1 -failover-policy local-only
 ----
 
+--
+====
+
+// 18-OCT-2024 ONTAPDOC-1804
 // 2023 Jan 10, Jira ONTAPDOC-716
