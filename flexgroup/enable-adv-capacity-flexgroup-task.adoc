@@ -11,7 +11,7 @@ summary: "Beginning with ONTAP 9.16.1, advanced capacity balancing is introduced
 [.lead]
 Beginning with ONTAP 9.16.1, you can enable advanced capacity balancing to enable data distribution between FlexGroup member volumes when very large files grow and consume space on one member volume. 
 
-Advanced capacity balancing expands the granular data functionality introduced in ONTAP 9.12.1, which enables ONTAP to link:manage-flexgroup-rebalance-task.html[rebalance FlexGroup volumes] by moving files to other members. Beginning with ONTAP 9.16.1, when advanced capacity balancing is enabled with the '-granular-data advanced' option, both the “basic” file rebalancing capabilities as well as the advanced capacity capabilities are activated. 
+Advanced capacity balancing expands the granular data functionality introduced in ONTAP 9.12.1, which enables ONTAP to link:manage-flexgroup-rebalance-task.html[rebalance FlexGroup volumes] by moving files to other members. Beginning with ONTAP 9.16.1, when advanced capacity balancing is enabled with the `-granular-data advanced` option, both the "basic" file rebalancing capabilities as well as the advanced capacity capabilities are activated. 
 
 [NOTE]
 ====
@@ -23,9 +23,10 @@ Advanced capacity balancing is triggered only when a large file in a FlexGroup m
 == How files are distributed
 If a file is created or grows large enough to trigger advanced capacity balancing, the file is distributed in stripes between 1GB and 10GBs across the member FlexGroup volumes. The size of the stripes depends on the size of the member volumes, but if volumes are 1TB or more, stripes are typically about 10GB. 
 When advanced capacity balancing is enabled, ONTAP will not retroactively stripe existing large files. If an existing large file continues to grow after advanced capacity balancing is enabled, new content in existing large files might be striped across member FlexGroup volumes depending on the file’s size and available space.
-Advanced capacity balancing uses several factors to determine stripe width: 
 
-* Free space available: Advanced capacity balancing creates a file stripe that is 1% of the free space available on the member volume. This means that stripes can start out larger if more space is available, and they become smaller as the FlexGroup fills up.
+One way advanced capacity balancing determines stripe width is by using the amount of free space available on the member volume. Advanced capacity balancing creates a file stripe that is 1% of the available free space available. This means that stripes can start out larger if more space is available, and they become smaller as the FlexGroup fills up.
+
+In addition to space available on the member volume, advanced capacity balancing uses several other factors to determine stripe width: 
 
 * Minimum stripe width: The smallest stripe width ever chosen is 1GB.
 
@@ -50,7 +51,7 @@ Advanced capacity balancing is disabled by default. You must enable advanced cap
 
 * You cannot revert to a release earlier than ONTAP 9.16.1 if advanced capacity balancing is enabled. If you need to revert, you must first restore from a snapshot created before advanced capacity balancing was enabled.
 
-* If NFS copy offload has been enabled  ('vserver nfs -vstorage enabled') on an SVM, you cannot enable advanced capacity balancing on a FlexGroup volume. Similarly, if you have advanced capacity balancing enabled on any FlexGroup volume in an SVM, you cannot enable NFS copy offload.
+* If NFS copy offload has been enabled  (`vserver nfs -vstorage enabled`) on an SVM, you cannot enable advanced capacity balancing on a FlexGroup volume. Similarly, if you have advanced capacity balancing enabled on any FlexGroup volume in an SVM, you cannot enable NFS copy offload.
 
 * Advanced capacity balancing is not supported with FlexCache writeback.
 
@@ -88,7 +89,9 @@ volume create -vserver <svm name> -volume <volume name> -size <volume size> -a
 +
 Example:
 +
-'volume create -vserver vs0 -volume newvol -size 1TB -auto-provision-as flexgroup -junction-path /newvol -granular-data advanced'
+----
+volume create -vserver vs0 -volume newvol -size 1TB -auto-provision-as flexgroup -junction-path /newvol -granular-data advanced
+----
 --
 ====
 
@@ -120,7 +123,9 @@ volume modify -vserver <svm name> -volume <volume name> -granular-data advanced
 +
 Example:
 +
-'volume modify -vserver vs0 -volume newvol  -granular-data advanced'
+----
+volume modify -vserver vs0 -volume newvol  -granular-data advanced
+----
 --
 ====
 
