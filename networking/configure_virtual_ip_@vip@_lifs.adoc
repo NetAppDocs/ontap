@@ -51,13 +51,13 @@ Beginning with ONTAP 9.16.1, MD5 authentication is supported on BGP peer groups 
 
 The following fields have been added to the `network bgp peer-group create` and `network bgp peer-group modify` commands: 
 
-* `md5-enabled <true/false>`
-* `md5-secret <md5 secret in string or hex format>`
+* `-md5-enabled <true/false>`
+* `-md5-secret <md5 secret in string or hex format>`
 
 These parameters enable you to configure a BGP peer group with an MD5 signature for enhanced security. The following requirements apply to using MD5 authentication:
 
-* You can only specify the `-md5-secret` parameter when the `-md5-enabled` parameter is set to “true”.   
-* IPsec must be enabled globally before you can enable MD5 BGP authentication. The BGP LIF is not required to have an active IPsec configuration. See, link:configure_ip_security_@ipsec@_over_wire_encryption.html[Configure IP security (IPsec) over wire encryption].
+* You can only specify the `-md5-secret` parameter when the `-md5-enabled` parameter is set to `true`.   
+* IPsec must be enabled globally before you can enable MD5 BGP authentication. The BGP LIF is not required to have an active IPsec configuration. Refer to link:configure_ip_security_@ipsec@_over_wire_encryption.html[Configure IP security (IPsec) over wire encryption].
 * NetApp recommends that you configure MD5 on the router before configuring it on the ONTAP controller. 
 
 Beginning with ONTAP 9.9.1, these fields have been added:
@@ -96,7 +96,7 @@ network bgp config create -node {node_name | local} -asn <asn_number> -holdtime
 +
 [NOTE]
 ====
-* The `- routerid` parameter accepts a dotted-decimal 32-bit value that only needs to be unique within an AS domain. NetApp recommends that you use the node management IP (v4) address for `router_id` which guarantees uniqueness.
+* The `-routerid` parameter accepts a dotted-decimal 32-bit value that only needs to be unique within an AS domain. NetApp recommends that you use the node management IP (v4) address for `<router_id>` which guarantees uniqueness.
 * Although ONTAP BGP supports 32-bit ASN numbers, only standard decimal notation is supported. Dotted ASN notation, such as 65000.1 instead of 4259840001 for a private ASN, is not supported.
 ====
 +
@@ -116,13 +116,13 @@ network bgp config create -node node1 -asn 85502 -holdtime 180 -routerid 1.1.1.1
 +
 ....
 network bgp defaults modify -asn <asn_number> -holdtime <hold_time>
-network bgp defaults modify -asn 65502
+network bgp defaults modify -asn 65502 -holdtime 60
 ....
 +
-* `asn_number` specifies the ASN number. Beginning with ONTAP 9.8, ASN for BGP supports a 2-byte non-negative integer. This is a 16-bit number (1 - 65534 available values). Beginning with ONTAP 9.9.1, ASN for BGP supports a 4-byte non-negative integer (1 - 4294967295). The default ASN is 65501. ASN 23456 is reserved for ONTAP session establishment with peers that do not announce 4-byte ASN capability.
-* `hold_time` specifies the hold time in seconds. The default value is 180s.
+* `<asn_number>` specifies the ASN number. Beginning with ONTAP 9.8, ASN for BGP supports a 2-byte non-negative integer. This is a 16-bit number (1 to 65534 available values). Beginning with ONTAP 9.9.1, ASN for BGP supports a 4-byte non-negative integer (1 to 4294967295). The default ASN is 65501. ASN 23456 is reserved for ONTAP session establishment with peers that do not announce 4-byte ASN capability.
+* `<hold_time>` specifies the hold time in seconds. The default value is 180s.
 +
-NOTE: ONTAP only supports one global `asn_number`, `hold_time`, and `router_id`, even if you configure BGP for multiple IPspaces. The BGP and all IP routing information is completely isolated within one IPspace. An IPspace is equivalent to a virtual routing and forwarding (VRF) instance.
+NOTE: ONTAP only supports one global `<asn_number>`, `<hold_time>`, and `<router_id>`, even if you configure BGP for multiple IPspaces. The BGP and all IP routing information is completely isolated within one IPspace. An IPspace is equivalent to a virtual routing and forwarding (VRF) instance.
 
 . Create a BGP LIF for the system SVM:
 +
@@ -145,21 +145,21 @@ Sample 1: Create a peer group without an auto default route
 In this case, the admin needs to create a static route to the BGP peer.
 +
 ....
-network bgp peer-group create -peer-group <group_name> -ipspace <ipspace_name> -bgp-lif <bgp_lif> -peer-address <peer-router_ip_address> -peer-asn 65502 {-route-preference <integer>} {-asn-prepend-type <ASN_prepend_type>} {-asn-prepend-count <integer>} {-med <integer>} {-community BGP community list <0-65535>:<0-65535>}
+network bgp peer-group create -peer-group <group_name> -ipspace <ipspace_name> -bgp-lif <bgp_lif> -peer-address <peer-router_ip_address> -peer-asn <peer_asn_number> {-route-preference <integer>} {-asn-prepend-type <ASN_prepend_type>} {-asn-prepend-count <integer>} {-med <integer>} {-community BGP community list <0-65535>:<0-65535>}
 ....
 +
 ....
-network bgp peer-group create -peer-group group1 -ipspace Default -bgp-lif bgp1 -peer-address 10.10.10.1 -peer-asn 65502 -route-preference 100 -asn-prepend-type local-asn -asn-prepend-count 2 -med 100 -community 9000:900,8000:800
+network bgp peer-group create -peer-group group1 -ipspace Default -bgp-lif bgp1 -peer-address 10.10.10.1 -peer-asn 65503 -route-preference 100 -asn-prepend-type local-asn -asn-prepend-count 2 -med 100 -community 9000:900,8000:800
 ....
 +
 Sample 2: Create a peer group with an auto default route
 +
 ....
-network bgp peer-group create -peer-group <group_name> -ipspace <ipspace_name> -bgp-lif <bgp_lif> -peer-address <peer-router_ip_address> -peer-asn 65502 {-use-peer-as-next-hop true} {-route-preference <integer>} {-asn-prepend-type <ASN_prepend_type>} {-asn-prepend-count <integer>} {-med <integer>} {-community BGP community list <0-65535>:<0-65535>}
+network bgp peer-group create -peer-group <group_name> -ipspace <ipspace_name> -bgp-lif <bgp_lif> -peer-address <peer-router_ip_address> -peer-asn <peer_asn_number> {-use-peer-as-next-hop true} {-route-preference <integer>} {-asn-prepend-type <ASN_prepend_type>} {-asn-prepend-count <integer>} {-med <integer>} {-community BGP community list <0-65535>:<0-65535>}
 ....
 +
 ....
-network bgp peer-group create -peer-group group1 -ipspace Default -bgp-lif bgp1 -peer-address 10.10.10.1 -peer-asn 65502 -use-peer-as-next-hop true -route-preference 100 -asn-prepend-type local-asn -asn-prepend-count 2 -med 100 -community 9000:900,8000:800
+network bgp peer-group create -peer-group group1 -ipspace Default -bgp-lif bgp1 -peer-address 10.10.10.1 -peer-asn 65503 -use-peer-as-next-hop true -route-preference 100 -asn-prepend-type local-asn -asn-prepend-count 2 -med 100 -community 9000:900,8000:800
 ....
 +
 Sample 3: Create a peer group with MD5 enabled
@@ -186,7 +186,7 @@ Example using a string:
 network bgp peer-group create -ipspace Default -peer-group peer1 -bgp-lif bgp_lif1 -peer-address 10.1.1.100 -md5-enabled true -md5-secret "test secret"
 ....
 
-NOTE: After you create the BGP peer group, a virtual ethernet port (starting with v0a..v0z,v1a...) is listed when you run the `network port show` command. The MTU of this interface is always reported at 1500 - the actual MTU used for traffic is derived from the physical port (BGP LIF), which is determined when traffic is sent.
+NOTE: After you create the BGP peer group, a virtual ethernet port (starting with v0a..v0z,v1a...) is listed when you run the `network port show` command. The MTU of this interface is always reported at 1500. The actual MTU used for traffic is derived from the physical port (BGP LIF), which is determined when traffic is sent.
 
 == Create a virtual IP (VIP) data LIF
 
@@ -287,16 +287,16 @@ h|If you want to... h|Use this command...
 
 Beginning with ONTAP 9.16.1, you can enable or disable MD5 authentication on an existing BGP peer group.  
 
-NOTE:  If you enable or disable MD5 on an existing BGP peer group, the BGP connection is terminated and re-created to apply the MD5 configuration changes.
+NOTE: If you enable or disable MD5 on an existing BGP peer group, the BGP connection is terminated and re-created to apply the MD5 configuration changes.
 
 |===
 
 h|If you want to... h|Use this command...
 
 |Enable MD5 on an existing BGP peer group
-|`network bgp peer-group modify -ipspace Default -peer-group <group_name> -bgp-lif <bgp_lif>  -peer-address <peer_router_ip_address> -md5-enabled true -md5-secret <md5 secret in string or hex format>`
+|`network bgp peer-group modify -ipspace Default -peer-group <group_name> -bgp-lif <bgp_lif> -peer-address <peer_router_ip_address> -md5-enabled true -md5-secret <md5 secret in string or hex format>`
 |Disable MD5 on an existing BGP peer group
-|`network bgp peer-group modify -ipspace Default -peer-group <group_name>  -bgp-lif <bgp_lif> -md5-enabled false`
+|`network bgp peer-group modify -ipspace Default -peer-group <group_name> -bgp-lif <bgp_lif> -md5-enabled false`
 |===
 
 .Related information
