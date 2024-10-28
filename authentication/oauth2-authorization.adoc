@@ -143,45 +143,4 @@ security oauth2 scope cli-to-scope -role joes-role -access readonly -api /api/cl
 
 `ontap:*:joes-role:readonly:*:/api/cluster`
 
-== How ONTAP determines access
-
-To properly design and implement OAuth 2.0, you need to understand how your authorization configuration is used by ONTAP to make access decisions for the clients.
-
-.Step 1: Self-contained scopes
-
-If the access token contains any self-contained scopes, ONTAP examines those scopes first. If there are no self-contained scopes, go to step 2.
-
-With one or more self-contained scopes present, ONTAP applies each scope until an explicit *ALLOW* or *DENY* decision can be made. If an explicit decision is made, processing ends.
-
-If ONTAP can't make an explicit access decision, continue to step 2.
-
-.Step 2: Check the local roles flag
-
-ONTAP examines the value of the flag `use-local-roles-if-present`. The value of this flag is set separately for each authorization server defined to ONTAP.
-
-* If the value is `true` continue to step 3.
-* If the value is `false` processing ends and access is denied.
-
-.Step 3: Named ONTAP REST role
-
-If the access token contains a named REST role, ONTAP uses the role to make the access decision. This always results in an *ALLOW* or *DENY* decision and processing ends.
-
-If there is no named REST role or the role is not found, continue to step 4.
-
-.Step 4: Local ONTAP users
-
-Extract the username from the access token and attempt to match it to a local ONTAP user.
-
-If a local ONTAP user is matched, ONTAP uses the role defined for the user to make an access decision. This always result in an *ALLOW* or *DENY* decision and processing ends.
-
-If a local ONTAP user is not matched or if there's no username in the access token, continue to step 5.
-
-.Step 5: Group-to-role mapping
-
-Extract the group from the access token and attempt to match it to a group. The groups are defined using Active Directory or an equivalent LDAP server.
-
-If there's a group match, ONTAP uses the role defined for the group to make an access decision. This always result in an *ALLOW* or *DENY* decision and processing ends.
-
-If there's no group match or if there's no group in the access token, access is denied and processing ends.
-
 //2024-7-9 ontapdoc-2192
