@@ -1,44 +1,80 @@
 ---
 permalink: san-admin/enable-space-allocation.html
 sidebar: sidebar
-keywords: enable, space allocation, space reclamation, unmap, lun
+keywords: enable, space allocation, space reclamation, unmap, lun, hole punching, namespace, nvme, san
 summary: "Enable space allocation to allow the host and storage system to cooperate on space management."
 ---
-= Enable space allocation for SAN
+= Enable ONTAP space allocation for SAN protocols
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Enable space allocation to allow your hosts and storage systems to cooperate on LUN space management. 
+ONTAP space allocation helps you to prevent your LUNs or NVMe namespaces from being taken offline if they run out of space and enables your SAN hosts to reclaim space. 
 
-Beginning with ONTAP 9.15.1, space allocation is enabled by default for newly created LUNs. Space allocation had been disabled by default in previous versions of ONTAP (9.14.1 and earlier).
+ONTAP support for space allocation is based upon your SAN protocol and your version of ONTAP. Beginning with ONTAP 9.16.1, space allocation is enabled by default for iSCSI, FC, and NVMe protocols for all newly created LUNs.
 
-Enabling the `space-allocation` setting allows the following benefits:
+[cols="2,2,4a" options="header"]
+|===
+// header row
+| ONTAP version
+| Protocols
+| Space allocation is...
 
-* *ONTAP can communicate to a host that no free space is available to service a write*: This communication is a more graceful way for hosts to handle out-of-space situations. The LUN remains online but is unable to service a write IO until space becomes available. Read IO can still be performed. The exact effect on a host OS depends on host configuration. In some cases, the OS retries write IO until it succeeds. In other cases, the filesystem could be placed offline. 
+// first body row
+| 9.16.1 or later
+a| 
+* iSCSI
+* FC
+* NVMe
+| Enabled by default for newly created LUNs and namespaces
+
+.2+| 9.15.1
+a|
+* iSCSI
+* FC
+| Enabled by default for newly created LUNs
+
+| NVMe
+| Not supported
+
+.2+| 9.14.1 and earlier
+a| 
+* iSCSI
+* FC
+| Disabled by default for newly created LUNs
+
+| NVMe
+| Not supported
+
+// table end
+|===
+
+
+When space allocation is enabled:
+
+* If a LUN or namespace runs out of space, ONTAP communicates to the host that no free space is available for write operations. As a result, the LUN or namespace remains online and read operations continue to be serviced.  Depending upon the host configuration, either the host retries write operations until it succeeds or the host filesystem is placed offline.  Write operations resume when additional free space becomes available to the LUN or namespace.
 +
-NOTE: If the `space-allocation` setting is not enabled, a LUN enters a state of `space-error` when it reaches a low space threshold and all IO fails. The LUN needs to be changed back to `online` state after the space problem has been resolved. Rescanning LUN devices might also be required on the host to restore paths and devices to an operational state.
+If space allocation is not enabled, when a LUN or namespace runs out of space, all I/O operations fail and the LUN or namespace is taken offline; the space issue must be resolved to resume normal operations.  Rescanning LUN devices might also be required on the host to restore paths and devices to an operational state.
 
-* *A host can perform `SCSI UNMAP` (sometimes called `TRIM`) operations*: These operations allows a host to identify blocks of data on a LUN that are no longer required because they no longer contain valid data. Identification normally happens after file deletion. The storage system can then deallocate those data blocks so that the space can be consumed elsewhere. This deallocation greatly improves overall storage efficiency, especially with filesystems that have data high turnover.
+* A host can perform SCSI or NVME `UNMAP` (sometimes called `TRIM`) operations.  UNMAP operations allow a host to identify blocks of data that are no longer required because they no longer contain valid data. Identification normally happens after file deletion. The storage system can then deallocate those data blocks so that the space can be consumed elsewhere. This deallocation greatly improves overall storage efficiency, especially with filesystems that have data high turnover.
 
 .Before you begin
-Enabling space allocation requires a host configuration that can correctly handle space allocation errors when a write cannot be completed. Leveraging `SCSI UNMAP` requires a configuration that can use logical block provisioning as defined in the SCSI SBC-3 standard. 
 
-The following hosts currently support SCSI thin provisioning when you enable space allocation:
+Enabling space allocation requires a host configuration that can correctly handle space allocation errors when a write cannot be completed. Leveraging SCSI or NVME `UNMAP` requires a configuration that can use logical block provisioning as defined in the SCSI SBC-3 standard. 
+
+The following hosts currently support thin provisioning when you enable space allocation:
 
 * Citrix XenServer 6.5 and later
-* ESXi 5.0 and later
+* VMware ESXi 5.0 and later
 * Oracle Linux 6.2 UEK kernel and later
 * Red Hat Enterprise Linux 6.2 and later
 * SUSE Linux Enterprise Server 11 and later
 * Solaris 11.1 and later
 * Windows 
 
-Space allocation is not supported on NVMe hosts.
-
 .About this task
 
-When you upgrade your cluster to ONTAP 9.15.1, the space allocation setting for all LUNs created prior to the software upgrade remains the same after the upgrade, regardless of host type. For example, if a LUN was created in ONTAP 9.13.1 for a VMware host with space allocation disabled, space allocation on that LUN remains disabled after upgrading to ONTAP 9.15.1. 
+When you upgrade your cluster to ONTAP 9.15.1 or later, the space allocation setting for all LUNs created prior to the software upgrade remains the same after the upgrade, regardless of host type. For example, if a LUN was created in ONTAP 9.13.1 for a VMware host with space allocation disabled, space allocation on that LUN remains disabled after upgrading to ONTAP 9.15.1. 
 
 .Steps
 
@@ -58,8 +94,36 @@ lun show -vserver <vserver_name> -volume <volume_name> -lun <lun_name> -fields s
 
 . Verify that space allocation is enabled on the host OS. 
 +
-NOTE: Some host configurations, ESX in particular, can automatically recognize the setting change and do not require user intervention. Other configurations might require a device rescan. Some filesystems and volume managers might require additional specific settings to enable space reclamation using `SCSI UNMAP`. Remounting of filesystems or a full OS reboot might be required. Consult the documentation for your specific OS for guidance. 
+NOTE: Some host configurations, including some versions of VMware ESXi, can automatically recognize the setting change and do not require user intervention. Other configurations might require a device rescan. Some filesystems and volume managers might require additional specific settings to enable space reclamation using `SCSI UNMAP`. Remounting of filesystems or a full OS reboot might be required. Consult the documentation for your specific host for guidance. 
 
+== Host configuration for VMware ESXi 8.x and later NVMe hosts
+
+If you have a VMware host running ESXi 8.x or later with the NVMe protocol, after you have enabled space allocation in ONTAP, you should perform the following steps on the hosts.
+
+.Steps
+
+. On your ESXi host, verify that the DSM is disabled:
++
+`esxcfg-advcfg -g /SCSi/NVmeUseDsmTp4040`
++
+The expected value is 0.
+
+. Enable the NVMe DSM:
++
+`esxcfg-advcfg -s 1 /Scsi/NvmeUseDsmTp4040`
+
+. Verify that the DSM is enabled: 
++
+`esxcfg-advcfg -g /SCSi/NVmeUseDsmTp4040`
++
+The expected value is 1.
+
+.Related links
+
+Learn more about link:https://docs.netapp.com/us-en/ontap-sanhost/nvme_esxi_8.html[NVMe-oF host configuration for ESXi 8.x with ONTAP^].
+
+
+// 2024, Nov 07, Jira 2209
 // 2024-7-17 ontapdoc-2220
 // 2024 June 3, ONTAPDOC-2034
 // 2024 Apr 16, Jira 1662
