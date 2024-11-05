@@ -133,7 +133,7 @@ Before initiating an SVM migration, you must meet the following prerequisites:
 * All nodes in the source cluster must be running ONTAP 9.10.1 or later. For specific ONTAP array controller support, see link:https://hwu.netapp.com/[Hardware Universe^].
 * All nodes in the source cluster must be running the same ONTAP version.
 * All nodes in the destination cluster must be running the same ONTAP version.
-* The destination cluster must be at the same or no more than two major newer effective cluster versions (ECV) as the source cluster.
+* The destination cluster ONTAP version must be at the same or no more than two major newer versions as the source cluster.
 * The source and destination clusters must support the same IP subnet for data LIF access.
 * The source SVM must contain fewer than the xref:Maximum supported volumes per SVM[maximum number of supported data volumes for the release]. 
 * Sufficient space for volume placement must be available on the destination
@@ -224,12 +224,15 @@ a| SVM migration is supported with volumes on FabricPools for the following plat
 |
 
 | MetroCluster SVMs
-| Not supported
-| Although SVM migrate does not support MetroCluster SVM migration, you might be able to use SnapMirror asynchronous replication to link:https://www.netapp.com/media/83785-tr-4966.pdf[migrate an SVM in a MetroCluster configuration]. You should be aware that the process described for migrating an SVM in a MetroCluster configuration is _not_ a non-disruptive method.
+| ONTAP 9.16.1
+| You can migrate an SVM from either a non-MetroCluster HA pair into a MetroCluster configuration or from a MetroCluster configuration to a non-MetroCluster HA pair. You cannot migrate an SVM from one MetroCluster configuration to another MetroCluster configuration.
+
+[NOTE]
+SVM migrate does not support MetroCluster SVM migration in releases earlier than ONTAP 9.16.1. You might be able to use SnapMirror asynchronous replication to link:https://www.netapp.com/media/83785-tr-4966.pdf[migrate an SVM in a MetroCluster configuration^]. You should be aware that using SnapMirror asynchronous for migrating an SVM in a MetroCluster configuration is _disruptive_ migration method.
 
 | NetApp Aggregate Encryption (NAE)
 | Not supported
-| Migration is not supported from an unencrypted source to an encrypted destination.
+| Migration is not supported for any endpoint that uses NAE.
 
 | NDMP configurations
 | Not supported
@@ -244,7 +247,7 @@ a| SVM migration is supported with volumes on FabricPools for the following plat
 a| 
 [NOTE]
 ====
-Audit log redirect is only available in cloud-mode. For on-premises SVM migration with audit enabled, you should disable audit on the source SVM and then perform the migration.
+For on-premises SVM migration with audit enabled, you should disable audit on the source SVM and then perform the migration.
 ====
 
 Before SVM migration:
@@ -292,7 +295,7 @@ SMB migrations are disruptive and require a client refresh post migration.
 
 | SnapMirror cloud relationships
 | ONTAP 9.12.1
-| Beginning with ONTAP 9.12.1, when you migrate an SVM with SnapMirror cloud relationships, the destination cluster must have the link:../data-protection/snapmirror-licensing-concept.html#snapmirror-cloud-license[SnapMirror cloud license] installed, and it must have enough capacity available to support moving the capacity in the volumes that are being mirrored to the cloud.
+| Beginning with ONTAP 9.12.1, when you migrate an on-premises SVM with SnapMirror cloud relationships, the destination cluster must have the link:../data-protection/snapmirror-licensing-concept.html#snapmirror-cloud-license[SnapMirror cloud license] installed, and it must have enough capacity available to support moving the capacity in the volumes that are being mirrored to the cloud.
 
 | SnapMirror asynchronous destination
 | ONTAP 9.12.1
@@ -334,13 +337,13 @@ When a SnapMirror source is migrated, ONTAP does not prevent deletion of the vol
 | Not supported
 |
 
-| Snapshot copy
+| Snapshots 
 | ONTAP 9.10.1
 |
 
-| Tamperproof Snapshot copy locking
+| Tamperproof snapshot locking
 | ONTAP 9.14.1
-| Tamperproof Snapshot copy locking is not equivalent to SnapLock. SnapLock remains unsupported.
+| Tamperproof snapshot locking is not equivalent to SnapLock. SnapLock Enterprise and SnapLock Compliance remain unsupported.
 
 | Virtual IP LIFs/BGP
 | Not supported
@@ -348,7 +351,7 @@ When a SnapMirror source is migrated, ONTAP does not prevent deletion of the vol
 
 | Virtual Storage Console 7.0 and later
 | Not supported
-| VSC is part of the https://docs.netapp.com/us-en/ontap-tools-vmware-vsphere/index.html[ONTAP Tools for VMware vSphere virtual appliance^] beginning with VSC 7.0.
+| 
 
 | Volume clones
 | Not supported
@@ -435,27 +438,27 @@ h| Volume operation 3+h| SVM migration state
 | Allowed
 | Not supported
 
-| Snapshot copy attributes modify
+| Snapshot attributes modify
 | Allowed
 | Allowed
 | Not supported
 
-| Snapshot copy autodelete modify
+| Snapshot autodelete modify
 | Allowed
 | Allowed
 | Not supported
 
-| Snapshot copy create
+| Snapshot create
 | Allowed
 | Allowed
 | Not supported
 
-| Snapshot copy delete
+| Snapshot delete
 | Allowed
 | Allowed
 | Not supported
 
-| Restore file from Snapshot copy
+| Restore file from snapshot 
 | Allowed
 | Allowed
 | Not supported
@@ -464,46 +467,8 @@ h| Volume operation 3+h| SVM migration state
 
 
 
-//
-// The following table indicates file operations supported within the migrating SVM based on migration state:
-
-// [cols="2,1,1,1"]
-// |===
-
-// h| File operation 3+h| SVM migration state
-
-// | 
-// | *In progress*
-// | *Paused*
-// | *Cutover*
-
-// | Asynchronous delete
-// | Not allowed
-// | Not allowed
-// | Not supported
-
-// | Clone create/delete/split
-// | Allowed
-// | Allowed
-// | Not supported
-
-// | Copy modify/destroy
-// | Not allowed
-// | Not allowed
-// | Not supported
-
-// | Move
-// | Not allowed
-// | Not allowed
-// | Not supported
-
-// | Reserve
-// | Allowed
-// | Allowed
-// | Not supported
-
-// |===
-
+// 2024-Oct-23, IDR-412
+// 2024-Oct-2, ONTAPDOC-2184
 // 2024-Sept-19, issue# 1468
 // 2024-Aug-30, ONTAPDOC-2346
 // 2024-May-21, ONTAPDOC-2007
