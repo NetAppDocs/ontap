@@ -17,10 +17,10 @@ ONTAP provides several options for configuring groups based on your authorizatio
 
 == How groups are identified
 
-When you configure a group at an authorization server, it is identified and carried in an OAuth 2.0 access token using either a name or UUID. You need to be aware of how your authorization handles groups before configuring ONTAP.
+When you configure a group at an authorization server, it is identified and carried in an OAuth 2.0 access token using either a name or UUID. If multiple groups are included in an access token, ONTAP will attempt to use each one until there is a match. You need to be aware of how your authorization handles groups before configuring ONTAP.
 
-[NOTE]
-If multiple groups are included in an access token, ONTAP will attempt to use each one until there is a match.
+[CAUTION]
+The example access tokens are presented for illustration purposes only. You should not attempt to use these tokens in your security environment.
 
 === Group names
 
@@ -28,20 +28,20 @@ Many authorization servers identify and represent groups using a name. Here is a
 
 [source,json]
 {
-  "aud": "microsoft:identityserver:4cee3b2b-9f38-44ba-8d41-d73c3b76f8f3",
-  "iss": "http://scs000131326.gdl.englab.netapp.com/adfs/services/trust",
+  "aud": "microsoft:identityserver:3dcc3b2b-8e47-44ba-7e32-d73c3b76ee33",
+  "iss": "http://t01.dev.netapp.com/adfs/services/trust",
   "iat": 1688144115,
   "exp": 1688147715,
-  "sub": "User_DevProd@MIGAD2.COM",
+  "sub": "User_Test@NICAD5.COM",
   "group": [
-    "MIGAD2\\Domain Users",
-    "MIGAD2\\Development Group",
-    "MIGAD2\\Production Group"
+    "NICAD5\\Domain Users",
+    "NICAD5\\Development Group",
+    "NICAD5\\Production Group"
   ],
   "apptype": "Confidential",
-  "appid": "4cee3b2b-9f38-44ba-8d41-d73c3b76f8f3",
+  "appid": "3dcc3b2b-8e47-44ba-7e32-d73c3b76ee33",
   "authmethod": "urn:oasis:names:tc:SAML:2.0:ac:classes:PasswordProtectedTransport",
-  "auth_time": "2023-06-30T16:55:15.037Z",
+  "auth_time": "2023-08-30T16:55:15.037Z",
   "ver": "1.0"
 }
 
@@ -51,32 +51,29 @@ Some authorization servers identify and represent groups using a UUID. Here is a
 
 [source,json]
 {
-  "aud": "ee468532-2aab-43d5-b5f9-fd90f3d34881",
-  "iss": "https://sts.windows.net/6ca7eb8c-3857-4bf5-ba5c-033297e20dc2/",
+  "aud": "ab158532-2aab-325c-b5f9-fd90f3d32663",
+  "iss": "https://sts.windows.net/7db1eb8c-4711-4bf5-dd73-411197e20dc2/",
   "iat": 1689196499,
   "nbf": 1689196499,
   "exp": 1689201253,
   "acr": "1",
-  "aio": "ATQAy/8TAAAAMtsSBE0oPqLp1qpJM8U8+Rzq27oPOxyvYO1nWkoXJeg9FG8GJI7WIhkJ+CxDGw/y",
+  "aio": "SXKAy/8TBBBBMtsASE0oPqLp1qpJN2V5+Rzq27oBXxyvYO1nWkoXKxx1FG8GJI2UIhkJ+CxDGw/y",
   "amr": [
     "pwd"
   ],
-  "appid": "ee468532-2aab-43d5-b5f9-fd90f3d34881",
+  "appid": "ab158532-2aab-325c-b5f9-fd90f3d32663",
   "appidacr": "1",
   "groups": [
-    "79d2c5b0-adfa-4e66-9a0b-cd395474b557",
-    "d3ec715d-4141-417e-ad92-2c6bd5dd37cf",
-    "72f4b6aa-ccaf-4b5e-9e4e-7a2c238ab647",
-    "b347bb83-38c1-4bd7-a974-28fb317ebca5",
-    "c9c58fc2-e6e6-4cb7-b651-59bd831845d5"   ],
-  "ipaddr": "216.240.30.11",
-  "name": "admin2 with group membership",
+    "68c4c5b0-daeb-4e66-8b1c-cd395474a118",
+    "a8a58fc2-a7b6-4cb7-a511-59bd831831c1"   ],
+  "ipaddr": "10.10.10.10",
+  "name": "admin12 with group membership",
   "oid": "8f6de82b-325a-470d-9c1c-8edb05b74139",
   "preferred_username": "admin2@netappsecdev.onmicrosoft.com",
   "rh": "0.Ab0AjOunbFc49Uu6XAMyl-INwjKFRu6rKtVDtfn9kPPTSIG9AH4.",
   "sub": "I_gyDbMsTIO4HUH0uQQWXaP96vGNgt0JR_GbvrmkUug",
   "tid": "6ca7eb8c-3857-4bf5-ba5c-033297e20dc2",
-  "unique_name": "admin2@netappsecdev.onmicrosoft.com",
+  "unique_name": "admin12@netappsecdev.onmicrosoft.com",
   "upn": "admin2@netappsecdev.onmicrosoft.com",
   "uti": "5xETkFuuAEakdnSsbjgHAA",
   "ver": "1.0"
@@ -90,7 +87,7 @@ Here's an example of a CLI command defining a group to ONTAP. If you're already 
 
 .Example
 ----
-security login create -user-or-group-name "MIGAD2\\Domain Users" -application http -authentication-method domain -role admin
+security login create -user-or-group-name "NICAD5\\Domain Users" -application http -authentication-method domain -role admin
 ----
 
 [NOTE]
@@ -134,7 +131,7 @@ The parameters used to create a group mapping are described below.
 
 .Example
 ----
-security login group create -vserver ontap-cls-1 -name IAM_Dev -type entra -uuid 79d2c5b0-adfa-4e66-9a0b-cd395474b557
+security login group create -vserver ontap-cls-1 -name IAM_Dev -type entra -uuid 68c4c5b0-daeb-4e66-8b1c-cd395474a118
 ----
 
 After creating the group, a unique read-only integer identifier is generated for the group.
