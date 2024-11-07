@@ -42,77 +42,6 @@ autosupport      console     password  autosupport      no     no
 
 ----
 
-== Remove the default admin account
-The `admin` account has the role of administrator and is allowed access using all applications.
-
-.Steps
-. Create another admin-level account.
-+
-To completely remove the default `admin` account, you must first create another admin-level account that uses the `console` login application.
-+
-NOTE: Making these changes might cause some undesired effects. Always test new settings that might affect the security status of the solution on a nonproduction cluster first.
-
-+
-Example:
-+
-----
-cluster1::*> security login create -user-or-group-name NewAdmin -application console -authentication-method password -vserver cluster1
-----
-+
-----
-cluster1::*> security login show -vserver cluster1
-
-Vserver: cluster1
-                             Authentication             Acct   Is-Nsswitch
-User/Group Name  Application Method    Role Name        Locked Group
----------------- ----------- --------- ---------------- ------ -----------
-NewAdmin         console     password  admin            no     no
-admin            console     password  admin            no     no
-admin            http        password  admin            no     no
-admin            ontapi      password  admin            no     no
-admin            service-processor password admin       no     no
-admin            ssh         password  admin            no     no
-autosupport      console     password  autosupport      no     no
-7 entries were displayed.
-----
-
-. After you create the new admin account, test access to that account with the `NewAdmin` account login. With the `NewAdmin` login, configure the account to have to same login applications as the default or previous admin account (for example, `http`, `ontapi`, `service-processor`, or `ssh`). This step makes sure that access control is maintained.
-+
-Example:
-+
-----
-cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application ssh -authentication-method password
-cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application http -authentication-method password
-cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application ontapi -authentication-method password
-cluster1::*> security login create -vserver cluster1 -user-or-group-name NewAdmin -application service-processor -authentication-method password
-----
-
-. After all functions have been tested, you can disable the admin account for all applications before removing it from ONTAP. This step serves as a final test to confirm that there are no lingering functions that rely on the previous admin account.
-+
-----
-cluster1::*> security login lock -vserver cluster1 -user-or-group-name admin -application *
-----
-
-. To remove the default admin account and all entries for it, run the following command:
-+
-----
-cluster1::*> security login delete -vserver cluster1 -user-or-group-name admin -application *
-cluster1::*> security login show -vserver cluster1
-
-Vserver: cluster1
-                             Authentication             Acct   Is-Nsswitch
-User/Group Name  Application Method    Role Name        Locked Group
----------------- ----------- --------- ---------------- ------ -----------
-NewAdmin         console     password  admin            no     no
-NewAdmin         http        password  admin            no     no
-NewAdmin         ontapi      password  admin            no     no
-NewAdmin         service-processor password admin       no     no
-NewAdmin         ssh         password  admin            no     no
-autosupport      console     password  autosupport      no     no
-7 entries were displayed.
-
-----
-
 == Set the diagnostic (diag) account password
 
 A diagnostic account named `diag` is provided with your storage system. You can use the `diag` account to perform troubleshooting tasks in the `systemshell`. The `diag` account is the only account that can be used to access the systemshell through the `diag` privileged command `systemshell`. 
@@ -144,4 +73,5 @@ only when directed to do so by support personnel.
 node-01%
 ----
 
+//11-6-24 gh-1485
 //6-24-24 ontapdoc-1938
