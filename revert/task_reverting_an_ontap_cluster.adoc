@@ -11,7 +11,7 @@ summary: 'To take the cluster offline to revert to an earlier ONTAP release, you
 [.lead]
 Reverting an ONTAP cluster is disruptive.  You must take the cluster offline for the duration of the reversion. You should not revert a production cluster without assistance from technical support.
 
-To revert a new or test cluster, you must disable storage failover and the data LIFs, address reversion preconditions, revert the cluster and file system configurations on a node, and then repeat the process for each additional node in the cluster.
+To revert a new or test cluster, you must disable storage failover and data LIFs, address reversion preconditions, revert the cluster and file system configurations on a node, and then repeat the process for each additional node in the cluster.
 
 NOTE: If you need to transition a cluster from ONTAP 9.1 to ONTAP 9.0, you need to use the downgrade procedure documented link:https://library.netapp.com/ecm/ecm_download_file/ECMLP2876873[here].
 
@@ -21,9 +21,9 @@ NOTE: If you need to transition a cluster from ONTAP 9.1 to ONTAP 9.0, you need 
 * You should have completed the revert link:concept_pre_revert_checks.html[pre-checks].
 
 
-== Step 1: Prepare the cluster to revert
+== Step 1: Prepare the cluster for reversion
 
-Before you revert your nodes, verify that your target ONTAP image installed on your cluster and perform other preparatory steps.
+Before you revert any of your cluster nodes, you should verify that your target ONTAP image is installed and you should disable all the data LIFs in the cluster.
 
 .Steps
 
@@ -43,7 +43,7 @@ Enter *y* when prompted to continue.
 system image show
 ----
 +
-The following example shows that version 9.1 is installed as the alternate image on both nodes:
+The following example shows that version 9.13.1 is installed as the alternate image on both nodes:
 +
 ----
 cluster1::*> system image show
@@ -51,11 +51,11 @@ cluster1::*> system image show
 Node     Image   Default Current Version    Date
 -------- ------- ------- ------- --------   -------------------
 node0
-         image1  true    true    9.2        MM/DD/YYYY TIME
-         image2  false   false   9.1        MM/DD/YYYY TIME
+         image1  true    true    9.14.1      MM/DD/YYYY TIME
+         image2  false   false   9.13.1      MM/DD/YYYY TIME
 node1
-         image1  true    true    9.2        MM/DD/YYYY TIME
-         image2  false   false   9.1        MM/DD/YYYY TIME
+         image1  true    true    9.14.1      MM/DD/YYYY TIME
+         image2  false   false   9.13.1      MM/DD/YYYY TIME
 4 entries were displayed.
 ----
 
@@ -80,29 +80,9 @@ flexcache origin show-caches -relationship-type inter-cluster
 network interface modify -vserver vserver_name -lif lif_name -status-admin down
 ----
 
-. If the cluster consists of only two nodes, disable cluster HA: 
-+
-[source, cli]
-----
-cluster ha modify -configured false
-----
-
-. Disable storage failover for the nodes in the HA pair from either node:
-+
-[source, cli]
-----
-storage failover modify -node nodename -enabled false
-----
-+
-You only need to disable storage failover once for the HA pair. When you disable storage failover for a node, storage failover is also disabled on the node's partner.
-
 == Step 2: Revert cluster nodes
 
-To revert your cluster, you need to revert the first node in an HA pair, then revert the partner node.  You then repeat this process for each HA pair in your cluster until all nodes are reverted.
-
-If you have a MetroCluster configuration, you need repeat these steps for both the clusters in the configuration.
-
-If you have a 2-node cluster, there are additional steps you must perform to disable and reenable cluster HA.
+To revert your cluster, you need to revert the first node in an HA pair, then revert the partner node.  You then repeat this process for each HA pair in your cluster until all nodes are reverted. If you have a MetroCluster configuration, you need to repeat these steps for both the clusters in the configuration.
 
 // start tabbed area
 
@@ -118,6 +98,15 @@ If you have a 2-node cluster, there are additional steps you must perform to dis
 +
 To revert a node, you must be logged in to the cluster through the node's node management LIF.
 
+. Disable storage failover for the nodes in the HA pair: 
++
+[source, cli]
+----
+storage failover modify -node nodename -enabled false
+----
++
+You only need to disable storage failover once for the HA pair. When you disable storage failover for a node, storage failover is also disabled on the node's partner.
+
 . Set the node's target ONTAP software image to be the default image:
 +
 [source, cli]
@@ -132,7 +121,7 @@ system image modify -node nodename -image target_image -isdefault true
 system image show
 ----
 +
-The following example shows that version 9.1 is set as the default image on node0:
+The following example shows that version 9.13.1 is set as the default image on node0:
 +
 ----
 cluster1::*> system image show
@@ -140,11 +129,11 @@ cluster1::*> system image show
 Node     Image   Default Current Version    Date
 -------- ------- ------- ------- --------   -------------------
 node0
-         image1  false   true    9.2        MM/DD/YYYY TIME
-         image2  true    false   9.1        MM/DD/YYYY TIME
+         image1  false   true    9.14.1      MM/DD/YYYY TIME
+         image2  true    false   9.13.1      MM/DD/YYYY TIME
 node1
-         image1  true    true    9.2        MM/DD/YYYY TIME
-         image2  false   false   9.1        MM/DD/YYYY TIME
+         image1  true    true    9.14.1      MM/DD/YYYY TIME
+         image2  false   false   9.13.1      MM/DD/YYYY TIME
 4 entries were displayed.
 ----
 
@@ -175,7 +164,7 @@ system node revert-to -node nodename -check-only true -version 9.x
 system node revert-to -node nodename -version 9.x
 ----
 +
-The -version option refers to the target release. For example, if the software you installed and verified is ONTAP 9.1, the correct value of the -version option is 9.1.
+The -version option refers to the target release. For example, if the software you installed and verified is ONTAP 9.13.1, the correct value of the -version option is 9.13.1
 +
 The cluster configuration is reverted, and then you are logged out of the clustershell.
 
@@ -252,6 +241,22 @@ If you have a MetroCluster Configuration, you need to repeat these steps on both
 . Log in to the node that you want to revert.
 +
 To revert a node, you must be logged in to the cluster through the node's node management LIF.
+
+. Disable cluster high availability (HA): 
++
+[source, cli]
+----
+cluster ha modify -configured false
+----
+
+. Disable storage failover:
++
+[source, cli]
+----
+storage failover modify -node nodename -enabled false
+----
++
+You only need to disable storage failover once for the HA pair. When you disable storage failover for a node, storage failover is also disabled on the node's partner.
 
 . Set the node's target ONTAP software image to be the default image:
 +
@@ -343,7 +348,7 @@ system node revert-to -node nodename -check-only true -version 9.x
 system node revert-to -node nodename -version 9.x
 ----
 +
-The -version option refers to the target release. For example, if the software you installed and verified is ONTAP 9.1, the correct value of the -version option is 9.1.
+The -version option refers to the target release. For example, if the software you installed and verified is ONTAP 9.13.1, the correct value of the -version option is 9.13.1
 +
 The cluster configuration is reverted, and then you are logged out of the clustershell.
 
