@@ -1,0 +1,109 @@
+---
+sidebar: sidebar
+permalink: authentication/oauth2-sc-scopes.html
+keywords: self-contained scopes, scopes
+summary: "Self-contained scopes are strings carried in the access token. Each is a complete custom role definition and includes everything ONTAP needs to make an access decision. The scope is separate and distinct from any of the REST roles defined within ONTAP itself."
+---
+
+= Self-contained OAuth 2.0 scopes
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+Self-contained scopes are strings carried in the access token. Each is a complete custom role definition and includes everything ONTAP needs to make an access decision. The scope is separate and distinct from any of the REST roles defined within ONTAP itself.
+
+== Format of the scope string
+
+At a base level, the scope is represented as a contiguous string and composed of six colon-separated values. The parameters used in the scope string are described below.
+
+=== ONTAP literal
+
+The scope must begin with the literal value `ontap` in lowercase. This identifies the scope as specific to ONTAP.
+
+=== Cluster
+
+This defines which ONTAP cluster the scope applies to. The values can include:
+
+* Cluster UUID
++
+Identifies a single cluster.
+
+* Asterisk (***)
++
+Indicates the scope applies to all clusters.
+
+You can use the ONTAP CLI command `cluster identity show` to display the UUID of your cluster. If not specified, the scope applies to all clusters.
+
+=== Role
+
+The name of the REST role contained in the self-contained scope. This value is not examined by ONTAP or matched to any existing REST roles defined to ONTAP. The name is used for logging.
+
+=== Access level
+
+This value indicates the access level applied to the client application when using the API endpoint in the scope. There are six possible values as described in the table below.
+
+[cols="25,75"*,options="header"]
+|===
+|Access level
+|Description
+|none
+|Denies all access to the specified endpoint.
+|readonly
+|Allows only read access using GET.
+|read_create
+|Allows read access as well as the creation of new resource instances using POST.
+|read_modify
+|Allows read access as well as the ability to update existing resources using PATCH.
+|read_create_modify
+|Allows all access except delete. The allowed operations include GET (read), POST (create), and PATCH (update).
+|all
+|Allows full access.
+|===
+
+=== SVM
+
+The name of the SVM within the cluster the scope applies to. Use the *** value (asterisk) to indicate all SVMs.
+
+[CAUTION]
+This feature is not fully supported with ONTAP 9.14.1. You can ignore the SVM parameter and use an asterisk as a placeholder. Review the https://library.netapp.com/ecm/ecm_download_file/ECMLP2492508[ONTAP release notes^] to check for future SVM support.
+
+=== REST API URI
+
+The complete or partial path to a resource or set of related resources. The string must begin with `/api`. If you don't specify a value, the scope applies to all API endpoints at the ONTAP cluster.
+
+== Scope examples
+
+A few examples of self-contained scopes are presented below.
+
+ontap:*:joes-role:read_create_modify:*:/api/cluster::
+Provides the user assigned this role read, create, and modify access to the `/cluster` endpoint.
+
+== CLI administrative tool
+
+To make the administration of the self-contained scopes easier and less error-prone, ONTAP provides the CLI command `security oauth2 scope` to generate scope strings based on your input parameters.
+
+The command `security oauth2 scope` has two use cases based on your input:
+
+* CLI parameters to scope string
++
+You can use this version of the command to generate a scope string based on the input parameters.
+
+* Scope string to CLI parameters
++
+You can use this version of the command to generate the command parameters based on the input scope string.
+
+.Example
+
+The following example generates a scope string with the output included after the command example below. The definition applies to all clusters.
+
+----
+security oauth2 scope cli-to-scope -role joes-role -access readonly -api /api/cluster
+----
+
+`ontap:*:joes-role:readonly:*:/api/cluster`
+
+// DMP - November 5 2024 - ONTAPDOC-2163
+// 2024-7-9 ontapdoc-2192
