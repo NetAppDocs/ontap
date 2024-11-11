@@ -1,0 +1,101 @@
+---
+sidebar: sidebar
+permalink: s3-snapshots/create-s3-snapshot.html
+keywords: s3 snapshots, snapshot create
+summary: You can either manually generate S3 snapshots or set up snapshot policies to automatically create S3 snapshots for you.
+---
+
+= Create S3 snapshots
+:toclevels: 1
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+You can either manually generate S3 snapshots or set up snapshot policies to automatically create S3 snapshots for you. Snapshots serve as static copies of objects that you use for data backup and recovery. For determining the tenure of snapshot retention, you can create snapshot policies that facilitate automatic snapshot creation at specified intervals.
+
+S3 snapshots help you protect your object data in S3 buckets with or without object versioning enabled. 
+
+[TIP]
+Snapshots can be especially useful in establishing data protection when object versioning is not enabled in an S3 bucket, because they act as point-in-time records that you can use for restore operations when a previous object version is not available.
+
+.About this task
+* The following naming rules apply to snapshot (for both manual and automatic snapshots):
+
+** S3 snapshot names can be up to 30 characters
+** S3 snapshot names can consist only of lowercase letters, numbers, dots (.), and hyphens (-)
+** S3 snapshot names must end with a letter or number
+** S3 snapshot names cannot contain substring `s3snap`
+* In the context of the S3 protocol, the bucket naming restrictions limit a bucket name to 63 characters. Because ONTAP S3 snapshots are presented as buckets through the S3 protocol, similar restrictions apply to the snapshot bucket names. By default, the original bucket name is used as the base bucket name.
+* To make it easier to identify which snapshot belongs to which bucket, the snapshot bucket name consists of the base bucket name, along with a special string, `-s3snap-`, that's prefixed to the snapshot name. The snapshot bucket names are formatted as `<base_bucket_name>-s3snap-<snapshot_name>`.
++
+For example, running the following command to create `snap1` on `bucket-a` creates a snapshot bucket with name `bucket-a-s3snap-snap1`, which is accessible to you through S3 clients if you have permissions to access the base bucket.
++
+----
+vserver object-store-server bucket snapshot create -bucket bucket-a -snapshot snap1
+----
+* You cannot create a snapshot that results in a snapshot bucket name with more than 63 characters.
+* The automatic snapshot name contains the policy schedule name and the timestamp, which is similar to the naming convention for the traditional volume snapshots. For example, the scheduled snapshot names can be `daily-2024-01-01-0015` and `hourly-2024-05-22-1105`.
+
+
+== Manually create S3 snapshots
+You can manually create an S3 snapshot by using the ONTAP CLI. The procedure creates a snapshot on the local cluster only.
+
+.Steps
+. Create an S3 snapshot:
++
+----
+vserver object-store-server bucket snapshot create -vserver <svm_name> -bucket <bucket_name> -snapshot <snapshot_name>
+----
++
+The following example creates a snapshot named `pre-update` on the `vs0` storage VM and `website-data` bucket:
++
+----
+vserver object-store-server bucket snapshot create -vserver vs0 -bucket website-data -snapshot pre-update
+----
+
+== Assign an S3 snapshot policy to a bucket
+When you configure snapshot policies at the S3 bucket level, ONTAP creates scheduled S3 snapshots for you automatically. Like traditional snapshot policies, up to five schedules can be configured for S3 snapshots.
+
+A snapshot policy typically specifies the schedules to create snapshots, the number of copies to retain for each schedule, and the schedule prefix. For example, a policy can create one S3 snapshot every day at 12:10 AM, retain the two most recent copies, and name them `daily-<timestamp>`.
+
+The default snapshot policy preserves: 
+
+* Six hourly snapshots
+* Two daily snapshots
+* Two weekly snapshots
+
+.Before you begin
+
+* A snapshot policy must have been created before assigning it to the S3 bucket. 
+
+[NOTE]
+Policies for S3 snapshots follow the same rules as other ONTAP snapshot policies. However, a snapshot policy with a retention period configured in any of the snapshot schedules cannot be assigned to an S3 bucket. 
+
+For more information about creating snapshot policies for autogenerating snapshots, refer to link:../data-protection/configure-custom-snapshot-policies-concept.html[Configure custom snapshot policies overview].
+
+.Steps
+
+. Assign the snapshot policy on your bucket:
++
+----
+vserver object-store-server bucket create -vserver <svm_name> -bucket <bucket_name> -snapshot-policy <policy_name>
+----
++
+or
++
+----
+vserver object-store-server bucket modify -vserver <svm_name> -bucket <bucket_name> -snapshot-policy <policy_name>
+----
+
+[NOTE]
+If you need to revert a cluster to an ONTAP version earlier than ONTAP 9.16.1, ensure that the value for `snapshot-policy` for all the buckets is set to `none` (or `-`).
+
+
+.Related information
+
+link:../s3-snapshots/index.html[S3 snapshot overview]
+
+// 2024-10-21 ONTAPDOC-2165
