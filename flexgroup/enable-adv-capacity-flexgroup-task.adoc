@@ -1,0 +1,134 @@
+---
+permalink: flexgroup/enable-adv-capacity-flexgroup-task.html
+sidebar: sidebar
+keywords: flexgroup advanced capacity balancing, flexgroup granular data distribution, gdd, flexgroup, volume, balancing
+summary: "Beginning with ONTAP 9.16.1, advanced capacity balancing is introduced to provide data distribution between FlexGroup member volumes when very large files grow and consume space on one member volume."
+---
+= Balance ONTAP FlexGroup volumes by redistributing file data
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.16.1, you can enable advanced capacity balancing to enable data distribution between FlexGroup member volumes when very large files grow and consume space on one member volume. 
+
+Advanced capacity balancing expands the granular data functionality introduced in ONTAP 9.12.1, which enables ONTAP to link:manage-flexgroup-rebalance-task.html[rebalance FlexGroup volumes] by moving files to other members. Beginning with ONTAP 9.16.1, when advanced capacity balancing is enabled with the `-granular-data advanced` option, both the "basic" file rebalancing capabilities as well as the advanced capacity capabilities are activated. 
+
+[NOTE]
+====
+Both file rebalancing and advanced capacity balancing are disabled by default. After these features are enabled they cannot be disabled. If you need to disable capacity balancing, you must restore from a snapshot that was created before advanced capacity balancing was enabled. 
+====
+
+Advanced capacity balancing is triggered by new writes reaching to 10GB or 1% of a volume's free space.
+
+== How files are distributed
+If a file is created or grows large enough to trigger advanced capacity balancing, the file is distributed in stripes between 1GB and 10GB across the member FlexGroup volumes. 
+
+When advanced capacity balancing is enabled, ONTAP will not retroactively stripe existing large files. If an existing large file continues to grow after advanced capacity balancing is enabled, new content in existing large files might be striped across member FlexGroup volumes depending on the file’s size and available space.
+
+One way advanced capacity balancing determines stripe width is by using the amount of free space available on the member volume. Advanced capacity balancing creates a file stripe that is 1% of the available free space available. This means that stripes can start out larger if more space is available, and they become smaller as the FlexGroup fills up.
+
+In addition to space available on the member volume, advanced capacity balancing uses several other factors to determine stripe width: 
+
+* Minimum stripe width: The smallest stripe width ever chosen is 1GB.
+
+* Maximum stripe width: The largest possible stripe width is 10GB.
+
+* Granularity: Stripes are always created in multiples of 1GB.
+
+== Supported protocols
+Advanced capacity balancing is supported with the following protocols:
+
+* NFSv3, NFSv4, NFSv4.1
+* pNFS
+* SMB
+
+== Enable advanced capacity balancing
+
+Advanced capacity balancing is disabled by default. You must enable advanced capacity balancing to automatically balance FlexGroup capacity. Keep in mind that you cannot disable this feature once you enable it, but you can restore from a snapshot created before advanced capacity balancing was enabled. 
+
+.Before you begin
+
+* All nodes in the cluster must be running ONTAP 9.16.1 or later.
+
+* You cannot revert to a release earlier than ONTAP 9.16.1 if advanced capacity balancing is enabled. If you need to revert, you must first restore from a snapshot created before advanced capacity balancing was enabled.
+
+* If NFS copy offload has been enabled  (`vserver nfs -vstorage enabled`) on an SVM, you cannot enable advanced capacity balancing on a FlexGroup volume. Similarly, if you have advanced capacity balancing enabled on any FlexGroup volume in an SVM, you cannot enable NFS copy offload.
+
+* Advanced capacity balancing is not supported with FlexCache writeback.
+
+.About this task
+
+During creation of DP destination volumes using either of the granular data options (basic or advanced), the destination displays the setting as "disabled" until the SnapMirror transfer completes. After the transfer completes, the DP destination displays granular data as "enabled".
+
+=== Enable advanced capacity balancing during FlexGroup creation
+
+.Steps
+
+You can use System Manager or the ONTAP CLI to enable advanced capacity balancing when you create a new FlexGroup volume.
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+
+. Navigate to *Storage > Volumes* and click image:icon_add_blue_bg.gif[Add icon].
+. In the *Add volume* window, enter the volume name and size. Then click *More Options*.
+. Under *Storage and optimization*, select *Distribute volume data across the cluster (FlexGroup)*.
+. Select *Advanced capacity balancing*.
+. Finish configuring the volume and click *Save*.
+
+--
+.CLI
+--
+. Create a volume with advanced capacity balancing enabled:
++
+[source,cli]
+----
+volume create -vserver <svm name> -volume <volume name> -size <volume size> -auto-provision-as flexgroup -junction-path /<path> -granular-data advanced
+----
++
+Example:
++
+----
+volume create -vserver vs0 -volume newvol -size 1TB -auto-provision-as flexgroup -junction-path /newvol -granular-data advanced
+----
+--
+====
+
+=== Enable advanced capacity balancing on existing FlexGroup volumes
+
+.Steps
+
+You can use System Manager or the ONTAP CLI to enable advanced capacity balancing.
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+
+. Navigate to *Storage > Volumes*, click image:icon_kabob.gif[Menu options icon], and choose *Edit > Volume*.
+. In the *Edit volume* window, under *Storage and optimization*, select *Advanced capacity balancing*.
+. Click *Save*.
+
+--
+.CLI
+--
+. Modify an existing FlexGroup volume to enable advanced capacity balancing:
++
+[source,cli]
+----
+volume modify -vserver <svm name> -volume <volume name> -granular-data advanced
+----
++
+Example:
++
+----
+volume modify -vserver vs0 -volume newvol  -granular-data advanced
+----
+--
+====
+
+// 2024-Oct-24, IDR-411
+// 2024-Oct-1, ONTAPDOC-2178

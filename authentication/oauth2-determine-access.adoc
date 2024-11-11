@@ -1,0 +1,123 @@
+---
+sidebar: sidebar
+permalink: authentication/oauth2-determine-access.html
+keywords: oauth 2.0, oauth2, scopes, groups, roles, users, determine access
+summary: "To properly design and implement OAuth 2.0, you need to understand how your authorization configuration is used by ONTAP to make access decisions for the clients."
+---
+
+= How ONTAP determines client access
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ./media/
+
+[.lead]
+To properly design and implement OAuth 2.0, you need to understand how your authorization configuration is used by ONTAP to make access decisions for the clients. The major steps used to determine access are presented below based on the ONTAP release.
+
+[NOTE]
+There were no significant OAuth 2.0 updates with ONTAP 9.15.1. If you are using the 9.15.1 release, refer to the description for ONTAP 9.14.1.
+
+.Related information
+
+* link:../authentication/oauth2-as-servers.html#oauth-2-0-features-supported-in-ontap[OAuth 2.0 features supported in ONTAP]
+
+== ONTAP 9.16.1
+
+ONTAP 9.16.1 expands the standard OAuth 2.0 support to include Microsoft Entra ID specific extensions for native Entra ID groups as well as external role mapping.
+
+.Determine client access for ONTAP 9.16.1
+[%collapsible%closed]
+====
+.Step 1: Self-contained scopes
+
+If the access token contains any self-contained scopes, ONTAP examines these scopes first. If there are no self-contained scopes, go to step 2.
+
+With one or more self-contained scopes present, ONTAP applies each scope until an explicit *ALLOW* or *DENY* decision can be made. If an explicit decision is made, processing ends.
+
+If ONTAP can't make an explicit access decision, continue to step 2.
+
+.Step 2: Check the local roles flag
+
+ONTAP examines the boolean parameter `use-local-roles-if-present`. The value of this flag is set separately for each authorization server defined to ONTAP.
+
+* If the value is `true` continue to step 3.
+* If the value is `false` processing ends and access is denied.
+
+.Step 3: Named ONTAP REST role
+
+If the access token contains a named REST role in the `scope` or `scp` field, or as a claim, ONTAP uses the role to make the access decision. This always results in an *ALLOW* or *DENY* decision and processing ends.
+
+If there is no named REST role or the role is not found, continue to step 4.
+
+.Step 4: Users
+
+Extract the username from the access token and attempt to match it to users that have access to the application "http". The users are examined based on the authentication method in the following order:
+
+* password
+* domain (Active Directory)
+* nsswitch (LDAP)
+
+If a matching user is found, ONTAP uses the role defined for the user to make an access decision. This always result in an *ALLOW* or *DENY* decision and processing ends.
+
+If a user is not matched or if there's no username in the access token, continue to step 5.
+
+.Step 5: Groups
+
+If one or more groups are included, the format is examined. If the groups are represented as UUIDs, an internal group mapping table is searched. If there's a group match and an associated role, ONTAP uses the role defined for the group to make an access decision. This always result in an *ALLOW* or *DENY* decision and processing ends. For more information see link:../authentication/oauth2-groups.html[Working with groups].
+
+If groups are represented as names and configured with domain or nsswitch authorization, ONTAP attempts to match them to an Active Directory or LDAP group, respectively. If there's a group match, ONTAP uses the role defined for the group to make an access decision. This always result in an *ALLOW* or *DENY* decision and processing ends.
+
+If there's no group match or if there's no group in the access token, access is denied and processing ends.
+====
+
+== ONTAP 9.14.1
+
+Initial OAuth 2.0 supported is introduced with ONTAP 9.14.1 based on the standard OAuth 2.0 features.
+
+.Determine client access for ONTAP 9.14.1
+[%collapsible%closed]
+====
+.Step 1: Self-contained scopes
+
+If the access token contains any self-contained scopes, ONTAP examines these scopes first. If there are no self-contained scopes, go to step 2.
+
+With one or more self-contained scopes present, ONTAP applies each scope until an explicit *ALLOW* or *DENY* decision can be made. If an explicit decision is made, processing ends.
+
+If ONTAP can't make an explicit access decision, continue to step 2.
+
+.Step 2: Check the local roles flag
+
+ONTAP examines the boolean parameter `use-local-roles-if-present`. The value of this flag is set separately for each authorization server defined to ONTAP.
+
+* If the value is `true` continue to step 3.
+* If the value is `false` processing ends and access is denied.
+
+.Step 3: Named ONTAP REST role
+
+If the access token contains a named REST role in the `scope` or `scp` field, ONTAP uses the role to make the access decision. This always results in an *ALLOW* or *DENY* decision and processing ends.
+
+If there is no named REST role or the role is not found, continue to step 4.
+
+.Step 4: Users
+
+Extract the username from the access token and attempt to match it to users that have access to the application "http". The users are examined based on the authentication method in the following order:
+
+* password
+* domain (Active Directory)
+* nsswitch (LDAP)
+
+If a matching user is found, ONTAP uses the role defined for the user to make an access decision. This always result in an *ALLOW* or *DENY* decision and processing ends.
+
+If a user is not matched or if there's no username in the access token, continue to step 5.
+
+.Step 5: Groups
+
+If one or more groups are included and configured with domain or nsswitch authorization, ONTAP attempts to match them to an Active Directory or LDAP group, respectively.
+
+If there's a group match, ONTAP uses the role defined for the group to make an access decision. This always result in an *ALLOW* or *DENY* decision and processing ends.
+
+If there's no group match or if there's no group in the access token, access is denied and processing ends.
+====
+
+// DMP - November 5 2024 - ONTAPDOC-2163
