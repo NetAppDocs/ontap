@@ -1,0 +1,227 @@
+---
+sidebar: sidebar
+permalink: networking/ipsec-configure.html
+keywords: ip security, ipsec, data-in-motion, in-flight, encryption, security ipsec config show, ipsec config modify, ipsec config show, security ipsec policy create, local-ports, remote-ports, spd, security policy database,ipsec identities
+summary: "There are several tasks you need to perform to configure and activate IPsec in-flight encryption on your ONTAP cluster."
+---
+
+= Configure IP security in ONTAP
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+There are several tasks you need to perform to configure and activate IPsec in-flight encryption on your ONTAP cluster.
+
+[NOTE]
+Make sure to review link:../networking/ipsec-prepare.html[Prepare to use IP security] before configuring IPsec. For example, you might need to decide whether to use the IPsec hardware offload feature available beginning with ONTAP 9.16.1.
+
+== Enable IPsec on the cluster
+
+You can enable IPsec on the cluster to ensure data is continuously encrypted and secure while in transit.
+
+.Steps
+
+. Discover if IPsec is enabled already:
++
+`security ipsec config show`
++
+If the result includes `IPsec Enabled: false`, proceed to the next step.
+
+. Enable IPsec:
++
+`security ipsec config modify -is-enabled true`
++
+You can enable the IPsec hardware offload feature using the boolean parameter `is-offload-enabled`.
+
+. Run the discovery command again:
++
+`security ipsec config show`
++
+The result now includes `IPsec Enabled: true`.
+
+== Prepare for IPsec policy creation with certificate authentication
+
+You can skip this step if you are only using pre-shared keys (PSKs) for authentication and will not use certificate authentication.
+
+Before creating an IPsec policy that uses certificates for authentication, you must verify that the following pre-requisites are met:
+
+* Both ONTAP and the client must have the other party's CA certificate installed so that the end entity (either ONTAP or the client) certificates are verifiable by both sides
+
+* A certificate is installed for the ONTAP LIF that participates in the policy
+
+[NOTE]
+ONTAP LIFs can share certificates. A one-to-one mapping between certificates and LIFs is not required.
+
+.Steps
+
+. Install all CA certificates used during the mutual authentication, including both ONTAP-side and client-side CAs, to ONTAP certificate management unless it is already installed (as is the case of an ONTAP self-signed root-CA).
++
+*Sample command*
+`cluster::> security certificate install -vserver svm_name -type server-ca -cert-name my_ca_cert`
+
+. To make sure that the CA installed is within the IPsec CA searching path during authentication, add the ONTAP certificate management CAs to the IPsec module using the `security ipsec ca-certificate add` command.
++
+*Sample command*
+`cluster::> security ipsec ca-certificate add -vserver svm_name -ca-certs my_ca_cert`
+
+. Create and install a certificate for use by the ONTAP LIF. The issuer CA of this certificate must already be installed to ONTAP and added to IPsec.
++
+*Sample command*
+`cluster::> security certificate install -vserver svm_name -type server -cert-name my_nfs_server_cert`
+
+For more information about certificates in ONTAP, see the security certificate commands in the ONTAP 9 documentation.
+
+== Define the security policy database (SPD)
+
+IPsec requires an SPD entry before allowing traffic to flow on the network. This is true whether you are using a PSK or a certificate for authentication.
+
+.Steps
+
+. Use the `security ipsec policy create` command to:
+
+.. Select the ONTAP IP address or subnet of IP addresses to participate in the IPsec transport.
+.. Select the client IP addresses that will connect to the ONTAP IP addresses.
++
+[NOTE]
+The client must support Internet Key Exchange version 2 (IKEv2) with a pre-shared key (PSK).
++
+.. Optional. Select the fine-grained traffic parameters, such as the upper layer protocols (UDP,  TCP,  ICMP,  etc. ), the local port numbers, and the remote port numbers to protect traffic. The corresponding parameters are `protocols`, `local-ports` and `remote-ports` respectively.
++
+Skip this step to protect all traffic between the ONTAP IP address and client IP address. Protecting all traffic is the default.
+
+.. Either enter PSK or public-key infrastructure (PKI) for the `auth-method` parameter for the desired authentication method.
+... If you enter a PSK, include the parameters, then press <enter> for the prompt to enter and verify the pre-shared key.
++
+[NOTE]
+The `local-identity` and `remote-identity` parameters are optional if both host and client use strongSwan and no wildcard policy is selected for the host or client.
+... If you enter a PKI, you need to also enter the `cert-name`, `local-identity`, `remote-identity` parameters. If the remote-side certificate identity is unknown or if multiple client identities are expected, enter the special identity `ANYTHING`.
+
+.Sample command for PSK authentication
+
+....
+security ipsec policy create -vserver vs1 -name test34 -local-ip-subnets 192.168.134.34/32 -remote-ip-subnets 192.168.134.44/32
+Enter the preshared key for IPsec Policy _test34_ on Vserver _vs1_:
+....
+
+.Sample command for PKI/certificate authentication
+
+....
+security ipsec policy create -vserver vs1 -name test34 -local-ip-subnets 192.168.134.34/32 -remote-ip-subnets 192.168.134.44/32 -local-ports 2049 -protocols tcp -auth-method PKI -cert-name my_nfs_server_cert -local-identity CN=netapp.ipsec.lif1.vs0 -remote-identity ANYTHING
+....
+
+IP traffic cannot flow between the client and server until both ONTAP and the client have set up the matching IPsec policies, and authentication credentials (either PSK or certificate) are in place on both sides.
+
+== Use IPsec identities
+
+For the pre-shared key authentication method, local and remote identities are optional if both host and client use strongSwan and no wildcard policy is selected for the host or client.
+
+For the PKI/certificate authentication method, both local and remote identities are mandatory. The identities specify what identity is certified within each side's certificate and are used in the verification process. If the remote-identity is unknown or if it could be many different identities, use the special identity `ANYTHING`.
+
+.About this task
+
+Within ONTAP, identities are specified by modifying the SPD entry or during SPD policy creation. The SPD can be an IP address or string format identity name.
+
+.Steps
+
+. Use the following command to modify an existing SPD identity setting:
+
+`security ipsec policy modify`
+
+.Sample command
+
+`security ipsec policy modify -vserver _vs1_ -name _test34_ -local-identity _192.168.134.34_ -remote-identity _client.fooboo.com_`
+
+== IPsec multiple client configuration
+
+When a small number of clients need to leverage IPsec, using a single SPD entry for each client is sufficient. However, when hundreds or even thousands of clients need to leverage IPsec, NetApp recommends using an IPsec multiple client configuration.
+
+.About this task
+
+ONTAP supports connecting multiple clients across many networks to a single SVM IP address with IPsec enabled. You can accomplish this using one of the following methods:
+
+* *Subnet configuration*
++
+To allow all clients on a particular subnet (192.168.134.0/24 for example) to connect to a single SVM IP address using a single SPD policy entry, you must specify the `remote-ip-subnets` in subnet form. Additionally, you must specify the `remote-identity` field with the correct client-side identity.
+
+[NOTE]
+When using a single policy entry in a subnet configuration, IPsec clients in that subnet share the IPsec identity and pre-shared key (PSK). However, this is not true with certificate authentication. When using certificates each client can use either their own unique certificate or a shared certificate to authenticate. ONTAP IPsec checks the validity of the certificate based on the CAs installed on its local trust store. ONTAP also supports certificate revocation list (CRL) checking.
+
+* *Allow all clients configuration*
++
+To allow any client, regardless of their source IP address, to connect to the SVM IPsec-enabled IP address, use the `0.0.0.0/0` wildcard when specifying the `remote-ip-subnets` field.
++
+Additionally, you must specify the `remote-identity` field with the correct client-side identity. For certificate authentication, you can enter `ANYTHING`.
++
+Also, when the `0.0.0.0/0` wildcard is used, you must configure a specific local or remote port number to use. For example, `NFS port 2049`.
++
+.Steps
++
+. Use one of the following commands to configure IPsec for multiple clients.
+
+.. If you are using *subnet configuration* to support multiple IPsec clients:
++
+`security ipsec policy create -vserver _vserver_name_ -name _policy_name_ -local-ip-subnets _IPsec_IP_address/32_ -remote-ip-subnets _IP_address/subnet_ -local-identity _local_id_ -remote-identity _remote_id_`
++
+.Sample command
++
+`security ipsec policy create -vserver _vs1_ -name _subnet134_ -local-ip-subnets _192.168.134.34/32_ -remote-ip-subnets _192.168.134.0/24_ -local-identity _ontap_side_identity_ -remote-identity _client_side_identity_`
++
+.. If you are using *allow all clients configuration* to support multiple IPsec clients:
++
+`security ipsec policy create -vserver _vserver_name_ -name _policy_name_ -local-ip-subnets _IPsec_IP_address/32_ -remote-ip-subnets _0.0.0.0/0_ -local-ports _port_number_ -local-identity _local_id_ -remote-identity _remote_id_`
++
+.Sample command
++
+`security ipsec policy create -vserver _vs1_ -name _test35_ -local-ip-subnets _IPsec_IP_address/32_ -remote-ip-subnets _0.0.0.0/0_ -local-ports _2049_ -local-identity _ontap_side_identity_ -remote-identity _client_side_identity_`
+
+== Display IPsec statistics
+
+Through negotiation, a security channel called an IKE Security Association (SA) can be established between the ONTAP SVM IP address and the client IP address. IPsec SAs are installed on both endpoints to do the actual data encryption and decryption work. You can use statistics commands to check the status of both IPsec SAs and IKE SAs.
+
+[NOTE]
+If you are using the IPsec hardware offload feature, several new counters are displayed with the command `security ipsec config show-ipsecsa`.
+
+.Sample commands
+
+IKE SA sample command:
+
+`security ipsec show-ikesa -node _hosting_node_name_for_svm_ip_`
+
+IPsec SA sample command and output:
+
+`security ipsec show-ipsecsa -node _hosting_node_name_for_svm_ip_`
+
+....
+cluster1::> security ipsec show-ikesa -node cluster1-node1
+            Policy Local           Remote
+Vserver     Name   Address         Address         Initator-SPI     State
+----------- ------ --------------- --------------- ---------------- -----------
+vs1         test34
+                   192.168.134.34  192.168.134.44  c764f9ee020cec69 ESTABLISHED
+....
+
+IPsec SA sample command and output:
+
+....
+security ipsec show-ipsecsa -node hosting_node_name_for_svm_ip
+
+cluster1::> security ipsec show-ipsecsa -node cluster1-node1
+            Policy  Local           Remote          Inbound  Outbound
+Vserver     Name    Address         Address         SPI      SPI      State
+----------- ------- --------------- --------------- -------- -------- ---------
+vs1         test34
+                    192.168.134.34  192.168.134.44  c4c5b3d6 c2515559 INSTALLED
+....
+
+// 2024 Oct 28 ONTAPDOC-2338
+// 2024 Feb 22, ONTAPDOC 1690
+// 2023 June 23, ontap-issues #787
+// 2022 Oct 03, Jira ONTAPDOC-664
+// 2022 Jun 14, ontap-issues #537
+// Created with NDAC Version 2.0 (August 17, 2020)
+// restructured: March 2021
+// enhanced keywords May 2021
+// IPsec certificate authentication November 2021, ONTAP 9.10.1, IE-406, IE-407, and IE-408
