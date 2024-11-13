@@ -13,25 +13,19 @@ summary: "ONTAP, when configured with NFS 4.2 Security Labels and Extended Attri
 :imagesdir: ../media
 
 [.lead]
-Beginning with ONTAP 9.12.1, you can configure ONTAP with NFS 4.2 Security Labels and Extended Attributes (XATTRS) so that it can be integrated with a role-based access control (RBAC) and attribute-based access control (ABAC) identity. This identity allows ONTAP to access control software that is categorized as a NIST ABAC-compliant data management solution.
+You can implement enhanced RBAC with attributes and ABAC using NetApp ONTAP. ONTAP provides several approaches a customer might use to achieve file level ABAC, including Labeled NFS 4.2 and XATTRS using NFS and SMB/CIFS. 
 
-//ONTAP offers a unified, scalable platform for data storage and management, supporting a wide range of protocols including NFS, SMB/CIFS, s3, and iSCSI. ONTAP's strength lies in its seamless integration with both on-premises and cloud environments, enabling hybrid cloud architectures and facilitating data mobility. It features a suite of tools designed to optimize storage efficiency, such as deduplication, compression, and thin provisioning. Additionally, ONTAP provides robust data protection capabilities, including SnapMirror for data replication and SnapVault for backup and recovery. It's flexibility, efficiency, and comprehensive feature set make ONTAP a top choice for organizations seeking to modernize their data management infrastructure.
+Attribute-Based Access Control (ABAC) is a sophisticated method for managing access rights that considers user attributes, resource attributes, and environmental conditions. The National Institute of Standards and Technology (NIST) has established a standard for ABAC, providing a framework for its secure and consistent implementation. 
 
-== ABAC integration with ONTAP
-
-Attribute-Based Access Control (ABAC) is a sophisticated method for managing access rights that considers user attributes, resource attributes, and environmental conditions. The National Institute of Standards and Technology (NIST) has established a  standard for ABAC, providing a framework for its secure and consistent implementation. 
-
-This document aims to guide readers on how to utilize NetApp ONTAP, configured with NFS 4.2 Security Labels and Extended Attributes (xattrs), to integrate with a Role-Based Access Control (RBAC) and ABAC identity and access control software. This integration results in a NIST ABAC-compliant data management solution, offering a robust and advanced approach to managing access rights in complex environments including Policy Enforcement Point (PEP), a Policy Decision Point (PDP), and policies that consider attributes associated with the user, the resource, and the environment. 
+Beginning with ONTAP 9.12.1, you can configure ONTAP with NFS 4.2 Security Labels and Extended Attributes (XATTRS) so that it can be integrated with a role-based access control (RBAC) and attribute-based access control (ABAC) identity. This integration allows ONTAP to access control software that is categorized as a NIST ABAC-compliant data management solution, offering a robust and advanced approach to managing access rights in complex environments including Policy Enforcement Point (PEP), a Policy Decision Point (PDP), and policies that consider attributes associated with the user, the resource, and the environment. 
 
 The integration of NetApp ONTAP with XATTRS and an ABAC identity and access control software aligns with this framework, ensuring compliance with the NIST ABAC standard. The use of NFS 4.2 Security Labels and XATTRS allows for the association of user-defined attributes with files, meeting the NIST ABAC standard's requirement for considering resource attributes in access control decisions. The ABAC software's PEP and PDP align with the NIST ABAC standard's requirement for these components in the access control process. The ability to define complex policies that consider multiple attributes and conditions aligns with the NIST ABAC standard's requirement for policy-based access control.
 
-ONTAP provides several approaches a customer might use to achieve File level ABAC. They are Labeled NFS 4.2 and XATTRS using NFS and SMB/CIFS. This paper will provide an overview of best practices to implement enhanced RBAC with attributes and ABAC using NetApp ONTAP.
+== Labeled NFS 4.2
+Beginning with ONTAP 9.9.1, the NFSv4.2 feature called labeled NFS is supported. Labeled NFS is a way to manage granular file and folder access by using SELinux labels and Mandatory Access Control (MAC). These MAC labels are stored with files and folders, and they work in conjunction with UNIX permissions and NFSv4.x ACLs. 
 
-=== Labeled NFS 4.2
-Starting in ONTAP 9.9.1 introduced support for the NFSv4.2 feature called labeled NFS, which is a way to manage granular file and folder access by using SELinux labels and Mandatory Access Control (MAC). These MAC labels are stored with files and folders, and they work in conjunction with UNIX permissions and NFSv4.x ACLs. 
-
-.Enable Labeled NFS 4.2
-You can enable and disable this feature with the following advanced privilege option:
+=== Enable Labeled NFS 4.2
+You can enable and disable this Labeled NFS with the following advanced privilege option:
 
 ----
 [-v4.2-seclabel {enabled|disabled}] - NFSV4.2 Security Label Support (privilege: advanced)
@@ -41,14 +35,14 @@ This optional parameter specifies whether to enable security labels for NFSv4.2.
 
 Support for labeled NFS means that ONTAP now recognizes and understands the NFS client`s SELinux label settings. Labeled NFS is covered in RFC-7204.
 
-.Use Cases for Labeled NFS 4.2
+=== Use Cases for Labeled NFS 4.2
 
 * MAC labeling of virtual machine (VM) images
 * Data security classification for the public sector (secret, top secret, and so on)
 * Security compliance
 * Diskless Linux
 
-.Enforcement modes for Labeled NFS 4.2
+=== Enforcement modes for Labeled NFS 4.2
 
 In ONTAP 9.9.1, ONTAP supports the following enforcement modes:
 * Limited Server Mode. ONTAP cannot enforce the labels but can store and transmit them.
@@ -59,7 +53,7 @@ The ability to change MAC labels is also up to the client to enforce.
 * Guest Mode. If the client is not labeled NFS-aware (v4.1 or lower), MAC labels are not transmitted.
 * ONTAP does not currently support Full Mode (storing and enforcing MAC labels).
 
-.Example configuration of Labeled NFS 4.2
+=== Example configuration of Labeled NFS 4.2
 The following example demonstrates concepts using Red Hat Enterprise Linux release 9.3 (Plow). Note that configurations may vary. We illustrate with user `jrsmith`, created based on John R. Smith's credentials, showcasing relevant account privileges.
 
 * Username = `jrsmith`
@@ -85,7 +79,7 @@ For this environment, user `jrsmith` has access to files at the levels s0 to s3.
 [NOTE]
 Follow your security policies of your organization
 
-.Example of NFS 4.2 Security label with MCS
+=== Example of NFS 4.2 Security label with MCS
 
 In addition to MLS there is another capability called Multi-Category Security (MCS), you can define categories such as projects with this feature.
 
@@ -96,7 +90,7 @@ In addition to MLS there is another capability called Multi-Category Security (M
 |`entitySecurityMark` |`t:s01 = UNCLASSIFIED`
 |===
 
-.Policy enforcement point (PEP) and Policy Decision Point (PDP) in ABAC
+== Policy enforcement point (PEP) and Policy Decision Point (PDP) in ABAC
 
 In an Attribute-Based Access Control (ABAC) system, the Policy Enforcement Point (PEP) and Policy Decision Point (PDP) play crucial roles. The PEP is responsible for enforcing access control policies, while the PDP makes the decision on whether to grant or deny access based on the policies.
 
@@ -121,7 +115,7 @@ Using python, the code to get the context is shown below where the variable file
 context = selinux.getfilecon(file_path)[1]
 ----
 
-=== Extended Attributes (XATTRS) 
+== Extended Attributes (XATTRS) 
 NetApp as of ONTAP 9.12.1 has implemented xattrs. To implement xattrs the following criteria. `setfattr` and `getfattr` are command-line utilities in Linux for managing extended attributes (xattrs) of file system objects. Extended attributes allow metadata to be associated with files and directories beyond what is provided by the system, such as access control lists (ACLs) or user-defined attributes.
 
 *`setfattr`: Sets an extended attribute of a file or directory. The basic syntax is `setfattr -n name -v value filename`, where name is the attribute name, `value` is the attribute value, and `filename` is the name of the file or directory. For example, to set an attribute named `user.comment` with a value of test on a file named `example.txt`, you would use the command `setfattr -n user.comment -v test example.txt`.
@@ -166,12 +160,12 @@ Some examples include:
 
 When xattrs is enabled on an ONTAP filesystem, users can set, modify, and retrieve arbitrary attributes on files. These attributes can be used to store additional information about the file that is not captured by the standard set of file attributes, such as access control information.
 
-=== SMB/CIFS
+== SMB/CIFS
 NetApp ONTAP's support for the CIFS/SMB protocol extends to the comprehensive handling of xattrs, which are an integral part of file metadata in Windows environments. Extended attributes allow users and applications to store additional information beyond the standard set of file attributes, such as author details, custom security descriptors, or application-specific data. ONTAP's CIFS/SMB implementation ensures that these xattrs are fully supported, allowing for seamless integration with Windows services and applications that depend on this metadata for functionality and policy enforcement.
 
 When files are accessed or transferred over CIFS/SMB shares managed by ONTAP, the system preserves the integrity of xattrs, ensuring that all metadata is retained and remains consistent. This is particularly important for maintaining security settings and for applications that rely on xattrs for configuration or operation. ONTAP's robust handling of xattrs within the CIFS/SMB context ensures that file sharing across different platforms and environments is reliable and secure, providing users with a seamless experience and administrators with the assurance that data governance policies are upheld. Whether it's for collaboration, data archiving, or compliance, ONTAP's attention to xattrs within CIFS/SMB shares represents its commitment to data management excellence and interoperability in mixed-OS environments.
 
-=== ONTAP cloning and SnapMirror
+== ONTAP cloning and SnapMirror
 NetApp ONTAP's cloning and SnapMirror technologies are designed to provide efficient and reliable data replication and cloning capabilities, ensuring that all aspects of file data, including extended attributes (xattrs), are preserved, and transferred along with the file. Extended attributes are critical as they store additional metadata associated with a file, such as security labels, access control information, and user-defined data, which are essential for maintaining the file's context and integrity.
 
 When a volume is cloned using NetApp ONTAP's FlexClone technology, an exact writable replica of the volume is created. This cloning process is instantaneous and space-efficient, and it includes all file data and metadata, ensuring that xattrs are fully replicated. Similarly, SnapMirror, NetApp's disaster recovery and data replication solution, ensures that data is mirrored to a secondary system with full fidelity. This includes xattrs, which are crucial for applications that rely on
@@ -182,7 +176,7 @@ By including xattrs in both cloning and replication operations, NetApp ONTAP ens
 [NOTE]
 NFS 4.2 Security labels have the caveats as defined in section link:abac-approaches-with-ontap.html#labeled-nfs-4-2[Labeled NFS 4.2]
 
-=== Example of controlling access to data
+== Example of controlling access to data
 
 [NOTE]
 ====
@@ -418,7 +412,7 @@ In the case of the IC-TDF metadata is separate from the file. In addition to thi
 |`user.geo_point` |`[-78.7941, 35.7956]`
 |===
 
-=== Audit
+== Audit
 Auditing changes to xattrs or NFS security labels is a critical aspect of file system management and security. Standard file system auditing tools enable the monitoring and logging of all changes to a file system, including modifications to extended attributes and security labels.
 
 In Linux environments, the `auditd` daemon is commonly used to establish auditing for file system events. It allows administrators to configure rules to watch for specific system calls related to xattr changes, such as `setxattr`, `lsetxattr`, `fsetxattr` (for setting attributes), and `removexattr`, `lremovexattr`, `fremovexattr` (for removing attributes).
@@ -449,7 +443,7 @@ FSUID="jrsmith" EGID="jrsmith" SGID="jrsmith" FSGID="jrsmith"
 
 Enabling ONTAP FPolicy for users working with xattrs provides a layer of visibility and control that is essential for maintaining the integrity and security of the file system. By leveraging FPolicy's advanced monitoring capabilities, organizations can ensure that all changes to xattrs are tracked, audited, and aligned with their security and compliance standards. This proactive approach to file system management is why enabling ONTAP FPolicy is highly recommended for any organization looking to enhance its data governance and protection strategies.
 
-=== Integration with ABAC identity and access control software
+== Integration with ABAC identity and access control software
 
 To fully harness the capabilities of Attribute-Based Access Control (ABAC), ONTAP can integrate ONTAP with an ABAC-oriented identity and access management software. In parallel to this paper, we have reference implementation using GreyBox. An assumption for this paper is the Government`s Identity & Authentication and access services include at a minimum a Policy Enforcement Point (PEP) and a Policy Decision Point (PDP) which act as intermediaries for access to the file system.
 
