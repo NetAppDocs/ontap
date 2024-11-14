@@ -2,44 +2,39 @@
 sidebar: sidebar
 permalink: authentication/oauth2-authorization.html
 keywords: scopes, self-contained scopes, active directory, ldap, rest role, local users, groups
-summary: There are several options available for customizing your ONTAP client authorization. The authorization decisions are ultimately based on the ONTAP REST roles either contained in or derived from the access tokens.
+summary: "The ONTAP OAuth 2.0 implementation is designed to be flexible and robust, providing the features you need to secure your ONTAP environment. There are several mutually exclusive configuration options available. The authorization decisions are ultimately based on the ONTAP REST roles either contained in or derived from the OAuth 2.0 access tokens."
 ---
 
-= Options for ONTAP client authorization
+= Overview and options for ONTAP client authorization
 :hardbreaks:
 :nofooter:
 :icons: font
 :linkattrs:
-:imagesdir: ./media/
+:imagesdir: ../media/
 
 [.lead]
-There are several options available for customizing your ONTAP client authorization. The authorization decisions are ultimately based on the ONTAP REST roles either contained in or derived from the access tokens.
+The ONTAP OAuth 2.0 implementation is designed to be flexible and robust, providing the features you need to secure your ONTAP environment. There are several mutually exclusive configuration options available. The authorization decisions are ultimately based on the ONTAP REST roles either contained in or derived from the OAuth 2.0 access tokens.
 
 [CAUTION]
 You can only use link:../authentication/overview-oauth2.html#selected-terminology[ONTAP REST roles] when configuring authorization for OAuth 2.0. The earlier ONTAP traditional roles are not supported.
 
-== Introduction
-
-The OAuth 2.0 implementation within ONTAP is designed to be flexible and robust, providing the options you need to secure the ONTAP environment. At a high level, there are three main configuration categories for defining the ONTAP client authorization. These configuration options are mutually exclusive.
-
-ONTAP applies the single most appropriate option based on your configuration. See link:../authentication/oauth2-authorization.html#how-ontap-determines-access[How ONTAP determines access] for more about how ONTAP processes your configuration definitions to make access decisions.
+ONTAP applies the single most appropriate authorization option based on your configuration. See link:../authentication/oauth2-determine-access.html[How ONTAP determines access] for more about how ONTAP makes client access decisions.
 
 .OAuth 2.0 self-contained scopes
 
-These scopes contain one or more custom REST roles, each encapsulated in a single string. They are independent of the ONTAP role definitions. You need to define these scope strings at your authorization server.
+These scopes contain one or more custom REST roles, each encapsulated within a single string in the access token. They are independent of the ONTAP role definitions. You need to configure the scope strings at your authorization server. See link:../authentication/oauth2-sc-scopes.html[Self-contained OAuth 2.0 scopes] for more information.
 
-.Local ONTAP-specific REST roles and users
+.Local ONTAP REST roles
 
-Based on your configuration, the local ONTAP identity definitions can be used to make access decisions. The options include:
+A single named REST role, either builtin or custom, can be used. The scope syntax for a named role is *ontap-role-*<URL-encoded-ONTAP-role-name>. For example, if the ONTAP role is `admin` the scope string will be `ontap-role-admin`.
 
-* Single named REST role
-* Match of the username to a local ONTAP user
+.Users
 
-The scope syntax for a named role is *ontap-role-*<URL-encoded-ONTAP-role-name>. For example, if the role is "admin" the scope string will be "ontap-role-admin".
+The username in the access token defined with access to the application "http" can be used. A user is tested in the following order based on the defined authentication method: password, domain (Active Directory), nsswitch (LDAP).
 
-.Active Directory or LDAP groups
+.Groups
 
-If the local ONTAP definitions are examined but no access decision can be made, the Active Directory ("domain") or LDAP ("nsswitch") groups are used. Group information can be specified in one of two ways:
+The authorization servers can be configured to use ONTAP groups for authorization. If the local ONTAP definitions are examined but no access decision can be made, the Active Directory ("domain") or LDAP ("nsswitch") groups are used. Group information can be specified in one of two ways:
 
 * OAuth 2.0 scope string
 +
@@ -49,139 +44,6 @@ Supports confidential applications using the client credentials flow where there
 +
 This is intended for access tokens issued by ADFS using the resource owner (password grant) flow.
 
-== Self-contained OAuth 2.0 scopes
+See link:../authentication/oauth2-groups.html[Working with groups] for more information.
 
-Self-contained scopes are strings carried in the access token. Each is a complete custom role definition and includes everything ONTAP needs to make an access decision. The scope is separate and distinct from any of the REST roles defined within ONTAP itself.
-
-=== Format of the scope string
-
-At a base level, the scope is represented as a contiguous string and composed of six colon-separated values. The parameters used in the scope string are described below.
-
-==== ONTAP literal
-
-The scope must begin with the literal value `ontap` in lowercase. This identifies the scope as specific to ONTAP.
-
-==== Cluster
-
-This defines which ONTAP cluster the scope applies to. The values can include:
-
-* Cluster UUID
-+
-Identifies a single cluster.
-
-* Asterisk (***)
-+
-Indicates the scope applies to all clusters.
-
-You can use the ONTAP CLI command `cluster identity show` to display the UUID of your cluster. If not specified, the scope applies to all clusters.
-
-==== Role
-
-The name of the REST role contained in the self-contained scope. This value is not examined by ONTAP or matched to any existing REST roles defined to ONTAP. The name is used for logging.
-
-==== Access level
-
-This value indicates the access level applied to the client application when using the API endpoint in the scope. There are six possible values as described in the table below.
-
-[cols="25,75"*,options="header"]
-|===
-|Access level
-|Description
-|none
-|Denies all access to the specified endpoint.
-|readonly
-|Allows only read access using GET.
-|read_create
-|Allows read access as well as the creation of new resource instances using POST.
-|read_modify
-|Allows read access as well as the ability to update existing resources using PATCH.
-|read_create_modify
-|Allows all access except delete. The allowed operations include GET (read), POST (create), and PATCH (update).
-|all
-|Allows full access.
-|===
-
-==== SVM
-
-The name of the SVM within the cluster the scope applies to. Use the *** value (asterisk) to indicate all SVMs.
-
-[CAUTION]
-This feature is not fully supported with ONTAP 9.14.1. You can ignore the SVM parameter and use an asterisk as a placeholder. Review the https://library.netapp.com/ecm/ecm_download_file/ECMLP2492508[ONTAP release notes^] to check for future SVM support.
-
-==== REST API URI
-
-The complete or partial path to a resource or set of related resources. The string must begin with `/api`. If you don't specify a value, the scope applies to all API endpoints at the ONTAP cluster.
-
-=== Scope examples
-
-A few examples of self-contained scopes are presented below.
-
-ontap:*:joes-role:read_create_modify:*:/api/cluster::
-Provides the user assigned this role read, create, and modify access to the `/cluster` endpoint.
-
-=== CLI administrative tool
-
-To make the administration of the self-contained scopes easier and less error-prone, ONTAP provides the CLI command `security oauth2 scope` to generate scope strings based on your input parameters.
-
-The command `security oauth2 scope` has two use cases based on your input:
-
-* CLI parameters to scope string
-+
-You can use this version of the command to generate a scope string based on the input parameters.
-
-* Scope string to CLI parameters
-+
-You can use this version of the command to generate the command parameters based on the input scope string.
-
-.Example
-
-The following example generates a scope string with the output included after the command example below. The definition applies to all clusters.
-
-----
-security oauth2 scope cli-to-scope -role joes-role -access readonly -api /api/cluster
-----
-
-`ontap:*:joes-role:readonly:*:/api/cluster`
-
-== How ONTAP determines access
-
-To properly design and implement OAuth 2.0, you need to understand how your authorization configuration is used by ONTAP to make access decisions for the clients.
-
-.Step 1: Self-contained scopes
-
-If the access token contains any self-contained scopes, ONTAP examines those scopes first. If there are no self-contained scopes, go to step 2.
-
-With one or more self-contained scopes present, ONTAP applies each scope until an explicit *ALLOW* or *DENY* decision can be made. If an explicit decision is made, processing ends.
-
-If ONTAP can't make an explicit access decision, continue to step 2.
-
-.Step 2: Check the local roles flag
-
-ONTAP examines the value of the flag `use-local-roles-if-present`. The value of this flag is set separately for each authorization server defined to ONTAP.
-
-* If the value is `true` continue to step 3.
-* If the value is `false` processing ends and access is denied.
-
-.Step 3: Named ONTAP REST role
-
-If the access token contains a named REST role, ONTAP uses the role to make the access decision. This always results in an *ALLOW* or *DENY* decision and processing ends.
-
-If there is no named REST role or the role is not found, continue to step 4.
-
-.Step 4: Local ONTAP users
-
-Extract the username from the access token and attempt to match it to a local ONTAP user.
-
-If a local ONTAP user is matched, ONTAP uses the role defined for the user to make an access decision. This always result in an *ALLOW* or *DENY* decision and processing ends.
-
-If a local ONTAP user is not matched or if there's no username in the access token, continue to step 5.
-
-.Step 5: Group-to-role mapping
-
-Extract the group from the access token and attempt to match it to a group. The groups are defined using Active Directory or an equivalent LDAP server.
-
-If there's a group match, ONTAP uses the role defined for the group to make an access decision. This always result in an *ALLOW* or *DENY* decision and processing ends.
-
-If there's no group match or if there's no group in the access token, access is denied and processing ends.
-
-//2024-7-9 ontapdoc-2192
+// DMP - November 5 2024 - ONTAPDOC-2163
