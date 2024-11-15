@@ -1,8 +1,8 @@
 ---
 sidebar: sidebar
 permalink: abac/abac-introduction.html
-keywords: technical report, tr, abac, attribute, access control
-summary: "ONTAP, when configured with NFS 4.2 Security Labels and Extended Attributes (XATTR) can be integrated with a role-based access control (RBAC) and attribute-based access control (ABAC) identity and access control software that is a NIST ABAC-compliant data management solution."
+keywords: technical report, tr, abac, attribute, access control, attribute based, nfs, security labels, xattrs, nfs 4.2, nist, abac compliant, data management, role-based access control, rbac, policy enforcement point, pep, policy decision point, pdp
+summary: "ONTAP, when configured with NFS 4.2 Security Labels and Extended Attributes (XATTR), can be integrated with a role-based access control (RBAC) and attribute-based access control (ABAC) identity and access control software that is a NIST ABAC-compliant data management solution."
 ---
 = Attribute-Based Access Control with ONTAP
 
@@ -13,7 +13,7 @@ summary: "ONTAP, when configured with NFS 4.2 Security Labels and Extended Attri
 :imagesdir: ../media
 
 [.lead]
-You can implement enhanced RBAC with attributes and ABAC using NetApp ONTAP. ONTAP provides several approaches a customer might use to achieve file level ABAC, including Labeled NFS 4.2 and XATTRS using NFS and SMB/CIFS. 
+You can implement enhanced RBAC with attributes and Attribute-Based Access Control (ABAC) using ONTAP. ONTAP provides several approaches a customer might use to achieve file level ABAC, including Labeled NFS 4.2 and XATTRS using NFS and SMB/CIFS. 
 
 Attribute-Based Access Control (ABAC) is a sophisticated method for managing access rights that considers user attributes, resource attributes, and environmental conditions. The National Institute of Standards and Technology (NIST) has established a standard for ABAC, providing a framework for its secure and consistent implementation. 
 
@@ -41,14 +41,14 @@ Use Cases for Labeled NFSv4.2 include the following:
 
 .Enable Labeled NFSv4.2
 
-You can enable and disable this Labeled NFS with the following advanced privilege option:
+You can enable or disable Labeled NFS with the following advanced privilege option:
 
 [source,cli]
 ----
 [-v4.2-seclabel {enabled|disabled}] - NFSV4.2 Security Label Support (privilege: advanced)
 ----
 
-This parameter is optional, and the default setting is disabled.
+This parameter is optional, and the default setting is `disabled`.
 
 .Enforcement modes for Labeled NFSv4.2
 
@@ -65,8 +65,6 @@ NOTE: ONTAP does not currently support Full Mode (storing and enforcing MAC labe
 .Example configuration of Labeled NFSv4.2
 
 The following example configuration demonstrates concepts using Red Hat Enterprise Linux release 9.3 (Plow). 
-
-NOTE: Configurations may vary. 
 
 The user `jrsmith`, created based on John R. Smith's credentials, has the following account privileges:
 
@@ -208,21 +206,15 @@ When a volume is cloned using ONTAP's FlexClone technology, an exact writable re
 By including xattrs in both cloning and replication operations, NetApp ONTAP ensures that the complete dataset, with all its characteristics, is available and consistent across primary and secondary storage systems. This comprehensive approach to data management is vital for organizations that require consistent data protection, quick recovery, and adherence to compliance and regulatory standards. It also simplifies the management of data across different environments, whether on-premises or in the cloud, providing users with the confidence that their data is complete and unaltered during these processes.
 
 [NOTE]
-NFSv4.2 Security Labels have the caveats as defined in section link:abac-approaches-with-ontap.html#labeled-nfs-4-2[Labeled NFS 4.2]
-
-//start here
+NFSv4.2 Security Labels have the caveats defined in <<Labeled NFSv4.2>>.
 
 == Example of controlling access to data
 
-[NOTE]
-====
-* This example is for illustrative purposes, and it is the government's responsibility to define what metadata is NFS 4.2 security label and xattr.
-* Details on updating and label retention are omitted for simplicity.
-====
+The following example entry for data stored in John R Smith`s PKI cert shows how NetApp`s approach can be applied to a file and provide fine-grained access control.
 
-We will use a sample entry for the data stored in John R Smith`s PKI cert to show how NetApp`s approach can be applied to a file and provide fine grained access control.
+NOTE: This example is for illustrative purposes, and it is the government's responsibility to define what metadata is NFSv4.2 security label and xattrs. Details on updating and label retention are omitted for simplicity.
 
-*Sample PKI cert values - This figure is unclassified and representative*
+.Example PKI cert values
 [cols="2a,8a" options="header"]
 |===
 |Key 
@@ -368,17 +360,15 @@ We will use a sample entry for the data stored in John R Smith`s PKI cert to sho
 
 |===
 
-These PKI entitlements show what John R. Smith can do that includes what type of data they have access to and their attribution.
+These PKI entitlements show John R. Smith's access details, including access by data type and attribution.
 
-If John R. Smith created and saved a document called, _"sample_analysis.doc"_. Following the relevant policy guidance issuances the user would add the appropriate banner and portion markings, agency and office of origin and appropriate classification authority block based on the classification of the document as shown in figure 5. This rich metadata is only understandable after it has been scanned by Natural Language Processing and then apply rules to make meaning of the markings. Tool such as NetApp BlueXP Classification can do that but are less efficient for access control decisions as they require permission to look inside the document.
+If John R. Smith created and saved a document called, _"sample_analysis.doc"_, according to the relevant policy guidance issuances the user would add the appropriate banner and portion markings, agency and office of origin, and appropriate classification authority block based on the classification of the document as shown in the following image. This rich metadata is only understandable after it has been scanned by Natural Language Processing (NLP) and had rules applied to make meaning from the markings. Tools such as NetApp BlueXP Classification can do that but are less efficient for access control decisions because they require permission to look inside the document.
 
-*This is Unclassified*
+Unclassifed CAPCO document portion marking:
 
 image:abac-unclassified.png[An example of a Unclassified CAPCO document portion marking]
 
-In the case of the IC-TDF metadata is separate from the file. In addition to this approach, we propose storing the fine-grained access control information at both the file directory level and associated with each file. To keep the concept simple, we will associate several tags with the file. NFS 4.2 Security Labels are used security decision and xattrs for supplemental information related to the file and organizational program requirements.
-
-//sentence needs work
+In the event that the IC-TDF metadata is separate from the file, we propose storing fine-grained access control information at the file directory level and with associations to each file. To simplify the example, several tags are associated with the file. NFS 4.2 Security Labels are used for security decisions and xattrs for supplemental information related to the file and organizational program requirements.
 
 [cols="2a,8a",options="header",]
 |===
@@ -448,14 +438,15 @@ In the case of the IC-TDF metadata is separate from the file. In addition to thi
 |`user.geo_point` |`[-78.7941, 35.7956]`
 |===
 
-== Audit
+== Auditing changes to labels
+
 Auditing changes to xattrs or NFS security labels is a critical aspect of file system management and security. Standard file system auditing tools enable the monitoring and logging of all changes to a file system, including modifications to extended attributes and security labels.
 
-In Linux environments, the `auditd` daemon is commonly used to establish auditing for file system events. It allows administrators to configure rules to watch for specific system calls related to xattr changes, such as `setxattr`, `lsetxattr`, `fsetxattr` (for setting attributes), and `removexattr`, `lremovexattr`, `fremovexattr` (for removing attributes).
+In Linux environments, the `auditd` daemon is commonly used to establish auditing for file system events. It allows administrators to configure rules to watch for specific system calls related to xattr changes, such as `setxattr`, `lsetxattr`, and `fsetxattr` for setting attributes and `removexattr`, `lremovexattr`, and `fremovexattr` for removing attributes.
 
-NetApp ONTAP FPolicy extends these capabilities by providing a robust framework for real-time monitoring and control of file operations. FPolicy can be configured to support various xattr events, offering granular control over file operations and the ability to enforce comprehensive data management policies.
+ONTAP FPolicy extends these capabilities by providing a robust framework for real-time monitoring and control of file operations. FPolicy can be configured to support various xattr events, offering granular control over file operations and the ability to enforce comprehensive data management policies.
 
-For users utilizing xattrs, especially in NFSv3 and NFSv4 environments, it is important to note that only certain combinations of file operations and filters are supported for monitoring. The list of supported file operation and filter combinations for FPolicy monitoring of NFSv3 and NFSv4 file access events is detailed in the table 7 below:
+For users utilizing xattrs, especially in NFSv3 and NFSv4 environments, only certain combinations of file operations and filters are supported for monitoring. The list of supported file operation and filter combinations for FPolicy monitoring of NFSv3 and NFSv4 file access events is detailed below:
 
 [width="100%",cols="25%a,75%a",options="header",]
 |===
@@ -463,7 +454,7 @@ For users utilizing xattrs, especially in NFSv3 and NFSv4 environments, it is im
 |`setattr` |`offline-bit, setattr_with_owner_change, setattr_with_group_change, setattr_with_mode_change, setattr_with_modify_time_change, setattr_with_access_time_change, setattr_with_size_change, exclude_directory`
 |===
 
-Example of an `auditd` log snippet for a `setattr` operation:
+.Example of an `auditd` log snippet for a `setattr` operation:
 
 ----
 type=SYSCALL msg=audit(1713451401.168:106964): arch=c000003e syscall=188
@@ -481,26 +472,33 @@ Enabling ONTAP FPolicy for users working with xattrs provides a layer of visibil
 
 == Integration with ABAC identity and access control software
 
-To fully harness the capabilities of Attribute-Based Access Control (ABAC), ONTAP can integrate ONTAP with an ABAC-oriented identity and access management software. In parallel to this paper, we have reference implementation using GreyBox. An assumption for this paper is the Government`s Identity & Authentication and access services include at a minimum a Policy Enforcement Point (PEP) and a Policy Decision Point (PDP) which act as intermediaries for access to the file system.
+To fully harness the capabilities of Attribute-Based Access Control (ABAC), ONTAP can integrate ONTAP with an ABAC-oriented identity and access management software. 
 
-In a practical setting, an organization would employ a blend of NFS security labels and xattr. These are used to represent a variety of metadata, including classification, security, application, and content, which are all instrumental in making ABAC decisions. XATTR, for instance, can be used to store the resource attributes that the PDP uses for its decision-making process. An attribute could be defined to represent the classification level of a file (e.g., "Unclassified, Confidential", "Secret", "Top Secret"). The PDP could then utilize this attribute to enforce a policy that restricts users to only access files that have a classification level equal to or lower than their clearance level.
+NOTE: In parallel to this content, NetApp has a reference implementation using GreyBox. One assumption for this content is that the government`s identity, authentication, and access services include at minimum a Policy Enforcement Point (PEP) and a Policy Decision Point (PDP) that act as intermediaries for access to the file system.
 
-The PEP's role is to intercept the user's access request and forward it to the PDP. The PDP then evaluates this request against the established ABAC policies. These policies consider various attributes related to the user, the resource in question, and the surrounding environment. Based on these policies, the PDP makes an access decision (either to allow or deny) and communicates this decision back to the PEP. The PEP then enforces this decision, either granting or denying the user's access request as per the PDP's decision.
+In a practical setting, an organization would employ a blend of NFS security labels and xattrs. These are used to represent a variety of metadata, including classification, security, application, and content, which are all instrumental in making ABAC decisions. XATTR, for instance, can be used to store the resource attributes that the PDP uses for its decision-making process. An attribute could be defined to represent the classification level of a file (for example, "Unclassified", "Confidential", "Secret", or "Top Secret"). The PDP could then utilize this attribute to enforce a policy that restricts users to only access files that have a classification level equal to or lower than their clearance level.
 
-. User presents credentials (e.g., PKI, Oauth, SAML) to system access to PEP and gets results from PDP.
-. PDP provides policy to PEP to enforce.
-. Upon Success user requests a file stored in ONTAP (AFF, AFF-C, etc.)
-. Upon Success PEP gets fine grain access control tags from document
-. PEP requests policy for user based on their certs.
-. PEP makes decision based on policy and tags if the user has access to the file and upon success lets the user retrieve the file.
+.Example process flow for ABAC
+
+. User presents credentials (for example, PKI, Oauth, SAML) to system access to PEP and gets results from PDP. 
++
+The PEP's role is to intercept the user's access request and forward it to the PDP.
+
+. The PDP then evaluates this request against the established ABAC policies. 
++
+These policies consider various attributes related to the user, the resource in question, and the surrounding environment. Based on these policies, the PDP makes an access decision to either allow or deny and then communicates this decision back to the PEP. 
++
+PDP provides policy to PEP to enforce. The PEP then enforces this decision, either granting or denying the user's access request as per the PDP's decision.
+
+. After a successful request, the user requests a file stored in ONTAP (AFF, AFF-C, for example).
+. If the request is successfyl, PEP gets fine-grain access control tags from document.
+. PEP requests policy for user based on that user's certs.
+. PEP makes decision based on policy and tags if the user has access to the file and lets the user retrieve the file.
 
 [NOTE]
-The actual access may be done via tokens not proxied through.
+The actual access might be done using tokens not proxied through.
 
 image:abac-access-architecture.png[ABAC access architecture]
-
-== ABAC conclusion
-By integrating NetApp ONTAP NFS 4.2 Security labels with xattr and ABAC identity and access management software, organizations can establish a robust, NIST ABAC-compliant data management solution. This configuration enables the implementation of complex and dynamic access control policies that not only adhere to standards such as the NIST ABAC standard, but also cater to a broad spectrum of applications and environments. Leveraging ONTAP with NFS 4.2 security labels and xattr for fine grain access integrated with authentication solutions provides a secure, efficient, and regulatory-compliant approach to data management. This capability allows organizations to handle their data with confidence, knowing that access is controlled by a sophisticated and flexible system that meets stringent standards, regulations, and policies.
 
 .Related information
 
@@ -512,4 +510,4 @@ By integrating NetApp ONTAP NFS 4.2 Security labels with xattr and ABAC identity
 ** RFC 2203: RPCSEC_GSS Protocol Specification
 ** RFC 3530: Network File System (NFS) Version 4 Protocol
 
-// 2024-11-7 ONTAPDOC-2303
+// 2024-11-15 ONTAPDOC-2303
