@@ -103,8 +103,6 @@ In addition to MLS, another capability called Multi-Category Security (MCS) allo
 |`entitySecurityMark` |`t:s01 = UNCLASSIFIED`
 |===
 
-
-
 == Extended Attributes (XATTRS) 
 Beginning in ONTAP 9.12.1, ONTAP supports xattrs. xattrs allow metadata to be associated with files and directories beyond what is provided by the system, such as access control lists (ACLs) or user-defined attributes. 
 
@@ -170,8 +168,9 @@ Sample command:
 |Directory |R |T
 |===
 
-== SMB/CIFS
-NetApp ONTAP's support for the CIFS/SMB protocol extends to the comprehensive handling of xattrs, which are an integral part of file metadata in Windows environments. Extended attributes allow users and applications to store additional information beyond the standard set of file attributes, such as author details, custom security descriptors, or application-specific data. ONTAP's CIFS/SMB implementation ensures that these xattrs are fully supported, allowing for seamless integration with Windows services and applications that depend on this metadata for functionality and policy enforcement.
+== SMB/CIFS protocol support for xattrs
+
+ONTAP's support for the CIFS/SMB protocol extends to comprehensive handling of xattrs, which are an integral part of file metadata in Windows environments. Extended attributes allow users and applications to store additional information beyond the standard set of file attributes, such as author details, custom security descriptors, or application-specific data. ONTAP's CIFS/SMB implementation ensures that these xattrs are fully supported, allowing for seamless integration with Windows services and applications that depend on this metadata for functionality and policy enforcement.
 
 When files are accessed or transferred over CIFS/SMB shares managed by ONTAP, the system preserves the integrity of xattrs, ensuring that all metadata is retained and remains consistent. This is particularly important for maintaining security settings and for applications that rely on xattrs for configuration or operation. ONTAP's robust handling of xattrs within the CIFS/SMB context ensures that file sharing across different platforms and environments is reliable and secure, providing users with a seamless experience and administrators with the assurance that data governance policies are upheld. Whether it's for collaboration, data archiving, or compliance, ONTAP's attention to xattrs within CIFS/SMB shares represents its commitment to data management excellence and interoperability in mixed-OS environments.
 
@@ -179,11 +178,11 @@ When files are accessed or transferred over CIFS/SMB shares managed by ONTAP, th
 
 In an Attribute-Based Access Control (ABAC) system, the Policy Enforcement Point (PEP) and Policy Decision Point (PDP) play crucial roles. The PEP is responsible for enforcing access control policies, while the PDP makes the decision on whether to grant or deny access based on the policies.
 
-In the context of the Python code snippet provided, the script itself acts as a PEP. It enforces the access control decision by either granting access to the file (by opening it and reading its contents) or denying access (by raising a `PermissionError`).
+In the context of the Python code snippet provided, the script itself acts as a PEP. It enforces the access control decision by either granting access to the file by opening it and reading its contents or denying access by raising a `PermissionError`.
 
 The PDP, on the other hand, would be part of the underlying SELinux system. When the script tries to open the file with a specific SELinux context, the SELinux system checks its policies to decide whether to grant or deny access. This decision is then enforced by the script.
 
-Below is a step-by-step breakdown of how this code works in an ABAC environment:
+Below is a step-by-step example breakdown of how this code works in an ABAC environment:
 
 . The script sets the SELinux context to `jrsmith` context using the `selinux.setcon()` function. This is equivalent to `jrsmith` trying to access the file.
 . The script tries to open the file. This is where the PEP comes into play.
@@ -192,7 +191,7 @@ Below is a step-by-step breakdown of how this code works in an ABAC environment:
 . If `jrsmith` is not allowed to access the file, the SELinux system prevents the script from opening the file, and the script raises a `PermissionError`.
 . The script restores the original SELinux context to ensure that the temporary context change does not affect other operations.
 
-Using python, the code to get the context is shown below where the variable file path is the document that is to be checked.
+Using python, the code to get the context is shown below where the variable file path is the document that is to be checked:
 
 ----
 #Get the current context
@@ -201,15 +200,17 @@ context = selinux.getfilecon(file_path)[1]
 ----
 
 == ONTAP cloning and SnapMirror
-NetApp ONTAP's cloning and SnapMirror technologies are designed to provide efficient and reliable data replication and cloning capabilities, ensuring that all aspects of file data, including extended attributes (xattrs), are preserved, and transferred along with the file. Extended attributes are critical as they store additional metadata associated with a file, such as security labels, access control information, and user-defined data, which are essential for maintaining the file's context and integrity.
 
-When a volume is cloned using NetApp ONTAP's FlexClone technology, an exact writable replica of the volume is created. This cloning process is instantaneous and space-efficient, and it includes all file data and metadata, ensuring that xattrs are fully replicated. Similarly, SnapMirror, NetApp's disaster recovery and data replication solution, ensures that data is mirrored to a secondary system with full fidelity. This includes xattrs, which are crucial for applications that rely on
-this metadata to function correctly.
+ONTAP's cloning and SnapMirror technologies are designed to provide efficient and reliable data replication and cloning capabilities, ensuring that all aspects of file data, including extended attributes (xattrs), are preserved, and transferred along with the file. xattrs are critical as they store additional metadata associated with a file, such as security labels, access control information, and user-defined data, which are essential for maintaining the file's context and integrity.
+
+When a volume is cloned using ONTAP's FlexClone technology, an exact writable replica of the volume is created. This cloning process is instantaneous and space-efficient, and it includes all file data and metadata, ensuring that xattrs are fully replicated. Similarly, SnapMirror ensures that data is mirrored to a secondary system with full fidelity. This includes xattrs, which are crucial for applications that rely on this metadata to function correctly.
 
 By including xattrs in both cloning and replication operations, NetApp ONTAP ensures that the complete dataset, with all its characteristics, is available and consistent across primary and secondary storage systems. This comprehensive approach to data management is vital for organizations that require consistent data protection, quick recovery, and adherence to compliance and regulatory standards. It also simplifies the management of data across different environments, whether on-premises or in the cloud, providing users with the confidence that their data is complete and unaltered during these processes.
 
 [NOTE]
-NFS 4.2 Security labels have the caveats as defined in section link:abac-approaches-with-ontap.html#labeled-nfs-4-2[Labeled NFS 4.2]
+NFSv4.2 Security Labels have the caveats as defined in section link:abac-approaches-with-ontap.html#labeled-nfs-4-2[Labeled NFS 4.2]
+
+//start here
 
 == Example of controlling access to data
 
