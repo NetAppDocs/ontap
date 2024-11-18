@@ -1,0 +1,70 @@
+---
+permalink: revert/terminate-smb-sessions.html
+sidebar: sidebar
+keywords: ontap, revert, reversion, reverting, downgrade, downgrading, preparation
+summary: 'Various configuration settings can impact cluster upgrade readiness.'
+---
+= Terminate SMB sessions that are not continuously available before reverting ONTAP
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+
+Before you revert and ONTAP cluster, you should identify and gracefully terminate any SMB sessions that are not continuously available.
+
+Continuously available SMB shares, which are accessed by Hyper-V or Microsoft SQL Server clients using the SMB 3.0 protocol, do not need to be terminated before upgrading or downgrading.
+
+. Identify any established SMB sessions that are not continuously available:
++
+[source, cli]
+----
+vserver cifs session show -continuously-available No -instance
+----
++
+This command displays detailed information about any SMB sessions that have no continuous availability. You should terminate them before proceeding with the ONTAP downgrade.
++
+----
+cluster1::> vserver cifs session show -continuously-available No -instance
+
+                        Node: node1
+                     Vserver: vs1
+                  Session ID: 1
+               Connection ID: 4160072788
+Incoming Data LIF IP Address: 198.51.100.5
+      Workstation IP address: 203.0.113.20
+    Authentication Mechanism: NTLMv2
+                Windows User: CIFSLAB\user1
+                   UNIX User: nobody
+                 Open Shares: 1
+                  Open Files: 2
+                  Open Other: 0
+              Connected Time: 8m 39s
+                   Idle Time: 7m 45s
+            Protocol Version: SMB2_1
+      Continuously Available: No
+1 entry was displayed.
+----
+
+. If necessary, identify the files that are open for each SMB session that you identified: 
++
+[source, cli]
+----
+vserver cifs session file show -session-id session_ID
+----
++
+----
+cluster1::> vserver cifs session file show -session-id 1
+
+Node:       node1
+Vserver:    vs1
+Connection: 4160072788
+Session:    1
+File    File      Open Hosting                               Continuously
+ID      Type      Mode Volume          Share                 Available
+------- --------- ---- --------------- --------------------- ------------
+1       Regular   rw   vol10           homedirshare          No
+Path: \TestDocument.docx
+2       Regular   rw   vol10           homedirshare          No
+Path: \file1.txt
+2 entries were displayed.
+----
