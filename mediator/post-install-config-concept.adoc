@@ -19,7 +19,7 @@ After the ONTAP Mediator service is installed and running, additional configurat
 
 The ONTAP Mediator server supports several configurable security settings.  The default values for all settings are provide in a low_space_threshold_mib: 10read-only file: 
 
-`/opt/netapp/lib/ontap_mediator/server_config/ontap_mediator.user_config.yaml`
+`/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator.user_config.yaml`
 
 All values that are placed in the `ontap_mediator.user_config.yaml` will override the default values and be maintained across all ONTAP Mediator upgrades.
 
@@ -29,42 +29,49 @@ After you modify `ontap_mediator.user_config.yaml`, restart the ONTAP Mediator s
 
 == Modify ONTAP Mediator attributes
 
-The following attributes can be configured:
+The ONTAP Mediator attributes described in this section can be modified if required.
 
 NOTE: Other default values in the `ontap_mediator.config.yaml` should not be modified.
 
 === Install third-party SSL certificates  
 
-The following settings are used to install third-party SSL certificates as replacements for the default self-signed certificates.
+If you need to replace the default self-signed certificates with third-party SSL certificates, you modify certain attributes in the following files: 
 
-// Start snippet: numbered list - 2 entries
-// No placeholders
-. The default variables listed in the table below are included in the following yaml file: `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator.config.yaml` These variables are used to control the certificate files used by the ONTAP Mediator service. 
+* `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator.config.yaml`
+* `/opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini`
 
-[cols=3*,options="header"]
+The variables in these files are used to control the certificate files used by the ONTAP Mediator service.
+
+The default variables listed in the following table are included in the `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator.config.yaml` file.
+
+[cols=2*,options="header"]
 |===
 | Variable 
 | Path 
-| Definition
-| `cert_path` | `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.crt` | X
-| `key_path` | `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.key` | X
-| `ca_cert_path` | `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.crt` | X
-| `ca_key_path` | `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.key` | X
-| `ca_serial_path` | `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.srl` | X
-| `cert_valid_days` | `1095` | This is used to set the expiration of client certificates to three years.
-| `x509_passin_pwd` | `pass:ontap` | The passphrase for the signed client certificate. If third-party certificates are required, you must overwrite the variables in: `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator.user_config.yaml`.
+| `cert_path` | `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.crt` 
+| `key_path` | `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.key` 
+| `ca_cert_path` | `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.crt` 
+| `ca_key_path` | `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.key` 
+| `ca_serial_path` | `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ca.srl` 
+| `cert_valid_days` | `1095` 
+| `x509_passin_pwd` | `pass:ontap` 
 |===
 
-. The `/opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini` file is also  required. Here is an example of the default certificates:
-// Start snippet: bulleted list - 3 entries
-// No placeholders
-** `set-placeholder = mediator_cert = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.crt`
-** `set-placeholder = mediator_key = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.key`
-** `set-placeholder = ca_certificate = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ ca.crt`
-// End snippet
+* `cert_valid_days` is used to set the expiration of client certificates. The maximum value is three years (1095 days).
+* `x509_passin_pwd` is the passphrase for the signed client certificate.
 
-Once you make the required changes, restart the the ONTAP Mediator service. For more information on replacing default certificates with third-party certificates, refer to link:https://docs.netapp.com/us-en/ontap/mediator/manage-task.html#replace-self-signed-certificates-with-trusted-third-party-certificates[Replace self-signed certificates with trusted third party certificates].
-// End snippet
+The default variables listed in the following table are included in the `/opt/netapp/lib/ontap_mediator/uwsgi/ontap_mediator.ini` file.
+
+[cols=2*,options="header"]
+|===
+| Variable 
+| Path 
+| `mediator_cert` | `set-placeholder = mediator_cert = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.crt`
+| `mediator_key` | `set-placeholder = mediator_key = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ontap_mediator_server.key`
+| `ca_cert_path` |  `set-placeholder = ca_certificate = /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/ ca.crt`
+|===
+
+If you modify these attributes, restart the ONTAP Mediator service to apply the changes. For detailed instructions on how to replace default certificates with third-party certificates, refer to link:https://docs.netapp.com/us-en/ontap/mediator/manage-task.html#replace-self-signed-certificates-with-trusted-third-party-certificates[Replace self-signed certificates with trusted third party certificates].
 
 === Password attack protection
 
@@ -123,9 +130,7 @@ low_space_threshold_mib: 10
 
 === Control of reserve log space
 
-The RESERVE_LOG_SPACE is controlled by specific settings.
-
-The ONTAP Mediator server by default installation creates a separate disk space for the logs.  The installer creates a new fixed-size file with a total of 700 MB of disk space to be used explicitly for Mediator logging.
+The RESERVE_LOG_SPACE is controlled by specific settings. The ONTAP Mediator server by default installation creates a separate disk space for the logs.  The installer creates a new fixed-size file with a total of 700 MB of disk space to be used explicitly for Mediator logging.
 
 To disable this feature and use the default disk space, perform the following steps:
 
@@ -158,3 +163,4 @@ NOTE: Toggling between disk spaces does not purge existing logs.  All previous l
 // 2023 May 05, ONTAPDOC-955
 // 2023 Oct 27, ONTAPDOC-1428
 // 2024 Oct 23, ONTAPDOC-1044
+// 2024 Nov 19, ONTAPDOC-2387
