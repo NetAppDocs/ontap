@@ -2,20 +2,29 @@
 permalink: revert/task_verify_health.html
 sidebar: sidebar
 keywords: ontap, revert, reverting, reversion, downgrade, downgrading, verifying, verify, cluster, health
-summary: 'After you revert, or downgrade a cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum.'
+summary: 'After you revert an ONTAP cluster you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum.'
 ---
 
-= Verify cluster and storage health after downgrade or revert
+= Verify cluster and storage health after an ONTAP revert 
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-After you downgrade or revert a cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum. You should also verify the status of your disks, aggregates, and volumes.
+After you revert a cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum. You should also verify the status of your disks, aggregates, and volumes.
 
 
 == Verify cluster health
 
-. Verify that the nodes in the cluster are online and are eligible to participate in the cluster: `cluster show`
+.Steps
+
+. Verify that the nodes in the cluster are online and are eligible to participate in the cluster: 
++
+[source,cli]
+----
+cluster show
+----
++
+In this example, the cluster is healthy and all nodes are eligible to participate in the cluster.
 +
 ----
 cluster1::> cluster show
@@ -27,8 +36,12 @@ node1                 true    true
 +
 If any node is unhealthy or ineligible, check EMS logs for errors and take corrective action.
 
-. Set the privilege level to advanced: +
-`set -privilege advanced`
+. Set the privilege level to advanced: 
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 Enter `y` to continue.
 
@@ -45,24 +58,37 @@ Note that each ring might have a different quorum master.
 a|
 Management application
 a|
-`cluster ring show -unitname mgmt`
+[source,cli]
+----
+cluster ring show -unitname mgmt
+----
+
 a|
 Volume location database
 a|
-`cluster ring show -unitname vldb`
+[source,cli]
+----
+cluster ring show -unitname vldb
+----
+
 a|
 Virtual-Interface manager
 a|
-`cluster ring show -unitname vifmgr`
+[source,cli]
+----
+cluster ring show -unitname vifmgr
+----
+
 a|
 SAN management daemon
 a|
-`cluster ring show -unitname bcomd`
+[source,cli]
+----
+cluster ring show -unitname bcomd
+----
 |===
-
 +
 This example shows the volume location database process:
-
 +
 ----
 cluster1::*> cluster ring show -unitname vldb
@@ -75,9 +101,18 @@ node3     vldb     154      154      14847    node0     secondary
 4 entries were displayed.
 ----
 
-. Return to the admin privilege level: `set -privilege admin`
+. Return to the admin privilege level: 
+[source,cli]
+----
+set -privilege admin
+----
 
-. If you are operating in a SAN environment, verify that each node is in a SAN quorum: `event log show  -severity informational -message-name scsiblade.*`
+. If you are operating in a SAN environment, verify that each node is in a SAN quorum: 
++
+[source,cli]
+----
+event log show  -severity informational -message-name scsiblade.*
+----
 +
 The most recent scsiblade event message for each node should indicate that the scsi-blade is in quorum.
 +
@@ -97,6 +132,8 @@ link:../system-admin/index.html[System administration]
 
 After you revert or downgrade a cluster, you should verify the status of your disks, aggregates, and volumes.
 
+.Steps
+
 . Verify disk status:
 +
 [cols=2*,options="header"]
@@ -106,18 +143,34 @@ a|
 Broken disks
 a|
 
- .. Display any broken disks: `storage disk show -state broken`
- .. Remove or replace any broken disks.
+.. Display any broken disks: 
++
+[source,cli]
+----
+storage disk show -state broken
+----
+
+.. Remove or replace any broken disks.
 
 a|
 Disks undergoing maintenance or reconstruction
 a|
 
- .. Display any disks in maintenance, pending, or reconstructing states: `storage disk show -state maintenance\|pending\|reconstructing`
- .. Wait for the maintenance or reconstruction operation to finish before proceeding.
+.. Display any disks in maintenance, pending, or reconstructing states: 
+[source,cli]
+----
+storage disk show -state maintenance\|pending\|reconstructing
+----
+
+.. Wait for the maintenance or reconstruction operation to finish before proceeding.
 |===
 
-. Verify that all aggregates are online by displaying the state of physical and logical storage, including storage aggregates: `storage aggregate show -state !online`
+. Verify that all aggregates are online by displaying the state of physical and logical storage, including storage aggregates: 
++
+[source,cli]
+----
+storage aggregate show -state !online
+----
 +
 This command displays the aggregates that are _not_ online. All aggregates must be online before and after performing a major upgrade or reversion.
 +
@@ -126,7 +179,12 @@ cluster1::> storage aggregate show -state !online
 There are no entries matching your query.
 ----
 
-. Verify that all volumes are online by displaying any volumes that are _not_ online: `volume show -state !online`
+. Verify that all volumes are online by displaying any volumes that are _not_ online: 
++
+[source,cli]
+----
+volume show -state !online
+----
 +
 All volumes must be online before and after performing a major upgrade or reversion.
 +
@@ -135,7 +193,12 @@ cluster1::> volume show -state !online
 There are no entries matching your query.
 ----
 
-. Verify that there are no inconsistent volumes: `volume show -is-inconsistent true`
+. Verify that there are no inconsistent volumes: 
++
+[source,cli]
+----
+volume show -is-inconsistent true
+----
 +
 See the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Volume_Showing_WAFL_Inconsistent[Volume Showing WAFL Inconsistent] on how to address the inconsistent volumes.
 
@@ -144,3 +207,9 @@ See the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshoo
 link:../disks-aggregates/index.html[Disk and aggregate management]
 
 // 2022-04-25, BURT 1454366
+
+== Verify client access (SMB and NFS)
+
+For the configured protocols, test access from SMB and NFS clients to verify that the cluster is accessible.
+
+// 4 Feb 2022, BURT 1451789 

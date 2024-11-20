@@ -1,22 +1,30 @@
 ---
 permalink: revert/task_things_to_verify_before_revert.html
 sidebar: sidebar
-keywords: ontap, revert, reversion, reverting, downgrade, downgrading, preparation
-summary: 'Various configuration settings can impact cluster upgrade readiness.'
+keywords: ontap, revert, reversion, reverting, downgrade, downgrading, preparation, pre-revert, checks, verification, cluster health, storage health, system time, jobs
+summary: 'Before revert ONTAP, you should verify your cluster health, storage health, and system time.  You should also verify that no jobs are running on the cluster.'
 ---
 = System verifications to perform before you revert ONTAP
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Before revert, you should verify your cluster health, storage health, and system time.  You should also delete any cluster jobs that are running and gracefully terminate any SMB sessions that are not continuously available.
+Before revert ONTAP, you should verify your cluster health, storage health, and system time.  You should also verify that no jobs are running on the cluster.
 
 == Verify cluster health
 
-Before you revert cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum.
+Before you revert an ONTAP cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum.
 
-. Verify that the nodes in the cluster are online and are eligible to participate in the cluster: `cluster show`
+.Steps 
+
+. Verify that the nodes in the cluster are online and are eligible to participate in the cluster:
 +
+[source,cli]
+----
+cluster show
+----
++
+In this example, all nodes are healthy and eligible to participate in the cluster.
 ----
 cluster1::> cluster show
 Node                  Health  Eligibility
@@ -27,8 +35,12 @@ node1                 true    true
 +
 If any node is unhealthy or ineligible, check EMS logs for errors and take corrective action.
 
-. Set the privilege level to advanced: +
-`set -privilege advanced`
+. Set the privilege level to advanced:
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 Enter `y` to continue.
 
@@ -41,22 +53,38 @@ Note that each ring might have a different quorum master.
 [cols=2*,options="header"]
 |===
 | To display this RDB process...| Enter this command...
+
 a|
 Management application
 a|
-`cluster ring show -unitname mgmt`
+[source,cli]
+----
+cluster ring show -unitname mgmt
+----
+
 a|
 Volume location database
 a|
-`cluster ring show -unitname vldb`
+[source,cli]
+----
+cluster ring show -unitname vldb
+----
+
 a|
 Virtual-Interface manager
 a|
-`cluster ring show -unitname vifmgr`
+[source,cli]
+----
+cluster ring show -unitname vifmgr
+----
+
 a|
 SAN management daemon
 a|
-`cluster ring show -unitname bcomd`
+[source,cli]
+----
+cluster ring show -unitname bcomd
+----
 |===
 This example shows the volume location database process:
 +
@@ -71,10 +99,19 @@ node3     vldb     154      154      14847    node0     secondary
 4 entries were displayed.
 ----
 
-. Return to the admin privilege level: +
-`set -privilege admin`
+. Return to the admin privilege level:
++
+[source,cli]
+----
+set -privilege admin
+----
 
-. If you are operating in a SAN environment, verify that each node is in a SAN quorum: `event log show  -severity informational -message-name scsiblade.*`
+. If you are operating in a SAN environment, verify that each node is in a SAN quorum: 
++
+[source,cli]
+----
+event log show  -severity informational -message-name scsiblade.*
+----
 +
 The most recent scsiblade event message for each node should indicate that the scsi-blade is in quorum.
 +
@@ -92,7 +129,9 @@ link:../system-admin/index.html[System administration]
 
 == Verify storage health
 
-Before you revert a cluster, you should verify the status of your disks, aggregates, and volumes.
+Before you revert an ONTAP cluster, you should verify the status of your disks, aggregates, and volumes.
+
+.Steps
 
 . Verify disk status:
 +
@@ -103,18 +142,32 @@ a|
 Broken disks
 a|
 
- .. Display any broken disks: `storage disk show -state broken`
- .. Remove or replace any broken disks.
+.. Display any broken disks:
++
+
+[source,cli]
+----
+storage disk show -state broken
+----
+.. Remove or replace any broken disks.
 
 a|
 Disks undergoing maintenance or reconstruction
 a|
-
- .. Display any disks in maintenance, pending, or reconstructing states: `storage disk show -state maintenance\|pending\|reconstructing`
+.. Display any disks in maintenance, pending, or reconstructing states: 
+[source,cli]
+----
+storage disk show -state maintenance\|pending\|reconstructing
+----
  .. Wait for the maintenance or reconstruction operation to finish before proceeding.
 |===
 
-. Verify that all aggregates are online by displaying the state of physical and logical storage, including storage aggregates: `storage aggregate show -state !online`
+. Verify that all aggregates are online by displaying the state of physical and logical storage, including storage aggregates: +
++
+[source,cli]
+----
+storage aggregate show -state !online
+----
 +
 This command displays the aggregates that are _not_ online. All aggregates must be online before and after performing a major upgrade or reversion.
 +
@@ -123,7 +176,12 @@ cluster1::> storage aggregate show -state !online
 There are no entries matching your query.
 ----
 
-. Verify that all volumes are online by displaying any volumes that are _not_ online: `volume show -state !online`
+. Verify that all volumes are online by displaying any volumes that are _not_ online: 
++
+[source,cli]
+----
+volume show -state !online
+----
 +
 All volumes must be online before and after performing a major upgrade or reversion.
 +
@@ -132,7 +190,12 @@ cluster1::> volume show -state !online
 There are no entries matching your query.
 ----
 
-. Verify that there are no inconsistent volumes: `volume show -is-inconsistent true`
+. Verify that there are no inconsistent volumes: 
++
+[source,cli]
+----
+volume show -is-inconsistent true
+----
 +
 See the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Volume_Showing_WAFL_Inconsistent[Volume Showing WAFL Inconsistent] on how to address the inconsistent volumes.
 
@@ -142,10 +205,23 @@ link:../disks-aggregates/index.html[Disk and aggregate management]
 
 == Verify the system time
 
-Before you revert, you should verify that NTP is configured, and that the time is synchronized across the cluster.
+Before you revert an ONTAP cluster, you should verify that NTP is configured, and that the time is synchronized across the cluster.
 
-. Verify that the cluster is associated with an NTP server: `cluster time-service ntp server show`
-. Verify that each node has the same date and time: `cluster date show`
+.Steps
+
+. Verify that the cluster is associated with an NTP server: 
++
+[source,cli]
+----
+cluster time-service ntp server show
+----
+
+. Verify that each node has the same date and time: 
++
+[source,cli]
+----
+cluster date show
+----
 +
 ----
 cluster1::> cluster date show
@@ -160,10 +236,18 @@ node3     4/6/2013 20:54:38   GMT
 
 == Verify that no jobs are running
 
-Before you revert the ONTAP software, you must verify the status of cluster jobs. If any aggregate, volume, NDMP (dump or restore), or Snapshot jobs (such as create, delete, move, modify, replicate, and mount jobs) are running or queued, you must allow the jobs to finish successfully or stop the queued entries.
+Before you revert an ONTAP cluster, you should verify the status of cluster jobs. If any aggregate, volume, NDMP (dump or restore), or Snapshot jobs (such as create, delete, move, modify, replicate, and mount jobs) are running or queued, you should allow the jobs to finish successfully or stop the queued entries.
 
-. Review the list of any running or queued aggregate, volume, or Snapshot jobs: `job show`
+.Steps
+
+. Review the list of any running or queued aggregate, volume, or Snapshot jobs:
 +
+[source,cli]
+----
+job show
+----
++
+In this example, there are two jobs queued:
 ----
 cluster1::> job show
                             Owning
@@ -174,18 +258,22 @@ Job ID Name                 Vserver    Node           State
 8630   Certificate Expiry Check
                             cluster1   -              Queued
        Description: Certificate Expiry Check
-.
-.
-.
 ----
 
-. Delete any running or queued aggregate, volume, or Snapshot copy jobs: `job delete -id job_id`
+. Delete any running or queued aggregate, volume, or Snapshot copy jobs:
 +
+[source,cli]
 ----
-cluster1::> job delete -id 8629
+job delete -id job_id
 ----
++
 
-. Verify that no aggregate, volume, or Snapshot jobs are running or queued: `job show`
+. Verify that no aggregate, volume, or Snapshot jobs are running or queued: 
++
+[source,cli]
+----
+job show
+----
 +
 In this example, all running and queued jobs have been deleted:
 +
