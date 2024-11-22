@@ -71,7 +71,7 @@ There are two roles: the admin account that is a privileged user and user `jrsmi
 |`jrsmith` |`user_r` |`user_t` |`t:s1 - t:s4`
 |===
 
-For this example environment, user `jrsmith` has access to files at the levels s0 to s3. We could translate that security classification shown below adding additional security that admins do not have access to user data.
+In this example environment, user `jrsmith` has access to files at the levels `s0` to `s3`. We can enhance the existing security classifications, as outlined below, to ensure that administrators do not have access to user-specific data.
 
 * s0 = privilege admin user data
 * s0 = unclassified data
@@ -84,7 +84,7 @@ Follow your security policies of your organization
 
 .Example of NFSv4.2 security label with MCS
 
-In addition to MLS, another capability called Multi-Category Security (MCS) allows you to define categories such as projects.
+In addition to Multi-Level Security (MLS), another capability called Multi-Category Security (MCS) allows you to define categories such as projects.
 
 [width="100%",cols="2a,8a",options="header",]
 |===
@@ -111,14 +111,14 @@ When xattrs is enabled on an ONTAP filesystem, users can set, modify, and retrie
 
 .Use cases for xattrs
 
-xattrs are implemented in the `user` namespace; they have no inherent meaning to ONTAP. Use cases are defined and controlled strictly by the client-side application. 
+xattrs are utilized within the user namespace and do not carry any intrinsic significance to ONTAP itself. Instead, their practical applications are determined and managed exclusively by the client-side application that interacts with the file system.
 
-Use case examples:
+xattr use case examples:
 
-* Storing the name of an application that created a file
-* Keeping a link to the email message a file was downloaded from
-* Implementing a categorization system for file objects
-* Tagging downloaded files with the URL the file was downloaded from
+* Recording the name of the application responsible for creating a file.
+* Maintaining a reference to the email message from which a file was obtained.
+* Establishing a categorization framework for organizing file objects.
+* Labeling files with the URL of their original download source.
 
 .Commands for managing xattrs
 
@@ -150,6 +150,10 @@ Sample command:
 |`user.countryOfAffiliations` |`USA`
 |===
 
+== User Permissions with ACE for Extended Attributes
+
+An Access Control Entry (ACE) is a component within an Access Control List (ACL) that defines the access rights or permissions granted to an individual user or a group of users for a specific resource, such as a file or directory. Each ACE specifies the type of access allowed or denied and is associated with a particular security principal (user or group identity).
+
 .Access Control Entry (ACE) required for xattrs
 [width="100%",options="header",]
 |===
@@ -157,6 +161,13 @@ Sample command:
 |File |R |a,w,T
 |Directory |R |T
 |===
+
+Explanation of the permissions required for xattrs:
+
+*Retrieve xattr*: The permissions required for a user to read the extended attributes of a file or directory. The "R" signifies that read permission is necessary.
+*Set xattrs*: The permissions needed to modify or set the extended attributes. "a," "w," and "T" represent different examples of permissions, such append, write, and a specific permission related to xattrs.
+*Files*: Users need append, write, and potentially a special permission related to xattrs to set extended attributes. 
+*Directories*: A specific permission "T" is required to set extended attributes.
 
 == SMB/CIFS protocol support for xattrs
 
@@ -200,11 +211,11 @@ By including xattrs in both cloning and replication operations, NetApp ONTAP ens
 [NOTE]
 NFSv4.2 Security Labels have the caveats defined in <<Labeled NFSv4.2>>.
 
-== Example of controlling access to data
+== Examples of controlling access to data
 
 The following example entry for data stored in John R Smith's PKI cert shows how NetApp's approach can be applied to a file and provide fine-grained access control.
 
-NOTE: This example is for illustrative purposes, and it is the government's responsibility to define what metadata is NFSv4.2 security label and xattrs. Details on updating and label retention are omitted for simplicity.
+NOTE: These examples are for illustrative purposes, and it is the government's responsibility to define what metadata is NFSv4.2 security label and xattrs. Details on updating and label retention are omitted for simplicity.
 
 .Example PKI cert values
 [cols="2a,8a" options="header"]
@@ -356,12 +367,17 @@ These PKI entitlements show John R. Smith's access details, including access by 
 
 If John R. Smith created and saved a document called _"sample_analysis.doc"_, according to the relevant policy guidance issuances the user would add the appropriate banner and portion markings, agency and office of origin, and appropriate classification authority block based on the classification of the document as shown in the following image. This rich metadata is only understandable after it has been scanned by Natural Language Processing (NLP) and had rules applied to make meaning from the markings. Tools such as NetApp BlueXP Classification can do that but are less efficient for access control decisions because they require permission to look inside the document.
 
-Unclassified CAPCO document portion marking:
-
+.Unclassified CAPCO document portion marking
 image:abac-unclassified.png[An example of a Unclassified CAPCO document portion marking]
 
-In the event that the IC-TDF metadata is separate from the file, NetApp proposes storing fine-grained access control information at the file directory level and with associations to each file. To simplify the example, several tags are associated with the file. NFSv4.2 Security Labels are used for security decisions and xattrs for supplemental information related to the file and organizational program requirements.
+In scenarios where IC-TDF metadata is stored separately from the file, NetApp advocates for an additional layer of fine-grained access control. This involves storing access control information at both the directory level and in association with each file. As an example, consider the following tags linked to a file: 
 
+* NFSv4.2 Security Labels: Utilized for making security decisions 
+* xattrs: Provide supplementary information pertinent to the file and the organizational program requirements
+
+The following key-value pairs are examples of metadata that could be stored as xattrs and offer detailed information about the file's creator and associated security classifications. This metadata can be leveraged by client applications to make informed access decisions and to organize files according to organizational standards and requirements.
+
+.Example of xattr key-value pairs
 [cols="2a,8a",options="header",]
 |===
 |Key |Value
