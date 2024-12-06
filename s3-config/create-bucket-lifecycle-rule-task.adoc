@@ -27,6 +27,10 @@ When creating your lifecycle management rules, you can apply the following delet
 
 * Deletion of current versions - This action expires objects identified by the rule. If versioning is enabled on the bucket, S3 makes all expired objects unavailable. If versioning is not enabled, this rule deletes the objects permanently. The CLI action is `Expiration`.
 * Deletion of non-current versions - This action specifies when S3 can permanently remove non-current objects. The CLI action is `NoncurrentVersionExpiration`.
++
+[NOTE]
+A non-current versions is based on the current version's creation or modification time. Delayed removal of non-current objects can be helpful when accidentally delete or overwrite an object. For example, you can configure an expiration rule to delete non-current versions five days after they become non-current. For instance, suppose that on 1/1/2014 at 10:30 AM UTC, you create an object called photo.gif (version ID 111111). On 1/2/2014 at 11:30 AM UTC, you accidentally delete photo.gif (version ID 111111), which creates a delete marker with a new version ID (such as version ID 4857693). You now have five days to recover the original version of photo.gif (version ID 111111) before the deletion is permanent. On 1/8/2014 at 00:00 UTC, the Lifecycle rule for expiration runs and permanently deletes photo.gif (version ID 111111), five days after it became a noncurrent version.
+
 * Deletion of expired delete markers - This action deletes expired object delete markers.
 In versioning-enabled buckets, objects with a delete markers become the current versions of the objects. The objects are not deleted, and no action can be performed on them. These objects become expired when there are no current versions associated with them. The CLI action is `Expiration`.
 * Deletion of incomplete multipart uploads - This action sets a maximum time (in days) that you want to allow multipart uploads to remain in progress. Following which, they are deleted. The CLI action is `AbortIncompleteMultipartUpload`.
@@ -49,6 +53,7 @@ NonCurrentVersionExpiration
 a|
 * `-non-curr-days` - Number of days after which non-current versions will be deleted
 * `-new-non-curr-versions` - Number of latest non-current versions to be retained
+
 a|
 Expiration
 a|
@@ -114,7 +119,7 @@ Beginning with ONTAP 9.14.1, you can expire S3 objects by using System Manager. 
 .. Size: You can limit the scope between the minimum and maximum sizes of the objects. You can enter either or both the values. The default unit is MiB.
 . Specify the action:
 .. *Expire the current version of objects*: Set a rule to make all current objects permanently unavailable after a specific number of days since their creation, or on a specific date. This option is unavailable if the *Delete expired object delete markers* option is selected.
-.. *Permanently delete noncurrent versions*: Specify the number of days after which the version becomes non-current, and thereafter can be deleted, and the number of versions to retain.
+.. *Permanently delete noncurrent versions*: Specify the number of days after which the non-current version is deleted, and the number of versions to retain.
 .. *Delete expired object delete markers*: Select this action to delete objects with expired delete markers, that is delete markers without an associated current object.
 +
 [NOTE] 
@@ -145,6 +150,7 @@ When you delete a rule, that rule will no longer apply to previously associated 
 . Select *Edit*, *Delete*, or *Disable*, and complete the procedure.
 
 
+// 2024-Dec-4, CONTAP-316775
 // 2024-July-10, ONTAPDOC-2154
 // 2023 Apr 13, Jira IDR-228
 // 27-Sep-2023 ONTAPDOC-1146
