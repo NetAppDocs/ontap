@@ -1,0 +1,94 @@
+---
+permalink: networking/convert-uta2-port-cna-fc.html
+sidebar: sidebar
+keywords: change, uta2, port, cna mode, fc mode
+summary: "Change the UTA2 personality from CNA mode to FC mode when you need to change the physical medium that connects the port to its network or to support the FC initiators and target."
+---
+= Covert the UTA2 port in ONTAP
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can convert your UTA2 port from Converged Network Adapter (CNA) mode to Fibre Channel (FC) mode, or vice versa.
+
+You should change the UTA2 personality from CNA mode to FC mode when you need to change the physical medium that connects the port to its network or to support the FC initiators and target.
+
+// start tabbed area
+
+[role="tabbed-block"]
+====
+
+.From CNA mode to FC mode
+--
+
+.Steps
+
+. Take the adapter offline:
++
+[source,cli]
+----
+network fcp adapter modify -node <node_name> -adapter <adapter_name> -status-admin down
+----
+
+. Change the port mode:
++
+[source,cli]
+----
+ucadmin modify -node <node_name> -adapter <adapter_name> -mode fcp
+----
+
+. Reboot the node, and then bring the adapter online:
++
+[source,cli]
+----
+network fcp adapter modify -node <node_name> -adapter <adapter_name> -status-admin up
+----
+
+. Notify your admin or VIF manager to delete or remove the port, as applicable:
++
+* If the port is used as a home port of a LIF, is a member of an interface group (ifgrp), or hosts VLANs, then an admin should do the following:
+** Move the LIFs, remove the port from the ifgrp, or delete the VLANs, respectively.
+** Manually delete the port by running the `network port delete` command.  If the `network port delete` command fails, the admin should address the errors, and then run the command again.
++
+* If the port is not used as the home port of a LIF, is not a member of an ifgrp, and does not host VLANs, then the VIF manager should remove the port from its records at the time of reboot.  If the VIF manager does not remove the port, then the admin must remove it manually after the reboot by using the `network port delete` command.
+
+. Verify that you have the correct SFP+ installed:
++
+[source,cli]
+----
+network fcp adapter show -instance -node -adapter
+----
++
+For CNA, you should use a 10Gb Ethernet SFP. For FC, you should either use an 8 Gb SFP or a 16 Gb SFP, before changing the configuration on the node.
+
+--
+
+.From FC mode to CNA mode
+--
+
+.Steps
+
+. Take the adapter offline:
++
+[source,cli]
+----
+network fcp adapter modify -node <node_name> -adapter <adapter_name> -status-admin down
+----
+
+. Change the port mode:
++
+[source,cli]
+----
+ucadmin modify -node <node_name> -adapter <adapter_name> -mode cna
+----
+
+. Reboot the node
+
+. Verify that you have the correct SFP+ installed.
++
+For CNA, you should use a 10Gb Ethernet SFP.
+--
+
+====
+// end tabbed area
+
