@@ -10,60 +10,69 @@ summary: 'You must first download the ONTAP software; then you can install it.'
 
 [.lead]
 
-You must first download the ONTAP software from the NetApp Support site; then you can install it.
+Before you revert your current ONTAP software, you must download the target software version from the NetApp Support site and then install it.
 
-== Download the software image
+== Download the ONTAP software image
 
-To downgrade or revert from ONTAP 9.4 and later, you can copy the ONTAP software image from the NetApp Support Site to a local folder. For a downgrade or revert to ONTAP 9.3 or earlier, you must copy the ONTAP software image to an HTTP server or FTP server on your network.
+Software images are specific to platform models. You must obtain the correct image for your cluster. Software images, firmware version information, and the latest firmware for your platform model are available on the NetApp Support Site.  Software images include the latest version of system firmware that was available when a given version of ONTAP was released.
 
-You should note the following important information:
+NOTE: If you are reverting a system with NetApp Volume Encryption from ONTAP 9.5 or later, you must download the ONTAP software image for non-restricted countries, which includes NetApp Volume Encryption.  If you use the ONTAP software image for restricted countries to revert a system with NetApp Volume Encryption, the system panics and you lose access to your volumes.
 
-* Software images are specific to platform models.
-+
-You must obtain the correct image for your cluster. Software images, firmware version information, and the latest firmware for your platform model are available on the NetApp Support Site.
-
-* Software images include the latest version of system firmware that was available when a given version of ONTAP was released.
-* If you are downgrading a system with NetApp Volume Encryption from ONTAP 9.5 or later, you must download the ONTAP software image for non-restricted countries, which includes NetApp Volume Encryption.
-+
-If you use the ONTAP software image for restricted countries to downgrade or revert a system with NetApp Volume Encryption, the system panics and you lose access to your volumes.
-
+.Steps
 
 . Locate the target ONTAP software in the link:http://mysupport.netapp.com/NOW/cgi-bin/software[Software Downloads^] area of the NetApp Support Site.
 
-. Copy the software image.
-
- ** For ONTAP 9.3 or earlier, copy the software image (for example, 93_q_image.tgz) from the NetApp Support Site to the directory on the HTTP server or FTP server from which the image will be served.
-
- ** For ONTAP 9.4 or later, copy the software image (for example, 97_q_image.tgz) from the NetApp Support Site to the directory on the HTTP server or FTP server from which the image will be served or to a local folder.
-
-== Install the software image
-
-You must install the target software image on the cluster's nodes.
-
-* If you are downgrading or reverting a system with NetApp Volume Encryption from ONTAP 9.5 or later, you must have downloaded the ONTAP software image for non-restricted countries, which includes NetApp Volume Encryption.
+. Copy the software image (for example, 97_q_image.tgz) from the NetApp Support Site
 +
-If you use the ONTAP software image for restricted countries to downgrade or revert a system with NetApp Volume Encryption, the system panics and you lose access to your volumes.
+You can copy the image to the directory on the HTTP server or FTP server from which the image will be served or to a local folder.
 
-. Set the privilege level to advanced, entering *y* when prompted to continue: `set -privilege advanced`
+== Install the ONTAP software image
+
+After downloading the target ONTAP software image from the NetApp support site, install it on the cluster nodes.
+
+.Steps
+
+. Set the privilege level to advanced: 
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 The advanced prompt (`*>`) appears.
 
-. Install the software image on the nodes.
-+
-This command downloads and installs the software image on all of the nodes simultaneously. To download and install the image on each node one at a time, do not specify the -background parameter.
+. Enter `y` to continue when prompted .
 
- ** If you are downgrading or reverting a non-MetroCluster configuration or a two-node MetroCluster configuration:``system node image update -node * -package location -replace-package true -setdefault true -background true``
+. Install the software image:
 +
-This command uses an extended query to change the target software image, which is installed as the alternate image, to be the default image for the node.
+* For standard configurations or a two-node MetroCluster configuration enter the following command:
++
+[source,cli]
+----
+system node image update -node * -package location -replace-package true -setdefault true -background true
+----
++
+This command downloads and installs the software image on all of the nodes simultaneously. To download and install the image on each node one at a time, do not specify the `-background` parameter.  This command also uses an extended query to change the target software image, which is installed as the alternate image, to be the default image for the node.
 
- ** If you are dowgrading or reverting a four or eight-node MetroCluster configuration, you must issue the following command on both clusters: `system node image update -node * -package location -replace-package true true -background true -setdefault false`
+* For a four-node or eight-node MetroCluster configuration, enter the following command on both clusters:
 +
-This command uses an extended query to change the target software image, which is installed as the alternate image on each node.
+[source,cli]
+----
+system node image update -node * -package location -replace-package true true -background true -setdefault false
+----
++
+This command downloads and installs the software image on all of the nodes simultaneously. To download and install the image on each node one at a time, do not specify the `-background` parameter. This command also uses an extended query to change the target software image, which is installed as the alternate image on each node.
 
 . Enter `y` to continue when prompted.
-. Verify that the software image is downloaded and installed on each node: `system node image show-update-progress -node *`
+
+. Verify that the software image is downloaded and installed on each node: 
 +
-This command displays the current status of the software image download and installation. You should continue to run this command until all nodes report a Run Status of Exited, and an Exit Status of Success.
+[source,cli]
+----
+system node image show-update-progress -node *
+----
++
+This command displays the current status of the software image download and installation. You should continue to run this command until all nodes report a *Run Status* of "Exited,"" and an *Exit Status* of "Success."
 +
 The system node image update command can fail and display error or warning messages. After resolving any errors or warnings, you can run the command again.
 +
@@ -85,3 +94,5 @@ Status of most recent operation:
         Exit Message:   After a clean shutdown, image2 will be set as the default boot image on node1.
 2 entries were acted on.
 ----
+
+// 2024 Dec 05, Jira 2563
