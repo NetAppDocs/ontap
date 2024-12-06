@@ -11,4 +11,165 @@ summary: "Beginning with ONTAP 9.8, FabricPool supports object tagging using use
 [.lead]
 Beginning with ONTAP 9.8, FabricPool supports object tagging using user-created custom tags to enable you to classify and sort objects for easier management. If you are a user with the admin privilege level, you can create new object tags, and modify, delete, and view existing tags.
 
+== Assign a new tag during volume creation
+
+You can create a new object tag when you want to assign one or more tags to new objects that are tiered from a new volume you create. You can use tags to help you classify and sort tiering objects for easier data management. Beginning with ONTAP 9.8, you can use System Manager to create object tags. 
+
+.About this task
+You can set tags only on FabricPool volumes attached to StorageGRID. These tags are retained during a volume move.
+
+* A maximum of 4 tags per volume is allowed.
+* In the CLI, each object tag must be a key-value pair separated by an equal sign (`""`).
+* In the CLI, multiple tags must be separated by a comma (`""`).
+* Each tag value can contain a maximum of 127 characters.
+* Each tag key must start with either an alphabetic character or an underscore.
++
+Keys must contain only alphanumeric characters and underscores, and the maximum number of characters allowed is 127.
+
+
+=== Procedure
+
+You can assign object tags with ONTAP System Manager or the ONTAP CLI.
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+. Navigate to *Storage > Tiers*.
+. Locate a storage tier with volumes you want to tag.
+. Click the *Volumes* tab.
+. Locate the volume you want to tag and in the *Object Tags* column select *Click to enter tags*.
+. Enter a key and value.
+. Click *Apply*.
+--
+
+.CLI
+--
+. Use the `volume create` command with the `-tiering-object-tags` option to create a new volume with the specified tags. You can specify multiple tags in comma-separated pairs:
++
+----
+volume create [ -vserver <vserver name> ] -volume <volume_name> -tiering-object-tags <key1=value1> [
+    ,<key2=value2>,<key3=value3>,<key4=value4> ]
+----
++
+The following example creates a volume named fp_volume1 with three object tags.
++
+----
+vol create -volume fp_volume1 -vserver vs0 -tiering-object-tags project=fabricpool,type=abc,content=data
+----
+--
+====
+
+== Modify an existing tag
+
+You can change the name of a tag, replace tags on existing objects in the object store, or add a different tag to new objects that you plan to add later.
+
+.About this task
+
+Using the `volume modify` command with the `-tiering-object-tags` option replaces existing tags with the new value you provide.
+
+=== Procedure
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+. Navigate to *Storage > Tiers*.
+. Locate a storage tier with volumes containing tags you want to modify.
+. Click the *Volumes* tab.
+. Locate the volume with tags you want to modify, and in the *Object Tags* column click the tag name.
+. Modify the tag.
+. Click *Apply*.
+--
+
+.CLI
+--
+
+
+. Use the `volume modify` command with the `-tiering-object-tags` option to modify an existing tag.
++
+----
+volume modify [ -vserver <vserver name> ] -volume <volume_name> -tiering-object-tags <key1=value1> [ ,<key2=value2>,
+<key3=value3>,<key4=value4> ]
+----
++
+The following example changes the name of the existing tag type=abc to type=xyz.
++
+----
+vol create -volume fp_volume1 -vserver vs0 -tiering-object-tags project=fabricpool,type=xyz,content=data
+----
+--
+====
+
+== Delete a tag
+
+[.lead]
+You can delete object tags when you no longer want them set on a volume or on objects in the object store.
+
+=== Procedure
+
+You can delete object tags with ONTAP System Manager or the ONTAP CLI.
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+. Navigate to *Storage > Tiers*.
+. Locate a storage tier with volumes containing tags you want to delete.
+. Click the *Volumes* tab.
+. Locate the volume with tags you want to delete, and in the *Object Tags* column click the tag name.
+. To delete the tag, click the trash can icon.
+. Click *Apply*.
+--
+
+.CLI
+--
+
+. Use the `volume modify` command with the `-tiering-object-tags` option followed by an empty value (`""`) to delete an existing tag.
++
+The following example deletes the existing tags on fp_volume1.
++
+----
+vol modify -volume fp_volume1 -vserver vs0 -tiering-object-tags ""
+----
+--
+====
+
+== View existing tags on a volume
+
+
+[.lead]
+You can view the existing tags on a volume to see what tags are available before appending new tags to the list.
+
+.Step
+
+. Use the `volume show` command with the `tiering-object-tags` option to view existing tags on a volume.
++
+----
+volume show [ -vserver <vserver name> ] -volume <volume_name> -fields tiering-object-tags
+----
+
+== Check object tagging status on FabricPool volumes
+
+[.lead]
+You can check if tagging is complete on one or more FabricPool volumes.
+
+.Step
+
+. Use the `vol show` command with the `-fields needs-object-retagging` option to see if tagging is in progress, if it has completed, or if tagging is not set.
++
+----
+vol show -fields needs-object-retagging  [ -instance | -volume <volume name>]
+----
++
+One of the following values is displayed:
+
+ ** `true` -- the object tagging scanner has not yet to run or needs to run again for this volume
+ ** `false` -- the object tagging scanner has completed tagging for this volume
+ ** `+<->+` -- the object tagging scanner is not applicable for this volume. This happens for volumes that are not residing on FabricPools.
+
 // 08 DEC 2021, BURT 1430515
+// ONTAPDOC-2580 2024-12-06
