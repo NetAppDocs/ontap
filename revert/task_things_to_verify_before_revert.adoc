@@ -1,21 +1,30 @@
 ---
 permalink: revert/task_things_to_verify_before_revert.html
 sidebar: sidebar
-keywords: ontap, revert, reversion, reverting, downgrade, downgrading, preparation
-summary: 'Various configuration settings can impact cluster upgrade readiness.'
+keywords: ontap, revert, reversion, reverting, downgrade, downgrading, preparation, pre-revert, checks, verification, cluster health, storage health, system time, jobs
+summary: 'Before revert ONTAP, you should verify your cluster health, storage health, and system time.  You should also verify that no jobs are running on the cluster.'
 ---
-= Things to verify before you revert
+= System verifications to perform before you revert an ONTAP cluster
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Before revert, you should verify your cluster health, storage health, and system time.  You should also delete any cluster jobs that are running and gracefully terminate any SMB sessions that are not continuously available.
+Before you revert an ONTAP cluster, you should verify your cluster health, storage health, and system time.  You should also verify that no jobs are running on the cluster.
 
 == Verify cluster health
 
-Before you revert cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum.
+Before you revert an ONTAP cluster, you should verify that the nodes are healthy and eligible to participate in the cluster, and that the cluster is in quorum.
 
-. Verify that the nodes in the cluster are online and are eligible to participate in the cluster: `cluster show`
+.Steps 
+
+. Verify that the nodes in the cluster are online and are eligible to participate in the cluster:
++
+[source,cli]
+----
+cluster show
+----
++
+In this example, all nodes are healthy and eligible to participate in the cluster.
 +
 ----
 cluster1::> cluster show
@@ -27,8 +36,12 @@ node1                 true    true
 +
 If any node is unhealthy or ineligible, check EMS logs for errors and take corrective action.
 
-. Set the privilege level to advanced: +
-`set -privilege advanced`
+. Set the privilege level to advanced:
++
+[source,cli]
+----
+set -privilege advanced
+----
 +
 Enter `y` to continue.
 
@@ -41,22 +54,38 @@ Note that each ring might have a different quorum master.
 [cols=2*,options="header"]
 |===
 | To display this RDB process...| Enter this command...
+
 a|
 Management application
 a|
-`cluster ring show -unitname mgmt`
+[source,cli]
+----
+cluster ring show -unitname mgmt
+----
+
 a|
 Volume location database
 a|
-`cluster ring show -unitname vldb`
+[source,cli]
+----
+cluster ring show -unitname vldb
+----
+
 a|
 Virtual-Interface manager
 a|
-`cluster ring show -unitname vifmgr`
+[source,cli]
+----
+cluster ring show -unitname vifmgr
+----
+
 a|
 SAN management daemon
 a|
-`cluster ring show -unitname bcomd`
+[source,cli]
+----
+cluster ring show -unitname bcomd
+----
 |===
 This example shows the volume location database process:
 +
@@ -71,10 +100,19 @@ node3     vldb     154      154      14847    node0     secondary
 4 entries were displayed.
 ----
 
-. Return to the admin privilege level: +
-`set -privilege admin`
+. Return to the admin privilege level:
++
+[source,cli]
+----
+set -privilege admin
+----
 
-. If you are operating in a SAN environment, verify that each node is in a SAN quorum: `event log show  -severity informational -message-name scsiblade.*`
+. If you are operating in a SAN environment, verify that each node is in a SAN quorum: 
++
+[source,cli]
+----
+event log show  -severity informational -message-name scsiblade.*
+----
 +
 The most recent scsiblade event message for each node should indicate that the scsi-blade is in quorum.
 +
@@ -92,7 +130,9 @@ link:../system-admin/index.html[System administration]
 
 == Verify storage health
 
-Before you revert a cluster, you should verify the status of your disks, aggregates, and volumes.
+Before you revert an ONTAP cluster, you should verify the status of your disks, aggregates, and volumes.
+
+.Steps
 
 . Verify disk status:
 +
@@ -103,18 +143,33 @@ a|
 Broken disks
 a|
 
- .. Display any broken disks: `storage disk show -state broken`
- .. Remove or replace any broken disks.
+.. Display any broken disks:
++
+
+[source,cli]
+----
+storage disk show -state broken
+----
+.. Remove or replace any broken disks.
 
 a|
 Disks undergoing maintenance or reconstruction
 a|
-
- .. Display any disks in maintenance, pending, or reconstructing states: `storage disk show -state maintenance\|pending\|reconstructing`
+.. Display any disks in maintenance, pending, or reconstructing states: 
++
+[source,cli]
+----
+storage disk show -state maintenance\|pending\|reconstructing
+----
  .. Wait for the maintenance or reconstruction operation to finish before proceeding.
 |===
 
-. Verify that all aggregates are online by displaying the state of physical and logical storage, including storage aggregates: `storage aggregate show -state !online`
+. Verify that all aggregates are online by displaying the state of physical and logical storage, including storage aggregates: +
++
+[source,cli]
+----
+storage aggregate show -state !online
+----
 +
 This command displays the aggregates that are _not_ online. All aggregates must be online before and after performing a major upgrade or reversion.
 +
@@ -123,7 +178,12 @@ cluster1::> storage aggregate show -state !online
 There are no entries matching your query.
 ----
 
-. Verify that all volumes are online by displaying any volumes that are _not_ online: `volume show -state !online`
+. Verify that all volumes are online by displaying any volumes that are _not_ online: 
++
+[source,cli]
+----
+volume show -state !online
+----
 +
 All volumes must be online before and after performing a major upgrade or reversion.
 +
@@ -132,7 +192,12 @@ cluster1::> volume show -state !online
 There are no entries matching your query.
 ----
 
-. Verify that there are no inconsistent volumes: `volume show -is-inconsistent true`
+. Verify that there are no inconsistent volumes: 
++
+[source,cli]
+----
+volume show -is-inconsistent true
+----
 +
 See the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Volume_Showing_WAFL_Inconsistent[Volume Showing WAFL Inconsistent] on how to address the inconsistent volumes.
 
@@ -140,12 +205,25 @@ See the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshoo
 
 link:../disks-aggregates/index.html[Disk and aggregate management]
 
-== Verifying the system time
+== Verify the system time
 
-Before you revert, you should verify that NTP is configured, and that the time is synchronized across the cluster.
+Before you revert an ONTAP cluster, you should verify that NTP is configured, and that the time is synchronized across the cluster.
 
-. Verify that the cluster is associated with an NTP server: `cluster time-service ntp server show`
-. Verify that each node has the same date and time: `cluster date show`
+.Steps
+
+. Verify that the cluster is associated with an NTP server: 
++
+[source,cli]
+----
+cluster time-service ntp server show
+----
+
+. Verify that each node has the same date and time: 
++
+[source,cli]
+----
+cluster date show
+----
 +
 ----
 cluster1::> cluster date show
@@ -160,9 +238,18 @@ node3     4/6/2013 20:54:38   GMT
 
 == Verify that no jobs are running
 
-Before you revert the ONTAP software, you must verify the status of cluster jobs. If any aggregate, volume, NDMP (dump or restore), or Snapshot jobs (such as create, delete, move, modify, replicate, and mount jobs) are running or queued, you must allow the jobs to finish successfully or stop the queued entries.
+Before you revert an ONTAP cluster, you should verify the status of cluster jobs. If any aggregate, volume, NDMP (dump or restore), or Snapshot jobs (such as create, delete, move, modify, replicate, and mount jobs) are running or queued, you should allow the jobs to finish successfully or stop the queued entries.
 
-. Review the list of any running or queued aggregate, volume, or Snapshot jobs: `job show`
+.Steps
+
+. Review the list of any running or queued aggregate, volume, or Snapshot jobs:
++
+[source,cli]
+----
+job show
+----
++
+In this example, there are two jobs queued:
 +
 ----
 cluster1::> job show
@@ -174,18 +261,22 @@ Job ID Name                 Vserver    Node           State
 8630   Certificate Expiry Check
                             cluster1   -              Queued
        Description: Certificate Expiry Check
-.
-.
-.
 ----
 
-. Delete any running or queued aggregate, volume, or Snapshot copy jobs: `job delete -id job_id`
+. Delete any running or queued aggregate, volume, or Snapshot copy jobs:
 +
+[source,cli]
 ----
-cluster1::> job delete -id 8629
+job delete -id <job_id>
 ----
++
 
-. Verify that no aggregate, volume, or Snapshot jobs are running or queued: `job show`
+. Verify that no aggregate, volume, or Snapshot jobs are running or queued: 
++
+[source,cli]
+----
+job show
+----
 +
 In this example, all running and queued jobs have been deleted:
 +
@@ -203,62 +294,7 @@ Job ID Name                 Vserver    Node           State
 2 entries were displayed
 ----
 
-
-== SMB sessions that should be terminated
-
-Before you revert, you should identify and gracefully terminate any SMB sessions that are not continuously available.
-
-Continuously available SMB shares, which are accessed by Hyper-V or Microsoft SQL Server clients using the SMB 3.0 protocol, do not need to be terminated before upgrading or downgrading.
-
-. Identify any established SMB sessions that are not continuously available: `vserver cifs session show -continuously-available No -instance`
-+
-This command displays detailed information about any SMB sessions that have no continuous availability. You should terminate them before proceeding with the ONTAP downgrade.
-+
-----
-cluster1::> vserver cifs session show -continuously-available No -instance
-
-                        Node: node1
-                     Vserver: vs1
-                  Session ID: 1
-               Connection ID: 4160072788
-Incoming Data LIF IP Address: 198.51.100.5
-      Workstation IP address: 203.0.113.20
-    Authentication Mechanism: NTLMv2
-                Windows User: CIFSLAB\user1
-                   UNIX User: nobody
-                 Open Shares: 1
-                  Open Files: 2
-                  Open Other: 0
-              Connected Time: 8m 39s
-                   Idle Time: 7m 45s
-            Protocol Version: SMB2_1
-      Continuously Available: No
-1 entry was displayed.
-----
-
-. If necessary, identify the files that are open for each SMB session that you identified: `vserver cifs session file show -session-id session_ID`
-+
-----
-cluster1::> vserver cifs session file show -session-id 1
-
-Node:       node1
-Vserver:    vs1
-Connection: 4160072788
-Session:    1
-File    File      Open Hosting                               Continuously
-ID      Type      Mode Volume          Share                 Available
-------- --------- ---- --------------- --------------------- ------------
-1       Regular   rw   vol10           homedirshare          No
-Path: \TestDocument.docx
-2       Regular   rw   vol10           homedirshare          No
-Path: \file1.txt
-2 entries were displayed.
-----
-
-== NVMe in-band authentication 
-
-If you are reverting from ONTAP 9.12.1 or later to ONTAP 9.12.0 or earlier, you must link:../nvme/disable-secure-authentication-nvme-task.html[disable in-band authentication] before you revert.  If in-band authentication using DH-HMAC-CHAP is not disabled, revert will fail. 
-
+// 2024 Dec 05, Jira 2563
 // 2022 oct 7, IE-615
 // 2022-04-25, BURT 1454366
 // 4 Feb 2022, BURT 1451789

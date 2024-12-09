@@ -4,40 +4,76 @@ sidebar: sidebar
 keywords: ontap, revert, reverting, reversion, systems, deduplication, deduplicated, volumes
 summary: 'Before reverting from any version of ONTAP 9, you must ensure that the volumes contain sufficient free space for the revert operation.'
 ---
-= Verify deduplicated volumes have enough free space before reverting
+= Verify free space for deduplicated volumes before reverting ONTAP
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Before reverting from any version of ONTAP 9, you must ensure that the volumes contain sufficient free space for the revert operation.
+Before you revert an ONTAP cluster from any version of ONTAP 9, you must ensure that the volumes contain sufficient free space for the revert operation.
 
 The volume must have enough space to accommodate the savings that were achieved through the inline detection of blocks of zeros. See the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_see_space_savings_from_deduplication%2C_compression%2C_and_compaction_in_ONTAP_9[How to see space savings from deduplication, compression, and compaction in ONTAP 9].
 
 If you have enabled both deduplication and data compression on a volume that you want to revert, then you must revert data compression before reverting deduplication.
 
-. Use the volume efficiency show command with the -fields option to view the progress of the efficiency operations that are running on the volumes.
-+
-The following command displays the progress of efficiency operations: `volume efficiency show -fields vserver,volume,progress`
+.Steps
 
-. Use the volume efficiency stop command with the -all option to stop all active and queued deduplication operations.
+. View the progress of the efficiency operations that are running on the volumes:
 +
-The following command stops all active and queued deduplication operations on volume VolA: `volume efficiency stop -vserver vs1 -volume VolA -all`
+[source,cli]
+----
+volume efficiency show -fields vserver,volume,progress
+----
 
-. Use the set -privilege advanced command to log in at the advanced privilege level.
-. Use the volume efficiency revert-to command with the -version option to downgrade the efficiency metadata of a volume to a specific version of ONTAP.
+. Stop all active and queued deduplication operations:
 +
-The following command reverts the efficiency metadata on volume VolA to ONTAP 9.x: `volume efficiency revert-to -vserver vs1 -volume VolA -version 9.x`
+[source,cli]
+----
+volume efficiency stop -vserver <svm_name> -volume <volume_name> -all
+----
+
+. Set the privilege level to advanced:
++
+[source,cli]
+----
+set -privilege advanced
+----
+
+. Downgrade the efficiency metadata of a volume to the target version of ONTAP:
++
+[source,cli]
+----
+volume efficiency revert-to -vserver <svm_name> -volume <volume_name> -version <version>
+----
++
+The following example reverts the efficiency metadata on volume VolA to ONTAP 9.x.
++
+----
+volume efficiency revert-to -vserver vs1 -volume VolA -version 9.x
+----
 +
 NOTE: The volume efficiency revert-to command reverts volumes that are present on the node on which this command is executed. This command does not revert volumes across nodes.
 
-. Use the volume efficiency show command with the -op-status option to monitor the progress of the downgrade.
+. Monitor the progress of the downgrade:
 +
-The following command monitors and displays the status of the downgrade: `volume efficiency show -vserver vs1 -op-status Downgrading`
+[source,cli]
+----
+volume efficiency show -vserver <svm_name> -op-status Downgrading
+----
 
-. If the revert does not succeed, use the volume efficiency show command with the -instance option to see why the revert failed.
+. If the revert does not succeed, display the instance to see why the revert failed.
 +
-The following command displays detailed information about all fields: `volume efficiency show -vserver vs1 -volume vol1 - instance`
+[source,cli]
+----
+volume efficiency show -vserver <svm_name> -volume <volume_name> - instance
+----
 
-. After the revert operation is complete, return to the admin privilege level: `set -privilege admin`
+. After the revert operation is complete, return to the admin privilege level: 
 +
-link:../volumes/index.html[Logical storage management]
+[source,cli]
+----
+set -privilege admin
+----
+
+Learn more about link:../volumes/index.html[Logical storage management].
+
+// 2024 Dec 05, Jira 2563
