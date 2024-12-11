@@ -1,20 +1,19 @@
 ---
-permalink: fabricpool/object-deletion-task.html
+permalink: fabricpool/fabricpool-object-deletion.html
 sidebar: sidebar
 keywords: fabricpool, fabric pool, tiering, delete, defrag, unreclaimed, threshold
 summary: "FabricPool deletes objects after a certain percentage of the blocks in the object are no longer referenced by ONTAP."
 ---
-= Object deletion and defragmentation
+= FabricPool object deletion and defragmentation
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
 FabricPool does not delete blocks from attached object stores. Instead, FabricPool deletes objects after a certain percentage of the blocks in the object are no longer referenced by ONTAP.
 
-For example, there are 1,024 4KB blocks in a 4MB object tiered to Amazon S3. Defragmentation and deletion do not occur until less than 205 4KB blocks (20% of 1,024) are being referenced by ONTAP. When enough (1,024) blocks have zero references, their original 4MB objects are deleted, and a new
-object is created.
+For example, there are 1,024 4KB blocks in a 4MB object tiered to Amazon S3. Defragmentation and deletion do not occur until less than 205 4KB blocks (20% of 1,024) are being referenced by ONTAP. When enough (1,024) blocks have zero references, their original 4MB objects are deleted, and a new object is created.
 
-You can customize this percentage, the unreclaimed space threshold, but is set to different default levels for different object stores. The default settings are:
+You can customize the unreclaimed space threshold percentage and set it to different default levels for different object stores. The default settings are:
 
 |===
 h| Object Store h| ONTAP 9.3 and earlier h| ONTAP 9.4 to 9.7 h| ONTAP 9.8 and later h| Cloud Volumes ONTAP
@@ -28,37 +27,40 @@ a| NetApp StorageGRID a| 0% a| 40% a| 40% a| n/a
 == Unreclaimed space threshold
 Changing the default unreclaimed space threshold settings will increase or decrease the accepted amount of object fragmentation. Reducing fragmentation will reduce the amount of physical capacity used by the cloud tier at the expense of additional object store resources (reads and writes).
 
-=== Reducing the threshold
+=== Threshold reduction
 To avoid additional expenses, consider reducing the unreclaimed space thresholds when using object
-store pricing schemes that reduce the cost of storage but increase the cost of reads. Examples include Amazon’s Standard-IA and Azure Blob Storage’s Cool.
+store pricing schemes that reduce the cost of storage but increase the cost of reads. Examples include Amazon's Standard-IA and Azure Blob Storage's Cool.
 
-For example, tiering a volume of 10 year old projects that has been saved for legal reasons might be less expensive when using a pricing scheme such as Standard-IA or Cool than it would be when using standard pricing schemes. Although reads are more expensive for such a volume, including reads required by object defragmentation, they are unlikely to occur frequently.
+For example, tiering a volume of 10-year-old projects that has been saved for legal reasons might be less expensive when using a pricing scheme such as Standard-IA or Cool than it would be when using standard pricing schemes. Although reads are more expensive for such a volume, including reads required by object defragmentation, they are unlikely to occur frequently.
 
-=== Increasing the threshold
+=== Threshold increases
 Alternatively, consider increasing unreclaimed space thresholds if object fragmentation causes significantly more object store capacity to be used than necessary for the data being referenced by ONTAP. For example, using an unreclaimed space threshold of 20% in a worst-case scenario where all
 objects are equally fragmented to the maximum allowable extent means that it is possible for 80% of total capacity in the cloud tier to be unreferenced by ONTAP. For example:
 
 2TB referenced by ONTAP + 8TB unreferenced by ONTAP = 10TB total capacity used by the cloud tier.
 
-In this situation, it might be advantageous to increase the unreclaimed space threshold—or increase volume minimum cooling days—to reduce the capacity used by unreferenced blocks.
+In this situation, it might be advantageous to increase the unreclaimed space threshold or increase volume minimum cooling days to reduce the capacity used by unreferenced blocks.
 
-[Note]
+[NOTE]
 ====
 As objects are defragged and made more storage efficient, underlying files might become more fragmented as referenced blocks are written to new, more efficient objects. For this reason, significantly increasing the unreclaimed space threshold results in objects with increased storage efficiency but possibly reduced sequential read performance.
 ====
+
+== Change the unreclaimed space threshold
+
+You can customize the unreclaimed space threshold percentage for different object stores.
 
 .Before you begin
 
 Advanced privilege level is required.
 
-
 .Steps
 
-. To change the default unreclaimed space threshold, enter the following command:
+. To change the default unreclaimed space threshold, customize and run the following command:
 +
 [source,cli]
 ----
-storage aggregate object-store modify –aggregate <name> -object-store-name <name> –unreclaimedspace-threshold <%> (0%-99%)
+storage aggregate object-store modify -aggregate <name> -object-store-name <name> -unreclaimedspace-threshold <%> (0%-99%)
 ----
 
 
