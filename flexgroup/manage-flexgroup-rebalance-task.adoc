@@ -18,7 +18,7 @@ FlexGroup rebalancing helps redistribute capacity when imbalances develop over t
 You should be aware that FlexGroup rebalancing degrades system performance when large numbers of files are moved as part of a single rebalancing event or over multiple rebalancing events because of the creation of multi-part inodes. Every file moved as part of a rebalancing event has 2 multi-part inodes associated with that file. The larger the number of files with multi-part inodes as a percentage of the total number of files in a FlexGroup, the greater the performance impact. Certain use cases, such as a FlexVol to FlexGroup conversion, can result in a significant amount of multi-part inode creation.
 ====
  
-Rebalancing is available only when all nodes in the cluster are running ONTAP 9.12.1 or later releases. You must enable granular data functionality on any FlexGroup volume that runs the rebalancing operation.  Once that functionality is enabled, you cannot revert to ONTAP 9.11.1 and earlier versions unless you delete this volume or restore from a Snapshot copy that was created before the setting was enabled.
+Rebalancing is available only when all nodes in the cluster are running ONTAP 9.12.1 or later releases. You must enable granular data functionality on any FlexGroup volume that runs the rebalancing operation.  Once that functionality is enabled, you cannot revert to ONTAP 9.11.1 and earlier versions unless you delete this volume or restore from a snapshot that was created before the setting was enabled.
 
 Beginning with ONTAP 9.14.1, ONTAP introduces an algorithm to non-disruptively and proactively move files in volumes that have granular data enabled without user interaction. The algorithm operates in very specific, targeted scenarios to alleviate performance bottlenecks.  Scenarios where this algorithm might act include very heavy write load on a particular set of files on one node in the cluster or a continually growing file in a very hot parent directory. 
 
@@ -41,11 +41,11 @@ File selection for automatic rebalancing is based on blocks saved.  The minimum 
 * Files in Snapshot copies
 +
 
-You can configure FlexGroup rebalancing to only consider files to be moved which are not currently present in any Snapshot copies.  When rebalancing is started, a notification displays if a Snapshot copy operation is scheduled anytime during a rebalancing operation.
+You can configure FlexGroup rebalancing to only consider files to be moved which are not currently present in any Snapshot copies.  When rebalancing is started, a notification displays if a snapshot operation is scheduled anytime during a rebalancing operation.
 +
-Snapshot copies are restricted if a file is being moved and is undergoing framing at the destination.  A Snapshot copy restore operation is not allowed while file rebalancing is in progress.
+Snapshot copies are restricted if a file is being moved and is undergoing framing at the destination.  A snapshot restore operation is not allowed while file rebalancing is in progress.
 +
-Any Snapshot copy created after the `granular-data` option is enabled cannot be replicated to a system running ONTAP 9.11.1 and earlier versions because ONTAP 9.11.1 and earlier versions do not support multi-part inodes.
+Any snapshot created after the `granular-data` option is enabled cannot be replicated to a system running ONTAP 9.11.1 and earlier versions because ONTAP 9.11.1 and earlier versions do not support multi-part inodes.
 
 * SnapMirror operations
 +
@@ -53,11 +53,11 @@ FlexGroup rebalancing should take place between scheduled SnapMirror operations.
 
 * File-based compression storage efficiency
 +
-With file-based compression storage efficiency, the file is decompressed before it’s moved to the destination, so the compression savings is lost. The compression savings is regained after a manually initiated background scanner runs on the FlexGroup volume after rebalancing.  However, if any file is associated with a Snapshot copy on any volume, the file will be ignored for compression.
+With file-based compression storage efficiency, the file is decompressed before it’s moved to the destination, so the compression savings is lost. The compression savings is regained after a manually initiated background scanner runs on the FlexGroup volume after rebalancing. However, if any file is associated with a snapshot on any volume, the file will be ignored for compression.
 
 * Deduplication
 +
-Moving deduplicated files can cause increased overall usage for the FlexGroup volume. During file rebalancing, only unique blocks are moved to the destination, freeing that capacity on the source.  Shared blocks remain on the source and are copied to the destination.  While this achieves the goal of reducing the used capacity on a nearly full source constituent, it can also lead to increased overall usage on the FlexGroup volume due to copies of shared blocks on the new destinations.  This is also possible when files that are part of a Snapshot copy are moved. The space savings is not fully recognized until the Snapshot copy schedule recycles and there are no longer copies of the files in Snapshot copies.
+Moving deduplicated files can cause increased overall usage for the FlexGroup volume. During file rebalancing, only unique blocks are moved to the destination, freeing that capacity on the source. Shared blocks remain on the source and are copied to the destination. While this achieves the goal of reducing the used capacity on a nearly full source constituent, it can also lead to increased overall usage on the FlexGroup volume due to copies of shared blocks on the new destinations. This is also possible when files that are part of a snapshot are moved. The space savings is not fully recognized until the snapshot schedule recycles and there are no longer copies of the files in Snapshot copies.
 
 * FlexClone volumes
 +
