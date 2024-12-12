@@ -14,7 +14,7 @@ Consistency groups offer easily managed local and remote protection for SAN, NAS
 
 Creating a consistency group does not automatically enable protection. Protection policies can be set at the time of creation or after creating your consistency group. You can protect consistency groups using:
 
-* Local Snapshot copies
+* Local snapshots
 * SnapMirror active sync (referred to as SnapMirror Business Continuity in versions of ONTAP before 9.15.1)
 * xref:index.html#mcc[MetroCluster (beginning 9.11.1)]
 * SnapMirror asynchronous (beginning 9.13.1)
@@ -42,10 +42,10 @@ include::../_include/consistency-group-snapshot-minimum.adoc[]
 . Select *Storage > Consistency groups*.
 . Select the consistency group you have created from the Consistency group menu.
 . At the top right of the overview page for the consistency group, select *Edit*.
-. Check the box next to *Schedule Snapshot copies (local)*.
+. Check the box next to *Schedule snapshots (local)*.
 . Select a Snapshot policy. To configure a new, custom policy, refer to link:../task_dp_create_custom_data_protection_policies.html[Create a custom data protection policy].
 . Select *Save*.
-. Return to the consistency group overview menu. In the left column under *Snapshot Copies (Local)*, the status will say protected next to image:../media/icon_shield.png[Shield icon].
+. Return to the consistency group overview menu. In the left column under *Snapshots (Local)*, the status will say protected next to image:../media/icon_shield.png[Shield icon].
 --
 
 .CLI
@@ -74,7 +74,7 @@ If you need to create a snapshot of your consistency group outside of a normally
 .Steps
 . Navigate to *Storage* > *Consistency groups*.
 . Select the consistency group for which you want to create an on-demand snapshot. 
-. Switch to the *Snapshot copies* tab then select *+Add*.
+. Switch to the *snapshots* tab then select *+Add*.
 . Provide a *Name* and a *SnapMirror Label*. In the dropdown menu for *Consistency*, select *Application consistent* or *Crash consistent*. 
 . Select *Save*.  
 --
@@ -169,12 +169,12 @@ Consistency groups offer remote protection through SnapMirror active sync and, b
 
 === Configure protection with SnapMirror active sync
 
-You can utilize SnapMirror active sync to ensure Snapshot copies of consistency groups created on your consistency group are copied to the destination. To learn more about SnapMirror active sync or how to configure SnapMirror active sync using the CLI, see xref:../task_san_configure_protection_for_business_continuity.html[Configure protection for business continuity].
+You can utilize SnapMirror active sync to ensure snapshots of consistency groups created on your consistency group are copied to the destination. To learn more about SnapMirror active sync or how to configure SnapMirror active sync using the CLI, see xref:../task_san_configure_protection_for_business_continuity.html[Configure protection for business continuity].
 
 .Before you begin
 * SnapMirror active sync relationships cannot be established on volumes mounted for NAS access.
 * The policy labels in the source and destination cluster must match.
-* SnapMirror active sync will not replicate Snapshot copies by default unless a rule with a SnapMirror label is added to the predefined `AutomatedFailOver` policy and the Snapshot copies are created with that label.
+* SnapMirror active sync will not replicate snapshots by default unless a rule with a SnapMirror label is added to the predefined `AutomatedFailOver` policy and the snapshots are created with that label.
 +
 To learn more about this process, refer to link:../task_san_configure_protection_for_business_continuity.html[Protect with SnapMirror active sync].
 * xref:../data-protection/supported-deployment-config-concept.html[Cascade deployments] are not supported with SnapMirror active sync. 
@@ -194,20 +194,20 @@ To configure SnapMirror active sync with the CLI, see xref:../task_san_configure
 
 === Configure SnapMirror asynchronous
 
-Beginning with ONTAP 9.13.1, you can configure SnapMirror asynchronous protection for a single consistency group. Beginning with ONTAP 9.14.1, you can use SnapMirror asynchronous to replicate volume-granular Snapshot copies to the destination cluster using the consistency group relationship. 
+Beginning with ONTAP 9.13.1, you can configure SnapMirror asynchronous protection for a single consistency group. Beginning with ONTAP 9.14.1, you can use SnapMirror asynchronous to replicate volume-granular snapshots to the destination cluster using the consistency group relationship. 
 
 .About this task
 
-To replicate volume-granular Snapshot copies, you must be running ONTAP 9.14.1 or later. For MirrorAndVault and Vault policies, the volume-granular Snapshot policy's SnapMirror label must match the consistency group's SnapMirror policy rule. Volume-granular Snapshots abide by the keep value of the consistency group's SnapMirror policy, which is calculated independently of the consistency group Snapshots. For example, if you have a policy to keep two Snapshot copies on the destination, you can have two volume-granular Snapshot copies and two consistency group Snapshot copies.
+To replicate volume-granular snapshots, you must be running ONTAP 9.14.1 or later. For MirrorAndVault and Vault policies, the volume-granular Snapshot policy's SnapMirror label must match the consistency group's SnapMirror policy rule. Volume-granular Snapshots abide by the keep value of the consistency group's SnapMirror policy, which is calculated independently of the consistency group Snapshots. For example, if you have a policy to keep two snapshots on the destination, you can have two volume-granular snapshots and two consistency group snapshots.
 
-When resynchronizing the SnapMirror relationship with volume-granular Snapshot copies, you can preserve volume-granular Snapshot copies with the `-preserve` flag. Volume-granular Snapshot copies newer than consistency group Snapshot copies are preserved. If there is not a consistency group snapshot, no volume-granular Snapshot copies can be transferred in the resync operation. 
+When resynchronizing the SnapMirror relationship with volume-granular snapshots, you can preserve volume-granular snapshots with the `-preserve` flag. Volume-granular snapshots newer than consistency group snapshots are preserved. If there is not a consistency group snapshot, no volume-granular snapshots can be transferred in the resync operation. 
 
 .Before you begin
 * SnapMirror asynchronous protection is only available for a single consistency group. It is not supported for hierarchical consistency groups. To convert a hierarchical consistency group into a single consistency group, see xref:modify-geometry-task.html[modify consistency group architecture].
 * The policy labels in the source and destination cluster must match.
 * You can non-disruptively xref:modify-task.html#add-volumes-to-a-consistency-group[add volumes to a consistency group] with an active SnapMirror asynchronous relationship. Any other changes to a consistency group require you to break the SnapMirror relationship, modify the consistency group, then reestablish and resynchronize the relationship. 
 * Consistency groups enabled for protection with SnapMirror asynchronous have different limits. For more information, see xref:limits.html[Consistency group limits].
-* If you have configured an SnapMirror asynchronous protection relationship for multiple individual volumes, you can convert those volumes into a consistency group while retaining the existing Snapshot copies. To convert volumes successfully:
+* If you have configured an SnapMirror asynchronous protection relationship for multiple individual volumes, you can convert those volumes into a consistency group while retaining the existing snapshots. To convert volumes successfully:
 ** There must be a common snapshot of the volumes.
 ** You must break the existing SnapMirror relationship, xref:configure-task.html[add the volumes to a single consistency group], then resynchronize the relationship using the following workflow.  
 
@@ -246,9 +246,9 @@ System Manager visualizes LUN maps under the *Protection > Relationships* menu. 
 
 .Related information
 * link:clone-task.html[Clone a consistency group]
-* link:../task_dp_configure_snapshot.html[Configure Snapshot copies]
+* link:../task_dp_configure_snapshot.html[Configure snapshots]
 * link:../task_dp_create_custom_data_protection_policies.html[Create custom data protection policies] 
-* link:../task_dp_recover_snapshot.html[Recover from Snapshot copies] 
+* link:../task_dp_recover_snapshot.html[Recover from snapshots] 
 * link:../task_dp_restore_from_vault.html[Restore a volume from an earlier snapshot]
 * link:../snapmirror-active-sync/index.html[SnapMirror active sync overview]
 * link:https://docs.netapp.com/us-en/ontap-automation/[ONTAP Automation documentation^]
