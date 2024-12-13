@@ -1,17 +1,17 @@
 ---
-permalink: system-admin/troubleshoot-autosupport-http-https-task.html
+permalink: system-admin/troubleshoot-autosupport-https-task.html
 sidebar: sidebar
 keywords: troubleshoot, autosupport, message, delivery, http, https, check, settings, resolve, problem
-summary: "If the system does not send the expected AutoSupport message and you are using HTTP or HTTPS, you can check a number of settings to resolve the problem."
+summary: "If the system does not send the expected AutoSupport message and you are using HTTPS, you can check a number of settings to resolve the problem."
 ---
-= Troubleshoot AutoSupport message delivery over HTTP or HTTPS
+= Troubleshoot AutoSupport message delivery over HTTPS
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-If the system does not send the expected AutoSupport message and you are using HTTP or HTTPS, or the Automatic Update feature is not working, you can check a number of settings to resolve the problem.
+If the system does not send the expected AutoSupport message, and you are using HTTPS or the Automatic Update feature is not working, you can check a number of settings to resolve the problem.
 
-.What you'll need
+.Before you begin
 
 You should have confirmed basic network connectivity and DNS lookup:
 
@@ -22,7 +22,7 @@ You should have confirmed basic network connectivity and DNS lookup:
 
 .About this task
 
-These steps are for cases when you have determined that AutoSupport can generate the message, but cannot deliver the message over HTTP or HTTPS.
+These steps are for cases when you have determined that AutoSupport can generate the message, but cannot deliver the message over HTTPS.
 
 If you encounter errors or cannot complete a step in this procedure, determine and address the problem before proceeding to the next step.
 
@@ -36,21 +36,30 @@ This includes verifying connectivity to AutoSupport destinations by sending test
 
 . Verify the status of the node management LIF:
 +
-`network interface show -home-node local -role node-mgmt -fields vserver,lif,status-oper,status-admin,address,role`
+[source,cli]
+----
+network interface show -home-node local -role node-mgmt -fields vserver,lif,status-oper,status-admin,address,role
+----
 +
-The `status-oper` and `status-admin` fields should return "`up`".
+The `status-oper` and `status-admin` fields should return `up`.
 
 . Record the SVM name, the LIF name, and the LIF IP address for later use.
 
 . Ensure that DNS is enabled and configured correctly:
 +
-`vserver services name-service dns show`
+[source,cli]
+----
+vserver services name-service dns show
+----
 
 . Address any errors returned by the AutoSupport message:
 +
-`system node autosupport history show -node * -fields node,seq-num,destination,last-update,status,error`
+[source,cli]
+----
+system node autosupport history show -node * -fields node,seq-num,destination,last-update,status,error
+----
 +
-For assistance troubleshooting any returned errors, see the link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/ONTAP_AutoSupport_(Transport_HTTPS_and_HTTP)_Resolution_Guide[ONTAP AutoSupport (Transport HTTPS and HTTP) Resolution Guide^].
+For assistance troubleshooting any returned errors, refer to the link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/ONTAP_AutoSupport_(Transport_HTTPS_and_HTTP)_Resolution_Guide[ONTAP AutoSupport (Transport HTTPS and HTTP) Resolution Guide^].
 
 . Confirm that the cluster can access both the servers it needs and the Internet successfully:
 .. `network traceroute -lif node-management_LIF -destination DNS server`
@@ -65,7 +74,7 @@ The address `support.netapp.com` itself does not respond to ping/traceroute, but
 .. `network traceroute -node node_management_LIF -destination proxy_url`
 
 +
-If any of these routes are not functioning, try the same route from a functioning host on the same subnet as the cluster, using the "`traceroute`" or "`tracert`" utility found on most third-party network clients. This assists you in determining whether the issue is in your network configuration or your cluster configuration.
+If any of these routes are not functioning, try the same route from a functioning host on the same subnet as the cluster, using the `traceroute` or `tracert` utility found on most third-party network clients. You can then determine whether the issue is in your network configuration or your cluster configuration.
 . If you are using HTTPS for your AutoSupport transport protocol, ensure that HTTPS traffic can exit your network:
 .. Configure a web client on the same subnet as the cluster management LIF.
 +
@@ -75,12 +84,13 @@ Ensure that all configuration parameters are the same values as for the AutoSupp
 +
 The access should be successful. If not, ensure that all firewalls are configured correctly to allow HTTPS and DNS traffic, and that the proxy server is configured correctly. For more information on configuring static name resolution for support.netapp.com, see the Knowledge Base article https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_would_a_HOST_entry_be_added_in_ONTAP_for_support.netapp.com%3F[How would a HOST entry be added in ONTAP for support.netapp.com?^]
 
-. Beginning with ONTAP 9.10.1, if you enabled the Automatic Update feature, ensure you have HTTPS connectivity to the following additional URLs:
+. Beginning with ONTAP 9.10.1 if you enabled the Automatic Update feature, ensure you have HTTPS connectivity to the following additional URLs:
 +
 // Do not add live links here
 * \https://support-sg-emea.netapp.com
 * \https://support-sg-naeast.netapp.com
 * \https://support-sg-nawest.netapp.com
 
+// 2024-12-12, ontapdoc-2594
 // 2022-06-27, BURT 1485042
 // BURT 1378248, 03 DEC 2021
