@@ -2,7 +2,7 @@
 permalink: consistency-groups/protect-task.html
 sidebar: sidebar
 keywords: application protection, two-phase commit, 2 phase, smbc, async snapmirror, local, remote, snapshot, asynchronous, svm disaster recovery, snapmirror
-summary: "Use consistency groups to protect data using local Snapshots, SnapMirror asynchronous, SnapMirror active sync, and SVM disaster recovery." 
+summary: "Use consistency groups to protect data using local snapshots, SnapMirror asynchronous, SnapMirror active sync, and SVM disaster recovery." 
 ---
 = Protect consistency groups
 :icons: font
@@ -22,7 +22,7 @@ Creating a consistency group does not automatically enable protection. Protectio
 
 If you are utilizing nested consistency groups, you can set different protection policies for the parent and child consistency groups.
 
-Beginning with ONTAP 9.11.1, consistency groups offer <<two-phase,two-phase consistency group Snapshot creation>>. The two-phase Snapshot operation executes a pre-check, ensuring the snapshot is captured successfully.  
+Beginning with ONTAP 9.11.1, consistency groups offer <<two-phase,two-phase consistency group snapshot creation>>. The two-phase snapshot operation executes a pre-check, ensuring the snapshot is captured successfully.  
 
 Recovery can occur for an entire consistency group, a single consistency group in a hierarchical configuration, or for individual volumes within the consistency group. Recovery can be achieved by selecting the consistency group you want to recover from, selecting the snapshot type, and then identifying the snapshot to base the restoration on. For more information about this process, see link:../task_dp_restore_from_vault.html[Restore a volume from an earlier snapshot].
 
@@ -88,34 +88,34 @@ include::../_include/consistency-group-cli.adoc[]
 .Step
 . Create the snapshot:
 +
-By default, the Snapshot type is crash-consistent. You can modify the Snapshot type with the optional `-type` parameter. 
+By default, the snapshot type is crash-consistent. You can modify the snapshot type with the optional `-type` parameter. 
 +
 `consistency-group snapshot create -vserver _svm_name_ -consistency-group _consistency_group_name_ -snapshot _snapshot_name_`
 --
 ====
 
-== Create two-phase consistency group Snapshots [[two-phase]]
+== Create two-phase consistency group snapshots [[two-phase]]
 
-Beginning with ONTAP 9.11.1, consistency groups support two-phase commits for consistency group (CG) Snapshot creation, which execute a precheck before committing the snapshot. This feature is only available with the ONTAP REST API.
+Beginning with ONTAP 9.11.1, consistency groups support two-phase commits for consistency group (CG) snapshot creation, which execute a precheck before committing the snapshot. This feature is only available with the ONTAP REST API.
 
-Two-phase CG Snapshot creation is only available for Snapshot creation, not provisioning consistency groups or restoring consistency groups. 
+Two-phase CG snapshot creation is only available for snapshot creation, not provisioning consistency groups or restoring consistency groups. 
 
-A two-phase CG Snapshot breaks the Snapshot creation process into two phases:
+A two-phase CG snapshot breaks the snapshot creation process into two phases:
 
-. In the first phase, the API executes prechecks and triggers Snapshot creation. The first phase includes includes a timeout parameter, designating the amount of time for the snapshot to commit successfully. 
+. In the first phase, the API executes prechecks and triggers snapshot creation. The first phase includes includes a timeout parameter, designating the amount of time for the snapshot to commit successfully. 
 . If the request in phase one completes successfully, you can invoke the second phase within the designated interval from the first phase, committing the snapshot to the appropriate endpoint.  
 
 .Before you begin
-* To use two-phase CG Snapshot creation, all nodes in the cluster must be running ONTAP 9.11.1 or later. 
-* Only one active invocation of a consistency group Snapshot operation is supported on a consistency group instance at a time, whether it be a one-phase or two-phase. Attempting to invoke a Snapshot operation while another one is in progress results in a failure. 
-* When you invoke the Snapshot creation, you can set an optional timeout value of between 5 and 120 seconds. If no timeout value is provided, the operation times out at the default of 7 seconds. In the API, set the timeout value with the `action_timeout` parameter. In the CLI, use the `-timeout` flag. 
+* To use two-phase CG snapshot creation, all nodes in the cluster must be running ONTAP 9.11.1 or later. 
+* Only one active invocation of a consistency group snapshot operation is supported on a consistency group instance at a time, whether it be a one-phase or two-phase. Attempting to invoke a snapshot operation while another one is in progress results in a failure. 
+* When you invoke the snapshot creation, you can set an optional timeout value of between 5 and 120 seconds. If no timeout value is provided, the operation times out at the default of 7 seconds. In the API, set the timeout value with the `action_timeout` parameter. In the CLI, use the `-timeout` flag. 
 
 .Steps
 
-You can complete a two-phase Snapshot with the REST API or, beginning with ONTAP 9.14.1, the ONTAP CLI. This operation is not supported in System Manager. 
+You can complete a two-phase snapshot with the REST API or, beginning with ONTAP 9.14.1, the ONTAP CLI. This operation is not supported in System Manager. 
 
 [NOTE]
-If you invoke the Snapshot creation with the API, you must commit the snapshot with the API. If you invoke the Snapshot creation with the CLI, you must commit the snapshot with the CLI. Mixing methods is not supported. 
+If you invoke the snapshot creation with the API, you must commit the snapshot with the API. If you invoke the snapshot creation with the CLI, you must commit the snapshot with the CLI. Mixing methods is not supported. 
 
 [role="tabbed-block"]
 ====
@@ -126,20 +126,20 @@ Beginning with ONTAP 9.14.1, you can create a two-phase snapshot using the CLI.
 include::../_include/consistency-group-cli.adoc[]
 
 .Steps
-. Initiate the Snapshot:
+. Initiate the snapshot:
 +
 `consistency-group snapshot start -vserver _svm_name_ -consistency-group _consistency_group_name_ -snapshot _snapshot_name_ [-timeout _time_in_seconds_ -write-fence {true|false}]`
-. Verify the Snapshot was taken:
+. Verify the snapshot was taken:
 +
 `consistency-group snapshot show`
-. Commit the Snapshot: 
+. Commit the snapshot: 
 +
 `consistency-group snapshot commit _svm_name_ -consistency-group _consistency_group_name_ -snapshot _snapshot_name_`
 --
 
 .API
 --
-. Invoke the Snapshot creation. Send a POST request to the consistency group endpoint using the `action=start` parameter.
+. Invoke the snapshot creation. Send a POST request to the consistency group endpoint using the `action=start` parameter.
 +
 [source,curl]
 ----
@@ -152,7 +152,7 @@ curl -k -X POST 'https://<IP_address>/application/consistency-groups/<cg-uuid>/s
 }'
 ----
 +
-. If the POST request succeeds, the output includes a Snapshot uuid. Using that uuid, submit a PATCH request to commit the snapshot.
+. If the POST request succeeds, the output includes a snapshot uuid. Using that uuid, submit a PATCH request to commit the snapshot.
 +
 [source,curl]
 ----
@@ -198,7 +198,7 @@ Beginning with ONTAP 9.13.1, you can configure SnapMirror asynchronous protectio
 
 .About this task
 
-To replicate volume-granular snapshots, you must be running ONTAP 9.14.1 or later. For MirrorAndVault and Vault policies, the volume-granular snapshot policy's SnapMirror label must match the consistency group's SnapMirror policy rule. Volume-granular Snapshots abide by the keep value of the consistency group's SnapMirror policy, which is calculated independently of the consistency group Snapshots. For example, if you have a policy to keep two snapshots on the destination, you can have two volume-granular snapshots and two consistency group snapshots.
+To replicate volume-granular snapshots, you must be running ONTAP 9.14.1 or later. For MirrorAndVault and Vault policies, the volume-granular snapshot policy's SnapMirror label must match the consistency group's SnapMirror policy rule. Volume-granular snapshots abide by the keep value of the consistency group's SnapMirror policy, which is calculated independently of the consistency group snapshots. For example, if you have a policy to keep two snapshots on the destination, you can have two volume-granular snapshots and two consistency group snapshots.
 
 When resynchronizing the SnapMirror relationship with volume-granular snapshots, you can preserve volume-granular snapshots with the `-preserve` flag. Volume-granular snapshots newer than consistency group snapshots are preserved. If there is not a consistency group snapshot, no volume-granular snapshots can be transferred in the resync operation. 
 
