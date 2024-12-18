@@ -1,0 +1,53 @@
+---
+permalink: flexcache-writeback/flexcache-write-back-guidelines.html
+sidebar: sidebar
+keywords: tr-4743, flexcache writeback, flexcache write-back, flexcache, write-back, write back, guidelines
+summary: "Follow these guidelines to ensure optimal performance when using FlexCache write-back."
+---
+= FlexCache write-back guidelines
+
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+    
+[.lead]
+FlexCache write-back involves many complex interactions between the origin and caches. To ensure optimal performance, you should ensure your environment follows these guidelines. These guidelines are based on the latest major ONTAP version available at the time of writing--ONTAP 9.15.1.
+
+== Guidelines
+
+The following guidelines are well-tested internally at NetApp. They are simply that--guidelines. It is recommended you stay within them. If you do not, it may still work, or you may have unexpected behavior.
+
+BEST PRACTICE: Test your production workload in a non-production environment. This is even more important if you are implementing FlexCache write-back outside of these guidelines.
+
+---
+- Significant enhancements for FlexCache write-back were introduced in ONTAP 9.15.1P5. It is **strongly** recommended you run at least this version at both the origin and cache clusters.
+
+---
+- In its current iteration, FlexCache write-back caches should be configured with a single constituent for the entire FlexCache volume. Multi-constituent FlexCaches can result in unwanted evictions of data from the cache.
+
+---
+- Testing has been executed for files smaller that 100GB and WAN round-trip times between the cache and origin not exceeding 100ms. Any workloads outside of these limits may result in unexpected performance characteristics.
+
+---
+- Writing to SMB alternate data streams will cause the main file to be evicted from the cache. All dirty data for the main file will have to be flushed to the origin before any other operations can take place on that file. The alternate data stream will also be forwarded to the origin.
+
+---
+- Renaming a file will cause the file to be evicted from the cache. All dirty data for the file will have to be flushed to the origin before any other operations can take place on that file.
+
+---
+- DRAFT: Currently, write-back-enabled FlexCaches can only absorb SETATTRs with any of the attributes listed below. Any other attributes are forwarded to origin which might result in evicting the file from the cache. If you require other SETATTR attributes to be absorbed at the cache, please ask your account team to open a PVR. 
+
+    * Time stamps
+    * Mode bits
+    * NT ACL
+    * Owner
+    * Group
+    * Size 
+
+---
+- Snapshots taken at the origin will result in recalling all outstanding dirty data from every write-back-enabled cache associated with that origin volume. This might require multiple retries of the operation if there is significant write-back activity in progress, as evicts of those dirty files might take some time.
+
+---
+- The origin must remain under 80% full. Cache volumes are not granted exclusive lock delegations if there isn't at least 20% space remaining in the origin volume. Calls to a write-back-enabled cache will be forwarded to the origin in this situation. This helps prevent running out of space at the origin, which would result in leaving dirty data orphaned at a write-back-enabled cache.
