@@ -17,7 +17,7 @@ FlexCache write-back involves many complex interactions between the origin and c
 
 == Guidelines
 
-The following guidelines are well-tested internally at NetApp. They are simply that--guidelines. It is recommended you stay within them. If you do not, it may still work, or you may have unexpected behavior.
+The following guidelines are well-tested internally at NetApp. It is *_strongly_* recommended you stay within them. If you do not, unexpected behavior could occur.
 
 BEST PRACTICE: Test your production workload in a non-production environment. This is even more important if you are implementing FlexCache write-back outside of these guidelines.
 
@@ -28,7 +28,7 @@ BEST PRACTICE: Test your production workload in a non-production environment. Th
 - In its current iteration, FlexCache write-back caches should be configured with a single constituent for the entire FlexCache volume. Multi-constituent FlexCaches can result in unwanted evictions of data from the cache.
 
 ---
-- Testing has been executed for files smaller that 100GB and WAN round-trip times between the cache and origin not exceeding 100ms. Any workloads outside of these limits may result in unexpected performance characteristics.
+- Testing has been executed for files smaller than 100GB and WAN round-trip times between the cache and origin not exceeding 100ms. Any workloads outside of these limits may result in unexpected performance characteristics.
 
 ---
 - Writing to SMB alternate data streams will cause the main file to be evicted from the cache. All dirty data for the main file will have to be flushed to the origin before any other operations can take place on that file. The alternate data stream will also be forwarded to the origin.
@@ -37,14 +37,16 @@ BEST PRACTICE: Test your production workload in a non-production environment. Th
 - Renaming a file will cause the file to be evicted from the cache. All dirty data for the file will have to be flushed to the origin before any other operations can take place on that file.
 
 ---
-- DRAFT: Currently, write-back-enabled FlexCaches can only absorb SETATTRs with any of the attributes listed below. Any other attributes are forwarded to origin which might result in evicting the file from the cache. If you require other SETATTR attributes to be absorbed at the cache, please ask your account team to open a PVR. 
+-- At this time, the only attributes that can be changed or set on a file on the write-back-enabled FlexCache volume are:
+    
+    ** Time stamps
+    ** Mode bits
+    ** NT ACL
+    ** Owner
+    ** Group
+    ** Size
 
-    * Time stamps
-    * Mode bits
-    * NT ACL
-    * Owner
-    * Group
-    * Size 
+Any other attributes that are changed or set will be forwarded to origin which might result in evicting the file from the cache. If you require other attributes to be changed or set at the cache, please ask your account team to open a PVR.
 
 ---
 - Snapshots taken at the origin will result in recalling all outstanding dirty data from every write-back-enabled cache associated with that origin volume. This might require multiple retries of the operation if there is significant write-back activity in progress, as evicts of those dirty files might take some time.
