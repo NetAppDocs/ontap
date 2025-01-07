@@ -43,28 +43,28 @@ The command to unpartition a disk is only available at the diag level and should
 You can also refer to the Knowledge Base article link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Systems/FAS_Systems/How_to_unpartition_a_spare_drive_in_ONTAP[How to unpartition a spare drive in ONTAP^]
 
 +
-`disk unpartition _disk_name_`
+`disk unpartition <disk_name>`
 . Sanitize the specified disks:
 +
-`disk sanitize start [-p _pattern1_|-r [-p _pattern2_|-r [-p _pattern3_|-r]]] [-c _cycle_count_] _disk_list_`
+`disk sanitize start [-p <pattern1>|-r [-p <pattern2>|-r [-p <pattern3>|-r]]] [-c <cycle_count>] <disk_list>`
 +
 NOTE: Do not turn off power to the node, disrupt the storage connectivity, or remove target disks while sanitizing. If sanitizing is interrupted during the formatting phase, the formatting phase must be restarted and allowed to finish before the disks are sanitized and ready to be returned to the spare pool. If you need to abort the sanitization process, you can do so by using the `disk sanitize abort` command. If the specified disks are undergoing the formatting phase of sanitization, the abort does not occur until the phase is complete.
 
 +
-`-p` `_pattern1_` `-p` `_pattern2_` `-p` `_pattern3_` specifies a cycle of one to three user-defined hex byte overwrite patterns that can be applied in succession to the disks being sanitized. The default pattern is three passes, using 0x55 for the first pass, 0xaa for the second pass, and 0x3c for the third pass.
+`-p` `<pattern1>` `-p` `<pattern2>` `-p` `<pattern3>` specifies a cycle of one to three user-defined hex byte overwrite patterns that can be applied in succession to the disks being sanitized. The default pattern is three passes, using 0x55 for the first pass, 0xaa for the second pass, and 0x3c for the third pass.
 +
 `-r` replaces a patterned overwrite with a random overwrite for any or all of the passes.
 +
-`-c` `_cycle_count_` specifies the number of times that the specified overwrite patterns are applied. The default value is one cycle. The maximum value is seven cycles.
+`-c` `<cycle_count>` specifies the number of times that the specified overwrite patterns are applied. The default value is one cycle. The maximum value is seven cycles.
 +
-`_disk_list_` specifies a space-separated list of the IDs of the spare disks to be sanitized.
+`<disk_list>` specifies a space-separated list of the IDs of the spare disks to be sanitized.
 
 . If desired, check the status of the disk sanitization process:
 +
-`disk sanitize status [_disk_list_]`
+`disk sanitize status [<disk_list>]`
 . After the sanitization process is complete, return the disks to spare status for each disk:
 +
-`disk sanitize release _disk_name_`
+`disk sanitize release <disk_name>`
 . Exit maintenance mode.
 
 ====
@@ -72,7 +72,7 @@ NOTE: Do not turn off power to the node, disrupt the storage connectivity, or re
 .Sanitize a disk with "`nodeshell`" commands (all ONTAP 9 releases)
 [%collapsible]
 ====
-For all versions of ONTAP 9, when disk sanitization is enabled using nodeshell commands, some low-level ONTAP commands are disabled. After disk sanitization is enabled on a node, it cannot be disabled.
+After the disk sanitization feature is enabled using nodeshell commands on a node, it cannot be disabled.
 
 .Before you  begin
 
@@ -98,11 +98,11 @@ include::../_include/unpartition-disk.adoc[]
 --
 
 +
-`disk unpartition _disk_name_`
+`disk unpartition <disk_name>`
 
 . Enter the nodeshell for the node that owns the disks you want to sanitize:
 +
-`system node run -node _node_name_`
+`system node run -node <node_name>`
 
 . Enable disk sanitization:
 +
@@ -114,7 +114,7 @@ You are asked to confirm the command because it is irreversible.
 `priv set advanced`
 . Sanitize the specified disks:
 +
-`disk sanitize start [-p pattern1|-r [-p pattern2|-r [-p pattern3|-r]]] [-c cycle_count] disk_list`
+`disk sanitize start [-p <pattern1>|-r [-p <pattern2>|-r [-p <pattern3>|-r]]] [-c <cycle_count>] <disk_list>`
 +
 NOTE: Do not turn off power to the node, disrupt the storage connectivity, or remove target
 disks while sanitizing. If sanitizing is interrupted during the formatting phase, the formatting
@@ -124,26 +124,26 @@ abort command. If the specified disks are undergoing the formatting phase of san
 abort does not occur until the phase is complete.
 
 +
-`-p pattern1 -p pattern2 -p pattern3` specifies a cycle of one to three user-defined hex byte
+`-p <pattern1> -p <pattern2> -p <pattern3>` specifies a cycle of one to three user-defined hex byte
 overwrite patterns that can be applied in succession to the disks being sanitized. The default
 pattern is three passes, using 0x55 for the first pass, 0xaa for the second pass, and 0x3c for the
 third pass.
 +
 `-r` replaces a patterned overwrite with a random overwrite for any or all of the passes.
 +
-`-c cycle_count` specifies the number of times that the specified overwrite patterns are applied.
+`-c <cycle_count>` specifies the number of times that the specified overwrite patterns are applied.
 +
 The default value is one cycle. The maximum value is seven cycles.
 +
-`disk_list` specifies a space-separated list of the IDs of the spare disks to be sanitized.
+`<disk_list>` specifies a space-separated list of the IDs of the spare disks to be sanitized.
 
 . If you want to check the status of the disk sanitization process:
 +
-`disk sanitize status [disk_list]`
+`disk sanitize status [<disk_list>]`
 
 . After the sanitization process is complete, return the disks to spare status:
 +
-`disk sanitize release _disk_name_`
+`disk sanitize release <disk_name>`
 
 . Return to the nodeshell admin privilege level:
 +
@@ -176,11 +176,11 @@ a| Complete the following steps:
 
 .. Assign the unassigned sanitized disks to the appropriate node for each disk:
 +
-`storage disk assign -disk _disk_name_ -owner _node_name_`
+`storage disk assign -disk <disk_name> -owner <node_name>`
 
 .. Return the disks to spare status for each disk:
 +
-`storage disk unfail -disk _disk_name_ -s -q`
+`storage disk unfail -disk <disk_name> -s -q`
 
 .. Return to administrative mode:
 +
@@ -194,6 +194,7 @@ The specified disks are sanitized and designated as hot spares. The serial numbe
 
 The specified disks’ sanitization logs, which show what was completed on each disk, are written to `/mroot/etc/log/sanitization.log`.
 
+// 12/10/2024 GH-1384
 // 2022-sep-26, issue #661
 // 2022-sep-11, BURT 1485072
 // 2022-aug-10, issue #621

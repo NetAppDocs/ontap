@@ -1,0 +1,73 @@
+---
+sidebar: sidebar
+permalink: networking/configure_lifs_cluster_administrators_only_overview.html
+keywords: configure, configuring, configuration, setup, set, up, introducing, introduction, overview, introducing lif configuration, configure lifs
+summary: Introducing LIF configuration
+---
+
+= Configure LIFs overview
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+
+[.lead]
+A LIF (logical interface) represents a network access point to a node in the cluster. You can configure LIFs on ports over which the cluster sends and receives communications over the network.
+
+A cluster administrator can create, view, modify, migrate, revert, or delete LIFs. An SVM administrator can only view the LIFs associated with the SVM.
+
+A LIF is an IP address or WWPN with associated characteristics, such as a service policy, a home port, a home node, a list of ports to fail over to, and a firewall policy. You can configure LIFs on ports over which the cluster sends and receives communications over the network.
+
+NOTE: Beginning with ONTAP 9.10.1, firewall policies are deprecated and wholly replaced with LIF service policies. For more information, see link:../networking/configure_firewall_policies_for_lifs.html[Configure firewall policies for LIFs].
+
+LIFs can be hosted on the following ports:
+
+* Physical ports that are not part of interface groups
+* Interface groups
+* VLANs
+* Physical ports or interface groups that host VLANs
+* Virtual IP (VIP) ports
++
+Beginning with ONTAP 9.5, VIP LIFs are supported and are hosted on VIP ports.
+
+While configuring SAN protocols such as FC on a LIF, it will be associated with a WWPN.
+
+link:../san-admin/index.html[SAN administration^]
+
+The following figure illustrates the port hierarchy in an ONTAP system:
+
+image:ontap_nm_image13.png[Port hierarchy image]
+
+== LIF failover and giveback
+
+A LIF failover occurs when a LIF moves from its home node or port to its HA partner node or port. A LIF failover can be triggered automatically by ONTAP or manually by a cluster administrator for certain events such as a down physical Ethernet link or a node dropping out of replicated database (RDB) quorum. When a LIF failover occurs, ONTAP continues normal operation on the partner node until the reason for the failover is resolved. When the home node or port regains health, the LIF is reverted from the HA partner back to its home node or port.  This reversion is called a giveback.
+
+For LIF failover and giveback, ports from each node need to belong to the same broadcast domain. To check that the relevant ports on each node belong to the same broadcast domain, see the following:
+
+* ONTAP 9.8 and later: link:../networking/repair_port_reachability.html[Repair port reachability]
+* ONTAP 9.7 and earlier: link:../networking/add_or_remove_ports_from_a_broadcast_domain97.html[Add or remove ports from a broadcast domain]
+
+For LIFs with LIF failover enabled (either automatically or manually), the following applies:
+
+* For LIFs using a data service policy, you can check failover-policy restrictions:
+** ONTAP 9.6 and later: link:lifs_and_service_policies96.html[LIFs and service policies in ONTAP 9.6 and later]
+** ONTAP 9.5 and earlier: link:lif_roles95.html[LIF roles in ONTAP 9.5 and earlier]
+* Auto-revert of LIFs happens when the auto-revert is set to `true` and when the LIF's home port is healthy and able to host the LIF.
+* On a planned or unplanned node takeover, the LIF on the node that is taken over, fails over to the HA partner. The port on which the LIF fails over is determined by VIF Manager.
+* After the failover is complete, the LIF operates normally.
+* When a giveback is initiated, the LIF reverts back to its home node and port, if auto-revert is set to `true`.
+* When an ethernet link goes down on a port hosting one or more LIFs, the VIF Manager migrates the LIFs from the down port to a different port in the same broadcast domain. The new port could be in the same node or its HA partner. After the link is restored and if auto-revert is set to `true`, the VIF Manager reverts the LIFs back to their home node and home port.
+* When a node drops out of replicated database (RDB) quorum, the VIF Manager migrates the LIFs from the out of quorum node to its HA partner. After the node comes back into quorum and if auto-revert is set to `true`, the VIF Manager reverts the LIFs back to their home node and home port.
+
+
+// 11 and 15 DEC 2023, ONTAPDOC-1457 move iscsi details to generic LIF failover and giveback section
+// 7 DEC 2023, ONTAPDOC-1457 and added detail to overview name
+// 2023 Jan 10, Jira ONTAPDOC-716
+// 08 DEC 2021,BURT 1430515
+// Created with NDAC Version 2.0 (August 17, 2020)
+// restructured: March 2021
+// enhanced keywords May 2021
+// CSAR 1408595
+// merged what lifs are topic Sep 2021

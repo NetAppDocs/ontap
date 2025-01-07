@@ -1,0 +1,151 @@
+---
+sidebar: sidebar
+permalink: networking/configure_network_security_using_federal_information_processing_standards_fips.html
+keywords: fips 140-2, compliant, ssl, connections, tlsv1.2, tlsv1.1, tlsv1, enable fips, disable fips, compliance status, SSL
+summary:  Federal Information Processing Standards (FIPS) 140-2 compliant for all SSL connections
+---
+= Configure network security using federal information processing standards (FIPS)
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+ONTAP is compliant in the Federal Information Processing Standards (FIPS) 140-2 for all SSL connections. You can turn on and off SSL FIPS mode, set SSL protocols globally, and turn off any weak ciphers such as RC4 within ONTAP.
+
+By default, SSL on ONTAP is set with FIPS compliance disabled and SSL protocol enabled with the following:
+
+* TLSv1.3 (beginning in ONTAP 9.11.1)
+* TLSv1.2
+* TLSv1.1
+* TLSv1
+
+When SSL FIPS mode is enabled, SSL communication from ONTAP to external client or server components outside of ONTAP will use FIPS compliant crypto for SSL.
+
+If you want administrator accounts to access SVMs with an SSH public key, you must ensure that the host key algorithm is supported before enabling SSL FIPS mode.
+
+*Note:* Host key algorithm support has changed in ONTAP 9.11.1 and later releases.
+
+[cols="30,30,30"]
+|===
+
+h| ONTAP release h| Supported key types h| Unsupported key types
+
+a| 9.11.1 and later
+a| ecdsa-sha2-nistp256
+a| rsa-sha2-512 +
+rsa-sha2-256 +
+ssh-ed25519 +
+ssh-dss +
+ssh-rsa
+
+a| 9.10.1 and earlier
+a| ecdsa-sha2-nistp256 +
+ssh-ed25519
+a| ssh-dss +
+ssh-rsa
+
+|===
+
+Existing SSH public key accounts without the supported key algorithms must be reconfigured with a supported key type before enabling FIPS, or the administrator authentication will fail.
+
+For more information, see link:../authentication/enable-ssh-public-key-accounts-task.html[Enable SSH public key accounts].
+
+For more information about SSL FIPS mode configuration, see the `security config modify` man page.
+
+== Enable FIPS
+
+It is recommended that all secure users adjust their security configuration immediately after system installation or upgrade. When SSL FIPS mode is enabled, SSL communication from ONTAP to external client or server components outside of ONTAP will use FIPS compliant crypto for SSL.
+
+[NOTE]
+When FIPS is enabled, you cannot install or create a certificate with an RSA key length of 4096.
+
+.Steps
+
+. Change to advanced privilege level:
++
+`set -privilege advanced`
+
+. Enable FIPS:
++
+`security config modify -interface SSL -is-fips-enabled true`
+
+. When prompted to continue, enter `y`
+. If you are running ONTAP 9.8 or earlier manually reboot each node in the cluster one by one. Beginning in ONTAP 9.9.1, rebooting is not required. 
+
+.Example
+If you are running ONTAP 9.9.1 or later, you will not see the warning message.
+....
+security config modify -interface SSL -is-fips-enabled true
+
+Warning: This command will enable FIPS compliance and can potentially cause some non-compliant components to fail. MetroCluster and Vserver DR require FIPS to be enabled on both sites in order to be compatible.
+Do you want to continue? {y|n}: y
+
+Warning: When this command completes, reboot all nodes in the cluster. This is necessary to prevent components from failing due to an inconsistent security configuration state in the cluster. To avoid a service outage, reboot one node at a time and wait for it to completely initialize before rebooting the next node. Run "security config status show" command to monitor the reboot status.
+Do you want to continue? {y|n}: y
+....
+
+== Disable FIPS
+
+If you are still running an older system configuration and want to configure ONTAP with backward compatibility, you can turn on SSLv3 only when FIPS is disabled.
+
+.Steps
+
+. Change to advanced privilege level:
++
+`set -privilege advanced`
+
+. Disable FIPS by typing:
++
+`security config modify -interface SSL -is-fips-enabled false`
+
+. When prompted to continue, enter `y`.
+
+. If you are running ONTAP 9.8 or earlier, manually reboot each node in the cluster. Beginning in ONTAP 9.9.1, rebooting is not required.
+
+.Example
+If you are running ONTAP 9.9.1 or later, you will not see the warning message.
+....
+security config modify -interface SSL -supported-protocols SSLv3
+
+Warning: Enabling the SSLv3 protocol may reduce the security of the interface, and is not recommended.
+Do you want to continue? {y|n}: y
+
+Warning: When this command completes, reboot all nodes in the cluster. This is necessary to prevent components from failing due to an inconsistent security configuration state in the cluster. To avoid a service outage, reboot one node at a time and wait for it to completely initialize before rebooting the next node. Run "security config status show" command to monitor the reboot status.
+Do you want to continue? {y|n}: y
+....
+
+== View FIPS compliance status
+
+You can see whether the entire cluster is running the current security configuration settings.
+
+.Steps
+
+. One by one, reboot each node in the cluster.
++
+Do not reboot all cluster nodes simultaneously. A reboot is required to make sure that all applications in the cluster are running the new security configuration, and for all changes to FIPS on/off mode, protocols, and ciphers.
+
+. View the current compliance status:
++
+`security config show`
+
+.Example
+
+....
+security config show
+
+          Cluster                                              Cluster Security
+Interface FIPS Mode  Supported Protocols     Supported Ciphers Config Ready
+--------- ---------- ----------------------- ----------------- ----------------
+SSL       false      TLSv1_2, TLSv1_1, TLSv1 ALL:!LOW:!aNULL:  yes
+                                             !EXP:!eNULL
+....
+
+// 2022 june 14, BURT 1483070
+// 2022 april 24, ontap-issue #516 (reverted 2022 august 26 issue #641)
+// 2022 april 28, ontap-issue #475
+// 2022 April 11, IE-511
+// 2022 Apr 01, BURT 1448836
+// 2022 Feb 04, BURT 1453350
+// 2022 Jan 17, BURT 1448836

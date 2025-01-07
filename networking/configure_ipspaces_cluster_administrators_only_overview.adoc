@@ -1,0 +1,79 @@
+---
+sidebar: sidebar
+permalink: networking/configure_ipspaces_cluster_administrators_only_overview.html
+keywords: ipspace, ipspaces, introduction, introducing, overview, ipv4, ipv6, routing, route, domain, configure ipspaces overview, example, sample, ipspace, example of using ipspaces, sample using ipspaces, hosts.equiv, standard, property, properties, ipspace, special, ipspaces, svm, cluster, default, understanding, cluster, initialization, initialized, introducing, introduction, overview, standard properties of ipspaces, introducing the default and cluster ipspaces created during cluster initialization, default ipspace, cluster ipspace, system svm
+summary: An IPspace defines a distinct IP address space in which storage virtual machines (SVMs) reside
+---
+
+= Configure IPspaces overview
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+// Created with NDAC Version 2.0 (August 17, 2020)
+// restructured: March 2021
+// enhanced keywords May 2021
+// 16-FEB-2024 merge example of using IPspaces and standard properties of IPspaces
+// 28-FEB-2024 add context to overview title
+
+
+[.lead]
+IPspaces enable you to configure a single ONTAP cluster so that it can be accessed by clients from more than one administratively separate network domain, even if those clients are using the same IP address subnet range. This allows for separation of client traffic for privacy and security.
+
+An IPspace defines a distinct IP address space in which storage virtual machines (SVMs) reside. Ports and IP addresses defined for an IPspace are applicable only within that IPspace. A distinct routing table is maintained for each SVM within an IPspace; therefore, no cross-SVM or cross- IPspace traffic routing occurs.
+
+[NOTE]
+IPspaces support both IPv4 and IPv6 addresses on their routing domains.
+
+If you are managing storage for a single organization, then you do not need to configure IPspaces. If you are managing storage for multiple companies on a single ONTAP cluster, and you are certain that none of your customers have conflicting networking configurations, then you also do not need to use IPspaces. In many cases, the use of storage virtual machines (SVMs), with their own distinct IP routing tables, can be used to segregate unique networking configurations instead of using IPspaces.
+
+== Example of using IPspaces
+
+A common application for using IPspaces is when a Storage Service Provider (SSP) needs to connect customers of companies A and B to an ONTAP cluster on the SSP's premises and both companies are using the same private IP address ranges.
+
+The SSP creates SVMs on the cluster for each customer and provides a dedicated network path from two SVMs to company A’s network and from the other two SVMs to company B’s network.
+
+This type of deployment is shown in the following illustration, and it works if both companies use non-private IP address ranges. However, the illustration shows both companies using the same private IP address ranges, which causes problems.
+
+image:ontap_nm_image9.jpeg[IPspace example]
+
+Both companies use the private IP address subnet 10.0.0.0, causing the following problems:
+
+* The SVMs in the cluster at the SSP location have conflicting IP addresses if both companies decide to use the same IP address for their respective SVMs.
+* Even if the two companies agree on using different IP addresses for their SVMs, problems can arise.
+* For example, if any client in A’s network has the same IP address as a client in B’s network, packets destined for a client in A’s address space might get routed to a client in B’s address space, and vice versa.
+* If the two companies decide to use mutually exclusive address spaces (for example, A uses 10.0.0.0 with a network mask of 255.128.0.0 and B uses 10.128.0.0 with a network mask of 255.128.0.0), the SSP needs to configure static routes on the cluster to route traffic appropriately to A’s and B’s networks.
+* This solution is neither scalable (because of static routes) nor secure (broadcast traffic is sent to all interfaces of the cluster).To overcome these problems, the SSP defines two IPspaces on the cluster—one for each company. Because no cross-IPspace traffic is routed, the data for each company is securely routed to its respective network even if all of the SVMs are configured in the 10.0.0.0 address space, as shown in the following illustration:
+
+image:ontap_nm_image10.jpeg[IPspace example]
+
+Additionally, the IP addresses referred to by the various configuration files, such as the `/etc/ hosts` file, the `/etc/hosts.equiv` file, and `the /etc/rc` file, are relative to that IPspace. Therefore, the IPspaces enable the SSP to configure the same IP address for the configuration and authentication data for multiple SVMs, without conflict.
+
+== Standard properties of IPspaces
+Special IPspaces are created by default when the cluster is first created. Additionally, special storage virtual machines (SVMs) are created for each IPspace.
+
+Two IPspaces are created automatically when the cluster is initialized:
+
+* "Default" IPspace
++
+This IPspace is a container for ports, subnets, and SVMs that serve data. If your configuration does not need separate IPspaces for clients, all SVMs can be created in this IPspace. This IPspace also contains the cluster management and node management ports.
+* "Cluster" IPspace
++
+This IPspace contains all cluster ports from all nodes in the cluster. It is created automatically when the cluster is created. It provides connectivity to the internal private cluster network. As additional nodes join the cluster, cluster ports from those nodes are added to the "Cluster" IPspace.
+
+A "system" SVM exists for each IPspace. When you create an IPspace, a default system SVM of the same name is created:
+
+* The system SVM for the "Cluster" IPspace carries cluster traffic between nodes of a cluster on the internal private cluster network.
++
+It is managed by the cluster administrator, and it has the name "Cluster".
+* The system SVM for the "Default" IPspace carries management traffic for the cluster and nodes, including the intercluster traffic between clusters.
++
+It is managed by the cluster administrator, and it uses the same name as the cluster.
+* The system SVM for a custom IPspace that you create carries management traffic for that SVM.
++
+It is managed by the cluster administrator, and it uses the same name as the IPspace.
+
+One or more SVMs for clients can exist in an IPspace. Each client SVM has its own data volumes and configurations, and it is administered independently of other SVMs.
+
