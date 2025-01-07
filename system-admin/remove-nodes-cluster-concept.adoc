@@ -1,5 +1,5 @@
 ---
-permalink: system-admin/remov-nodes-cluster-concept.html
+permalink: system-admin/remove-nodes-cluster-concept.html
 sidebar: sidebar
 keywords: remove, node, cluster, failover, partner, erase, inaccessible
 summary: "You can remove unwanted nodes from a cluster, one node at a time. After you remove a node, you must also remove its failover partner. If you are removing a node, then its data becomes inaccessible or erased."
@@ -16,28 +16,33 @@ You can remove unwanted nodes from a cluster, one node at a time. After you remo
 The following conditions must be satisfied before removing nodes from the cluster:
 
 * More than half of the nodes in the cluster must be healthy.
-* All of the data on the node that you want to remove must have been evacuated.
-** This might include link:../encryption-at-rest/secure-purge-data-encrypted-volume-concept.html[purging data from an encrypted volume].
 
-* All non-root volumes have been link:../volumes/move-volume-task.html[moved] from aggregates owned by the node.
+* All data, volumes, and non-root aggregates have been relocated or removed from the node.
 
-* All non-root aggregates have been link:../disks-aggregates/commands-manage-aggregates-reference.html[deleted] from the node.
+** All of the data on the node that you want to remove must have been evacuated. This might include link:../encryption-at-rest/secure-purge-data-encrypted-volume-concept.html[purging data from an encrypted volume].
+
+** All non-root volumes have been link:../volumes/move-volume-task.html[moved] from aggregates owned by the node.
+
+** All non-root aggregates have been link:../disks-aggregates/commands-manage-aggregates-reference.html[deleted] from the node.
+
+* All LIFs and VLANs have been relocated or removed from the node.
+
+** Data LIFs have been link:../networking/delete_a_lif.html[deleted] or link:../networking/migrate_a_lif.html[relocated] from the node.
+
+** Cluster management LIFs have been link:../networking/migrate_a_lif.html[relocated] from the node and the home ports changed.
+
+** All intercluster LIFs have been link:../networking/delete_a_lif.html[removed]. When you remove intercluster LIFs a warning is displayed that can be ignored.
+
+** All VLANs on the node have been link:../networking/configure_vlans_over_physical_ports.html#delete-a-vlan[deleted].
+
+* The node is not participating in any failover relationships.
+
+** Storage failover has been link:../high-availability/ha_commands_for_enabling_and_disabling_storage_failover.html[disabled] for the node.
+
+** All LIF failover rules have been link:../networking/commands_for_managing_failover_groups_and_policies.html[modified] to remove ports on the node.
 
 * If the node owns Federal Information Processing Standards (FIPS) disks or self-encrypting disks (SEDs), link:../encryption-at-rest/return-seds-unprotected-mode-task.html[disk encryption has been removed] by returning the disks to unprotected mode.
 ** You might also want to link:../encryption-at-rest/sanitize-fips-drive-sed-task.html[sanitize FIPS drives or SEDs].
-
-* Data LIFs have been link:../networking/delete_a_lif.html[deleted] or link:../networking/migrate_a_lif.html[relocated] from the node.
-
-* Cluster management LIFs have been link:../networking/migrate_a_lif.html[relocated] from the node and the home ports changed.
-
-* All intercluster LIFs have been link:../networking/delete_a_lif.html[removed].
-** When you remove intercluster LIFs a warning is displayed that can be ignored.
-
-* Storage failover has been link:../high-availability/ha_commands_for_enabling_and_disabling_storage_failover.html[disabled] for the node.
-
-* All LIF failover rules have been link:../networking/commands_for_managing_failover_groups_and_policies.html[modified] to remove ports on the node.
-
-* All VLANs on the node have been link:../networking/configure_vlans_over_physical_ports.html#delete-a-vlan[deleted].
 
 * If you have LUNs on the node to be removed, you should link:https://docs.netapp.com/us-en/ontap/san-admin/modify-slm-reporting-nodes-task.html[modify the Selective LUN Map (SLM) reporting-nodes list] before you remove the node.
 +
@@ -99,18 +104,18 @@ cluster modify -node <node_name> -epsilon true
 cluster ring show
 ----
 +
-The master node is the node that holds processes such as "`mgmt`", "`vldb`", "`vifmgr`", "`bcomd`", and "`crs`". 
+The master node is the node that holds processes such as `mgmt`, `vldb`, `vifmgr`, `bcomd`, and `crs`.
 
 . If the node you want to remove is the current master node, then enable another node in the cluster to be elected as the master node:
 
-.. Make the current master node ineligibly to participate in the cluster:
+.. Make the current master node ineligible to participate in the cluster:
 +
 [source,cli]
 ----
 cluster modify -node <node_name> -eligibility false
 ----
 +
-When the master node become ineligible, one of the remaining nodes is elected by the cluster quorum as the new master.
+This will cause the node to be marked as unhealthy until eligibility is restored in the next step. When the master node become ineligible, one of the remaining nodes is elected by the cluster quorum as the new master.
 
 .. Make the previous master node eligible to participate in the cluster again:
 +
@@ -135,10 +140,18 @@ cluster unjoin
 a|
 ONTAP 9.4 and later
 a|
+With node name:
 [source,cli]
 ----
-cluster remove-node*
+cluster remove-node -name <node_name>
 ----
+
+With node IP:
+[source,cli]
+----
+cluster remove-node -cluster_ip <node_ip>
+----
+
 |===
 If you have a mixed version cluster and you are removing the last lower version node, use the `-skip-last-low-version-node-check` parameter with these commands.
 +
@@ -167,6 +180,7 @@ set -privilege admin
 
 . Repeat the preceding steps to remove the failover partner from the cluster.
 
+// 2024-12-17 ONTAPDOC-2325
 // 2024-7-9 ontapdoc-2192
 // 2024 Mar 25, Jira 1810
 // 2023 Dec 18, Jira 736
