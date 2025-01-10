@@ -80,6 +80,7 @@ The following example creates two consistency groups: `cg_src_ on the source wit
 --
 ====
 
+[[symmetric-active-active]]
 == Configure symmetric active/active protection 
 
 You can establish symmetric protection using System Manager or the ONTAP CLI. In both interfaces, there are different steps for xref:index.html#key-concepts[uniform and non-uniform configurations]. 
@@ -88,6 +89,10 @@ You can establish symmetric protection using System Manager or the ONTAP CLI. In
 
 * Both clusters must be running ONTAP 9.15.1 or later.
 * Symmetric active/active configurations require the `AutomatedFailoverDuplex` protection policy. Alternately, you can xref:../data-protection/create-custom-replication-policy-concept.html[create a custom SnapMirror policy] provided the `-type` is `automated-failover-duplex`.
+* Beginning with ONTAP 9.16.1, SnapMirror active sync symmetric active/active configurations are supported on multi-node configurations, meaning you can deploy symmetric/active active protection on up to four nodes. You must be running ONTAP 9.16.1 on all nodes for this configuration. 
+    * Before deploying a multi-node configuration, you must link:../peering/create-cluster-relationship-93-later-task.adoc[create a cluster peer relationship^] for a clusters you intend to protect.
+    * Review the link:limits-reference.adoc[limits] for multi-node clusters. 
+    * If you configure SnapMirror active sync on a more-than-two-node cluster and then choose to revert to a two-node cluster, you must remove the SnapMirror active sync relationships from the cluster before reverting.
 
 .Steps
 
@@ -112,7 +117,7 @@ You can establish symmetric protection using System Manager or the ONTAP CLI. In
 .. Navigate to **Hosts** > **SAN Initiator Groups**. 
 .. Select **+Add** to create a new igroup.
 .. Provide a **Name**, select the **Host Operating System**, then choose **Initiator Group Members**.
-.. Select **Save**.
+.. Select **Save** to initialize the relationship. 
 . Map the new igroup to the destination LUNs. 
 .. Navigate to **Storage** > **LUNs**.
 .. Select all the LUNs to map to the igroup.
@@ -131,11 +136,17 @@ You can establish symmetric protection using System Manager or the ONTAP CLI. In
 +
 `snapmirror show -destination-path <destination_path>`
 . On your host, configure host connectivity with access to each cluster according to your needs. 
-. Establish the igroup configuration. Set the preferred paths for initiators on the local cluster. Specify the option to replicate the configuration to the peer cluster inverse affinity. 
+. Establish the igroup configuration. Set the preferred paths for initiators on the local cluster. Specify the option to replicate the configuration to the peer cluster for inverse affinity. 
 +
-`SiteA::> igroup create -vserver <svm_name> -os-type <os_type> -igroup <igroup_name> -replication-peer <peer_svm_name> -initiator <host>`
+`SiteA::> igroup create -vserver <svm_name> -ostype <os_type> -igroup <igroup_name> -replication-peer <peer_svm_name> -initiator <host>`
 +
-`SiteA::> igroup add -vserver <svm_name> -igroup <igroup_name> -os-type <os_type> -initiator <host>`
+[NOTE]
+Beginning with ONTAP 9.16.1, use the `-proximal-vserver local` parameter in this command. 
++
+`SiteA::> igroup add -vserver <svm_name> -igroup <igroup_name> -ostype <os_type> -initiator <host>`
++
+[NOTE]
+Beginning with ONTAP 9.16.1, use the `-proximal-vserver peer` parameter in this command. 
 
 . From the host, discover the paths and verify the hosts have an active/optimized path to the storage LUN from the preferred cluster. 
 . Deploy the application and distribute the VM workloads across clusters to achieve the required load balancing. 
@@ -163,32 +174,6 @@ SiteB::> igroup create -vserver <svm_name> -igroup <igroup_name> -initiator <hos
 --
 ====
 
-=== Configure multi-node symmetric active/active protection 
-
-Beginning with ONTAP 9.16.1, you can configure symmetric active/active protection in a four-node cluster. All clusters must be running ONTAP 9.16.1 or later to configure multi-node symmetric active/active protection.
-
-.Steps
-
-[role="tabbed-block"]
-====
-.System Manager
---
-. If you haven't created a cluster peer relationship between the clusters you want to protect, link:../peering/create-cluster-relationship-93-later-task.adoc[create a cluster peer relationship^].
-. On the primary site, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes[create a consistency group using new LUNs.^]
-.. When creating the consistency group, specify host initiators to create igroups.
-.. Select the checkbox to **Enable SnapMirror** then choose the `AutomatedFailoverDuplex` policy.
-.. Ensure that all the host initiators are part of the same iGroup and assign each initiator's proximity to source vs destination based on your configuration.  
-.. In the dialog box that appears, select  the **Replicate initiator groups** checkbox to replicate igroups. In **Edit proximity settings**, set proximal SVMs for your hosts.
-
-<Configure iGroups and Map the LUNS>
-. Navigate to your host to discover the paths on the hosts and verify the hosts have an active/optimized path to the storage LUN from the preferred cluster.
-
---
-
-.CLI
--- 
---
-====
 
 // 2025 jan 9,  ontapdoc-2251
 // 2025 7 jan, ontap-issue #1462
