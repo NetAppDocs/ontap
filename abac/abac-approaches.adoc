@@ -8,7 +8,6 @@ summary: "ONTAP provides varied approaches a customer might use to achieve file-
 :icons: font
 :imagesdir: ../media/
 
-//todo: fix overall structure. use === instead of bold. reorder and combine sections?
 //todo: general revision
 
 [.lead]
@@ -29,18 +28,17 @@ Use Cases for NFS 4.2 security labels include the following:
 * Security compliance
 * Diskless Linux
 
-=== Enable NFS 4.2 security labels
+.Enable NFS 4.2 security labels
 
-You can enable or disable NFS 4.2 security labels with the following advanced privilege option:
+You can enable or disable NFS 4.2 security labels with the following command (advanced privilege required):
 
 [source,cli]
 ----
-[-v4.2-seclabel {enabled|disabled}] - NFSV4.2 Security Label Support (privilege: advanced)
+vserver nfs modify -vserver <svm_name> -v4.2-seclabel <disabled|enabled>
 ----
+//todo: confirm the above command. Its from https://docs.netapp.com/us-en/ontap/nfs-admin/enable-nfsv42-security-labels-task.html
 
-This parameter is optional, and the default setting is `disabled`.
-
-=== Enforcement modes for NFS 4.2 security labels
+.Enforcement modes for NFS 4.2 security labels
 
 Beginning in ONTAP 9.9.1, ONTAP supports the following enforcement modes:
 
@@ -79,11 +77,6 @@ In this example environment, user `jrsmith` has access to files at the levels `s
 * s1 = confidential
 * s2 = secret data
 * s3 = top secret data
-
-[NOTE]
-Follow the security policies of your organization.
-
-//todo: the above note seems redundant...
 
 .Example of NFS 4.2 security labels with MCS
 
@@ -178,32 +171,6 @@ ONTAP's support for the SMB/CIFS protocol extends to comprehensive handling of x
 
 When files are accessed or transferred over SMB/CIFS shares managed by ONTAP, the system preserves the integrity of xattrs, ensuring that all metadata is retained and remains consistent. This is particularly important for maintaining security settings and for applications that rely on xattrs for configuration or operation. ONTAP's robust handling of xattrs within the SMB/CIFS context ensures that file sharing across different platforms and environments is reliable and secure, providing users with a seamless experience and administrators with the assurance that data governance policies are upheld. Whether it's for collaboration, data archiving, or compliance, ONTAP's attention to xattrs within SMB/CIFS shares represents its commitment to data management excellence and interoperability in mixed-OS environments.
 
-== Policy enforcement point (PEP) and Policy Decision Point (PDP) in ABAC
-
-In an attribute-based access control (ABAC) system, the Policy Enforcement Point (PEP) and Policy Decision Point (PDP) play crucial roles. The PEP is responsible for enforcing access control policies, while the PDP makes the decision on whether to grant or deny access based on the policies.
-
-In the context of the Python code snippet provided, the script itself acts as a PEP. It enforces the access control decision by either granting access to the file by opening it and reading its contents or denying access by raising a `PermissionError`.
-//todo: what Python code is this referring to???
-
-The PDP, on the other hand, would be part of the underlying SELinux system. When the script tries to open the file with a specific SELinux context, the SELinux system checks its policies to decide whether to grant or deny access. This decision is then enforced by the script.
-
-Below is a step-by-step example breakdown of how this code works in an ABAC environment:
-
-. The script sets the SELinux context to `jrsmith` context using the `selinux.setcon()` function. This is equivalent to `jrsmith` trying to access the file.
-. The script tries to open the file. This is where the PEP comes into play.
-. The SELinux system checks its policies to see if `jrsmith` (or more specifically, a user with `jrsmith` SELinux context) is allowed to access the file. This is the PDP's role.
-. If `jrsmith` is allowed to access the file, the SELinux system lets the script open the file, and the script reads and prints the file's contents.
-. If `jrsmith` is not allowed to access the file, the SELinux system prevents the script from opening the file, and the script raises a `PermissionError`.
-. The script restores the original SELinux context to ensure that the temporary context change does not affect other operations.
-
-Using Python, the code to get the context is shown below where the variable file path is the document that is to be checked:
-
-----
-#Get the current context
-
-context = selinux.getfilecon(file_path)[1]
-----
-
 == Integration with ABAC identity and access control software
 
 To fully harness the capabilities of attribute-based access control (ABAC), ONTAP can integrate with an ABAC-oriented identity and access management software.
@@ -211,8 +178,11 @@ To fully harness the capabilities of attribute-based access control (ABAC), ONTA
 NOTE: In parallel to this content, NetApp has a reference implementation using GreyBox. One assumption for this content is that the customer's identity, authentication, and access services include at minimum a Policy Enforcement Point (PEP) and a Policy Decision Point (PDP) that act as intermediaries for access to the file system.
 
 //todo: is the above relevant to a general audience?
+//todo: find examples of a PEP and PDP tool/service? there was an example around a python script for PEP and SELinux for PDP, but I deleted it because it was missing a lot of context and was out of place (referring to 'the provided Python script' when no Python script is provided).
 
-In a practical setting, an organization would employ a blend of NFS security labels and xattrs. These are used to represent a variety of metadata, including classification, security, application, and content, which are all instrumental in making ABAC decisions. XATTR, for instance, can be used to store the resource attributes that the PDP uses for its decision-making process. An attribute could be defined to represent the classification level of a file (for example, "Unclassified", "Confidential", "Secret", or "Top Secret"). The PDP could then utilize this attribute to enforce a policy that restricts users to access only files that have a classification level equal to or lower than their clearance level.
+In an attribute-based access control (ABAC) system, the Policy Enforcement Point (PEP) and Policy Decision Point (PDP) play crucial roles. The PEP is responsible for enforcing access control policies, while the PDP makes the decision on whether to grant or deny access based on the policies.
+
+In a practical setting, an organization would employ a blend of NFS security labels and xattrs. These are used to represent a variety of metadata, including classification, security, application, and content, which are all instrumental in making ABAC decisions. xattrs, for instance, can be used to store the resource attributes that the PDP uses for its decision-making process. An attribute could be defined to represent the classification level of a file (for example, "Unclassified", "Confidential", "Secret", or "Top Secret"). The PDP could then utilize this attribute to enforce a policy that restricts users to access only files that have a classification level equal to or lower than their clearance level.
 
 
 .Example process flow for ABAC
