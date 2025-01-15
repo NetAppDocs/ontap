@@ -123,8 +123,8 @@ include::../_include/snapmirror-active-sync-name.adoc[]
 *	Certificate
 
 . You can provide the Certificate input in two ways: 
-** *Option (a)*: Select *Import* to navigate to the `intermediate.crt` file and import it.
-** *Option (b)*: Copy the content of the `intermediate.crt` file and paste it in the *Certificate* field.
+** *Option (a)*: Select *Import* to navigate to the `ca.crt` file and import it.
+** *Option (b)*: Copy the content of the `ca.crt` file and paste it in the *Certificate* field.
 +
 When all details are entered correctly, the provided certificate is installed on all the peer clusters. 
 +
@@ -142,7 +142,7 @@ image:successful-mediator-installation.png[mediator add successful].
 
 [role="tabbed-block"]
 ====
-.CLI
+.CLI ONTAP Mediator 1.9 and later
 --
 You can initialize the ONTAP Mediator from either the primary or secondary cluster using the ONTAP CLI. When you issue the `mediator add` command on one cluster, the ONTAP Mediator is automatically added on the other cluster.
 
@@ -251,7 +251,7 @@ Mediator Address Peer Cluster     Connection Status Quorum Status
 `Quorum Status` indicates whether the SnapMirror consistency group relationships are synchronized with the ONTAP Mediator; a status of `true` indicates successful synchronization.
 --
 
-.CLI
+.CLI ONTAP Mediator 1.8 and earlier
 --
 You can initialize the ONTAP Mediator from either the primary or secondary cluster using the ONTAP CLI. When you issue the `mediator add` command on one cluster, the ONTAP Mediator is automatically added on the other cluster.
 
@@ -266,7 +266,7 @@ When using Mediator to monitor a SnapMirror active sync relationship, Mediator c
 *Example*
 +
 -----
-[root@ontap-mediator server_config]# cat intermediate.crt
+[root@ontap-mediator server_config]# cat ca.crt
 -----BEGIN CERTIFICATE-----
 MIIFxTCCA62gAwIBAgIJANhtjk6HFCiOMA0GCSqGSIb3DQEBCwUAMHgxFTATBgNV
 BAoMDE5ldEFwcCwgSW5jLjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3Ju
@@ -284,7 +284,7 @@ p+jdg5bG61cxkuvbRm7ykFbih1b88/Sgu5XJg2KRhjdISF98I81N+Fo=
 ----
 [root@ontap-mediator ~]# cd /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config
 
-[root@ontap-mediator server_config]# cat intermediate.crt
+[root@ontap-mediator server_config]# cat ca.crt
 -----BEGIN CERTIFICATE-----
 MIIFxTCCA62gAwIBAgIJANhtjk6HFCiOMA0GCSqGSIb3DQEBCwUAMHgxFTATBgNV
 BAoMDE5ldEFwcCwgSW5jLjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3Ju
@@ -391,9 +391,140 @@ image:remove-mediator.png[system manager mediator remove]
 The ONTAP Mediator is now configured with the new third-party self-signed certificate.
 
 image:configure-mediator-system-manager.png[system manager mediator add]
+====
 
+[role="tabbed-block"]
+====
+.CLI Mediator 1.9 and later
 --
-.CLI
+You can re-initialize the ONTAP Mediator from either the primary or secondary cluster by using the ONTAP CLI to replace the self-signed certificate with the third-party certificate.
+
+.Steps
+
+. Remove the self-signed `intermediate.crt` installed earlier when you used self-signed certificates for all clusters. In the example below, there are two clusters:
++
+*Example*
++
+----
+ C1_test_cluster::*> security certificate delete -vserver C1_test_cluster -common-name ONTAPMediatorCA
+ 2 entries were deleted.
+
+ C2_test_cluster::*> security certificate delete -vserver C2_test_cluster -common-name ONTAPMediatorCA *
+ 2 entries were deleted.
+----
+
+. Remove the previously configured ONTAP Mediator from the SM-BC cluster using `-force true`:
++
+*Example*
++
+-----
+C1_test_cluster::*> snapmirror mediator show
+Mediator Address Peer Cluster     Connection Status Quorum Status
+---------------- ---------------- ----------------- -------------
+1.2.3.4          C2_test_cluster   connected         true
+
+C1_test_cluster::*> snapmirror mediator remove -mediator-address 1.2.3.4 -peer-cluster C2_test_cluster -force true
+
+Warning: You are trying to remove the ONTAP Mediator configuration with force. If this configuration exists on the peer cluster, it could lead to failure of a SnapMirror failover operation. Check if this configuration
+         exists on the peer cluster C2_test_cluster and remove it as well.
+Do you want to continue? {y|n}: y
+
+Info: [Job 136] 'mediator remove' job queued
+
+C1_test_cluster::*> snapmirror mediator show
+This table is currently empty.
+-----
+
+. Refer to the steps described in link:../mediator/manage-task.html[Replace self-signed certificates with trusted third-party certificates] for instructions on how to obtain certificates from a subordinate CA, referred to as `intermediate.crt`.
+Replace self-signed certificates with trusted third-party certificates
++
+[NOTE]
+The `intermediate.crt` has certain properties that it derives from the request that need to be sent to the PKI authority, defined in the file `/opt/netapp/lib/ontap_mediator/ontap_mediator/server_config/openssl_ca.cnf`.
+
+
+. Add the new third-party ONTAP Mediator CA certificate `intermediate.crt` from the ONTAP Mediator Linux VM/host software installation location:
++
+*Example*
++
+----
+[root@ontap-mediator ~]# cd /opt/netapp/lib/ontap_mediator/ontap_mediator/server_config
+[root@ontap-mediator server_config]# cat intermediate.crt
+-----BEGIN CERTIFICATE-----
+MIIFxTCCA62gAwIBAgIJANhtjk6HFCiOMA0GCSqGSIb3DQEBCwUAMHgxFTATBgNV
+BAoMDE5ldEFwcCwgSW5jLjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3Ju
+…
+p+jdg5bG61cxkuvbRm7ykFbih1b88/Sgu5XJg2KRhjdISF98I81N+Fo=
+-----END CERTIFICATE-----
+----
+
+. Add the `intermediate.crt` file to the peered cluster. Repeat this step for all peer clusters:
++
+*Example*
++
+-----
+C1_test_cluster::*> security certificate install -type server-ca -vserver C1_test_cluster
+
+Please enter Certificate: Press when done
+-----BEGIN CERTIFICATE-----
+MIIFxTCCA62gAwIBAgIJANhtjk6HFCiOMA0GCSqGSIb3DQEBCwUAMHgxFTATBgNV
+BAoMDE5ldEFwcCwgSW5jLjELMAkGA1UEBhMCVVMxEzARBgNVBAgMCkNhbGlmb3Ju
+…
+p+jdg5bG61cxkuvbRm7ykFbih1b88/Sgu5XJg2KRhjdISF98I81N+Fo=
+-----END CERTIFICATE-----
+
+You should keep a copy of the CA-signed digital certificate for future reference.
+
+The installed certificate's CA and serial number for reference:
+CA: ONTAP Mediator CA
+serial: D86D8E4E87142XXX
+
+The certificate's generated name for reference: ONTAPMediatorCA
+
+C1_test_cluster::*>
+-----
+
+. Remove the previously configured ONTAP Mediator from the SnapMirror active sync cluster:
++
+*Example*
++
+-----
+C1_test_cluster::*> snapmirror mediator show
+Mediator Address Peer Cluster     Connection Status Quorum Status
+---------------- ---------------- ----------------- -------------
+1.2.3.4          C2_test_cluster  connected         true
+
+C1_test_cluster::*> snapmirror mediator remove -mediator-address 1.2.3.4 -peer-cluster C2_test_cluster
+
+Info: [Job 86] 'mediator remove' job queued
+C1_test_cluster::*> snapmirror mediator show
+This table is currently empty.
+-----
+
+
+. Add the ONTAP Mediator again:
++
+*Example*
++
+----
+C1_test_cluster::*> snapmirror mediator add -mediator-address 1.2.3.4 -peer-cluster C2_test_cluster -username mediatoradmin
+
+Notice: Enter the mediator password.
+
+Enter the password:
+Enter the password again:
+
+Info: [Job: 87] 'mediator add' job queued
+
+C1_test_cluster::*> snapmirror mediator show
+Mediator Address Peer Cluster     Connection Status Quorum Status
+---------------- ---------------- ----------------- -------------
+1.2.3.4          C2_test_cluster  connected         true
+----
++
+`Quorum Status` indicates whether the SnapMirror consistency group relationships are synchronized with the mediator; a status of `true` indicates successful synchronization.
+--
+
+.CLI Mediator 1.8 and earlier
 --
 You can re-initialize the ONTAP Mediator from either the primary or secondary cluster by using the ONTAP CLI to replace the self-signed certificate with the third-party certificate.
 
@@ -523,6 +654,7 @@ Mediator Address Peer Cluster     Connection Status Quorum Status
 --
 ====
 
+// 14 January 2025, ontapdoc-2636
 // 2 January 2025, issue 1562
 //14 june 2024 ontapdoc-2092
 // 6 june 2024 ontapdoc-2018
