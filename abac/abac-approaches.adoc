@@ -11,13 +11,13 @@ summary: "ONTAP provides varied approaches a customer might use to achieve file-
 //todo: general revision
 
 [.lead]
-ONTAP provides several approaches a customer might use to achieve file-level ABAC, including NFS v4.2 security labels and extended attributed (xattrs) using NFS and SMB/CIFS.
+ONTAP provides several approaches a customer might use to achieve file-level attribute-based access control (ABAC), including NFS v4.2 security labels and extended attributed (xattrs) using NFS and SMB/CIFS.
 
 == NFS v4.2 security labels
 
-Beginning with ONTAP 9.9.1, the NFSv4.2 feature called Labeled NFS is supported. 
+Beginning with ONTAP 9.9.1, the NFS v4.2 feature called Labeled NFS is supported. 
 
-NFS v4.2 security labels are a way to manage granular file and folder access by using SELinux labels and Mandatory Access Control (MAC). These MAC labels are stored with files and folders, and they work in conjunction with UNIX permissions and NFSv4.x ACLs. 
+NFS v4.2 security labels are a way to manage granular file and folder access by using SELinux labels and Mandatory Access Control (MAC). These MAC labels are stored with files and folders, and they work in conjunction with UNIX permissions and NFS v4.x ACLs. 
 
 Support for NFS v4.2 security labels means that ONTAP now recognizes and understands the NFS client's SELinux label settings. NFS v4.2 security labels are covered in RFC-7204.
 
@@ -28,7 +28,7 @@ Use Cases for NFS v4.2 security labels include the following:
 * Security compliance
 * Diskless Linux
 
-.Enable NFS v4.2 security labels
+=== Enable NFS v4.2 security labels
 
 You can enable or disable NFS v4.2 security labels with the following command (advanced privilege required):
 
@@ -38,21 +38,21 @@ vserver nfs modify -vserver <svm_name> -v4.2-seclabel <disabled|enabled>
 ----
 //todo: confirm the above command. Its from https://docs.netapp.com/us-en/ontap/nfs-admin/enable-nfsv42-security-labels-task.html
 
-.Enforcement modes for NFS v4.2 security labels
+=== Enforcement modes for NFS v4.2 security labels
 
 Beginning in ONTAP 9.9.1, ONTAP supports the following enforcement modes:
 
 * *Limited Server Mode*: ONTAP cannot enforce the labels but can store and transmit them.
 +
-NOTE: The ability to change MAC labels is also up to the client to enforce.
+NOTE: The ability to change MAC labels is up to the client to enforce.
 
 * *Guest Mode*: If the client is not labeled NFS-aware (v4.1 or lower), MAC labels are not transmitted.
-
++
 NOTE: ONTAP does not currently support Full Mode (storing and enforcing MAC labels).
 
-=== Example NFS v4.2 security labels configurations
+=== NFS v4.2 security labels examples
 
-.Example configuration of NFS v4.2 security labels
+.NFS v4.2 security labels example configuration
 
 The following example configuration demonstrates concepts using Red Hat Enterprise Linux release 9.3 (Plow). 
 
@@ -78,7 +78,9 @@ In this example environment, user `jrsmith` has access to files at the levels `s
 * s2 = secret data
 * s3 = top secret data
 
-.Example of NFS v4.2 security labels with MCS
+//todo: need SME review of above example
+
+.NFS v4.2 security labels example with MCS
 
 In addition to Multi-Level Security (MLS), another capability called Multi-Category Security (MCS) allows you to define categories such as projects.
 
@@ -88,14 +90,14 @@ In addition to Multi-Level Security (MLS), another capability called Multi-Categ
 |`entitySecurityMark` |`t:s01 = UNCLASSIFIED`
 |===
 
-== Extended Attributes (xattrs) 
-Beginning in ONTAP 9.12.1, ONTAP supports xattrs. xattrs allow metadata to be associated with files and directories beyond what is provided by the system, such as access control lists (ACLs) or user-defined attributes. 
+== Extended attributes (xattrs) 
+Beginning in ONTAP 9.12.1, ONTAP supports extended atrributes (xattrs). xattrs allow metadata to be associated with files and directories beyond what is provided by the system, such as access control lists (ACLs) or user-defined attributes.
 
-To implement xattrs, you can use `setfattr` and `getfattr` command-line utilities in Linux for managing xattrs of file system objects. These tools provide a powerful way to manage additional metadata for files and directories. They should be used with care though as improper use can lead to unexpected behavior or security issues. Always refer to the `setfattr` and `getfattr` man pages or other reliable documentation for detailed usage instructions. 
+To implement xattrs, you can use `setfattr` and `getfattr` command-line utilities in Linux. These tools provide a powerful way to manage additional metadata for files and directories. They should be used with care, as improper use can lead to unexpected behavior or security issues. Always refer to the `setfattr` and `getfattr` man pages or other reliable documentation for detailed usage instructions. 
 
 When xattrs is enabled on an ONTAP filesystem, users can set, modify, and retrieve arbitrary attributes on files. These attributes can be used to store additional information about the file that is not captured by the standard set of file attributes, such as access control information.
 
-.Requirements for using xattrs in ONTAP
+.Requirements and limits for using xattrs in ONTAP
 
 * Red Hat Enterprise Linux 8.4 or later
 * Ubuntu 22.04 or later
@@ -111,22 +113,25 @@ xattrs are utilized within the user namespace and do not carry any intrinsic sig
 
 xattr use case examples:
 
-* Recording the name of the application responsible for creating a file.
-* Maintaining a reference to the email message from which a file was obtained.
-* Establishing a categorization framework for organizing file objects.
-* Labeling files with the URL of their original download source.
+* Recording the name of the application responsible for creating a file
+* Maintaining a reference to the email message from which a file was obtained
+* Establishing a categorization framework for organizing file objects
+* Labeling files with the URL of their original download source
 
 === Commands for managing xattrs
 
-* `setfattr`: Sets an extended attribute of a file or directory: 
+* `setfattr` sets an extended attribute of a file or directory: 
 +
 `setfattr -n <attribute_name> -v <attribute_value> <file or directory name>`
 +
 Sample command: 
 +
-`setfattr -n user.comment -v test example.txt`
+[source,cli]
+----
+setfattr -n user.comment -v test example.txt
+----
 
-* `getfattr`: Retrieves the value of a specific extended attribute or lists all extended attributes of a file or directory:
+* `getfattr` retrieves the value of a specific extended attribute or lists all extended attributes of a file or directory:
 +
 Specific attribute:
 `getfattr -n <attribute_name> <file or directory name>`
@@ -136,9 +141,14 @@ All attributes:
 +
 Sample command:
 +
-`getfattr -n user.comment example.txt`
+[source,cli]
+----
+getfattr -n user.comment example.txt
+----
 
 .xattr key value pair examples
++
+
 [cols="2a,8a",options="header",]
 |===
 |xattr |Value
@@ -146,11 +156,13 @@ Sample command:
 |`user.countryOfAffiliations` |`USA`
 |===
 
-=== User Permissions with ACE for xattrs
+=== User permissions with ACE for xattrs
 
-An access control entry (ACE) is a component within an access control list (ACL) that defines the access rights or permissions granted to an individual user or a group of users for a specific resource, such as a file or directory. Each ACE specifies the type of access allowed or denied and is associated with a particular security principal (user or group identity).
+An access control entry (ACE) is a component within an ACL that defines the access rights or permissions granted to an individual user or a group of users for a specific resource, such as a file or directory. Each ACE specifies the type of access allowed or denied and is associated with a particular security principal (user or group identity).
 
 .Access Control Entry (ACE) required for xattrs
++
+
 [width="100%",options="header",]
 |===
 |File type |Retrieve xattr |Set xattrs
@@ -158,24 +170,25 @@ An access control entry (ACE) is a component within an access control list (ACL)
 |Directory |R |T
 |===
 
-Explanation of the permissions required for xattrs:
+* Retrieve xattr: The permissions required for a user to read the extended attributes of a file or directory. The "R" signifies that read permission is necessary.
 
-*Retrieve xattr*: The permissions required for a user to read the extended attributes of a file or directory. The "R" signifies that read permission is necessary.
-*Set xattrs*: The permissions needed to modify or set the extended attributes. "a," "w," and "T" represent different examples of permissions, such append, write, and a specific permission related to xattrs.
-*Files*: Users need append, write, and potentially a special permission related to xattrs to set extended attributes. 
-*Directories*: A specific permission "T" is required to set extended attributes.
+* Set xattrs: The permissions needed to modify or set the extended attributes. "a," "w," and "T" represent different examples of permissions, such append, write, and a specific permission related to xattrs.
+
+* Files: Users need append, write, and potentially a special permission related to xattrs to set extended attributes. 
+
+* Directories: A specific permission "T" is required to set extended attributes.
 
 === SMB/CIFS protocol support for xattrs
 
 ONTAP's support for the SMB/CIFS protocol extends to comprehensive handling of xattrs, which are an integral part of file metadata in Windows environments. Extended attributes allow users and applications to store additional information beyond the standard set of file attributes, such as author details, custom security descriptors, or application-specific data. ONTAP's SMB/CIFS implementation ensures that these xattrs are fully supported, allowing for seamless integration with Windows services and applications that depend on this metadata for functionality and policy enforcement.
 
-When files are accessed or transferred over SMB/CIFS shares managed by ONTAP, the system preserves the integrity of xattrs, ensuring that all metadata is retained and remains consistent. This is particularly important for maintaining security settings and for applications that rely on xattrs for configuration or operation. ONTAP's robust handling of xattrs within the SMB/CIFS context ensures that file sharing across different platforms and environments is reliable and secure, providing users with a seamless experience and administrators with the assurance that data governance policies are upheld. Whether it's for collaboration, data archiving, or compliance, ONTAP's attention to xattrs within SMB/CIFS shares represents its commitment to data management excellence and interoperability in mixed-OS environments.
+When files are accessed or transferred over SMB/CIFS shares managed by ONTAP, the system preserves the integrity of xattrs, ensuring that all metadata is retained and remains consistent. This is particularly important for maintaining security settings and for applications that rely on xattrs for configuration or operation. ONTAP's robust handling of xattrs within the SMB/CIFS context ensures that file sharing across different platforms and environments is reliable and secure.
 
 == Integration with ABAC identity and access control software
 
 To fully harness the capabilities of attribute-based access control (ABAC), ONTAP can integrate with an ABAC-oriented identity and access management software.
 
-NOTE: In parallel to this content, NetApp has a reference implementation using GreyBox. One assumption for this content is that the customer's identity, authentication, and access services include at minimum a Policy Enforcement Point (PEP) and a Policy Decision Point (PDP) that act as intermediaries for access to the file system.
+NOTE: In parallel to this content, NetApp has a reference implementation using GreyBox. This content assumes that the customer's identity, authentication, and access services include at minimum a Policy Enforcement Point (PEP) and a Policy Decision Point (PDP) that act as intermediaries for access to the file system.
 
 //todo: is the above relevant to a general audience?
 //todo: find examples of a PEP and PDP tool/service? there was an example around a python script for PEP and SELinux for PDP, but I deleted it because it was missing a lot of context and was out of place (referring to 'the provided Python script' when no Python script is provided).
@@ -229,7 +242,7 @@ In Linux environments, the `auditd` daemon is commonly used to establish auditin
 
 ONTAP FPolicy extends these capabilities by providing a robust framework for real-time monitoring and control of file operations. FPolicy can be configured to support various xattr events, offering granular control over file operations and the ability to enforce comprehensive data management policies.
 
-For users utilizing xattrs, especially in NFSv3 and NFSv4 environments, only certain combinations of file operations and filters are supported for monitoring. The list of supported file operation and filter combinations for FPolicy monitoring of NFSv3 and NFSv4 file access events is detailed below:
+For users utilizing xattrs, especially in NFS v3 and NFS v4 environments, only certain combinations of file operations and filters are supported for monitoring. The list of supported file operation and filter combinations for FPolicy monitoring of NFS v3 and NFS v4 file access events is detailed below:
 
 [width="100%",cols="25%a,75%a",options="header",]
 |===
