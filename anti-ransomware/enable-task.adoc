@@ -26,10 +26,7 @@ For these versions of ONTAP, you should always enable ARP initially in link:inde
 It's recommended you let ARP run in learning mode for a minimum of 30 days. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning period interval and automates the switch, which might occur before 30 days.
 
 * *For ONTAP 9.16.1 and later with FlexVol volumes*
-When you enable ARP, ARP/AI protection begins immediately in active mode. No learning period is required.
-
-[NOTE]
-In existing volumes, learning and active modes only apply to newly written data, not to already existing data in the volume. The existing data is not scanned and analyzed, because the characteristics of earlier normal data traffic are assumed based on the new data after the volume is enabled for ARP.
+When you enable ARP, ARP/AI protection is enabled and active immediately. No learning period is required.
 
 .Before you begin
 
@@ -60,7 +57,7 @@ NOTE: Beginning with ONTAP 9.13.1, ARP automatically determines the optimal lear
 [NOTE]
 In existing volumes, learning and active modes only apply to newly written data, not to already existing data in the volume. The existing data is not scanned and analyzed, because the characteristics of earlier normal data traffic are assumed based on the new data after the volume is enabled for ARP.
 
-* If you are using ARP on FlexVol volumes with ONTAP 9.16.1 or later, ARP/AI functionality does not require a learning period and active mode is selected by default.
+* If you are using ARP on FlexVol volumes with ONTAP 9.16.1 or later, ARP/AI functionality is enabled and active immediately. No learning period is required.
 
 . You can verify the ARP state of the volume in the *Anti-ransomware* box.
 +
@@ -74,43 +71,56 @@ To display ARP status for all volumes: In the *Volumes* pane, select *Show/Hide*
 The process to enable ARP with the CLI differs if you are enabling it on an existing volume versus a new volume. 
 
 .Enable ARP on an existing volume
+
 . Modify an existing volume to enable ransomware protection:
-
-** For ONTAP 9.15.1 and earlier and ARP with FlexGroup volumes, set the volume state to `dry-run` (learning mode):
 +
-`security anti-ransomware volume dry-run -volume <vol_name> -vserver <svm_name>`
-
-** For ONTAP 9.16.1 and later with ARP/AI and FlexVol volumes, set the volume state to `active` (active mode):
+[source, cli]
+----
+security anti-ransomware volume dry-run -volume <vol_name> -vserver <svm_name>
+----
 +
-`security anti-ransomware volume active -volume <vol_name> -vserver <svm_name>`
+For ONTAP 9.15.1 and earlier, and Flexgroup volumes, new volumes begin in learning mode. For ONTAP 9.16.1 and later with FlexVol volumes, ARP/AI is enabled immediately. In either case, use 'dry-run' as the value. 
 
-. If you upgraded to ONTAP 9.13.1 or later and the ARP default state is `dry-run`, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, change the setting at the SVM level on all associated volumes:
+. If you upgraded to ONTAP 9.13.1 through ONTAP 9.15.1 and the default state is `dry-run`, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, change the setting at the SVM level on all associated volumes:
 +
-`vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false`
+[source, cli]
+----
+vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false
+----
 
 . Verify the ARP state of the volume.
 +
-`security anti-ransomware volume show`
-
+[source, cli]
+----
+security anti-ransomware volume show
+----
+//does this work for 9161 if it just shows dry-run? Maybe we need to verify ONTAP version or other AI behavior.
 
 .Enable ARP on a new volume
+
 . Create a new volume with ARP enabled before provisioning data:
-
-** For ONTAP 9.15.1 and earlier and ARP with FlexGroup volumes, set the state to `dry-run` (learning mode):
 +
-`volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state dry-run -junction-path </_path_name_>`
-
-** For ONTAP 9.16.1 and later with ARP/AI and FlexVol volumes, set the state to `active` (active mode):
+[source, cli]
+----
+volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state dry-run -junction-path </path_name>
+----
 +
-`volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state active -junction-path </_path_name_>`
+For ONTAP 9.15.1 and earlier, and Flexgroup volumes, new volumes begin in learning mode. For ONTAP 9.16.1 and later with FlexVol volumes, ARP/AI is enabled immediately. In either case, use 'dry-run' as the value. 
 
-. If you upgraded to ONTAP 9.13.1 or later and the ARP default state is `dry-run`, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, change the setting at the SVM level on all associated volumes:
+. If you upgraded to ONTAP 9.13.1 through ONTAP 9.15.1 and the default state is `dry-run`, adaptive learning is enabled so that the change to active state is done automatically. If you do not want this behavior to be automatically enabled, change the setting at the SVM level on all associated volumes:
 +
-`vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false`
+[source, cli]
+----
+vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false
+----
 
 . Verify the ARP state of the volume.
 +
-`security anti-ransomware volume show`
+[source, cli]
+----
+security anti-ransomware volume show
+----
+//does this work for 9161 if it just shows dry-run? Maybe we need to verify ONTAP version or other AI behavior.
 --
 ====
 
@@ -118,6 +128,7 @@ The process to enable ARP with the CLI differs if you are enabling it on an exis
 
 * link:switch-learning-to-active-mode.html[Switch to active mode after a learning period]
 
+// 2024-1-16, ontapdoc-2645
 // 2024-9-17, ontapdoc-2204
 // 2023-02-27, #1261
 // 18 may 2023, ontapdoc-1046
