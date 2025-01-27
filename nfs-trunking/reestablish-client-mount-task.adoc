@@ -11,8 +11,6 @@ summary: 'To convert non-trunked client connections to trunked connections, exis
 [.lead]
 To convert non-trunked client connections to trunked connections, existing mounts on Linux and VMware clients must be unmounted and remounted using information about LIFs.
 
-When entering mount commands on the clients, you must enter IP addresses for each LIF in the trunking group.
-
 Learn about link:index.html#supported-clients[supported clients].
 
 [NOTE]
@@ -22,17 +20,31 @@ Unmounting VMware clients is disruptive for any VMs on the datastore. An alterna
 ====
 .Linux client requirements
 --
-A separate mount point is required for each connection in the trunking group.
+If you are using ONTAP 9.16.1 or later and Red Hat Enterprise Linux version 8.7 or later (for RHEL 8) or 9.2 or later (for RHEL 9) as your Linux client, only one mount point is required for the trunking group. Mount the exported volume with this command, using the `trunkdiscovery` option:
 
-Mount the exported volumes with commands similar to the following:
++
+[source,cli]
+----
+mount <lif_ip>:<volume_name> </mount_path> -o trunkdiscovery,vers=4.1
+----
 
-`mount lif1_ip:/vol-test /mnt/test1 -o vers=4.1,max_connect=2`
+Otherwise, a separate mount point is required for each connection in the trunking group. Mount the exported volumes with commands similar to the following, using the `max_connect` option:
 
-`mount lif2_ip:/vol-test /mnt/test2 -o vers=4.1,max_connect=2`
++
+[source,cli]
+----
+mount <lif1_ip>:<volume_name> </mount_path1> -o vers=4.1,max_connect=16
+----
 
-The `vers` value should should be `4.1` or later.
++
+[source,cli]
+----
+mount <lif2_ip>:<volume_name> </mount_path2> -o vers=4.1,max_connect=16
+----
 
-The `max_connect` value should correspond to the number of connections in the trunking group.
+The version (`vers`) value should be `4.1` or later.
+
+The `max_connect` value corresponds to the number of connections in the trunking group.
 -- 
 
 .VMware client requirements
@@ -47,5 +59,6 @@ The `-H` values should correspond to the connections in the trunking group.
 -- 
 ====
 
+// 2025-1-27 GH-1581
 // 2024-12-18 ONTAPDOC-2606
 // 2023 Jan 09, ONTAPDOC-552
