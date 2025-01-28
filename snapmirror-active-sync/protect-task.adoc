@@ -88,6 +88,13 @@ You can establish symmetric protection using System Manager or the ONTAP CLI. In
 
 * Both clusters must be running ONTAP 9.15.1 or later.
 * Symmetric active/active configurations require the `AutomatedFailoverDuplex` protection policy. Alternately, you can xref:../data-protection/create-custom-replication-policy-concept.html[create a custom SnapMirror policy] provided the `-type` is `automated-failover-duplex`.
+* In ONTAP 9.15.1, symmetric active/active is only supported on 2-node clusters. 
+* Beginning with ONTAP 9.16.1 GA, SnapMirror active sync supports symmetric active/active configurations on four-node clusters. 
+** To use SnapMirror active sync on a four-node cluster, you must be running ONTAP 9.16.1 GA or later.
+** Before deploying a four-node configuration, you must xref:../peering/create-cluster-relationship-93-later-task.adoc[create a cluster peer relationship].
+** Review the xref:limits-reference.adoc[limits] for four-node clusters. 
+** If you revert to a two-node cluster, you must remove the SnapMirror active sync relationships from the cluster before reverting.
+** You can use the four-node configuration to upgrade storage and controllers. This process is non-disruptive and expands the cluster while moving volumes into the new nodes. For more information, see link:upgrade-revert-task.html#refresh-a-cluster[refresh a cluster].
 
 .Steps
 
@@ -99,7 +106,7 @@ You can establish symmetric protection using System Manager or the ONTAP CLI. In
 . On the primary site, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes[create a consistency group using new LUNs.^]
 .. When creating the consistency group, specify host initiators to create igroups.
 .. Select the checkbox to **Enable SnapMirror** then choose the `AutomatedFailoverDuplex` policy.
-.. In the dialog box that appears, select  the **Replicate initiator groups** checkbox to replicate igroups. In **Edit proximal settings**, set proximal SVMs for your hosts.
+.. In the dialog box that appears, select  the **Replicate initiator groups** checkbox to replicate igroups. In **Edit proximity settings**, set proximal SVMs for your hosts.
 .. Select **Save**.
 
 
@@ -112,7 +119,7 @@ You can establish symmetric protection using System Manager or the ONTAP CLI. In
 .. Navigate to **Hosts** > **SAN Initiator Groups**. 
 .. Select **+Add** to create a new igroup.
 .. Provide a **Name**, select the **Host Operating System**, then choose **Initiator Group Members**.
-.. Select **Save**.
+.. Select **Save** to initialize the relationship. 
 . Map the new igroup to the destination LUNs. 
 .. Navigate to **Storage** > **LUNs**.
 .. Select all the LUNs to map to the igroup.
@@ -131,11 +138,17 @@ You can establish symmetric protection using System Manager or the ONTAP CLI. In
 +
 `snapmirror show -destination-path <destination_path>`
 . On your host, configure host connectivity with access to each cluster according to your needs. 
-. Establish the igroup configuration. Set the preferred paths for initiators on the local cluster. Specify the option to replicate the configuration to the peer cluster inverse affinity. 
+. Establish the igroup configuration. Set the preferred paths for initiators on the local cluster. Specify the option to replicate the configuration to the peer cluster for inverse affinity. 
 +
-`SiteA::> igroup create -vserver <svm_name> -os-type <os_type> -igroup <igroup_name> -replication-peer <peer_svm_name> -initiator <host>`
+`SiteA::> igroup create -vserver <svm_name> -ostype <os_type> -igroup <igroup_name> -replication-peer <peer_svm_name> -initiator <host>`
 +
-`SiteA::> igroup add -vserver <svm_name> -igroup <igroup_name> -os-type <os_type> -initiator <host>`
+[NOTE]
+Beginning with ONTAP 9.16.1, use the `-proximal-vserver local` parameter in this command. 
++
+`SiteA::> igroup add -vserver <svm_name> -igroup <igroup_name> -ostype <os_type> -initiator <host>`
++
+[NOTE]
+Beginning with ONTAP 9.16.1, use the `-proximal-vserver peer` parameter in this command. 
 
 . From the host, discover the paths and verify the hosts have an active/optimized path to the storage LUN from the preferred cluster. 
 . Deploy the application and distribute the VM workloads across clusters to achieve the required load balancing. 
@@ -165,6 +178,7 @@ SiteB::> igroup create -vserver <svm_name> -igroup <igroup_name> -initiator <hos
 
 
 // 2025 Jan 22, ONTAPDOC-1070
+// 2025 jan 9,  ontapdoc-2251
 // 2025 7 jan, ontap-issue #1462
 // 2024 5 august, ONTAPDOC-2156
 // 6 may 2024, ontapdoc-1478
