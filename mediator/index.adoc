@@ -54,29 +54,51 @@ include::../_include/mediator-linux-support.adoc[]
 * Upgrading to a kernel beyond the supported OS release for the specific ONTAP Mediator release is not supported. (This likely indicates that the tested SCST module won't compile).
 ====
 
-== Register a security key when UEFI Secure Boot is enabled
+== Install ONTAP Mediator when UEFI Secure Boot is enabled
+
+ONTAP Mediator can be installed on a system with or without UEFI Secure Boot enabled.
+
+.About this task
+
+You can choose to disable UEFI Secure Boot before installing ONTAP Mediator if it is not needed or if you are troubleshooting ONTAP Mediator installation issues. Disable the UEFI Secure Boot option from your machine settings. 
+
+[NOTE] 
+====
+Consult system-specific instructions for more detailed information on how to disable UEFI Secure Boot.
+====
 
 To install the ONTAP Mediator with UEFI Secure Boot enabled, you must register a security key before the service can start. The key is generated during the SCST installation's compile step and saved as a private-public key pair on your machine. Use the `mokutil` utility to add the public key as a Machine Owner Key (MOK) to your UEFI firmware, enabling the system to trust and load the signed module. Save the `mokutil` passphrase in a secure location as this is required when rebooting your system to activate the MOK.
 
-To determine if the system is UEFI-enabled and Secure Boot is turned on, perform the following steps:
-
 .Steps
 
-. If `mokutil` is not installed, run the following command: 
-+
-`yum install mokutil`
-
-. Check if UEFI Secure Boot is enabled on your system:
+. [[step_1_uefi]]Check if UEFI Secure Boot is enabled on your system:
 +
 `mokutil --sb-state`
 +
-The results indicate whether UEFI Secure Boot is enabled on this system.
+The results indicate whether UEFI Secure Boot is enabled on this system. 
++
+[cols="40,60"]
+|===
+
+h| If... h| Go to...
+
+a| UEFI secure boot is enabled
+a| <<step_2_uefi,The step where you run the `mokutil` utility>>
+
+a| UEFI secure boot is disabled
+a| link:upgrade-host-os-mediator-task.html[Upgrade the host operating system and then the ONTAP Mediator]
+
+|===
 +
 [NOTE] 
 ====
 * You are prompted to create a passphrase that you must store in a secure location. You'll need this passphrase to enable the key in the UEFI Boot Manager.
 * ONTAP Mediator 1.2.0 and earlier versions do not support this mode.
 ====
+
+. [[step_2_uefi]]If the `mokutil` utility is not installed, run the following command: 
++
+`yum install mokutil`
 . Add the public key to the MOK list:
 +
 `mokutil --import /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/scst_module_key.der`
@@ -85,17 +107,7 @@ NOTE: You can leave the private key in its default location or move it to a secu
 +
 `[root@hostname ~]# ls /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/
 README.module-signing  scst_module_key.der  scst_module_key.priv`
-. Reboot the host and use your device's UEFI Boot Manager to approve the new MOK. You'll need the passphrase provided for the `mokutil` in step 2. 
-
-== Disable UEFI Secure Boot
-
-You can also choose to disable UEFI Secure Boot before installing ONTAP Mediator.
-
-.Steps
-
-. In the physical machine BIOS settings, disable the "UEFI Secure Boot" option.
-
-. In the VMware settings for the VM, disable the "Safe Start" option for vSphere 6.x or the "Secure Boot" option for vSphere 7.x.
+. Reboot the host and use your device's UEFI Boot Manager to approve the new MOK. You'll need the passphrase provided for the `mokutil` utility in <<step_1_uefi,the step where you check if UEFI Secure Boot is enabled on your system>>. 
 
 // 2021 Apr 21, ONTAPEX-133437
 // 2021 May 05, review comment in IDR-67
@@ -109,4 +121,5 @@ You can also choose to disable UEFI Secure Boot before installing ONTAP Mediator
 // 2024 Feb 24, ONTAPDOC-1165
 // 27-JULY-2024 GH-1314
 // 11-OCT-2024, ONTAPDOC-1689
+// 19-NOV-2024, ONTAPDOC-2414
 // 21-NOV-2024, ONTAPDOC-2516
