@@ -2,30 +2,30 @@
 permalink: data-protection/preserve-snapshot-copy-primary-source-volume-task.html
 sidebar: sidebar
 keywords: ensure, snapshot, copy, mirror-vault, deployment
-summary: "You can use the snapmirror snapshot-owner create command to preserve a labeled Snapshot copy on the secondary in a mirror-vault deployment. Doing so ensures that a common Snapshot copy exists for the update of the vault relationship."
+summary: "You can use the snapmirror snapshot-owner create command to preserve a labeled snapshot on the secondary in a mirror-vault deployment. Doing so ensures that a common snapshot exists for the update of the vault relationship."
 ---
-= Ensure a common Snapshot copy in a mirror-vault deployment
+= Ensure a common snapshot in a mirror-vault deployment with ONTAP
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You can use the `snapmirror snapshot-owner create` command to preserve a labeled Snapshot copy on the secondary in a mirror-vault deployment. Doing so ensures that a common Snapshot copy exists for the update of the vault relationship.
+You can use the `snapmirror snapshot-owner create` command to preserve a labeled snapshot on the secondary in a mirror-vault deployment. Doing so ensures that a common snapshot exists for the update of the vault relationship.
 
 .About this task
 
-If you use a combination mirror-vault fan-out or cascade deployment, you should keep in mind that updates will fail if a common Snapshot copy does not exist on the source and destination volumes.
+If you use a combination mirror-vault fan-out or cascade deployment, you should keep in mind that updates will fail if a common snapshot does not exist on the source and destination volumes.
 
-This is never an issue for the mirror relationship in a mirror-vault fan-out or cascade deployment, since SnapMirror always creates a Snapshot copy of the source volume before it performs the update.
+This is never an issue for the mirror relationship in a mirror-vault fan-out or cascade deployment, since SnapMirror always creates a snapshot of the source volume before it performs the update.
 
-It might be an issue for the vault relationship, however, since SnapMirror does not create a Snapshot copy of the source volume when it updates a vault relationship. You need to use the `snapmirror snapshot-owner create` to ensure that there is at least one common Snapshot copy on both the source and destination of the vault relationship.
+It might be an issue for the vault relationship, however, since SnapMirror does not create a snapshot of the source volume when it updates a vault relationship. You need to use the `snapmirror snapshot-owner create` to ensure that there is at least one common snapshot on both the source and destination of the vault relationship.
 
 .Steps
 
-. On the source volume, assign an owner to the labeled Snapshot copy you want to preserve:
+. On the source volume, assign an owner to the labeled snapshot you want to preserve:
 +
 `snapmirror snapshot-owner create -vserver <SVM> -volume <volume> -snapshot <snapshot> -owner <owner>`
 +
-The following example assigns `ApplicationA` as the owner of the `snap1` Snapshot copy:
+The following example assigns `ApplicationA` as the owner of the `snap1` snapshot:
 +
 ----
 clust1::> snapmirror snapshot-owner create -vserver vs1 -volume vol1
@@ -36,28 +36,30 @@ clust1::> snapmirror snapshot-owner create -vserver vs1 -volume vol1
 +
 Alternatively, you can wait for the scheduled update of the mirror relationship.
 
-. Transfer the labeled Snapshot copy to the vault destination:
+. Transfer the labeled snapshot to the vault destination:
 +
 `snapmirror update -source-path <SVM:volume>|<cluster://SVM/volume>, ... -destination-path <SVM:volume>|<cluster://SVM/volume>, ... -source-snapshot snapshot`
 +
-For complete command syntax, see the man page.
+Learn more about `snapmirror update` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-update.html[ONTAP command reference^].
 +
-The following example transfers the `snap1` Snapshot copy::
+The following example transfers the `snap1` snapshot::
 +
 ----
 clust1::> snapmirror update -vserver vs1 -volume vol1
 -source-snapshot snap1
 ----
 +
-The labeled Snapshot copy will be preserved when the vault relationship is updated.
+The labeled snapshot will be preserved when the vault relationship is updated.
 
-. On the source volume, remove the owner from the labeled Snapshot copy:
+. On the source volume, remove the owner from the labeled snapshot:
 +
 `snapmirror snapshot-owner delete -vserver _SVM_ -volume _volume_ -snapshot _snapshot_ -owner _owner_`
 +
-The following examples removes `ApplicationA` as the owner of the `snap1` Snapshot copy:
+The following examples removes `ApplicationA` as the owner of the `snap1` snapshot:
 +
 ----
 clust1::> snapmirror snapshot-owner delete -vserver vs1 -volume vol1
 -snapshot snap1 -owner ApplicationA
 ----
+
+// 2025 Jan 14, ONTAPDOC-2569
