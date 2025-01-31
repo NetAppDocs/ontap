@@ -28,17 +28,96 @@ CAUTION: If an installation failure occurs, you might need to upgrade to a later
 
 * If you install the `yum-utils` package, you can use the `needs-restarting` command.
 
-=== OS requirements 
+=== Host requirements 
 // BURT 1392725
-Your operating system must meet the following requirements:
+
+Follow these requirements when installing Red Hat Enterprise Linux (RHEL) or Rocky Linux and configuring the associated repositories. 
+
+[NOTE] 
+====
+If you modify the installation or configuration process, you might need to perform additional steps.
+====
+
+.Linux distribution requirements
+* Install RHEL or Rocky Linux according to Red Hat's best practices. Since CentOS 8.x has reached end-of-life, compatible versions of CentOS 8.x are not recommended.
+* When installing the ONTAP Mediator service, ensure the system has access to the required repository so the installation program can retrieve and install all required software dependencies.
+* To enable the yum installer to find dependent software in the RHEL repositories, register the system during installation or afterwards using a valid Red Hat subscription.
++
+[NOTE] 
+====
+See the Red Hat Subscription Manager documentation for further information.
+====
+
+.Networking requirements
+* Ensure the following ports are available and unused for ONTAP Mediator:
+ ** 31784
+ ** 3260
+* If using a third-party firewall, refer to link:https://docs.netapp.com/us-en/ontap-metrocluster/install-ip/concept_mediator_requirements.html#firewall-requirements-for-ontap-mediator[Firewall requirements for ONTAP Mediator^].
+* For Linux hosts without internet access, make sure the required packages are available in a local repository.
++
+If you are using Link Aggregation Control Protocol (LACP) in a Linux environment, configure the kernel and set the `sysctl net.ipv4.conf.all.arp_ignore` to `2`.
+
+.OS requirements
+
+Your OS must meet the following requirements:
 
 * 64-bit physical installation or virtual machine
 * 8 GB RAM
 * 1 GB disk space (used for applications installation, server logs, and the database)
 * User: Root access
 
-The following table shows the supported operating systems for each version of ONTAP Mediator.
+The following table shows the supported OSs for each version of ONTAP Mediator.
 include::../_include/mediator-linux-support.adoc[]
+
+.OS required packages
+
+The following packages are required by the ONTAP Mediator service:
+
+[NOTE] 
+The packages are either pre-installed or automatically installed by the ONTAP Mediator installer.
+
+[cols="34,33,33"]
+|===
+
+h| All RHEL/CentOS versions h| Additional packages for RHEL 8.x / Rocky Linux 8 h| Additional packages for RHEL 9.x / Rocky Linux 9
+
+a|
+ * openssl
+ * openssl-devel
+ * kernel-devel-$ (uname -r)
+ * gcc
+ * make
+ * libselinux-utils
+ * patch
+ * bzip2
+ * perl-Data-Dumper
+ * perl-ExtUtils-MakeMaker
+ * efibootmgr
+ * mokutil
+
+a|
+ * python3-pip
+ * elfutils-libelf-devel
+ * policycoreutils-python-utils
+ * redhat-lsb-core
+ * python39
+ * python39-devel
+
+a|
+ * python3-pip
+ * elfutils-libelf-devel
+ * policycoreutils-python-utils
+ * python3
+ * python3-devel
+
+|===
+
+The Mediator installation package is a self-extracting compressed tar file that includes:
+
+* An RPM file containing all dependencies that cannot be obtained from the supported release's repository.
+* An install script.
+
+A valid SSL certification is recommended.
 
 === OS upgrade considerations and kernel compatibility
 * All library packages, except the kernel, can safely be updated but might require a reboot to apply the changes within the ONTAP Mediator application. A service window is recommended when a reboot is required.
@@ -63,7 +142,7 @@ You can choose to disable UEFI Secure Boot before installing ONTAP Mediator if i
 
 [NOTE] 
 ====
-Consult system-specific instructions for more detailed information on how to disable UEFI Secure Boot.
+For detailed instructions on disabling UEFI Secure Boot, refer to the documentation for your host OS.
 ====
 
 To install the ONTAP Mediator with UEFI Secure Boot enabled, you must register a security key before the service can start. The key is generated during the SCST installation's compile step and saved as a private-public key pair on your machine. Use the `mokutil` utility to add the public key as a Machine Owner Key (MOK) to your UEFI firmware, enabling the system to trust and load the signed module. Save the `mokutil` passphrase in a secure location as this is required when rebooting your system to activate the MOK.
@@ -122,3 +201,4 @@ README.module-signing  scst_module_key.der  scst_module_key.priv`
 // 11-OCT-2024, ONTAPDOC-1689
 // 19-NOV-2024, ONTAPDOC-2414
 // 21-NOV-2024, ONTAPDOC-2516
+// 24-JAN-2025, ONTAPDOC-2625
