@@ -4,30 +4,80 @@ sidebar: sidebar
 keywords: determine, number, supported, nodes, san configurations
 summary: "The number of nodes per cluster supported by ONTAP varies depending on your version of ONTAP, the storage controller models in your cluster, and the protocol of your cluster nodes."
 ---
-= Determine the number of supported nodes for SAN configurations
+= Determine the maximum supported nodes and SAN hosts per ONTAP cluster 
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-The number of nodes per cluster supported by ONTAP varies depending on your version of ONTAP, the storage controller models in your cluster, and the protocol of your cluster nodes.
+The number of supported nodes per cluster varies depending on your version of ONTAP, your controller models, and the protocol of your cluster nodes. The maximum number of SAN hosts that can be connected to a cluster also varies based upon your specific configuration.
 
-.About this task
+== Determine the maximum supported nodes per cluster
 
 If any node in the cluster is configured for FC, FC-NVMe, FCoE, or iSCSI, that cluster is limited to the SAN node limits. Node limits based on the controllers in your cluster are listed in the _Hardware Universe_.
 
 .Steps
 
 . Go to https://hwu.netapp.com[NetApp Hardware Universe^].
-. Click *Platforms* in the upper left (next to the *Home* button) and select the platform type.
-. Select the check box next to your version of ONTAP.
+. In the upper left, next to *Home*, select *Platforms*; then select the platform type.
+. Select your version of ONTAP.
 +
 A new column is displayed for you to choose your platforms.
 
-. Select the check boxes next to the platforms used in your solution.
-. Unselect the *Select All* check box in the *Choose Your Specifications* column.
-. Select the *Max Nodes per Cluster (NAS/SAN)* check box.
+. Select the platforms used in your solution.
+. Under *Choose Your Specifications*, deselect *Select All*.
+. Select *Max Nodes per Cluster (NAS/SAN)*.
 . Click *Show Results*.
 
-.Related information
+.Results
+The maximum nodes per cluster for your selected platforms is displayed.
 
-https://hwu.netapp.com[NetApp Hardware Universe^]
+
+== Determine if your cluster can support more FC hosts
+
+For FC and FC-NVMe configurations, you should use the number of initiator-target nexuses (ITNs) in your system to determine whether you can add more hosts to your cluster.
+
+An ITN represents one path from the host's initiator to the storage system's target. The maximum number of ITNs per node in FC and FC-NVMe configurations is 2,048. If you are below the maximum number of ITNs, you can continue to add hosts to your cluster.
+
+To determine the number of ITNs used in your cluster, perform the following steps for each node in the cluster.
+
+.Steps
+
+. Identify all the LIFs on a given node.
+. Run the following command for every LIF on the node:
++
+[source,cli]
+----
+fcp initiator show -fields wwpn, lif
+----
++
+The number of entries displayed at the bottom of the command output represents your number of ITNs for that LIF.
+
+. Record the number of ITNs displayed for each LIF.
+. Add the number of ITNs for each LIF on every node in your cluster.
++
+This total represents the number of ITNs in your cluster.
+
+= Determine if your cluster can support more iSCSI hosts
+
+The number of hosts that can be directly connected to a node or that can be connected through one or more switches depends on the number of available Ethernet ports. The number of available Ethernet ports is determined by the model of the controller and the number and type of adapters installed in the controller. The number of supported Ethernet ports for controllers and adapters is available in the _Hardware Universe_.
+
+For all multi-node cluster configurations, you must determine the number of iSCSI sessions per node to know whether you can add more hosts to your cluster. As long as your cluster is below the maximum number of iSCSI sessions per node, you can continue to add hosts to your cluster. The maximum number of iSCSI sessions per node varies based on the types of controllers in your cluster.
+
+.Steps
+
+. Identify all of the target portal groups on the node.
+. Check the number of iSCSI sessions for every target portal group on the node:
++
+[source,cli]
+----
+iscsi session show -tpgroup _tpgroup_
+----
++
+The number of entries displayed at the bottom of the command output represents your number of iSCSI sessions for that target portal group.
+
+. Record the number of iSCSI sessions displayed for each target portal group.
+. Add the number of iSCSI sessions for each target portal group on the node.
++
+The total represents the number of iSCSI sessions on your node.
+
+// 2025 Feb 4, ONTAPDOC 2680

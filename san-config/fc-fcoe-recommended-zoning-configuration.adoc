@@ -2,16 +2,16 @@
 permalink: san-config/fc-fcoe-recommended-zoning-configuration.html
 sidebar: sidebar
 keywords: individual zones
-summary: "In the recommended zoning configuration, there is one host initiator per zone. The zone consists of the host initiator port and one or more target LIFs on the storage nodes that are providing access to the LUNs up to the desired number of paths per target. This means that hosts accessing the same nodes cannot see each other’s ports, but each initiator can access any node."
+summary: "In the recommended FC and FCoE zoning configuration, there is one host initiator per zone. The zone consists of the host initiator port and one or more target LIFs on the storage nodes that are providing access to the LUNs up to the desired number of paths per target. This configuration allows each host initiator to access any node, while preventing hosts accessing the same node from seeing see each other's ports"
 ---
 = Recommended FC and FCoE zoning configurations 
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-In the recommended FC and FCoE zoning configuration, there is one host initiator per zone. The zone consists of the host initiator port and one or more target LIFs on the storage nodes that are providing access to the LUNs up to the desired number of paths per target. This configuration allows each host initiator to access any node, while preventing hosts accessing the same node from seeing see each other's ports
+In the recommended FC and FCoE zoning configuration, each zone includes one host initiator, host initiator port, and one or more target LIFs. This configuration allows each host initiator to access any node, while preventing hosts accessing the same node from seeing see each other's ports
 
-You should add all LIF's from the storage virtual machine (SVM) to the zone with the host initiator. This allows you to move volumes or LUNs without editing your existing zones or creating new zones.
+Add all LIFs from the storage virtual machine (SVM) to the zone with the host initiator. This allows you to move volumes or LUNs without editing your existing zones or creating new zones.
 
 FC switches should be zoned using the WWPNs of the target's logical interfaces (LIFs), not the WWPNs of the physical ports on the node. The WWPNs of the physical ports start with "`50`" and the WWPNs of the LIFs start with "`20`".
 
@@ -33,7 +33,7 @@ Each host initiator is zoned through a different switch. Zone 1 is accessed thro
 
 Each host can access a LIF on every node. This enables the host to still access its LUNs if a node fails. SVMs have access to all iSCSI and FC LIFs on every node in the cluster based on your SLM reporting nodes configuration. You can use SLM, portsets, or FC switch zoning to reduce the number of paths from an SVM to the host and the number of paths from an SVM to a LUN.
 
-If the configuration included more nodes, the LIFs for the additional nodes would be included in these zones.
+If the configuration includes more nodes, the LIFs for the additional nodes are included in these zones..
 
 image:scm-en-drw-dual-fabric-zoning.png[Dual Fabric Zoning]
 
@@ -44,7 +44,7 @@ The host operating system and multipathing software have to support the number o
 
 == Single-fabric zoning
 
-In a single-fabric configuration, you connect each host initiator to each storage node through a single switch. Single-fabric zoning configurations are recommended not because they do not provide protection against data loss due to a single component failure. If you choose to configure single-fabric zoning, each host should have two initiators for multipathing to provide resiliency in the solution. Multipathing software is required on the host to manage multiple paths. 
+In a single-fabric configuration, you connect each host initiator to each storage node through a single switch. Single-fabric zoning configurations are not recommended because they do not provide protection against data loss due to a single component failure. If you choose to configure single-fabric zoning, each host should have two initiators for multipathing to provide resiliency in the solution. Multipathing software is required on the host to manage multiple paths. 
 
 Each host initiator should have a minimum of one LIF from each node that the initiator can access. The zoning should allow at least one path from the host initiator to the HA pair of nodes in the cluster to provide a path for LUN connectivity. This means that each initiator on the host might only have one target LIF per node in its zone configuration. If there is a requirement for multipathing to the same node or multiple nodes in the cluster, then each node will have multiple LIFs per node in its zone configuration. This enables the host to still access its LUNs if a node fails or a volume containing the LUN is moved to a different node. This also requires the reporting nodes to be set appropriately.
 
@@ -60,7 +60,7 @@ The naming convention used in this figure is just a recommendation of one possib
 * Zone 1: HBA 0, LIF_1, and LIF_3
 * Zone 2: HBA 1, LIF_2, and LIF_4
 
-If the configuration included more nodes, the LIFs for the additional nodes would be included in these zones.
+If the configuration includes more nodes, the LIFs for the additional nodes are included in these zones.s.
 
 image:scm-en-drw-single-fabric-zoning.png[Single Fabric Zoning]
 
@@ -76,26 +76,20 @@ The host operating system and multipathing software have to support the number o
 
 == Zoning restrictions for Cisco FC and FCoE switches
 
-Physical ports
+When using Cisco FC and FCoE switches, certain restrictions apply to the use of physical ports and logical interfaces (LIFs) in zones.
 
+.Physical ports
 
-|====
-
-* FC-NVMe and FCoE cannot share the same physical port
 * FC-NVMe and FC can share the same 32 Gb physical port
+* FC-NVMe and FCoE cannot share the same physical port
+* FC and FCoE can share the same physical port but their protocol LIFs must be in separate zones. 
 
+.Logical Interfaces (LIFs)
 
-
-
-
-* Multiple LIFs for the FC and FCoE protocols, can share physical ports on a node as long as they are in different zones.  
+* A zone can contain a LIF from every target port in the cluster.
 +
-Each LIF on a given port must be in a separate zone from the other LIFs on that port.
+Verify the SLM configuration so that you do not to exceed the maximum number of paths allowed to the host.
+* Each LIF on a given port must be in a separate zone from other LIFs on that port
+* LIFs on different physical ports can be in the same zone.
 
-
-.FC and FC-NVMe restrictions 
-* Regular Cisco FC switches are used for the FC-NVMe protocol in the same way they are used for the FC protocol. 
-* FC-NVMe and FCoE 
-**cannot share the same physical port
-**
-* FC-NVMe and FC can share the same 32 Gb physical port.
+// 2025 Feb 4, ONTAPDOC 2680
