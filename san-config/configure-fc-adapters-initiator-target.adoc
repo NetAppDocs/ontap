@@ -1,0 +1,110 @@
+---
+permalink: san-config/configure-fc-adapters-initiator-target.html
+sidebar: sidebar
+keywords: configure, fc adapters, initiator mode
+summary: "You can configure individual FC ports of onboard adapters and certain FC adapter cards for initiator mode. Initiator mode is used to connect the ports to tape drives, tape libraries, or third-party storage with FlexArray Virtualization or Foreign LUN Import (FLI)."
+---
+= Configure FC adapters
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Each onboard FC port can be individually configured as an initiator or a target. Ports on certain FC adapters can also be individually configured as either a target port or an initiator port, just like the onboard FC ports. 
+
+== Configure FC adapters for initiator mode
+
+Initiator mode is used to connect the ports to tape drives, tape libraries, or third-party storage with FlexArray Virtualization or Foreign LUN Import (FLI). 
+
+.Before you begin
+
+* LIFs on the adapter must be removed from any port sets of which they are members.
+* All LIF's from every storage virtual machine (SVM) using the physical port to be modified must be migrated or destroyed before changing the personality of the physical port from target to initiator.
+
+[NOTE]
+====
+NVMe/FC does support initiator mode.
+====
+
+.Steps
+
+. Remove all LIFs from the adapter:
++
+[source,cli]
+----
+network interface delete -vserver _SVM_name_ -lif _lif_name_,_lif_name_
+----
+
+. Take your adapter offline:
++
+[source,cli]
+----
+network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -status-admin down
+----
++
+If the adapter does not go offline, you can also remove the cable from the appropriate adapter port on the system.
+
+. Change the adapter from target to initiator:
++
+[source,cli]
+----
+system hardware unified-connect modify -t initiator _adapter_port_
+----
+
+. Reboot the node hosting the adapter you changed.
+. Verify that the FC ports are configured in the correct state for your configuration:
++
+[source,cli]
+----
+system hardware unified-connect show
+----
+
+. Bring the adapter back online:
++
+[source,cli]
+----
+node run -node _node_name_ storage enable adapter _adapter_port_
+----
+
+
+== Configure FC adapters for target mode
+
+Target mode is used to connect the ports to FC initiators.
+
+The same steps are used to configure FC adapters for the FC protocol and the FC-NVMe protocol. However, only certain FC adapters support FC-NVMe. See the link:https://hwu.netapp.com[NetApp Hardware Universe^] for a list of adapters that support the FC-NVMe protocol.
+
+.Steps
+
+. Take the adapter offline:
++
+[source,cli]
+----
+node run -node _node_name_ storage disable adapter _adapter_name_
+----
++
+If the adapter does not go offline, you can also remove the cable from the appropriate adapter port on the system.
+
+. Change the adapter from initiator to target:
++
+[source,cli]
+----
+system node hardware unified-connect modify -t target -node _node_name_ adapter _adapter_name_
+----
+
+. Reboot the node hosting the adapter you changed.
+
+. Verify that the target port has the correct configuration:
++
+[source,cli]
+----
+network fcp adapter show -node _node_name_
+----
+
+. Bring your adapter online:
++
+[source,cli]
+----
+network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -state up
+----
+
+// 2025 Feb 05, ONTAPDOC 2680
+// 2022-01-25, ontap-issues-302
