@@ -487,68 +487,6 @@ The following key-value pairs are examples of metadata that could be stored as x
 |`user.geo_point` |`[-78.7941, 35.7956]`
 |===
 
-== Auditing changes to labels
-
-Auditing changes to xattrs or NFS security labels is a critical aspect of file system management and security. Standard file system auditing tools enable the monitoring and logging of all changes to a file system, including modifications to extended attributes and security labels.
-
-In Linux environments, the `auditd` daemon is commonly used to establish auditing for file system events. It allows administrators to configure rules to watch for specific system calls related to xattr changes, such as `setxattr`, `lsetxattr`, and `fsetxattr` for setting attributes and `removexattr`, `lremovexattr`, and `fremovexattr` for removing attributes.
-
-ONTAP FPolicy extends these capabilities by providing a robust framework for real-time monitoring and control of file operations. FPolicy can be configured to support various xattr events, offering granular control over file operations and the ability to enforce comprehensive data management policies.
-
-For users utilizing xattrs, especially in NFSv3 and NFSv4 environments, only certain combinations of file operations and filters are supported for monitoring. The list of supported file operation and filter combinations for FPolicy monitoring of NFSv3 and NFSv4 file access events is detailed below:
-
-[width="100%",cols="25%a,75%a",options="header",]
-|===
-|Supported file operations |Supported filters
-|`setattr` |`offline-bit, setattr_with_owner_change, setattr_with_group_change, setattr_with_mode_change, setattr_with_modify_time_change, setattr_with_access_time_change, setattr_with_size_change, exclude_directory`
-|===
-
-.Example of an auditd log snippet for a setattr operation:
-
-----
-type=SYSCALL msg=audit(1713451401.168:106964): arch=c000003e syscall=188
-success=yes exit=0 a0=7fac252f0590 a1=7fac251d4750 a2=7fac252e50a0 a3=25
-items=1 ppid=247417 pid=247563 auid=1112 uid=1112 gid=1112 euid=1112
-suid=1112 fsuid=1112 egid=1112 sgid=1112 fsgid=1112 tty=pts0 ses=141
-comm="python3" exe="/usr/bin/python3.9"
-subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
-key="*set-xattr*"ARCH=x86_64 SYSCALL=**setxattr** AUID="jrsmith"
-UID="jrsmith" GID="jrsmith" EUID="jrsmith" SUID="jrsmith"
-FSUID="jrsmith" EGID="jrsmith" SGID="jrsmith" FSGID="jrsmith"
-----
-
-Enabling ONTAP FPolicy for users working with xattrs provides a layer of visibility and control that is essential for maintaining the integrity and security of the file system. By leveraging FPolicy's advanced monitoring capabilities, organizations can ensure that all changes to xattrs are tracked, audited, and aligned with their security and compliance standards. This proactive approach to file system management is why enabling ONTAP FPolicy is highly recommended for any organization looking to enhance its data governance and protection strategies.
-
-== Integration with ABAC identity and access control software
-
-To fully harness the capabilities of attribute-based access control (ABAC), ONTAP can integrate with an ABAC-oriented identity and access management software. 
-
-NOTE: In parallel to this content, NetApp has a reference implementation using GreyBox. One assumption for this content is that the government's identity, authentication, and access services include at minimum a Policy Enforcement Point (PEP) and a Policy Decision Point (PDP) that act as intermediaries for access to the file system.
-
-In a practical setting, an organization would employ a blend of NFS security labels and xattrs. These are used to represent a variety of metadata, including classification, security, application, and content, which are all instrumental in making ABAC decisions. XATTR, for instance, can be used to store the resource attributes that the PDP uses for its decision-making process. An attribute could be defined to represent the classification level of a file (for example, "Unclassified", "Confidential", "Secret", or "Top Secret"). The PDP could then use this attribute to enforce a policy that restricts users to access only files that have a classification level equal to or lower than their clearance level.
-
-.Example process flow for ABAC
-
-. User presents credentials (for example, PKI, Oauth, SAML) to system access to PEP and gets results from PDP. 
-+
-The PEP's role is to intercept the user's access request and forward it to the PDP.
-
-. The PDP then evaluates this request against the established ABAC policies. 
-+
-These policies consider various attributes related to the user, the resource in question, and the surrounding environment. Based on these policies, the PDP makes an access decision to either allow or deny and then communicates this decision back to the PEP. 
-+
-PDP provides policy to PEP to enforce. The PEP then enforces this decision, either granting or denying the user's access request as per the PDP's decision.
-
-. After a successful request, the user requests a file stored in ONTAP (AFF, AFF-C, for example).
-. If the request is successful, PEP gets fine-grain access control tags from document.
-. PEP requests policy for user based on that user's certs.
-. PEP makes a decision based on policy and tags if the user has access to the file and lets the user retrieve the file.
-
-[NOTE]
-The actual access might be done using tokens not proxied through.
-
-image:abac-access-architecture.png[ABAC access architecture]
-
 .Related information
 
 * link:https://www.netapp.com/media/10720-tr-4067.pdf[NFS in NetApp ONTAP: Best practice and implementation guide^]
