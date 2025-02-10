@@ -1,0 +1,175 @@
+---
+permalink: san-config/configure-fc-adapters-initiator-target.html
+sidebar: sidebar
+keywords: configure, fc adapters, initiator mode, target mode, FC-NVMe, FC adapter speed
+summary: "Onboard FC adapters and some FC expansion adapter cards can be configured as either initiators or targets ports. Other FC expansion adapters are configured as initiators or targets at the factory and cannot be changed."
+---
+= Configure FC adapters
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Onboard FC adapters and some FC expansion adapter cards can be individually configured as either initiators or targets ports. Other FC expansion adapters are configured as initiators or targets at the factory and cannot be changed.  Additional FC ports are also available through supported UTA2 cards configured with FC SFP+ adapters.
+
+Initiator ports can be used to connect directly to back-end disk shelves, and possibly foreign storage arrays. Target ports can be used to connect only to FC switches. 
+
+The number of onboard ports and CNA/UTA2 ports configured for FC varies depending on the model of the controller.  The supported target expansion adapters also varies depending on controller model. See link:https://hwu.netapp.com[NetApp Hardware Universe^] for a complete list of onboard FC ports and supported target expansion adapters for your controller model. 
+
+== Configure FC adapters for initiator mode
+
+Initiator mode is used to connect the ports to tape drives, tape libraries, or third-party storage with FlexArray Virtualization or Foreign LUN Import (FLI). 
+
+.Before you begin
+
+* LIFs on the adapter must be removed from any port sets of which they are members.
+* All LIF's from every storage virtual machine (SVM) using the physical port to be modified must be migrated or destroyed before changing the personality of the physical port from target to initiator.
+
+[NOTE]
+====
+NVMe/FC does support initiator mode.
+====
+
+.Steps
+
+. Remove all LIFs from the adapter:
++
+[source,cli]
+----
+network interface delete -vserver _SVM_name_ -lif _lif_name_,_lif_name_
+----
+
+. Take your adapter offline:
++
+[source,cli]
+----
+network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -status-admin down
+----
++
+If the adapter does not go offline, you can also remove the cable from the appropriate adapter port on the system.
+
+. Change the adapter from target to initiator:
++
+[source,cli]
+----
+system hardware unified-connect modify -t initiator _adapter_port_
+----
+
+. Reboot the node hosting the adapter you changed.
+. Verify that the FC ports are configured in the correct state for your configuration:
++
+[source,cli]
+----
+system hardware unified-connect show
+----
+
+. Bring the adapter back online:
++
+[source,cli]
+----
+node run -node _node_name_ storage enable adapter _adapter_port_
+----
+
+
+== Configure FC adapters for target mode
+
+Target mode is used to connect the ports to FC initiators.
+
+The same steps are used to configure FC adapters for the FC protocol and the FC-NVMe protocol. However, only certain FC adapters support FC-NVMe. See the link:https://hwu.netapp.com[NetApp Hardware Universe^] for a list of adapters that support the FC-NVMe protocol.
+
+.Steps
+
+. Take the adapter offline:
++
+[source,cli]
+----
+node run -node _node_name_ storage disable adapter _adapter_name_
+----
++
+If the adapter does not go offline, you can also remove the cable from the appropriate adapter port on the system.
+
+. Change the adapter from initiator to target:
++
+[source,cli]
+----
+system node hardware unified-connect modify -t target -node _node_name_ adapter _adapter_name_
+----
+
+. Reboot the node hosting the adapter you changed.
+
+. Verify that the target port has the correct configuration:
++
+[source,cli]
+----
+network fcp adapter show -node _node_name_
+----
+
+. Bring your adapter online:
++
+[source,cli]
+----
+network fcp adapter modify -node _node_name_ -adapter _adapter_port_ -state up
+----
+
+== Configure FC adapter speed
+
+You should configure your adapter target port speed to match the speed of the device to which it connects, instead of using autonegotiation. A port that is set to autonegotiation can take longer time to reconnect after a takeover/giveback or other interruption.
+
+.About this task
+
+Because this task encompasses all storage virtual machines (SVMs) and all LIFs in a cluster, you must use the `-home-port` and `-home-lif` parameters to limit the scope of this operation. If you do not use these parameters, the operation applies to all LIFs in the cluster, which might not be desirable.
+
+.Before you begin
+
+All LIFs that use this adapter as their home port must be offline.
+
+.Steps
+
+. Take all of the LIFs on this adapter offline:
++
+[source,cli]
+----
+network interface modify -vserver * -lif * { -home-node node1 -home-port 0c } -status-admin down
+----
+
+. Take the adapter offline:
++
+[source,cli]
+----
+network fcp adapter modify -node node1 -adapter 0c -state down
+----
++
+If the adapter does not go offline, you can also remove the cable from the appropriate adapter port on the system.
+
+. Determine the maximum speed for the port adapter:
++
+[source,cli]
+----
+fcp adapter show -instance
+----
++
+You cannot modify the adapter speed beyond the maximum speed.
+
+. Change the adapter speed:
++
+[source,cli]
+----
+network fcp adapter modify -node node1 -adapter 0c -speed 16
+----
+
+. Bring the adapter online:
++
+[source,cli]
+----
+network fcp adapter modify -node node1 -adapter 0c -state up
+----
+
+. Bring all of the LIFs on the adapter online:
++
+[source,cli]
+----
+network interface modify -vserver * -lif * { -home-node node1 -home-port 0c } -status-admin up
+----
+
+// 2025 Feb 05, ONTAPDOC 2680
+// 2023-12-07, ONTAPDOC-1007
+// 2022-01-25, ontap-issues-302
