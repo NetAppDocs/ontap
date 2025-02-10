@@ -4,13 +4,41 @@ sidebar: sidebar
 keywords: host, support, multipathing
 summary: "ONTAP always uses Asymmetric Logical Unit Access (ALUA) for both FC and iSCSI paths. Be sure to use host configurations that support ALUA for FC and iSCSi protocols."
 ---
-= Host support for multipathing overview
+= ONTAP support for SAN host multipathing
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-ONTAP always uses Asymmetric Logical Unit Access (ALUA) for both FC and iSCSI paths. Be sure to use host configurations that support ALUA for FC and iSCSi protocols.
+ONTAP uses Asymmetric Logical Unit Access (ALUA) software for multipathing with both FC and iSCSI hosts. 
 
-Beginning with ONTAP 9.5 multipath HA pair failover/giveback is supported for NVMe configurations using Asynchronous Namespace Access (ANA). In ONTAP 9.4, NVMe only supports one path from host to target. The application host needs to manage path failover to its high availability (HA) partner.
+Beginning with ONTAP 9.5 multipath high availability (HA) pair failover/giveback is supported for NVMe hosts using Asynchronous Namespace Access (ANA). In ONTAP 9.4, NVMe supports only one path from host to target, so the application host must manage path failover to its HA partner.
+
+The multipathing software is required on your SAN host if it can access a LUN or NVMe namespace through more than one path. It presents a single disk to the operating system for all paths to a LUN or NVMe namespace. Without it, the operating system could treat each path as a separate disk, leading to data corruption.
+
+Your solution is considered to have multiple paths if you have any of the following:
+
+* A single initiator port in the host attaching to multiple SAN LIFs in the SVM
+* Multiple initiator ports attaching to a single SAN LIF in the SVM
+* Multiple initiator ports attaching to multiple SAN LIFs in the SVM
+
+Multipathing software, also known as MPIO (multipath I/O) software, is recommended in HA configurations. In addition to Selective LUN Map, using FC switch zoning or portsets to limit the paths used to access LUNs is also recommended.
 
 For information about which specific host configurations support ALUA or ANA, see the https://mysupport.netapp.com/matrix[NetApp Interoperability Matrix Tool^] and https://docs.netapp.com/us-en/ontap-sanhost/index.html[ONTAP SAN Host Configuration] for your host operating system.
+
+== Recommended number of paths from host to nodes in cluster
+
+You should not exceed more than eight paths from your host to each node in your cluster.  You should also not exceed the  total number of paths that can be supported for the host OS and the multipathing used on the host.
+
+You should have a minimum of two paths per LUN connecting to each reporting node through link:../san-admin/selective-lun-map-concept.html[Selective LUN Map (SLM)] being used by the storage virtual machine (SVM) in your cluster. This eliminates single points of failure and enables the system to survive component failures.
+
+If you have four or more nodes in your cluster or more than four target ports being used by the SVMs in any of your nodes, you can use the following methods to limit the number of paths that can be used to access LUNs on your nodes so that you do not exceed the recommended maximum of eight paths.
+
+* SLM
++
+SLM reduces the number of paths from the host to LUN to only paths on the node owning the LUN and the owning node's HA partner. SLM is enabled by default.
+
+* link:../san-admin/limit-lun-access-portsets-igroups-concept.html[Portsets for iSCSI]
+* FC igroup mappings from your host
+* FC switch zoning
+
+// 2025 Feb 4, ONTAPDOC 2680
