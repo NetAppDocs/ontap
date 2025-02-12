@@ -111,9 +111,17 @@ FabricPool supports using the following object stores as the cloud tier:
 Glacier Flexible Retrieval and Glacier Deep Archive are not supported.
 ====
 * The object store "`bucket`" (container) you plan to use must have already been set up, must have at least 10 GB of storage space, and must not be renamed.
-* HA pairs that use FabricPool require intercluster LIFs to communicate with the object store.
 * You cannot detach a cloud tier from a local tier after it is attached; however, you can use link:create-mirror-task.html[FabricPool mirror] to attach a local tier to a different cloud tier.
 
+== Intercluster LIFs
+Cluster high-availability (HA) pairs that use FabricPool require two intercluster LIFs to communicate with the cloud tier. NetApp recommends creating an intercluster LIF on additional HA pairs to seamlessly attach cloud tiers to local tiers on those nodes as well.
+
+Disabling or deleting an intercluster LIF interrupts communication to the cloud tier.
+
+[NOTE]
+Because concurrent SnapMirror and SnapVault replication operations share the network link to the cloud tier, initialization and RTO are dependent on the available bandwidth and latency to the cloud tier. Performance degradation might occur if connectivity resources become saturated. Proactive configuration of multiple LIFs can significantly decrease this type of network saturation.
+
+If you are using more than one intercluster LIF on a node with different routing, NetApp recommends placing them in different IPspaces. During configuration, FabricPool can select from multiple IPspaces, but it is unable to select specific intercluster LIFs within an IPspace.
 
 == ONTAP storage efficiencies
 Storage efficiencies such as compression, deduplication, and compaction are preserved when moving data to the cloud tier, reducing required object storage capacity and transport costs.
@@ -178,6 +186,7 @@ With the exception of root SVM volumes and CIFS audit staging volumes, FabricPoo
 * Flash Pool aggregates
 
 
+// 2025 Feb 12, Small bullet turned into IC LIF section
 // 2025 Jan 28, TPS + FabricPool details
 // 2025 Jan 22, ONTAPDOC-1070
 // 2024-12-18 ONTAPDOC-2606
