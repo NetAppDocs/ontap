@@ -19,19 +19,21 @@ ONTAP creates authentication keys for all nodes in the cluster.
 
 * This command is not supported when Onboard Key Manager is enabled. However, two authentication keys are created automatically when Onboard Key Manager is enabled. The keys can be viewed with the following command:
 +
-`security key-manager key query -key-type NSE-AK`
+----
+security key-manager key query -key-type NSE-AK
+----
 
 * You receive a warning if the configured key management servers are already storing more than 128 authentication keys.
 
-* You can use the `security key-manager key delete` command to delete any unused keys. The `security key-manager key delete` command fails if the given key is currently in use by ONTAP. (You must have privileges greater than "`admin`" to use this command.)
+* You can use the `security key-manager key delete` command to delete any unused keys. The `security key-manager key delete` command fails if the given key is currently in use by ONTAP. (You must have privileges greater than `admin` to use this command.)
 +
 [NOTE]
 ====
 In a MetroCluster environment, before you delete a key, you must make sure that the key is not in use on the partner cluster. You can use the following commands on the partner cluster to check that the key is not in use:
 
-* `storage encryption disk show -data-key-id _key-id_`
+* `storage encryption disk show -data-key-id <key-id>`
 
-* `storage encryption disk show -fips-key-id _key-id_`
+* `storage encryption disk show -fips-key-id <key-id>`
 ====
 
 
@@ -43,27 +45,35 @@ You must be a cluster administrator to perform this task.
 
 . Create the authentication keys for cluster nodes:
 +
-`security key-manager key create -key-tag passphrase_label -prompt-for-key true|false`
+[source,cli]
+----
+security key-manager key create -key-tag <passphrase_label> -prompt-for-key true|false
+----
 +
 [NOTE]
 ====
-Setting `prompt-for-key=true` causes the system to prompt the cluster administrator for the passphrase to use when authenticating encrypted drives. Otherwise, the system automatically generates a 32-byte passphrase.  The `security key-manager key create` command replaces the `security key-manager create-key` command. For complete command syntax, see the man page.
+Setting `prompt-for-key=true` causes the system to prompt the cluster administrator for the passphrase to use when authenticating encrypted drives. Otherwise, the system automatically generates a 32-byte passphrase.  The `security key-manager key create` command replaces the `security key-manager create-key` command. 
+Learn more about `security key-manager key create` in the link:https://docs.netapp.com/us-en/ontap-cli/security-key-manager-key-create.html?q=security+key-manager+key+create[ONTAP command reference^].
 ====
 +
 The following example creates the authentication keys for `cluster1`, automatically generating a 32-byte passphrase:
 +
 ----
 cluster1::> security key-manager key create
-Key ID: 000000000000000002000000000001006268333f870860128fbe17d393e5083b0000000000000000
+Key ID: <id_value>
 ----
 
 . Verify that the authentication keys have been created:
 +
-`security key-manager key query -node node`
+----
+security key-manager key query -node node
+----
 +
 [NOTE]
 ====
-The `security key-manager key query` command replaces the `security key-manager query key` command. For complete command syntax, see the man page.     The key ID displayed in the output is an identifier used to refer to the authentication key. It is not the actual authentication key or the data encryption key.
+The `security key-manager key query` command replaces the `security key-manager query key` command. 
+Learn more about `security key-manager key query` in the link:https://docs.netapp.com/us-en/ontap-cli/security-key-manager-key-query.html[ONTAP command reference^].
+The key ID displayed in the output is an identifier used to refer to the authentication key. It is not the actual authentication key or the data encryption key.
 ====
 +
 The following example verifies that authentication keys have been created for `cluster1`:
@@ -77,9 +87,9 @@ cluster1::> security key-manager key query
 Key Tag                               Key Type  Restored
 ------------------------------------  --------  --------
 node1                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
+    Key ID: <id_value>
 node1                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+    Key ID: <id_value>
 
        Vserver: cluster1
    Key Manager: external
@@ -88,10 +98,12 @@ node1                                 NSE-AK    yes
 Key Tag                               Key Type  Restored
 ------------------------------------  --------  --------
 node2                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001000c11b3863f78c2273343d7ec5a67762e0000000000000000
+    Key ID: <id_value>
 node2                                 NSE-AK    yes
-    Key ID: 000000000000000002000000000001006f4e2513353a674305872a4c9f3bf7970000000000000000
+    Key ID: <id_value>
 ----
 
+// 2025-Feb-3, gh-1263 and ontap-2681
+// 2025 Jan 14, ONTAPDOC-2569
 // BURT 1374208, 10 NOV 2021
 // 2022 Dec 14, ONTAPDOC-710

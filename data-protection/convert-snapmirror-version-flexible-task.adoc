@@ -11,9 +11,11 @@ summary: "You can easily convert an existing DP-type relationship to XDP to take
 [.lead]
 If you are upgrading to ONTAP 9.12.1 or later, you must convert DP-type relationships to XDP before upgrading. ONTAP 9.12.1 and later does not support DP-type relationships. You can easily convert an existing DP-type relationship to XDP to take advantage of version-flexible SnapMirror. 
 
+Before upgrading to ONTAP 9.12.1, you must convert existing DP-type relationships to XDP before you can upgrade to ONTAP 9.12.1 and later releases. 
+
 .About this task
 
-* SnapMirror does not automatically convert existing DP-type relationships to XDP. To convert the relationship, you need to break and delete the existing relationship, create a new XDP relationship, and resync the relationship. For background information, see link:version-flexible-snapmirror-default-concept.html[XDP replaces DP as the SnapMirror default].
+* SnapMirror does not automatically convert existing DP-type relationships to XDP. To convert the relationship, you need to break and delete the existing relationship, create a new XDP relationship, and resync the relationship.
 * When planning your conversion, you should be aware that background preparation and the data warehousing phase of an XDP SnapMirror relationship can take a long time. It is not uncommon to see the SnapMirror relationship reporting the status "preparing" for an extended time period.
 
 [NOTE]
@@ -56,10 +58,10 @@ Healthy: true
 +
 [NOTE]
 ====
-You might find it helpful to retain a copy of the `snapmirror show` command output to keep track existing of the relationship settings. Learn more about the link:https://docs.netapp.com/us-en/ontap-cli//snapmirror-show.html[`snapmirror show`^] command in the ONTAP command reference.
+You might find it helpful to retain a copy of the `snapmirror show` command output to keep track existing of the relationship settings. Learn more about `snapmirror show` in the link:https://docs.netapp.com/us-en/ontap-cli//snapmirror-show.html[ONTAP command reference^].
 ====
 
-. From the source and the destination volumes, ensure that both volumes have a common Snapshot copy:
+. From the source and the destination volumes, ensure that both volumes have a common snapshot:
 +
 [source,cli]
 ----
@@ -114,7 +116,7 @@ snapmirror.10af643c-32d1-11e3-954b-123478563412_2147484682.2014-06-27_100026
 snapmirror quiesce -source-path <SVM:volume> -destination-path <SVM:volume> 
 ----
 +
-Learn more about the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-quiesce.html[`snapmirror quiesce`^] command in the ONTAP command reference.
+Learn more about `snapmirror quiesce` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-quiesce.html[ONTAP command reference^].
 +
 [NOTE]
 ====
@@ -134,7 +136,7 @@ cluster_dst::> snapmirror quiesce -destination-path svm_backup:volA_dst
 snapmirror break -destination-path <SVM:volume>
 ----
 +
-Learn more about the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-break.html[`snapmirror-break`^] command in the ONTAP command reference .
+Learn more about `snapmirror-break` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-break.html[ONTAP command reference^].
 +
 [NOTE]
 ====
@@ -147,14 +149,14 @@ The following example breaks the relationship between the source volume `volA` o
 cluster_dst::> snapmirror break -destination-path svm_backup:volA_dst
 ----
 
-. If automatic deletion of Snapshot copies is enabled on the destination volume, disable it:
+. If automatic deletion of snapshots is enabled on the destination volume, disable it:
 +
 [source,cli]
 ----
 volume snapshot autodelete modify -vserver _SVM_ -volume _volume_ -enabled false
 ----
 +
-The following example disables Snapshot copy autodelete on the destination volume `volA_dst`:
+The following example disables snapshot autodelete on the destination volume `volA_dst`:
 +
 ----
 cluster_dst::> volume snapshot autodelete modify -vserver svm_backup -volume volA_dst -enabled false
@@ -167,7 +169,7 @@ cluster_dst::> volume snapshot autodelete modify -vserver svm_backup -volume vol
 snapmirror delete -destination-path <SVM:volume>
 ----
 +
-Learn more about the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-delete.html[`snapmirror-delete`^] command in the ONTAP command reference.
+Learn more about `snapmirror-delete` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-delete.html[ONTAP command reference^].
 +
 [NOTE]
 ====
@@ -222,7 +224,7 @@ snapmirror resync -source-path <SVM:volume> -destination-path <SVM:volume>
 ----
 +
 
-To improve resync time, you can use the `-quick-resync` option, but you should be aware that storage efficiency savings can be lost. Learn more about the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-resync.html#parameters.html[`snapmirror resync`^] command in the ONTAP command reference.
+To improve resync time, you can use the `-quick-resync` option, but you should be aware that storage efficiency savings can be lost. Learn more about `snapmirror resync` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-resync.html#parameters.html[ONTAP command reference^].
 +
 [NOTE]
 ====
@@ -235,7 +237,7 @@ The following example resyncs the relationship between the source volume `volA` 
 cluster_dst::> snapmirror resync -source-path svm1:volA -destination-path svm_backup:volA_dst
 ----
 
-. If you disabled automatic deletion of Snapshot copies, reenable it:
+. If you disabled automatic deletion of snapshots, reenable it:
 +
 [source, cli]
 ----
@@ -245,8 +247,9 @@ volume snapshot autodelete modify -vserver <SVM> -volume <volume> -enabled true
 .After you finish
 
 . Use the `snapmirror show` command to verify that the SnapMirror relationship was created. 
-. Once the SnapMirror XDP destination volume begins updating Snapshot copies as defined by the SnapMirror policy, use the output of `snapmirror list-destinations` command from the source cluster to display the new SnapMirror XDP relationship.
+. Once the SnapMirror XDP destination volume begins updating snapshots as defined by the SnapMirror policy, use the output of `snapmirror list-destinations` command from the source cluster to display the new SnapMirror XDP relationship.
 
+// 2025-Feb-14, ONTAPDOC-2761
 // 2025-Jan-3, ONTAPDOC-2606
 // 2024 Dec-09, ONTAPDOC 2569
 // 2024 Dec 02, ONTAPDOC-2569
@@ -257,3 +260,100 @@ volume snapshot autodelete modify -vserver <SVM> -volume <volume> -enabled true
 // 2022-Oct-10, BURT 1491373
 // 2022 oct 07, IE-609
 // 2022-Oct-5, ONTAPDOC-607
+
+.Additional information about DP-type relationships
+
+Beginning with ONTAP 9.3, XDP mode is the default, and any invocations of DP mode on the command line or in new or existing scripts are automatically converted to XDP mode.
+
+Existing relationships are not affected. If a relationship is already of type DP, it will continue to be of type DP. Beginning with ONTAP 9.5, MirrorAndVault is the default policy when no data protection mode is specified or when XDP mode is specified as the relationship type. The table below shows the expected behavior.
+
+[cols="3*"]
+|===
+
+h| If you specify... h| The type is... h| The default policy (if you do not specify a policy) is...
+
+a|
+DP
+a|
+XDP
+a|
+MirrorAllSnapshots (SnapMirror DR)
+a|
+Nothing
+a|
+XDP
+a|
+MirrorAndVault (unified replication)
+a|
+XDP
+a|
+XDP
+a|
+MirrorAndVault (unified replication)
+|===
+
+As the table shows, the default policies assigned to XDP in different circumstances ensure that the conversion maintains the functional equivalence of the previous types. Of course, you can use different policies as needed, including policies for unified replication:
+
+[cols="3*"]
+|===
+
+h| If you specify... h| And the policy is... h| The result is...
+
+.3+a| DP
+a|
+MirrorAllSnapshots
+a|
+SnapMirror DR
+
+a|
+XDPDefault
+a|
+SnapVault
+
+//
+
+a|
+MirrorAndVault
+a|
+Unified replication
+.3+a|
+XDP
+a|
+MirrorAllSnapshots
+a|
+SnapMirror DR
+
+a|
+XDPDefault
+a|
+SnapVault
+
+a|
+MirrorAndVault
+a|
+Unified replication
+|===
+
+The only exceptions to conversion are as follows:
+
+* SVM data protection relationships continue to default to DP mode in ONTAP 9.3 and earlier.
++
+Beginning with ONTAP 9.4, SVM data protection relationships default to XDP mode.
+
+* Root volume load-sharing data protection relationships continue to default to DP mode.
+* SnapLock data protection relationships continue to default to DP mode in ONTAP 9.4 and earlier.
++
+Beginning with ONTAP 9.5, SnapLock data protection relationships default to XDP mode.
+
+* Explicit invocations of DP continue to default to DP mode if you set the following cluster-wide option:
++
+----
+options replication.create_data_protection_rels.enable on
+----
++
+This option is ignored if you do not explicitly invoke DP.
+
+// 2025-Feb-18, ONTAPDOC-2761
+// 2022-Oct-5, ONTAPDOC-606
+// 08 DEC 2021, BURT 1430515
+

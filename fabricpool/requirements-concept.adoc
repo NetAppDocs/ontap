@@ -35,7 +35,7 @@ You must be running ONTAP 9.2 or later FabricPool.
  ** Inactive data reporting enabled manually on HDD aggregates
  ** Inactive data reporting enabled automatically for SSD aggregates when you upgrade to ONTAP 9.6 and at time aggregate is created, except on low end systems with less than 4 CPU, less than 6 GB of RAM, or when WAFL-buffer-cache size is less than 3 GB.
 +
-ONTAP monitors system load, and if the load remains high for 4 continuous minutes, IDR is disabled, and is not automatically enabled. You can reenable IDR manually, however, manually enabled IDR is not automatically disabled.
+ONTAP monitors system load, and if the load remains high for 4 continuous minutes, IDR is disabled, and is not automatically enabled. You can reenable IDR manually; however, manually enabled IDR is not automatically disabled.
 
  ** Using Alibaba Cloud Object Storage as the cloud tier for FabricPool
  ** Using Google Cloud Platform as the cloud tier for FabricPool
@@ -111,15 +111,23 @@ FabricPool supports using the following object stores as the cloud tier:
 Glacier Flexible Retrieval and Glacier Deep Archive are not supported.
 ====
 * The object store "`bucket`" (container) you plan to use must have already been set up, must have at least 10 GB of storage space, and must not be renamed.
-* HA pairs that use FabricPool require intercluster LIFs to communicate with the object store.
 * You cannot detach a cloud tier from a local tier after it is attached; however, you can use link:create-mirror-task.html[FabricPool mirror] to attach a local tier to a different cloud tier.
 
+== Intercluster LIFs
+Cluster high-availability (HA) pairs that use FabricPool require two intercluster LIFs to communicate with the cloud tier. NetApp recommends creating an intercluster LIF on additional HA pairs to seamlessly attach cloud tiers to local tiers on those nodes as well.
+
+Disabling or deleting an intercluster LIF interrupts communication to the cloud tier.
+
+[NOTE]
+Because concurrent SnapMirror and SnapVault replication operations share the network link to the cloud tier, initialization and RTO are dependent on the available bandwidth and latency to the cloud tier. Performance degradation might occur if connectivity resources become saturated. Proactive configuration of multiple LIFs can significantly decrease this type of network saturation.
+
+If you are using more than one intercluster LIF on a node with different routing, NetApp recommends placing them in different IPspaces. During configuration, FabricPool can select from multiple IPspaces, but it is unable to select specific intercluster LIFs within an IPspace.
 
 == ONTAP storage efficiencies
 Storage efficiencies such as compression, deduplication, and compaction are preserved when moving data to the cloud tier, reducing required object storage capacity and transport costs.
 
 [NOTE] 
-Beginning in ONTAP 9.15.1, FabricPool supports Intel QuickAssist Technology (QAT4) which provides more aggressive, and more performant, storage efficiency savings. 
+Beginning with ONTAP 9.15.1, FabricPool supports Intel QuickAssist Technology (QAT4) which provides more aggressive, and more performant, storage efficiency savings. 
 
 Aggregate inline deduplication is supported on the local tier, but associated storage efficiencies are not carried over to objects stored on the cloud tier.
 
@@ -165,6 +173,9 @@ FabricPool supports StorageGRID’s Information Lifecycle Management policies on
 * FlexArray Virtualization
 * RAID SyncMirror, except in a MetroCluster configuration
 * SnapLock volumes when using ONTAP 9.7 and earlier releases
+* link:../snaplock/snapshot-lock-concept.html[Tamperproof snapshots]
++
+Tamperproof snapshots provide immutable protections that cannot be deleted. Because FabricPool requires the ability to delete data, FabricPool and snapshot locks cannot be enabled on the same volume.
 * Tape backup using SMTape for FabricPool-enabled aggregates
 * The Auto Balance functionality
 * Volumes using a space guarantee other than `none`
@@ -174,6 +185,10 @@ With the exception of root SVM volumes and CIFS audit staging volumes, FabricPoo
 * Clusters with link:../data-protection/snapmirror-licensing-concept.html#data-protection-optimized-license[DP_Optimized license]
 * Flash Pool aggregates
 
+
+// 2025 Feb 12, Small bullet turned into IC LIF section
+// 2025 Jan 28, TPS + FabricPool details
+// 2025 Jan 22, ONTAPDOC-1070
 // 2024-12-18 ONTAPDOC-2606
 // 2024-Dec-04, ONTAPDOC-2579
 // 2024-July-17, Added additional features/releases, storage efficiency, cloud tiers, and licensing information.
