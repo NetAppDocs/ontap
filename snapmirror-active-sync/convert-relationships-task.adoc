@@ -16,7 +16,7 @@ Beginning with ONTAP 9.15.1, you can convert between types of SnapMirror active 
 
 == Convert to a symmetric active/active relationship
 
-You can convert a SnapMirror active sync relationship with asynchronous protection to use symmetric active/active. 
+You can convert a SnapMirror active sync relationship with asymmetric protection to use symmetric active/active. 
 
 .Before you begin 
 
@@ -79,9 +79,16 @@ You can convert a SnapMirror active sync relationship with asynchronous protecti
 Ensure the igroup does not contain maps for non-replicated LUNs.
 +
 `SiteB::> lun mapping delete -vserver <svm_name> -igroup <igroup> -path <>`
-. On the primary site, modify the initiator configuration for existing hosts to set the proximal path for initiators on the local cluster.
+. On the primary site, set the privilege level to `advanced`:
 +
-`SiteA::> igroup initiator add-proximal-vserver -vserver <svm_name> -initiator <host> -proximal-vserver <server>`
+`SiteA::> set -privilege advanced`
+
+. Modify the initiator configuration for existing hosts to set the proximal path for initiators on the local cluster.
++
+`SiteA::*> igroup initiator add-proximal-vserver -vserver <svm_name> -initiator <host> -proximal-vserver <server>`
+[NOTE]
+You can set the privilege level back to admin after you complete this step.
+
 . Add a new igroup and initiator for the new hosts and set the host proximity for host affinity to its local site. Ennable igroup replication to replicate the configuration and invert the host locality on the remote cluster. 
 +
 ``
@@ -100,15 +107,7 @@ SiteA::> igroup initiator add-proximal-vserver -vserver vsA -initiator host2 -pr
 +
 `snapmirror show -destination-path <destination_path>`
 . If the existing hosts are local to the primary cluster, add the host to the second cluster and establish connectivity with respective access to each cluster. 
-. On the secondary site, delete the LUN maps on the igroups associated with remote hosts.
-+
-[NOTE]
-Ensure the igroup does not contain maps for non-replicated LUNs.
-+
-`SiteB::> lun mapping delete -vserver <svm_name> -igroup <igroup> -path <>`
-. On the primary site, modify the initiator configuration for existing hosts to set the proximal path for initiators on the local cluster.
-+
-`SiteA::> igroup initiator add-proximal-vserver -vserver <svm_name> -initiator <host> -proximal-vserver <server>`
+
 . On the secondary site, add a new igroup and initiator for the new hosts and set the host proximity for host affinity to its local site. Map the LUNs to the igroup. 
 +
 ``
@@ -153,6 +152,7 @@ The consistency group on the secondary site needs link:../consistency-groups/del
 . Re-discover the paths from the host.
 
 
+// 2024-Feb-18, issue# 1463
 // 2025 7 Jan, CONTAP-287101, ontap-issues #1451
 // 6 may 2024, ontapdoc-1478
 //BURTs 1443418 & 1443978, 9 Dec 2021
