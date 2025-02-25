@@ -11,18 +11,19 @@ summary: "If you are running ONTAP 9.8 or later, you can set up ONTAP S3 as the 
 [.lead]
 If you are running ONTAP 9.8 or later, you can set up ONTAP S3 as the cloud tier for FabricPool.
 
-.What you'll need
+.Before you begin
 
-You must have the ONTAP S3 server name and the IP address of its associated LIFs on the remote cluster. 
-[NOTE]
-====
-The server name is used as the fully qualified domain name (FQDN) by client applications.
-Outside of ONTAP, confirm DNS records point to the SVM data LIFs being used.
-====
+* You must have the ONTAP S3 server name and the IP address of its associated LIFs on the remote cluster.
++
+NOTE: The server name is used as the fully qualified domain name (FQDN) by client applications. Outside of ONTAP, confirm DNS records point to the SVM data LIFs being used.
 
-There must be intercluster LIFs on the local cluster.
+* There must be <<create-lif,intracluster LIFs>> on the local cluster.
++
+When configured for local cluster tiering, a local tier (also known as a storage aggregate in the ONTAP CLI) is attached to a local bucket. FabricPool uses cluster LIFs for intracluster traffic.
++
+NOTE: Performance degradation might occur if cluster LIF resources become saturated. To avoid this, NetApp recommends using four-node or greater clusters when tiering to a local bucket along with an HA pair for the local tier and an HA pair for the local bucket. Tiering to local buckets on a single HA pair is not recommended.
 
-link:../s3-config/create-intercluster-lifs-remote-fabricpool-tiering-task.html[Creating intercluster LIFs for remote FabricPool tiering]
+* To enable remote FabricPool capacity (cloud) tiering using ONTAP S3, you must link:../s3-config/create-intercluster-lifs-remote-fabricpool-tiering-task.html[configure intercluster LIFs].
 
 .About this task
 
@@ -63,7 +64,10 @@ a|
 a|
 Enter the following command:
 
-`dns host create -vserver svm_name -address ip_address -hostname s3_server_name`
+----
+dns host create -vserver <svm_name> -address ip_address -hostname <s3_server_name>
+----
+
 |===
 
 . Specify the ONTAP S3 configuration information by using the `storage aggregate object-store config create` command with the `-provider-type` `ONTAP_S3` parameter.
@@ -89,6 +93,14 @@ The `storage aggregate object-store config modify` command enables you to modify
 --
 ====
 
+[[create-lif]]
+.Related information
+
+* link:../smb-config/create-lif-task.html[Create LIF for SMB]
+* link:../nfs-config/create-lif-task.html[Create LIF for NFS]
+
+
+// 2025-2-25,GH-1657
 // 2024-12-18 ONTAPDOC-2606
 // 2024-11-6, S3 certs
 // 2023 Jan 19, ontap-issues-727
