@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar
 permalink: networking/ontap_port_usage_on_a_storage_system_overview.html
-keywords: port, tcp, udp, ontap, external, externally, service, services, introduce, introduction, introducing, overview, ontap port usage overview, ontap port usage, network ports, ontap ports, tcp ports, udp ports, ssh, port 22, telnet, port 23, dns, port 53, http, port 80, rpcbind, port 111, ntp, port 123, msrpc, port 135, netbios-ssn, port 139, snmp, port 161, https, port 443, microsoft-ds, port 445, mount, port 635, named, port 953, nfs, port 2049, nrv, port 2050, iscsi, port 3260, lockd, port 4045, nsm, port 4046, rquotad, port 4049, krb524, port 4444, mdns, port 5353, https, port 5986, port 8443, ndmp, port 10000, cluster peering, port 11104, port 11105, ports 18600 through 18699, cifs witness, port 40001, tls, port 50000, port 65200
+keywords: port, tcp, udp, http, https, ssh, ontap ports overview, communication ports, port conflicts, ontap ports for inbound traffic, ontap ports for outbound traffic, internal ports
 summary: Reserved ports for ONTAP communications with specific services
 ---
 
@@ -14,125 +14,312 @@ summary: Reserved ports for ONTAP communications with specific services
 
 
 [.lead]
-A number of well-known ports are reserved for ONTAP communications with specific services. Port conflicts will occur if a port value in your storage network environment is the same as on ONTAP port.
+Several well-known ports are reserved for ONTAP communications with specific services. Port conflicts occur if a port value in your storage network environment is the same as the value on an ONTAP port.
 
-The following table lists the TCP ports and UDP ports that are used by ONTAP.
+== Inbound traffic
+
+Inbound traffic on your ONTAP storage uses the following protocols and ports:
 
 [cols="25,25,50"]
 |===
 
-h|Service h|Port/Protocol h|Description
+h|Protocol h|Port h|Purpose
 
-|ssh
-|22/TCP
-|Secure shell login
-|telnet
-|23/TCP
-|Remote login
-|DNS
-|53/TCP
-|Load Balanced DNS
-|http
-|80/TCP
-|Hyper Text Transfer Protocol
-|rpcbind
-|111/TCP
-|Remote procedure call
-|rpcbind
-|111/UDP
-|Remote procedure call
-|ntp
-|123/UDP
-|Network Time Protocol
-|msrpc
-|135/UDP
-|MSRPC
-|netbios-ssn
-|139/TCP
-|NetBIOS service session
-|snmp
-|161/UDP
-|Simple network management protocol
-|https
-|443/TCP
-|HTTP over TLS
-|microsoft-ds
-|445/TCP
-|Microsoft-ds
-|mount
-|635/TCP
-|NFS mount
-|mount
-|635/UDP
-|NFS Mount
-|named
-|953/UDP
+|All ICMP
+|All
+|Pinging the instance
+
+|TCP
+|22
+|Secure shell access to the IP address of the cluster management LIF or a node management LIF
+
+|TCP
+|80
+|Web page access to the IP address of the cluster management LIF
+
+|TCP/UDP
+|111
+|RPCBIND, remote procedure call for NFS
+
+|UDP
+|123
+|NTP, network time protocol
+
+|UDP
+|135
+|MSRPC, Microsoft remote procedure call
+
+|TCP
+|139
+|NETBIOS-SSN, NetBIOS service session for CIFS
+
+|TCP/UDP
+|161-162
+|SNMP, simple network management protocol
+
+|TCP
+|443
+|Secure web page access to the IP address of the cluster management LIF
+
+|TCP
+|445
+|MS Active Domain Services, Microsoft SMB/CIFS over TCP with NetBIOS framing
+
+|TCP/UDP
+|635
+|NFS mount to interact with a remote file system as if it were local
+
+|TCP
+|749
+|Kerberos
+
+|UDP
+|953
 |Name daemon
-|nfs
-|2049/UDP
-|NFS Server daemon
-|nfs
-|2049/TCP
-|NFS Server daemon
-|nrv
-|2050/TCP
-|NetApp Remote Volume protocol
-|iscsi
-|3260/TCP
-|iSCSI target port
-|lockd
-|4045/TCP
+
+|TCP/UDP
+|2049
+|NFS server daemon
+
+|TCP
+|2050
+|NRV, NetApp remote volume protocol
+
+|TCP
+|3260
+|iSCSI access through the iSCSI data LIF
+
+|TCP/UDP
+|4045
 |NFS lock daemon
-|lockd
-|4045/UDP
-|NFS lock daemon
-|NSM
-|4046/TCP
-|Network Status Monitor
-|NSM
-|4046/UDP
-|Network Status Monitor
-|rquotad
-|4049/UDP
-|NFS rquotad protocol
-|krb524
-|4444/UDP
-|Kerberos 524
-|mdns
-|5353/UDP
+
+|TCP/UDP
+|4046
+|Network status monitor for NFS
+
+|UDP
+|4049
+|NFS RPC Rquotad
+
+|UDP
+|4444
+|KRB524, Kerberos 524
+
+|UDP
+|5353
 |Multicast DNS
-|HTTPS
-|5986/UDP
-|HTTPS Port - Listening binary protocol
-|https
-|8443/TCP
-|7MTT GUI Tool through https
-|ndmp
-|10000/TCP
-|Network Data Management Protocol
-|Cluster peering
-|11104/TCP
-|Cluster peering, bi-directional
-|Cluster peering, bi-directional
-|11105/TCP
-|Cluster peering
-|NDMP
-|18600 - 18699/TCP
-|NDMP
-|NDMP
-|30000/TCP
-|accept control connections over secure sockets
-|cifs witness port
-|40001/TCP
-|cifs witness port
-|tls
-|50000/TCP
-|Transport layer security
-|iscsi
-|65200/TCP
-|ISCSI port
+
+|TCP
+|10000
+|Backup using Network Data Management Protocol (NDMP)
+
+|TCP
+|11104
+|Cluster peering, bi-directional management of intercluster communication sessions for SnapMirror
+
+|TCP
+|11105
+|Cluster peering, bi-directional SnapMirror data transfer using intercluster LIFs
+
 |===
 
+== Outbound traffic
+
+Outbound traffic on your ONTAP storage can be set up using basic or advanced rules depending on business needs.
+
+=== Basic outbound rules
+
+All ports can be used for all outbound traffic over ICMP, TCP, and UDP protocols.
+
+[cols="25,25,50"]
+|===
+
+h|Protocol h|Port h|Purpose
+
+|All ICMP
+|All
+|All outbound traffic
+
+|All TCP
+|All
+|All outbound traffic
+
+|All UDP
+|All
+|All outbound traffic
+
+|===
+
+=== Advanced outbound rules
+
+If you need rigid rules for outbound traffic, you can use the following information to open only those ports that are required for outbound communication by ONTAP.
+
+==== Active Directory 
+
+[cols="10,10,30,25,25"]
+|===
+
+h|Protocol h|Port h|Source h|Destination h|Purpose
+
+|TCP
+|88
+|Node management LIF, data LIF (NFS, CIFS, iSCSI)
+|Active Directory forest
+|Kerberos V authentication
+
+|UDP
+|137
+|Node management LIF, data LIF (NFS, CIFS)
+|Active Directory forest
+|NetBIOS name service
+
+|UDP
+|138
+|Node management LIF, data LIF (NFS, CIFS)
+|Active Directory forest
+|NetBIOS datagram service
+
+|TCP
+|139
+|Node management LIF, data LIF (NFS, CIFS)
+|Active Directory forest
+|NetBIOS service session
+
+|TCP
+|389
+|Node management LIF, data LIF (NFS, CIFS)
+|Active Directory forest
+|LDAP
+
+|UDP
+|389
+|Node management LIF, data LIF (NFS, CIFS)
+|Active Directory forest
+|LDAP
+
+|TCP
+|445
+|Node management LIF, data LIF (NFS, CIFS)
+|Active Directory forest
+|Microsoft SMB/CIFS over TCP with NetBIOS framing
+
+|TCP
+|464
+|Node management LIF, data LIF (NFS, CIFS)
+|Active Directory forest
+|Change and set the Kerberos V password (SET_CHANGE)
+
+|UDP
+|464
+|Node management LIF, Data LIF (NFS, CIFS)
+|Active Directory forest
+|Kerberos key administration
+
+|TCP
+|749
+|Node management LIF, Data LIF (NFS, CIFS)
+|Active Directory forest
+|Change and set the Kerberos V password (RPCSEC_GSS)
+
+|===
+
+==== AutoSupport 
+
+[cols="10,10,30,25,25"]
+|===
+
+h|Protocol h|Port h|Source h|Destination h|Purpose
+
+|TCP
+|80
+|Node management LIF 
+|support.netapp.com
+|AutoSupport (only if the transport protocol is changed from HTTPS to HTTP)
+
+|===
+
+==== SNMP 
+
+[cols="10,10,30,25,25"]
+|===
+
+h|Protocol h|Port h|Source h|Destination h|Purpose
+
+|TCP/UDP
+|162
+|Node management LIF 
+|Monitor server
+|Monitoring by SNMP traps
+
+|===
+
+==== SnapMirror 
+
+[cols="10,10,30,25,25"]
+|===
+
+h|Protocol h|Port h|Source h|Destination h|Purpose
+
+|TCP
+|11104
+|Intercluster LIF
+|ONTAP intercluster LIFs
+|Management of intercluster communication sessions for SnapMirror
+
+|===
+
+==== Other services 
+
+[cols="10,10,30,25,25"]
+|===
+
+h|Protocol h|Port h|Source h|Destination h|Purpose
+
+|TCP
+|25
+|Node management LIF
+|Mail server
+|SMTP alerts, can be used for AutoSupport
+
+|UDP
+|53
+|Node management LIF and data LIF (NFS, CIFS)
+|DNS
+|DNS
+
+|UDP
+|67
+|Node management LIF
+|DHCP
+|DHCP server
+
+|UDP
+|68
+|Node management LIF
+|DHCP
+|DHCP client for first-time setup
+
+|UDP
+|514
+|Node management LIF
+|Syslog server
+|Syslog forward messages
+
+|TCP
+|5010
+|Intercluster LIF
+|Backup endpoint or restore endpoint
+|Back up and restore operations for the Backup to S3 feature
+
+|TCP
+|18600 to 18699
+|Node management LIF
+|Destination servers
+|NDMP copy
+
+|===
+
+// 5-FEB-2025 ONTAPDOC-1454
 // 8-DEC-2023, ONTAP GH-1152
 // 7-DEC-2023, ONTAP GH-1133 and overview title rename for detail
 // 2023 Feb 23, Public PR 819
