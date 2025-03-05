@@ -1,24 +1,21 @@
 ---
 permalink: flexcache-hot-spot/flexcache-hotspot-remediation-client-config.html
 sidebar: sidebar
-keywords: hotspot, FlexCache, HDFA, client configuration
-summary: "To remedy hot-spotting, the client needs to be configured properly to do its part in preventing the CPU bottleneck. This section goes over the client configuration."
+keywords: hotspot, hot-spot, flexcache, hdfa, client configuration
+summary: "To remedy hotspotting, the client needs to be configured properly to do its part in preventing the CPU bottleneck. This section goes over the client configuration."
 ---
-= Configuring clients to distribute NAS connections
+= Configure clients to distribute NAS connections
 
-:hardbreaks:
-:nofooter:
 :icons: font
-:linkattrs:
 :imagesdir: ./media/
 
 [.lead]
-To remedy hot-spotting, the client needs to be configured properly to do its part in preventing the CPU bottleneck. This section goes over the client configuration.
+To remedy hotspotting, configure the client properly to do its part in preventing CPU bottleneck.
 
 == Linux client configuration
 Whether you chose an intra-SVM or inter-SVM HDFA deployment, you should use `autofs` in Linux to make sure clients are load-balancing across the different HDFs. The `autofs` configuration will differ for inter and intra-SVM, though.
 
-NOTE: This section assumes you have `autofs` and the appropriate dependencies installed. For help with this, please refer to the appropriate Linux documentation.
+NOTE: This section assumes you have `autofs` and the appropriate dependencies installed. For help with this, refer to the appropriate Linux documentation.
 
 The rest of this section will use an example `/etc/auto_master` file with the following entry:
 
@@ -43,7 +40,7 @@ This one simple line will cause the NFS client to do a DNS lookup for hostname `
 image::FlexCache-Hotspot-HDFA-2x2x2-Inter-SVM-HDFA.svg[Figure 1: 2x2x2 HDFA]
 
 === Intra-SVM HDFA `autofs` configuration
-In the following example, we will create an `autofs` map for the diagram in figure 2. We need to make sure the NFS clients mount the IPs that are a part of the HDF junction-path deployment. In other words, we don’t want to mount `/hotspot1` with anything other than IP 192.168.0.11. To do this, we can list all four IP/junction-path pairs for one local mount location in the `auto_hotspot` map.
+In the following example, we will create an `autofs` map for the diagram in figure 2. We need to make sure the NFS clients mount the IPs that are a part of the HDF junction-path deployment. In other words, we don't want to mount `/hotspot1` with anything other than IP 192.168.0.11. To do this, we can list all four IP/junction-path pairs for one local mount location in the `auto_hotspot` map.
 
 NOTE: The backslash (`\`) in the following example continues the entry to the next line, making it easier to read.
 
@@ -55,10 +52,10 @@ hotspot     cache1:/hostspot1 \
             cache4:/hostspot4
 ----
 
-When the client tries to access `/flexcache/hotspot`, `autofs` is going to do a forward-lookup for all four hostnames. Assuming all four IPs are in the same subnet as the client—or all four are in a different subnet than the client-`autofs` will issue an NFS NULL ping to each IP. This NULL ping requires the packet to be processed by ONTAP’s NFS service, but it doesn’t require any disk access. The first ping to return is going to be the IP and junction-path `autofs` chooses to mount.
+When the client tries to access `/flexcache/hotspot`, `autofs` is going to do a forward-lookup for all four hostnames. Assuming all four IPs are in the same subnet as the client—or all four are in a different subnet than the client-`autofs` will issue an NFS NULL ping to each IP. This NULL ping requires the packet to be processed by ONTAP's NFS service, but it doesn't require any disk access. The first ping to return is going to be the IP and junction-path `autofs` chooses to mount.
 
 .4x1x4 intra-SVM HDFA
 image::FlexCache-Hotspot-HDFA-4x1x4-Intra-SVM-HDFA.svg[]
 
 == Windows client configuration
-With Windows clients, you should use an intra-SVM HDFA. To load balance across the different HDFs in the SVM, you must add a unique share name to each HDF. After that, follow the steps in link:https://learn.microsoft.com/en-us/windows-server/storage/dfs-namespaces/create-a-dfs-namespace[Microsoft’s documentation] to implement multiple DFS targets for the same folder.
+With Windows clients, you should use an intra-SVM HDFA. To load balance across the different HDFs in the SVM, you must add a unique share name to each HDF. After that, follow the steps in link:https://learn.microsoft.com/en-us/windows-server/storage/dfs-namespaces/create-a-dfs-namespace[Microsoft's documentation] to implement multiple DFS targets for the same folder.
