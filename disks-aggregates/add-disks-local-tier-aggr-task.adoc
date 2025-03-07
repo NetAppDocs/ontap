@@ -2,10 +2,10 @@
 permalink: disks-aggregates/add-disks-local-tier-aggr-task.html
 sidebar: sidebar
 keywords: add, expand, aggregate, add drives, add disks, add capacity, local tier, add disks to local tier, add disks to aggregate, increase storage, increase aggregate size, local tier, capacity, disk, expand storage, add drives, add disks, add capacity
-summary: "You can add disks to an local tier (aggregate) so that it can provide more storage to its associated volumes."
+summary: "You can add disks to a local tier so that it can provide more storage to its associated volumes."
 ---
 
-= Add capacity to a local tier (add disks to an aggregate)
+= Add capacity to a local tier in ONTAP
 :toclevels: 1
 :hardbreaks:
 :nofooter:
@@ -14,7 +14,9 @@ summary: "You can add disks to an local tier (aggregate) so that it can provide 
 :imagesdir: ../media/
 
 [.lead]
-You can add disks to an local tier (aggregate) so that it can provide more storage to its associated volumes.
+You can add disks to an local tier so that it can provide more storage to its associated volumes.
+
+include::_include/local-tier-aggregate-note.adoc[]
 
 [role="tabbed-block"]
 ====
@@ -72,13 +74,13 @@ a|
 
 . Select *Hardware and Diagnostics > Aggregates*.
 
-. Select the aggregate to which you want to add capacity disks, and then select *Actions > Add Capacity*.
+. Select the local tier to which you want to add capacity disks, and then select *Actions > Add Capacity*.
 +
-NOTE: You should add disks that are of the same size as the other disks in the aggregate.
+NOTE: You should add disks that are of the same size as the other disks in the local tier.
 
 . (For ONTAP 9.7 only) Select *Switch to the new experience*.
 
-. Select *Storage > Tiers* to verify the size of the new aggregate.
+. Select *Storage > Tiers* to verify the size of the new local tier.
 --
 
 .CLI
@@ -87,19 +89,19 @@ NOTE: You should add disks that are of the same size as the other disks in the a
 
 .Before you begin
 
-You must know what the RAID group size is for the aggregate you are adding the storage to.
+You must know what the RAID group size is for the local tier you are adding the storage to.
 
 .About this task
 
-This procedure for adding partitioned disks to an aggregate is similar to the procedure for adding unpartitioned disks. 
+This procedure for adding partitioned disks to a local tier is similar to the procedure for adding unpartitioned disks. 
 
-When you expand an aggregate, you should be aware of whether you are adding partition or unpartitioned disks to the aggregate. When you add unpartitioned drives to an existing aggregate, the size of the existing RAID groups is inherited by the new RAID group, which can affect the number of parity disks required. If an unpartitioned disk is added to a RAID group composed of partitioned disks, the new disk is partitioned, leaving an unused spare partition.
+When you expand a local tier, you should be aware of whether you are adding partition or unpartitioned disks to the local tier. When you add unpartitioned drives to an existing local tier, the size of the existing RAID groups is inherited by the new RAID group, which can affect the number of parity disks required. If an unpartitioned disk is added to a RAID group composed of partitioned disks, the new disk is partitioned, leaving an unused spare partition.
 
 When you provision partitions, you must ensure that you do not leave the node without a drive with both partitions as spare. If you do, and the node experiences a controller disruption, valuable information about the problem (the core file) might not be available to provide to the technical support.
 
 .Steps
 
-. Show the available spare storage on the system that owns the aggregate:
+. Show the available spare storage on the system that owns the local tier:
 +
 `storage aggregate show-spare-disks -original-owner _node_name_`
 +
@@ -125,7 +127,7 @@ Original Owner: cl1-s2
 2 entries were displayed.
 ----
 
-. Show the current RAID groups for the aggregate:
+. Show the current RAID groups for the local tier:
 +
 [source,cli]
 ----
@@ -187,11 +189,11 @@ Aggregate capacity available for volume use would be increased by 1.83TB.
 storage aggregate add-disks -aggregate <aggr_name> -raidgroup new -diskcount <number_of_disks_or_partitions>
 ----
 +
-When creating a Flash Pool aggregate, if you are adding disks with a different checksum than the aggregate, or if you are adding disks to a mixed checksum aggregate, you must use the `-checksumstyle` parameter.
+When creating a Flash Pool local tier, if you are adding disks with a different checksum than the local tier, or if you are adding disks to a mixed checksum local tier, you must use the `-checksumstyle` parameter.
 +
-If you are adding disks to a Flash Pool aggregate, you must use the `-disktype` parameter to specify the disk type.
+If you are adding disks to a Flash Pool local tier, you must use the `-disktype` parameter to specify the disk type.
 +
-You can use the `-disksize` parameter to specify a size of the disks to add. Only disks with approximately the specified size are selected for addition to the aggregate.
+You can use the `-disksize` parameter to specify a size of the disks to add. Only disks with approximately the specified size are selected for addition to the local tier.
 +
 ----
 cl1-s2::> storage aggregate add-disks -aggregate data_1 -raidgroup new -diskcount 5
@@ -251,6 +253,8 @@ Original Owner: cl1-s2
 
 --
 ====
+
+// 2025-Mar-6, ONTAPDOC-2850
 // 2024-12-2, gh-1641
 // BURT 1396563, 2021 Dec 02
 // BURT 1485072, 2022 Aug 30
