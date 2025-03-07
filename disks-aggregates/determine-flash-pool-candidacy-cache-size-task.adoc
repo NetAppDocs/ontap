@@ -2,14 +2,16 @@
 permalink: disks-aggregates/determine-flash-pool-candidacy-cache-size-task.html
 sidebar: sidebar
 keywords: flash pool, candidacy, optimal cache size, local tier, aggregate
-summary: "Before converting an existing local tier (aggregate) to a Flash Pool local tier, you can determine whether the local tier is I/O bound and the best Flash Pool cache size for your workload and budget. You can also check whether the cache of an existing Flash Pool local tier is sized correctly."
+summary: "Before converting an existing local tier to a Flash Pool local tier, you can determine whether the local tier is I/O bound and the best Flash Pool cache size for your workload and budget. You can also check whether the cache of an existing Flash Pool local tier is sized correctly."
 ---
-= Determine Flash Pool candidacy and optimal cache size
+= Determine Flash Pool candidacy and optimal cache size in ONTAP
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Before converting an existing local tier (aggregate) to a Flash Pool local tier, you can determine whether the local tier is I/O bound and the best Flash Pool cache size for your workload and budget. You can also check whether the cache of an existing Flash Pool local tier is sized correctly.
+Before converting an existing local tier to a Flash Pool local tier, you can determine whether the local tier is I/O bound and the best Flash Pool cache size for your workload and budget. You can also check whether the cache of an existing Flash Pool local tier is sized correctly.
+
+include::_include/local-tier-aggregate-note.adoc[]
 
 .Before you begin
 
@@ -20,13 +22,13 @@ You should know approximately when the local tier you are analyzing experiences 
 . Enter advanced mode:
 +
 `set advanced`
-. If you need to determine whether an existing local tier (aggregate) would be a good candidate for conversion to a Flash Pool aggregate, determine how busy the disks in the aggregate are during a period of peak load, and how that is affecting latency:
+. If you need to determine whether an existing local tier would be a good candidate for conversion to a Flash Pool local tier, determine how busy the disks in the local tier are during a period of peak load, and how that is affecting latency:
 +
 `statistics show-periodic -object disk:raid_group -instance _raid_group_name_ -counter disk_busy|user_read_latency -interval 1 -iterations 60`
 +
-You can decide whether reducing latency by adding Flash Pool cache makes sense for this aggregate.
+You can decide whether reducing latency by adding Flash Pool cache makes sense for this local tier.
 +
-The following command shows the statistics for the first RAID group of the aggregate "`aggr1`":
+The following command shows the statistics for the first RAID group of the local tier "`aggr1`":
 +
 `statistics show-periodic -object disk:raid_group -instance /aggr1/plex0/rg0 -counter disk_busy|user_read_latency -interval 1 -iterations 60`
 
@@ -34,13 +36,13 @@ The following command shows the statistics for the first RAID group of the aggre
 +
 `storage automated-working-set-analyzer start -node _node_name_ -aggregate _aggr_name_`
 +
-AWA begins collecting workload data for the volumes associated with the specified aggregate.
+AWA begins collecting workload data for the volumes associated with the specified local tier.
 
 . Exit advanced mode:
 +
 `set admin`
 +
-Allow AWA to run until one or more intervals of peak load have occurred. AWA collects workload statistics for the volumes associated with the specified aggregate, and analyzes data for up to one rolling week in duration. Running AWA for more than one week will report only on data collected from the most recent week. Cache size estimates are based on the highest loads seen during the data collection period; the load does not need to be high for the entire data collection period.
+Allow AWA to run until one or more intervals of peak load have occurred. AWA collects workload statistics for the volumes associated with the specified local tier, and analyzes data for up to one rolling week in duration. Running AWA for more than one week will report only on data collected from the most recent week. Cache size estimates are based on the highest loads seen during the data collection period; the load does not need to be high for the entire data collection period.
 
 . Enter advanced mode:
 +
@@ -58,4 +60,5 @@ All workload data is flushed and is no longer available for analysis.
 +
 `set admin`
 
+// 2025-Mar-6, ONTAPDOC-2850
 // BURT 1485072, 08-30-2022
