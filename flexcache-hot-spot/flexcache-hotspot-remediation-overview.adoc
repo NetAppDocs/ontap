@@ -12,12 +12,12 @@ summary: "Learn how to remediate hotspotting, a common problem with many high-pe
 [.lead]
 A common problem with many high-performance compute workloads, such as animation rendering or EDA, is hotspotting. Hotspotting is a situation that occurs when a specific part of the cluster or network experiences a significantly higher load compared to other areas, leading to performance bottlenecks and reduced overall efficiency due to excessive data traffic concentrated in that location. For example, a file, or multiple files, is in high demand for the job running which results in a bottleneck at the CPU used to service requests (via a volume affinity) to that file. FlexCache can help alleviate this bottleneck, but it must be set up properly. 
 
-This documentation explains how to set up FlexCache to remediate hotspotting.
+This documentation explains how to set up FlexCache to remediate hotspotting. 
 
 NOTE: Beginning July 2024, content from technical reports previously published as PDFs has been integrated with ONTAP product documentation. This ONTAP hotspot remediation technical report content is net new as of the date of its publication and no earlier format was ever produced.
 
 == Key concepts
-When planning hotspot remediation, it is important to understand these essential concepts.
+When planning hotspot remediation, it's important to understand these essential concepts.
 
 * *High-density FlexCache (HDF)*: A FlexCache that is condensed to span as few nodes as the cache capacity requirements allow. 
 * *HDF Array (HDFA)*: A group of HDFs that are caches of the same origin, distributed across the cluster
@@ -25,31 +25,11 @@ When planning hotspot remediation, it is important to understand these essential
 * *Intra-SVM HDFA*: All HDFs in the HDFA in one SVM
 * *East-west traffic*: Cluster backend traffic generated from indirect data access
 
-== Understanding the bottleneck
-
-The following image shows a typical single-file hotspotting scenario. The volume is a FlexGroup with a single constituent per node, and the file resides on node 1. If you distribute all of the NAS clients' network connections across different nodes in the cluster, you still bottleneck on the CPU that services the volume affinity where the hot file resides. You also introduce cluster network traffic (east-west traffic) to the calls coming from clients connected to nodes other than where the file resides. The east-west traffic overhead is typically small, but for high-performance compute workloads, every little bit counts.
-
-image::flexcache-hotspot-hdfa-flexgroup.png[FlexGroup hotspot scenario]
-
-== Why an auto-provisioned FlexCache isn't the answer
-To remedy hotspotting, eliminate the CPU bottleneck and preferably eliminate the east-west traffic too. FlexCache can help, but it must be set up properly. 
-
-Let's look at the FlexCache when it is auto-provisioned with System Manager, BlueXP, or default CLI arguments. Notice that Figure 1 and Figure 2 look the same: both are four-node, single-constituent NAS containers. The only difference is figure 1's NAS container is a FlexGroup, and figure 2's NAS container is a FlexCache. You still have the same bottleneck: node 1's CPU for the volume affinity servicing access to the hot file, and east-west traffic contributing to latency. An auto-provisioned FlexCache hasn't eliminated the bottleneck.
-
-image::FlexCache-Hotspot-HDFA-1x4x1.png[Figure 1: Auto-provisioned FlexCache]
-
-== Anatomy of a FlexCache
-To effectively architect a FlexCache for hotspot remediation, you need to understand some technical details about FlexCache.
-
-FlexCache is always a sparse FlexGroup. FlexGroups are made up of multiple FlexVols. These FlexVols are called FlexGroup constituents. In a default FlexGroup layout, there are one or more constituents per node in the cluster. The constituents are 'sewn together' under an abstraction layer and presented to the client as one big NAS container. When a file is written to a FlexGroup, ingest heuristics determine which constituent the file will be stored on. It may be a constituent where the client's NAS connection is, or it may be on a different node. It doesn't matter, because this all lives under the abstraction layer and is invisible to the client.
-
-Let's apply this understanding of FlexGroups to FlexCache. Since FlexCache is built on a FlexGroup, by default you have a single FlexCache that has constituents on all the nodes in the cluster, as depicted in <<Figure 1>>. In most cases, this is a great thing. You are utilizing all the resources in your cluster. For remediating hot files, this isn't ideal. Remember the two bottlenecks: CPU for a single file, and east-west traffic. If you create a FlexCache with constituents on every node for a hot file, that file will still reside on only one of the constituents, which means one CPU to service all access to the hot file. Less, but still important, you don't limit the amount of east-west traffic required to reach the hot file. How do we fix this? An array of high-density FlexCaches.
-
-== Anatomy of a high-density FlexCache
-A high-density FlexCache (HDF) will have constituents on as few nodes as the capacity requirements for the cached data allow. The ultimate goal is to get your cache to live on a single node, but if capacity requirements make that impossible, you can have constituents on only a few nodes. For example, a 24-node cluster could have 3 high-density FlexCaches: one that spans nodes 1 through 8, a second that spans nodes 9 through 16, and a third that spans nodes 17 through 24. These three HDFs would make up one high-density FlexCache array (HDFA). If the files are evenly distributed within each HDF, you will have a 1 in 8 chance of the file requested by the client residing local to the front-end NAS connection. If you were to have 12 HDFs that span only two nodes each, you have a 50% chance of the file being local. If you can collapse the HDF down to a single node, and create 24 of them, you are guaranteed the file is local. This will eliminate all east-west traffic, and, most importantly, will provide 24 CPUs/volume affinities for accessing the hot file.
-
-.Related information
-
-link:../volume-admin/index.html[Documentation on FlexGroups and TRs]
+.What's next
+* link:flexcache-hot-spot/flexcache-hotspot-remediation-architecture.html[Understand how to architect with high-density FlexCache to help remediate hotspotting]
+* link:flexcache-hot-spot/flexcache-hotspot-remediation-hdfa-examples.html[Decide on FlexCache array density]
+* link:flexcache-hot-spot/flexcache-hotspot-remediation-intra-inter-svm-hdfa.html[Determine the density of your HDFs and decide whether you will be accessing the HDFs using NFS with inter-SVM HDFAs and intra-SVM HDFAs]
+* link:flexcache-hot-spot/flexcache-hotspot-remediation-ontap-config.html[Configure HDFA and the data LIFs to realize the benefits of using intracluster caching with ONTAP configuration]
+* link:flexcache-hot-spot/flexcache-hotspot-remediation-client-config.html[Learn how to configure clients to distribute ONTAP NAS connections with client configuration]
 
 // 25-3-5, ontapdoc-2852
