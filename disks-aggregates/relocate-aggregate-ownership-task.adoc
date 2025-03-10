@@ -2,18 +2,20 @@
 permalink: disks-aggregates/relocate-aggregate-ownership-task.html
 sidebar: sidebar
 keywords: relocate, aggregate, ownership, local tier
-summary: "You can change the ownership of a local tier (aggregate) only between the nodes within an HA pair."
+summary: "You can change the ownership of a local tier only between the nodes within an HA pair."
 ---
-= Relocate ownership of a local tier (aggregate) within an HA pair
+= Relocate ownership of an ONTAP local tier within an HA pair
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You can change the ownership of local tiers (aggregates) among the nodes in an HA pair without interrupting service from the local tiers.
+You can change the ownership of local tiers among the nodes in an HA pair without interrupting service from the local tiers.
+
+include::_include/local-tier-aggregate-note.adoc[]
 
 Both nodes in an HA pair are physically connected to each other's disks or array LUNs. Each disk or array LUN is owned by one of the nodes.
 
-Ownership of all disks or array LUNs within a local tier (aggregate) changes temporarily from one node to the other when a takeover occurs. However, local tiers relocation operations can also permanently change the ownership (for example, if done for load balancing). The ownership changes without any data-copy processes or physical movement of the disks or array LUNs.
+Ownership of all disks or array LUNs within a local tier changes temporarily from one node to the other when a takeover occurs. However, local tiers relocation operations can also permanently change the ownership (for example, if done for load balancing). The ownership changes without any data-copy processes or physical movement of the disks or array LUNs.
 
 .About this task
 
@@ -37,16 +39,16 @@ These operations can include the following:
 
 * If you have a MetroCluster configuration, you should not initiate local tier relocation while disaster recovery operations (_switchover_, _healing_, or _switchback_) are in progress.
 * If you have a MetroCluster configuration and initiate local tier relocation on a switched-over local tier, the operation might fail because it exceeds the DR partner's volume limit count.
-* You should not initiate local tier relocation on aggregates that are corrupt or undergoing maintenance.
+* You should not initiate local tier relocation on local tiers that are corrupt or undergoing maintenance.
 * Before initiating the local tier relocation, you should save any core dumps on the source and destination nodes.
 
 .Steps
 
-. View the aggregates on the node to confirm which aggregates to move and ensure they are online and in good condition:
+. View the local tiers on the node to confirm which local tiers to move and ensure they are online and in good condition:
 +
 `storage aggregate show -node _source-node_`
 +
-The following command shows six aggregates on the four nodes in the cluster. All aggregates are online. Node1 and Node3 form an HA pair and Node2 and Node4 form an HA pair.
+The following command shows six local tiers on the four nodes in the cluster. All local tiers are online. Node1 and Node3 form an HA pair and Node2 and Node4 form an HA pair.
 +
 ----
 cluster::> storage aggregate show
@@ -67,11 +69,11 @@ aggr_5     239.0GB   239.0GB    0% online       4 node4  raid_dp,
 6 entries were displayed.
 ----
 
-. Issue the command to start the aggregate relocation:
+. Issue the command to start the local tier relocation:
 +
 `storage aggregate relocation start -aggregate-list _aggregate-1_, _aggregate-2_... -node _source-node_ -destination _destination-node_`
 +
-The following command moves the aggregates aggr_1 and aggr_2 from Node1 to Node3. Node3 is Node1's HA partner. The aggregates can be moved only within the HA pair.
+The following command moves the local tier aggr_1 and aggr_2 from Node1 to Node3. Node3 is Node1's HA partner. The local tiers can be moved only within the HA pair.
 +
 ----
 cluster::> storage aggregate relocation start -aggregate-list aggr_1, aggr_2 -node node1 -destination node3
@@ -79,11 +81,11 @@ Run the storage aggregate relocation show command to check relocation status.
 node1::storage aggregate>
 ----
 
-. Monitor the progress of the aggregate relocation with the `storage aggregate relocation show` command:
+. Monitor the progress of the local tier relocation with the `storage aggregate relocation show` command:
 +
 `storage aggregate relocation show -node _source-node_`
 +
-The following command shows the progress of the aggregates that are being moved to Node3:
+The following command shows the progress of the local tiers that are being moved to Node3:
 +
 ----
 cluster::> storage aggregate relocation show -node node1
@@ -96,6 +98,7 @@ node1
 node1::storage aggregate>
 ----
 +
-When the relocation is complete, the output of this command shows each aggregate with a relocation status of "`Done`".
+When the relocation is complete, the output of this command shows each local tier with a relocation status of "`Done`".
 
+// 2025-Mar-6, ONTAPDOC-2850
 // BURT 1485072, 08-30-2022
