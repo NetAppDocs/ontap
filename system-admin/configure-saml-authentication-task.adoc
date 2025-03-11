@@ -2,14 +2,14 @@
 permalink: system-admin/configure-saml-authentication-task.html
 sidebar: sidebar
 keywords: tdp, ldap, identity, provider, saml, security, assertion, markup, lanaguage, active, directory, disable, authentication, idp, active directory, troubleshoot, repair
-summary: "Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (SAML) authentication for web services. When SAML authentication is configured and enabled, users are authenticated by an external Identity Provider (IdP) instead of the directory service providers such as Active Directory and LDAP. When SAML authentication is disabled, the configured directory service providers such as Active Directory and LDAP are used for authentication."
+summary: "Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (SAML) authentication for web services."
 ---
 = Configure SAML authentication
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (SAML) authentication for web services. When SAML authentication is configured and enabled, users are authenticated by an external Identity Provider (IdP) instead of the directory service providers such as Active Directory and LDAP.
+Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (SAML) authentication for web services. When SAML authentication is configured and enabled, users are authenticated by an external Identity Provider (IdP) instead of the directory service providers such as Active Directory and LDAP. When SAML authentication is disabled, the configured directory service providers such as Active Directory and LDAP are used for authentication
 
 == Enable SAML authentication
 To enable SAML authentication with System Manager or with the CLI, perform the following steps. If your cluster is running ONTAP 9.7 or earlier, the System Manager steps you need to follow are different. Refer to the System Manager online help available on your system.
@@ -87,7 +87,7 @@ Perform the following steps depending on your environment:
 --
 . Create a SAML configuration so that ONTAP can access the IdP metadata:
 +
-`*security saml-sp create -idp-uri _idp_uri_ -sp-host _ontap_host_name_*`
+`security saml-sp create -idp-uri <idp_uri> -sp-host <ontap_host_name>`
 +
 `idp_uri` is the FTP or HTTP address of the IdP host from where the IdP metadata can be downloaded.
 +
@@ -115,14 +115,18 @@ For more information about configuring the IdP, see the IdP documentation.
 
 . Enable SAML configuration:
 +
-`*security saml-sp modify -is-enabled true*`
+`security saml-sp modify -is-enabled true`
 +
 Any existing user that accesses the `http` or `ontapi` application is automatically configured for SAML authentication.
 
 . If you want to create users for the `http` or `ontapi` application after SAML is configured, specify SAML as the authentication method for the new users.
- .. Create a login method for new users with SAML authentication:
- +
- `*security login create -user-or-group-name _user_name_ -application [http | ontapi] -authentication-method saml -vserver _svm_name_*`
+.. Create a login method for new users with SAML authentication:
++
+NOTE: For the `user_name` value, include only the user name and do not include any portion of the domain.
++
+`security login create -user-or-group-name <user_name> -application [http | ontapi] -authentication-method saml -vserver <svm_name>`
++
+Example:
 +
 ----
 cluster_12::> security login create -user-or-group-name admin1 -application http -authentication-method saml -vserver  cluster_12
@@ -130,8 +134,11 @@ cluster_12::> security login create -user-or-group-name admin1 -application http
 
  .. Verify that the user entry is created:
 +
-`*security login show*`
+`security login show`
 +
+Example:
++
+[subs=+quotes]
 ----
 cluster_12::> security login show
 
@@ -182,10 +189,10 @@ Perform the following steps depending on your environment:
 --
 . Disable SAML authentication:
 +
-`*security saml-sp modify -is-enabled false*`
+`security saml-sp modify -is-enabled false`
 . If you no longer want to use SAML authentication or if you want to modify the IdP, delete the SAML configuration:
 +
-`*security saml-sp delete*`
+`security saml-sp delete`
 --
 ====
 
@@ -201,10 +208,12 @@ When you configure SAML authentication, ONTAP applies SAML configuration on a pe
 
 . Log in to the advanced privilege level:
 +
-`*set -privilege advanced*`
+`set -privilege advanced`
 . Identify the node on which SAML configuration failed:
 +
-`*security saml-sp status show -instance*`
+`security saml-sp status show -instance`
++
+Example:
 +
 ----
 cluster_12::*> security saml-sp status show -instance
@@ -229,7 +238,9 @@ SAML Service Provider Enabled: false
 
 . Repair the SAML configuration on the failed node:
 +
-`*security saml-sp repair -node _node_name_*`
+`security saml-sp repair -node <node_name>`
++
+Example:
 +
 ----
 cluster_12::*> security saml-sp repair -node node2
@@ -245,13 +256,16 @@ The web server is restarted and any active HTTP connections or HTTPS connections
 
 . Verify that SAML is successfully configured on all of the nodes:
 +
-`*security saml-sp status show -instance*`
+`security saml-sp status show -instance`
 +
+Example:
++
+[subs=+quotes]
 ----
 cluster_12::*> security saml-sp status show -instance
 
                          Node: node1
-                Update Status: config-success
+                Update Status: **config-success**
                Database Epoch: 9
    Database Transaction Count: 997
                    Error Text:
@@ -271,6 +285,7 @@ SAML Service Provider Enabled: false
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
 
+// 2025-MAR-10, ONTAPDOC-2875
 // 2025 Mar 03, ONTAPDOC-2758
 // 2021 DEC 09, BURT 1430515
 // 2023 Aug 23, ONTAPDOC-1135
