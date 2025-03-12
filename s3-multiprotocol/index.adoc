@@ -48,7 +48,7 @@ Nonetheless, the NAS files and directories that are mapped in S3 NAS buckets can
 Learn about link:../nas-audit/index.html[auditing NAS events on SVMs].
 
 == Object multipart upload
-Beginning with ONTAP 9.16.1, object multipart upload is supported when link:../flexgroup/enable-adv-capacity-flexgroup-task.html[advanced capacity balancing] on FlexGroup volumes is enabled. 
+Beginning with ONTAP 9.16.1, object multipart upload is supported in S3 NAS buckets when link:../flexgroup/enable-adv-capacity-flexgroup-task.html[advanced capacity balancing] is enabled on the underlying FlexGroup volume. 
 
 Object multipart upload on NAS file storage enables an S3 protocol client to upload a large object as smaller parts. Object multipart upload has the following benefits:
 
@@ -56,12 +56,20 @@ Object multipart upload on NAS file storage enables an S3 protocol client to upl
 * In case of an upload failure or pause, only the parts that haven't been uploaded yet will need to be uploaded. Upload of the entire object does not need to be restarted.
 * If the object size is not known in advance (for example, when a large object is still being written), clients can begin uploading parts of the object immediately and complete the upload after the entire object has been created. 
 
+[NOTE]
+Multipart objects in S3 NAS buckets must be aligned in 1MB part sizes. 
+For example, a part can be 4MB or 4GB, etc., but cannot use sub-MB sizes such as 4.5MB or 4000.5MB part sizes. 
+
 Multipart upload supports the following S3 actions:
 
 * AbortMultipartUpload
 * CompleteMultipartUpload
 * CreateMultipartUpload
 * ListMultipartUpload
+* UploadPart
+
+[NOTE]
+GET by part number (“partNumber=xx”) is not supported in S3 NAS buckets. The full object will be returned instead.
 
 == S3 and NAS interoperability
 ONTAP S3 NAS buckets support standard NAS and S3 functionality except as listed here.
@@ -100,6 +108,7 @@ It is not possible to specify versioning in the bucket mapping configuration.
 * Requests that include non-null version specifications (the versionId=xyz query-string) receive error responses. 
 * Requests to affect the versioning state of a bucket are rejected with errors.
 
+// 2025-Mar-12, Added UploadPart and additional multipart NAS caveats
 // 2025-Jan-7, Added unsupported S3 actions and a link to the S3 page
 // 2024-Jan-1, ONTAPDOC-2312
 // 2024-Oct-7, ONTAPDOC-2181
