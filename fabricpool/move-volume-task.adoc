@@ -1,17 +1,19 @@
 ---
 permalink: fabricpool/move-volume-task.html
 sidebar: sidebar
-keywords: moving, volume, fabricpool, fabric pool, tiering, policy, policies, block, capacity, cold data,
+keywords: aggregate, local tier, moving, volume, fabricpool, fabric pool, tiering, policy, policies, block, capacity, cold data,
 summary: "When you move a volume to FabricPool, you have the option to specify or change the tiering policy for the volume with the move. Beginning with ONTAP 9.8, when you move a non-FabricPool volume with inactive data reporting enabled, FabricPool uses a heat map to read tierable blocks, and moves cold data to the capacity tier on the FabricPool destination."
 ---
-= Move a volume to a FabricPool-enabled ONTAP aggregate
+= Move a volume to a FabricPool-enabled ONTAP local tier
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
 When you move a volume to FabricPool, you have the option to specify or change the tiering policy for the volume with the move. Beginning with ONTAP 9.8, when you move a non-FabricPool volume with inactive data reporting enabled, FabricPool uses a heat map to read tierable blocks, and moves cold data to the capacity tier on the FabricPool destination.
 
-.What you'll need
+include::_include/local-tier-aggregate-note.adoc[]
+
+.WBefore you begin
 
 You must understand how changing the tiering policy might affect how long it takes for data to become cold and be moved to the cloud tier.
 
@@ -19,7 +21,7 @@ link:tiering-policies-concept.html#what-happens-to-the-tiering-policy-when-you-m
 
 .About this task
 
-If a non-FabricPool volume has inactive data reporting enabled, when you move a volume with tiering-policy `auto` or `snapshot-only` to a FabricPool, FabricPool reads the temperature tierable blocks from a heat map file and uses that temperature to move the cold data directly to the capacity tier on the FabricPool destination.
+If a non-FabricPool volume has inactive data reporting enabled, when you move a volume with tiering-policy `auto` or `snapshot-only` to a FabricPool, FabricPool reads the temperature tierable blocks from a heat map file and when the tiering policy is set to `auto` on the non-FabricPool volume, FabricPool uses that temperature to move the cold data directly to the capacity tier on the FabricPool destination. 
 
 You should not use the `-tiering-policy` option on volume move if you are using ONTAP 9.8 and you want FabricPools to use inactive data reporting information to move data directly to the capacity tier. Using this option causes FabricPools to ignore the temperature data and instead follow the move behavior of releases prior to ONTAP 9.8.
 
@@ -40,12 +42,14 @@ link:tiering-policies-concept.html#types-of-fabricpool-tiering-policies[Types of
 
 .Example of moving a volume to FabricPool
 
-The following example moves a volume named "`myvol2`" of the "vs1" SVM to the "dest_FabricPool" FabricPool-enabled aggregate. The volume is explicitly set to use the `none` tiering policy:
+The following example moves a volume named "`myvol2`" of the "vs1" SVM to the "dest_FabricPool" FabricPool-enabled local tier. The volume is explicitly set to use the `none` tiering policy:
 
 ----
 cluster1::> volume move start -vserver vs1 -volume myvol2
 -destination-aggregate dest_FabricPool -tiering-policy none
 ----
 
+// 2025-Mar-12, ONTAPDOC-2850
+// 2025-Mar-12, issue# 1670
 // 2024-12-18 ONTAPDOC-2606
 // 08 DEC 2021, BURT 1430515
