@@ -1,0 +1,51 @@
+---
+permalink: authentication/configure-jit-elevation-task.html
+sidebar: sidebar
+keywords: just in time, just-in-time, privilege elevation, password, security, authentication, JIT, elevation
+summary: "Configure just-in-time privilege elevation to allow ONTAP users to temporarily elevate their privileges to perform certain tasks."
+---
+= Configure JIT privilege elevation in ONTAP
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+//todo: ONTAP admin or user can elevate privilege?
+Beginning with ONTAP 9.17.1, you can configure just-in-time (JIT) privilege elevation to allow ONTAP users to temporarily elevate their privileges to perform certain tasks. When JIT is configured for a user, they can request temporary elevation to a role that has the necessary permissions to perform a task. After the duration expires, the administrator returns to their original access level. 
+
+Storage administrators can set up JIT access for ONTAP user accounts, and configure maximum and default JIT durations globally, for individual SVMs, and for individual users. When JIT privilege elevation is configured for a user, they can independently access the configured elevated role for the configured duration. The elevated privilege is only available within the user's current SSH session, but they can elevate privileges within as many concurrent SSH sessions as needed.
+
+.About this task
+* JIT privilege elevation is only available to users accessing ONTAP with SSH.
+* JIT privilege elevation is only supported for users using password, nsswitch, or domain authentication to login.
+//todo: confirm the above and use the correct terms for password, nsswitch, & domain auth
+
+.Before you begin
+
+== Modify global JIT settings
+You can modify the default JIT settings globally or for a specific SVM. These settings determine the default and maximum JIT durations for users who are given JIT access. You can configure the JIT duration for individual users, but it cannot exceed the configured maximum JIT duration.
+
+.Steps
+
+. Check the current JIT settings:
++
+[source, cli]
+----
+security jit-privilege show -vserver <svm_name>
+----
+`-versever` is optional. If you don't specify a SVM, the command shows the global JIT settings.
+
+. Modify the JIT settings globally or for an SVM:
++
+[source, cli]
+----
+security jit-privilege modify -vserver <svm_name> -default-session-validity-period <period> -max-jit-validity-period <period>
+----
+If you don't specify a SVM, the command modifies the global JIT settings. The following example will set the default JIT duration to 45 minutes and the maximum duration to 30 days for SVM `svm1`:
+`security jit-privilege modify -vserver svm1 -default-session-validity-period 45m -max-jit-validity-period 30d`
+//todo: document the parameters here? or link to man page?
+
+
+== Configure JIT privilege elevation access for a user
+You can assign JIT privilege elevation access for ONTAP users. 
+
+.Steps
