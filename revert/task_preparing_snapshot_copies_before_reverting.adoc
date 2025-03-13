@@ -2,14 +2,14 @@
 permalink: revert/task_preparing_snapshot_copies_before_reverting.html
 sidebar: sidebar
 keywords: ontap, revert, reverting, reversion, snapshot, copies, prepare, preparing, disable, delete
-summary: 'Before reverting to an earlier ONTAP release, you must disable all Snapshot copy policies and delete any Snapshot copies that were created after upgrading to the current release.'
+summary: 'Before reverting to an earlier ONTAP release, you must disable all snapshot policies and delete any snapshots that were created after upgrading to the current release.'
 ---
 = Prepare Snapshots before reverting an ONTAP cluster
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Before you revert an ONTAP cluster from any version of ONTAP 9, you must disable all Snapshot copy policies and delete any Snapshot copies that were created after upgrading to the current release.
+Before you revert an ONTAP cluster from any version of ONTAP 9, you must disable all snapshot policies and delete any Snapshots that were created after upgrading to the current release.
 
 If you are reverting in a SnapMirror environment, you must first have deleted the following mirror relationships:
 
@@ -19,14 +19,14 @@ If you are reverting in a SnapMirror environment, you must first have deleted th
 
 .Steps
 
-. Disable Snapshot copy policies for all data SVMs: 
+. Disable snapshot policies for all data SVMs: 
 +
 [source,cli]
 ----
 volume snapshot policy modify -vserver * -enabled false
 ----
 
-. Disable Snapshot copy policies for each node's aggregates:
+. Disable snapshot policies for each node's aggregates:
 .. Identify the node's aggregates:
 +
 [source,cli]
@@ -34,7 +34,7 @@ volume snapshot policy modify -vserver * -enabled false
 run -node <nodename> -command aggr status
 ----
 
-.. Disable the Snapshot copy policy for each aggregate: 
+.. Disable the snapshot policy for each aggregate: 
 +
 [source,cli]
 ----
@@ -43,7 +43,7 @@ run -node <nodename> -command aggr options aggr_name nosnap on
 
 .. Repeat this step for each remaining node.
 
-. Disable Snapshot copy policies for each node's root volume:
+. Disable snapshot policies for each node's root volume:
 
 .. Identify the node's root volume:
 +
@@ -62,7 +62,7 @@ vs1::> run -node node1 vol status
                                 64-bit
 ----
 
-.. Disable the Snapshot copy policy on the root volume:
+.. Disable the snapshot policy on the root volume:
 +
 [source,cli]
 ----
@@ -71,7 +71,7 @@ run -node <node_name> vol options root_volume_name nosnap on
 
 .. Repeat this step for each remaining node.
 
-. Delete all Snapshot copies that were created after upgrading to the current release:
+. Delete all snapshots that were created after upgrading to the current release:
 .. Set the privilege level to advanced:
 +
 [source,cli]
@@ -85,31 +85,31 @@ set -privilege advanced
 snapshot policy modify -vserver * -enabled false
 ----
 
-.. Delete the node's newer-version Snapshot copies: 
+.. Delete the node's newer-version snapshots: 
 +
 [source,cli]
 ----
 volume snapshot prepare-for-revert -node <node_name>
 ----
 +
-This command deletes the newer-version Snapshot copies on each data volume, root aggregate, and root volume.
+This command deletes the newer-version snapshots on each data volume, root aggregate, and root volume.
 +
-If any Snapshot copies cannot be deleted, the command fails and notifies you of any required actions you must take before the Snapshot copies can be deleted. You must complete the required actions and then rerun the `volume snapshot prepare-for-revert` command before proceeding to the next step.
+If any snapshots cannot be deleted, the command fails and notifies you of any required actions you must take before the snapshots can be deleted. You must complete the required actions and then rerun the `volume snapshot prepare-for-revert` command before proceeding to the next step.
 +
 ----
 cluster1::*> volume snapshot prepare-for-revert -node node1
 
-Warning: This command will delete all Snapshot copies that have the format used by the current version of ONTAP. It will fail if any Snapshot copy polices are enabled, or
-         if any Snapshot copies have an owner. Continue? {y|n}: y
+Warning: This command will delete all snapshots that have the format used by the current version of ONTAP. It will fail if any snapshot polices are enabled, or
+         if any snapshots have an owner. Continue? {y|n}: y
 ----
 
-.. Verify that the Snapshot copies have been deleted: 
+.. Verify that the snapshots have been deleted: 
 +
 [source,cli]
 ----
 volume snapshot show -node nodename
 ----
-.. If any newer-version Snapshot copies remain, force them to be deleted:
+.. If any newer-version snapshots remain, force them to be deleted:
 +
 [source,cli]
 ----
