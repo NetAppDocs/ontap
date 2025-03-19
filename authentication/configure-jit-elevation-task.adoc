@@ -9,12 +9,12 @@ summary: "Configure just-in-time privilege elevation to allow ONTAP users to tem
 :imagesdir: ../media/
 
 [.lead]
-//todo: ONTAP admin or user can elevate privilege?
-Beginning with ONTAP 9.17.1, you can configure just-in-time (JIT) privilege elevation to allow ONTAP users to temporarily elevate their privileges to perform certain tasks. When JIT is configured for a user, they can temporarily elevate their privilege to a role that has the necessary permissions to perform a task. After the session duration expires, the user returns to their original role.
+//todo: ONTAP admin or user can elevate privilege? Check diction
+Beginning with ONTAP 9.17.1, cluster administrators can configure just-in-time (JIT) privilege elevation to allow ONTAP users to temporarily elevate their privileges to perform certain tasks. When JIT is configured for a user, they can temporarily elevate their privilege to a role that has the necessary permissions to perform a task. After the session duration expires, the user returns to their original role.
 
 Cluster administrators can configure the duration for which a user can access JIT elevation. For example, you can configure user access to JIT elevation with a 30 minute per-session limit for a 30 day period. During the 30 day period, the user can elevate their privilege as many times as needed, but each session is limited to 30 minutes.
 
-Storage administrators can set up JIT access for ONTAP user accounts, and configure default JIT session duration and maximum JIT access duration globally and for individual SVMs. When JIT privilege elevation is configured for a user, they can independently access the configured elevated role for the configured duration. The elevated privilege is only available within the user's current SSH session, but they can elevate privileges within as many concurrent SSH sessions as needed.
+Cluster administrators can set up JIT access for ONTAP user accounts, and configure default JIT session duration and maximum JIT access duration globally and for individual SVMs. When JIT privilege elevation is configured for a user, they can independently access the configured elevated role for the configured session duration. The elevated privilege is only available within the user's current SSH session, but they can elevate privileges within as many concurrent SSH sessions as needed.
 
 .About this task
 * JIT privilege elevation is only available to users accessing ONTAP with SSH.
@@ -51,7 +51,6 @@ security jit-privilege modify -vserver <svm_name> -default-session-validity-peri
 ----
 If you don't specify a SVM, the command modifies the global JIT settings. The following example will set the default JIT session duration to 45 minutes and the maximum JIT duration to 30 days for SVM `svm1`: +
 `security jit-privilege modify -vserver svm1 -default-session-validity-period 45m -max-jit-validity-period 30d`
-//todo: document the parameters here? or link to man page?
 
 
 == Configure JIT privilege elevation access for a user
@@ -69,33 +68,30 @@ You can assign JIT privilege elevation access for ONTAP users.
 security jit-privilege user show -username <username>
 ----
 `-username` is optional. If you don't specify a username, the command shows the JIT access for all users.
-//todo: document all the parameters here? or link to man page?
 
 . Assign new JIT access for a user:
 +
 [source, cli]
 ----
-security jit-privilege create -username <username> -vserver <svm_name> -role <rbac_role> -session-validity-period <period> -jit-validity-period <period> -start-date <date> --comment <text>
+security jit-privilege create -username <username> -vserver <svm_name> -role <rbac_role> -session-validity-period <period> -jit-validity-period <period> -start-date <date>
 ----
-If `-vserver is not specified`, the JIT access is assigned at the cluster level. +
-`-role` is the RBAC role that the user will be elevated to. If not specified, defaults to `admin`. +
-`-session-validity-period` is the duration for which the user can access the elevated role before needing to re-elevate. If this parameter is not specified, the global or SVM `default-session-validity-period` period is used. +
-`-jit-validity-period` is the maximum duration for which a user can access JIT elevation after the configured start date. If this parameter is not specified, the `session-validity-period` is used. This parameter cannot exceed the global or SVM `max-jit-validity-period`. +
-`-start-date` is the date and time when the JIT access begins. If this parameter is not specified, the current date and time is used. +
-`--comment` is an optional comment for the JIT access. +
-The following example will allow `ontap_user` to access the `admin` role for 1 hour before needing to re-elevate. `ontap_user` will be able to temporarily elevate their privilege for the next 60 days, starting immediately: +
+* If `-vserver` is not specified, the JIT access is assigned at the cluster level.
+* `-role` is the RBAC role that the user will be elevated to. If not specified, defaults to `admin`.
+* `-session-validity-period` is the duration for which the user can access the elevated role before needing to re-elevate. If not specified, the global or SVM `default-session-validity-period` period is used.
+* `-jit-validity-period` is the maximum duration for which a user can access JIT elevation after the configured start date. If not specified, the `session-validity-period` is used. This parameter cannot exceed the global or SVM `max-jit-validity-period`.
+* `-start-date` is the date and time when the JIT access begins. If not specified, the current date and time is used.
+The following example will allow `ontap_user` to access the `admin` role for 1 hour before needing to re-elevate. `ontap_user` will be able to temporarily elevate their privilege for the next 60 days, starting immediately:
 `security jit-privilege user create -username ontap_user -role admin -session-validity-period 1h -jit-validity-period 60d`
-//todo: use `user` as the example username?
 
-. Modify JIT access for a user:
+. Modify a user's JIT access:
 +
 [source, cli]
 ----
-security jit-privilege modify -username <username> -vserver <svm_name> -role <rbac_role> -session-validity-period <period> -jit-validity-period <period> -start-date <date> --comment <text>
+security jit-privilege modify -username <username> -vserver <svm_name> -role <rbac_role> -session-validity-period <period> -jit-validity-period <period> -start-date <date>
 ----
 This command will modify existing JIT access for a user. The parameters are the same as the `create` command. If any paramteters are not specified, they will remain unchanged.
 
-. Revoke JIT access for a user:
+. Revoke a user's JIT access:
 +
 [source, cli]
 ----
