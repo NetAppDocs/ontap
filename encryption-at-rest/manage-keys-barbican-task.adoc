@@ -1,0 +1,50 @@
+---
+permalink: encryption-at-rest/manage-keys-barbican-task.html
+sidebar: sidebar
+keywords: openstack, barbican, key vault, NVE keys, kms, keys, encryption, netapp volume encryption
+summary: "Use Barbican KMS to store keys for NVE."
+---
+= Manage ONTAP keys with Barbican KMS
+:icons: font
+:imagesdir: ../media/
+:hardbreaks-option:
+
+[.lead]
+Beginning with ONTAP 9.17.1, you can use OpenStack's link:https://docs.openstack.org/barbican/latest/[Barbican KMS^] to protect ONTAP encryption keys. Barbican KMS is a service for securely storing and accessing keys. Barbican KMS can be used to protect NetApp Volume Encryption (NVE) keys only for data SVMs. Barbican relies on link:https://docs.openstack.org/keystone/latest/[Keystone^], OpenStack's identity service, for authentication.
+
+.About this task
+Key management with Barbican KMS can be configured with the CLI or the ONTAP REST API. With the 9.17.1 release, Barbican KMS support has the following limitations:
+* Barbican KMS is not supported for NetApp Storage Encryption (NSE) and NetApp Aggregate Encryption (NAE). link:enable-external-key-management-96-later-nve-task.html[External KMIPs] or the link:enable-onboard-key-management-96-later-nve-task.html[Onboard Key Manager] can be used instead.
+* Barbican KMS is not supported for MetroCluster configurations.
+* Barbican KMS can only be configured for a data SVM.
+
+.Before you begin
+* Barbican KMS and Keystone must be configured.
+//todo: more info on configuring Barbican KMS and Keystone
+
+== Add and activate a new Barbican KMS configuration
+. Create a new inactive Barbican KMS configuration for an SVM:
++
+[source,cli]
+----
+security key-manager external barbican create-config -vserver <svm_name> -config-name <unique_config_name> -key-id <key_id> -keystone-url <keystone_url> application-cred-it <keystone_applications_credentials_id>
+----
+* `-key-id` is the key identifer of the Barbican key encryption key (KEK). Enter a full url, including `https://`.
+* `-keystone-url` is the URL of the Keystone authorization host. Enter a full url, including `https://`.
+* `-application-cred-id` is the application credentials ID.
++
+Administrators at the `admin` privilge level can access this command. After entering this command, you will be prompted for the application credentials secret key. An inactive Barbican KMS configuration is created, and needs to be activated before taking effect.
+
+. Activate the new Barbican KMS configuration:
++
+[source,cli]
+----
+security key-manager keystore enable -vserver <svm_name> -config <unique_config_name> -keystore barbican
+----
+If there is already an active Barbican KMS configuration on the SVM, it will be made inactive and the new configuration will be activated.
+
+== Update the credentials and settings of a Barbican KMS configuration
+
+== Disable and delete a Barbican KMS configuration
+
+// 3-26-25 ONTAPDOC-2715
