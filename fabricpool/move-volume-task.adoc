@@ -2,53 +2,62 @@
 permalink: fabricpool/move-volume-task.html
 sidebar: sidebar
 keywords: aggregate, local tier, moving, volume, fabricpool, fabric pool, tiering, policy, policies, block, capacity, cold data,
-summary: "When you move a volume to FabricPool, you have the option to specify or change the tiering policy for the volume with the move. Beginning with ONTAP 9.8, when you move a non-FabricPool volume with inactive data reporting enabled, FabricPool uses a heat map to read tierable blocks, and moves cold data to the capacity tier on the FabricPool destination."
+summary: "It is important to understand how volume move works with FabricPool because the changes that take place at both the local tier, the attached cloud tier, and the volume (volume tiering policies) can have a major impact on functionality."
 ---
 = Move a volume to a FabricPool-enabled ONTAP local tier
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-When you move a volume to FabricPool, you have the option to specify or change the tiering policy for the volume with the move. Beginning with ONTAP 9.8, when you move a non-FabricPool volume with inactive data reporting enabled, FabricPool uses a heat map to read tierable blocks, and moves cold data to the capacity tier on the FabricPool destination.
+A link:../volumes/move-volume-task.html[volume move] is the way that ONTAP moves a volume nondisruptively from one local tier (source) to another (destination). Volume moves can be performed for a variety of reasons, although the most common reasons are hardware lifecycle management, cluster expansion, and load balancing.
+
+It is important to understand how volume move works with FabricPool because the changes that take place at both the local tier, the attached cloud tier, and the volume (volume tiering policies) can have a major impact on functionality.
 
 include::_include/local-tier-aggregate-note.adoc[]
 
-.WBefore you begin
+.Before you begin
+=== Destination local tier
+If a volume move's destination local tier does not have an attached cloud tier, data on the source volume that is stored on the cloud tier is written to the local tier on the destination local tier. 
 
-You must understand how changing the tiering policy might affect how long it takes for data to become cold and be moved to the cloud tier.
+Beginning with ONTAP 9.8, when a volume has link:../determine-data-inactive-reporting-task.html[inactive data reporting] enabled, FabricPool will use the volume's heat map to immediately queue cold data to begin tiering as soon as it is written to the destination aggregate. 
 
-link:tiering-policies-concept.html#what-happens-to-the-tiering-policy-when-you-move-a-volume[What happens to the tiering policy when you move a volume]
+Prior to ONTAP 9.8, moving a volume to another local tier resets the inactivity period of blocks on the local tier. For example, a volume using the Auto volume tiering policy with data on the local tier that has been inactive for 20 days, but had not yet tiered, will have the temperature of the data reset to 0 days after a volume move.
 
 .About this task
+=== Optimized volume moves
+Beginning with ONTAP 9.6, if a volume move's destination local tier uses the same bucket as the source local tier, data on the source volume that is stored in the bucket does not move back to the local tier. This optimized volume move results in significant network efficiencies.
 
-If a non-FabricPool volume has inactive data reporting enabled, when you move a volume with tiering-policy `auto` or `snapshot-only` to a FabricPool, FabricPool reads the temperature tierable blocks from a heat map file and when the tiering policy is set to `auto` on the non-FabricPool volume, FabricPool uses that temperature to move the cold data directly to the capacity tier on the FabricPool destination. 
+[Note] Some configurations are incompatible with optimized volume moves:
 
-You should not use the `-tiering-policy` option on volume move if you are using ONTAP 9.8 and you want FabricPools to use inactive data reporting information to move data directly to the capacity tier. Using this option causes FabricPools to ignore the temperature data and instead follow the move behavior of releases prior to ONTAP 9.8.
+* Changing tiering policy during volume move 
+* Source and destination aggregates using different encryption keys 
+* FlexClone volumes 
+* FlexClone parent volumes 
+* MetroCluster (supports optimized volume moves in ONTAP 9.8 and later) 
+* Unsynchronized FabricPool Mirror buckets  
 
-.Step
+If a volume move's destination local tier has an attached cloud tier, data on the source volume that is stored on the cloud tier is first written to the local tier on the destination local tier. It is then written to the cloud tier on the destination local tier if this approach is appropriate for the volume's tiering policy. 
 
-. Use the `volume move start` command to move a volume to FabricPool.
-+
-The `-tiering-policy` optional parameter enables you to specify the tiering policy for the volume.
-+
-You can specify one of the following tiering policies:
+Writing data to the local tier first improves the performance of the volume move and reduces cutover time. If a volume tiering policy is not specified when performing a volume move, the destination volume uses the tiering policy of the source volume. 
 
- ** `snapshot-only` (default)
- ** `auto`
- ** `all`
- ** `none`
- +
-link:tiering-policies-concept.html#types-of-fabricpool-tiering-policies[Types of FabricPool tiering policies]
+If a different tiering policy is specified when performing the volume move, the destination volume is created with the specified tiering policy and the volume move is not optimized. 
 
-.Example of moving a volume to FabricPool
+[NOTE]
+When in an SVM DR relationship, source and destination volumes must use the same tiering policy.
 
-The following example moves a volume named "`myvol2`" of the "vs1" SVM to the "dest_FabricPool" FabricPool-enabled local tier. The volume is explicitly set to use the `none` tiering policy:
+.Steps
+. Use the `volume move start` command to move a volume from a source local tier to a destination local tier.
+
+.Example of moving a volume
+The following example moves a volume named `myvol2` of `vs1` SVM to `dest_FabricPool`, a FabricPool-enabled local tier. 
 
 ----
 cluster1::> volume move start -vserver vs1 -volume myvol2
--destination-aggregate dest_FabricPool -tiering-policy none
+-destination-aggregate dest_FabricPool 
 ----
 
+
+// 2025-Mar-20, Major rewrite that includes optimized vol move details
 // 2025-Mar-12, ONTAPDOC-2850
 // 2025-Mar-12, issue# 1670
 // 2024-12-18 ONTAPDOC-2606
