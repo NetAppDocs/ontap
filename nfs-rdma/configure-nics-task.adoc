@@ -2,7 +2,7 @@
 permalink: nfs-rdma/configure-nics-task.html
 sidebar: sidebar
 keywords: networking, NICs, NFS over RDMA, NVIDIA, NFS, system manager, ports, ethernet ports
-summary: "This article explains how both client-system and storage platform configuration processes and requirements for NICs to utilize NFS over RDMA in ONTAP."
+summary: "This article explains how both client-system and storage platform configuration processes and requirements for NICs to use NFS over RDMA in ONTAP."
 ---
 = Configure NICs for NFS over RDMA
 :icons: font
@@ -13,18 +13,40 @@ NFS over RDMA requires NIC configuration for both the client system and storage 
 
 == Storage platform configuration
 
-An X1148 RDMA adapter needs to be installed on the server. If you are using an HA configuration, you must have a corresponding X1148 adapter on the failover partner so RDMA service can continue during failover. The NIC must be ROCE capable. 
+For information about target RNIC support, refer to the https://hwu.netapp.com/[NetApp Hardware Universe^]. 
 
-Beginning with ONTAP 9.10.1, you can view a list of RDMA offload protocols with the command:
-`network port show -rdma-protocols roce`
+If you are using a high-availability (HA) configuration, both nodes must use the same RNIC to support RDMA failover. The NIC must be RoCE capable. 
+
+* Beginning with ONTAP 9.10.1, you can view a list of RDMA offload protocols with the command:
++
+[source,cli]
+----
+network port show -rdma-protocols roce
+----
+
+* Beginning with ONTAP 9.16.1, it is recommended to use priority flow control (PFC). Configure PFC using the `network port modify` command:
++
+[source,cli]
+----
+network port modify -node <nodename> -port <portname> -flowcontrol-admin pfc -pfc-queues-admin 3
+----
+
+* Prior to ONTAP 9.16.1, it is recommended to use the default global flow control (GFC). If the flow-control setting has been changed, configure GFC using the `network port modify` command:
++
+[source,cli]
+----
+network port modify -node <nodename> -port <portname> -flowcontrol-admin full
+----
 
 == Client system configuration
 
-Clients must be using Mellanox RDMA-capable NIC cards (e.g. X1148) and Mellanox OFED network software. Consult Mellanox documentation for supported models and versions. Although the client and server can be directly connected, the use of switches is recommended due to improved failover performance with a switch.
+For information on supported client operating systems for NFS over RDMA, refer to the https://imt.netapp.com/matrix/[NetApp Interoperability Matrix (IMT)^]. For RoCE v2 supported RNICs, refer to the respective RNIC vendor documentation.
 
-The client, server, any switches, and all ports on switches must be configured using Jumbo frames. Also ensure that priority flow-control is in effect on any switches. 
+Although the client and server can be directly connected, the use of switches is recommended for improved failover performance.
 
-Once this configuration is confirmed, you can mount the NFS. 
+The client, server, any switches, and all ports on switches must be configured using jumbo frames. The flow-control configuration on the clients and switches should match ONTAP's flow-control configuration. Beginning with ONTAP 9.16.1, it is best practice to enable and configure priority flow control on ONTAP, the switches, and the clients. Prior to ONTAP 9.16.1, it is recommended to use global flow control.
+
+After this configuration is confirmed, you can mount the NFS export using RDMA. 
 
 [role="tabbed-block"]
 ====
@@ -44,17 +66,17 @@ When adding network interfaces, you will have the option to select *Use RoCE por
 --
 . Check if RDMA access is enabled on the NFS server with the command:
 +
-`vserver nfs show-vserver _SVM_name_`
+`vserver nfs show-vserver <SVM_name>`
 +
 By default, `-rdma` should be enabled. If it is not, enable RDMA access on the NFS server:
 +
-`vserver nfs modify -vserver _SVM_name_ -rdma enabled`
+`vserver nfs modify -vserver <SVM_name> -rdma enabled`
 . Mount the client via NFSv4.0 over RDMA:
 .. The input for the proto parameter depends on the server IP protocol version. If it is IPv4, use `proto=rdma`. If it is IPv6, use `proto=rdma6`. 
 .. Specify the NFS target port as `port=20049` instead of the standard port 2049:
 +
-`mount -o vers=4,minorversion=0,proto=rdma,port=20049 _Server_IP_address_:/_volume_path_ _mount_point_`
-. *OPTIONAL*: If you need to unmount the client, run the command `unmount _mount_path_`
+`mount -o vers=4,minorversion=0,proto=rdma,port=20049 <Server_IP_address>:/<volume_path> <mount_point>`
+. *OPTIONAL*: If you need to unmount the client, run the command `unmount <mount_path>`
 --
 ====
 
@@ -63,5 +85,6 @@ By default, `-rdma` should be enabled. If it is not, enable RDMA access on the N
 * xref:../task_nas_enable_linux_nfs.html[Enable NAS storage for Linux servers using NFS]
 
 
+// 2025-1-2 ONTAPDOC-2562
 // 06 OCT 2022, IE-582
 //29 october 2021, BURT 1401394
