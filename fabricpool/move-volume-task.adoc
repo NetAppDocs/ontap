@@ -18,13 +18,13 @@ include::_include/local-tier-aggregate-note.adoc[]
 == Destination local tier
 If a volume move's destination local tier does not have an attached cloud tier, data on the source volume that is stored on the cloud tier is written to the local tier on the destination local tier. 
 
-Beginning with ONTAP 9.8, when a volume has link:determine-data-inactive-reporting-task.html[inactive data reporting] enabled, FabricPool will use the volume's heat map to immediately queue cold data to begin tiering as soon as it is written to the destination aggregate. 
+Beginning with ONTAP 9.8, when a volume has link:determine-data-inactive-reporting-task.html[inactive data reporting] enabled, FabricPool will use the volume's heat map to immediately queue cold data to begin tiering as soon as it is written to the destination local tier. 
 
 Prior to ONTAP 9.8, moving a volume to another local tier resets the inactivity period of blocks on the local tier. For example, a volume using the Auto volume tiering policy with data on the local tier that has been inactive for 20 days, but had not yet tiered, will have the temperature of the data reset to 0 days after a volume move.
 
 == Optimized volume moves
 
-Beginning with ONTAP 9.6, if a volume move's destination local tier uses the same bucket as the source local tier, data on the source volume that is stored in the bucket does not move back to the local tier. Tiered data stays at rest and only hot data needs to be moved from one aggregate to another. This optimized volume move results in significant network efficiencies.
+Beginning with ONTAP 9.6, if a volume move's destination local tier uses the same bucket as the source local tier, data on the source volume that is stored in the bucket does not move back to the local tier. Tiered data stays at rest and only hot data needs to be moved from one local tier to another. This optimized volume move results in significant network efficiencies.
 
 If a volume move is not optimized, the additional traffic (up via reads/GETs, and down via writes/PUTs) places additional network and compute demands on both the ONTAP cluster and the object store and can result in additional costs when tiering to public object stores.
 
@@ -33,7 +33,7 @@ If a volume move is not optimized, the additional traffic (up via reads/GETs, an
 Some configurations are incompatible with optimized volume moves:
 
 * Changing tiering policy during volume move 
-* Source and destination aggregates using different encryption keys 
+* Source and destination local tiers using different encryption keys 
 * FlexClone volumes 
 * FlexClone parent volumes 
 * MetroCluster (supports optimized volume moves in ONTAP 9.8 and later) 
@@ -47,9 +47,9 @@ Writing data to the local tier first improves the performance of the volume move
 If a different tiering policy is specified when performing the volume move, the destination volume is created with the specified tiering policy and the volume move is not optimized. 
 
 === Volume metadata
-Unrelated to a volume move being optimized or not, ONTAP stores information about where all data are located, including local and tiered data. When a volume is moved from one aggregate to another, this information needs to be moved to the destination aggregate as well. This metadata always stays on the local tier, but depending on the amount of tiered data this can cause the volume move process to take more time to take then expected to finish.
+Unrelated to a volume move being optimized or not, ONTAP stores information about where all data are located, including local and tiered data. When a volume is moved from one local tier to another, this information needs to be moved to the destination local tier as well. This metadata always stays on the local tier, but depending on the amount of tiered data this can cause the volume move process to take more then expected to finish.
 
-For example, a 300TB optimized volume move means that 300TB of cold data doesn't need to move from one aggregate to another (or trigger 300TB of reads and 300TB of writes to the object store). But it does mean that the metadata associated with 300TB of data (~15TB of data in this example) will need to be written to the destination aggregate.
+For example, a 300TB optimized volume move means that 300TB of cold data doesn't need to move from one local tier to another (or trigger 300TB of reads and 300TB of writes to the object store). But it does mean that the metadata associated with 300TB of data (~15TB of data in this example) will need to be written to the destination local tier.
 
 It is important to understand that "throughput" reported by the `volume move show` command does not represent throughput in terms of data being moved from the cloud tier, but metadata being updated locally.
 
