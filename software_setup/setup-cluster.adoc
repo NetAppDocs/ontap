@@ -1,0 +1,209 @@
+---
+sidebar: sidebar
+permalink: software_setup/setup-cluster.html
+keywords: install, installing, cluster, set up, setup, configure, disk, data ports, guided setup, local tiers, aggregate, vserver, volume, configuring ONTAP on a new cluster, configuring a new cluster, assign a node-management IP address, node, DNS server, host name, hostname, NTP server, synchronize time, create a local tier, configure protocol, SSD, provision storage, add LUN, add volume, add namespace, volume, vserver, configure ONTAP on a new cluster, configuration
+summary: System Manager provides a simple and easy workflow for setting up the cluster and configuring storage.
+---
+
+= Create an ONTAP cluster and join nodes
+:toclevels: 1
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+NetApp recommends that you use System Manager to create new clusters. System Manager provides a simple and easy workflow for cluster setup. It is only necessary to use the ONTAP command line interface (CLI) if you are running ONTAP 9.7 or earlier in a MetroCluster configuration or if you need to configure an IPv6-only cluster on certain platforms.  
+
+.About this task
+
+This procedure applies to FAS, AFF, and current ASA systems. If you have an ASA r2 system (ASA A1K, ASA A90, ASA A70, ASA A50, ASA A30, or ASA A20), follow link:https://docs.netapp.com/us-en/asa-r2/install-setup/initialize-ontap-cluster.html[these steps^] to use System Manger to set up an ONTAP cluster. ASA r2 systems provide a simplified ONTAP experience specific to SAN-only customers.
+
+Beginning with ONTAP 9.13.1, you can assign IPv6 addresses to management LIFs on AFF A800 and FAS8700 platforms during the initial cluster setup using the ONTAP CLI. For ONTAP releases earlier than ONTAP 9.13.1, or for ONTAP 9.13.1 and later on other platforms,  you should use System Manager to create your cluster using IPv4 addresses, and then link:convert-ipv4-to-ipv6-task.html[convert to IPv6] addresses after you complete cluster setup.
+
+[NOTE]  
+System Manager does not support deployments that require IPv6 networking in ONTAP 9.6 and earlier.
+
+.Before you begin
+
+* You should have installed, cabled and powered on your new storage system according to the installation and set up instructions for your platform model.
++
+See the link:https://docs.netapp.com/us-en/ontap-systems/index.html[AFF and FAS documentation^].
+
+* link:gather_cluster_setup_information.html[Gather the information you need] to complete the cluster setup.
+
+* Cluster network interfaces should be configured on each node of the cluster for intra-cluster communication.
+
+* If you are using the CLI to configure IPv6, IPv6 should be configured on the Base Management Controller (BMC) so that you can use SSH to access the system.
+
+.Steps
+
+// start tabbed area
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+. Assign a node-management IP address
++
+* Windows computer
++
+.. Connect your Windows computer to the same subnet as the controllers. 
++
+This automatically assigns a node-management IP address to your system.
+
+.. Open the *Network* drive to discover the nodes.
+
+.. Select the node to launch the cluster setup wizard.
+
+* Non-Windows computer
++
+.. Power on all the nodes you are adding to the cluster. 
++
+This is required to enable discovery for your clusterset up.
+
+.. Connect to the console of the first node.
++
+The node boots, and then the Cluster Setup wizard starts on the console.
++
+----
+Welcome to the cluster setup wizard....
+----
+
+.. Acknowledge the AutoSupport statement.
++
+----
+Type yes to confirm and continue {yes}: yes
+----
++
+AutoSupport is enabled by default.
+
+.. Follow the instructions on the screen to assign a management IP address to the node.
+
+.. In a web browser, enter the node-management IP address that you have configured: "https://node-management-IP".
++
+System Manager automatically discovers the remaining nodes in the cluster.
+
+. Under *Initialize storage system*, enter the cluster name and admin password.
+. Under *Networking*, enter the cluster management IP address, subnet mask, and gateway.
+. If you want to use the Domain Name Service to resolve host names, select *Use Domain Name Service (DNS)*; then enter the DNS server information.
+. If you want to use the Network Time Protocol (NTP) to keep times synchronized across your cluster, under *Others*, select *Use time services (NTP)*; then enter the NTP server information.
+. Select *Submit*.
+
+--
+
+.ONTAP CLI
+--
+. Power on all the nodes you are adding to the cluster. 
++
+This is required to enable discovery for your cluster setup.
+. Connect to the console of the first node.
++
+The node boots, and then the Cluster Setup wizard starts on the console.
++
+----
+Welcome to the cluster setup wizard....
+----
+
+. Acknowledge the AutoSupport statement.
++
+----
+Type yes to confirm and continue {yes}: yes
+----
++
+AutoSupport is enabled by default.
+
+. Follow the instructions on the screen to assign a management IP address to the node.
++
+Beginning with ONTAP 9.13.1, you can assign IPv6 addresses for management LIFs on A800 and FAS8700 platforms. For ONTAP releases earlier than 9.13.1, or for 9.13.1 and later on other platforms, you must assign IPv4 addresses for management LIFs, then convert to IPv6 after you complete cluster setup.
+
+. Press *Enter* to continue.
++
+----
+Do you want to create a new cluster or join an existing cluster? {create, join}:
+----
+
+. Create a new cluster: 
+.. Enter `create`
+.. Accept the system defaults or enter your own values.
+.. After set up is completed, log in to the cluster and verify that the cluster is active and the first node is healthy: `cluster show`
++
+The following example shows a cluster in which the first node (cluster1-01) is healthy and eligible to participate:
++
+----
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+cluster1-01           true    true
+----
++
+If needed, you can use the `cluster setup` command to access the Cluster Setup wizard and change any of the values you entered for the admin or node SVM.
+
+. Join a node to the cluster:
++
+You can join one node to the cluster at a time. You must complete the join operation for each node, and the node must be part of the cluster before you can start to join the next node.
++
+If you have a FAS2720 with 24 or fewer NL-SAS drives, you should verify that the storage configuration default is set to active/passive to optimize performance. For more information, see documentation for link:../disks-aggregates/setup-active-passive-config-root-data-task.html[setting up an active-passive configuration on nodes using root-data partitioning].
+
+.. Log in to the node you plan to join in the cluster.
++
+Cluster Setup wizard starts on the console.
++
+----
+Welcome to the cluster setup wizard....
+----
+.. Acknowledge the AutoSupport statement.
++
+NOTE: AutoSupport is enabled by default.
+
++
+----
+Type yes to confirm and continue {yes}: yes
+----
+
+.. Follow the instructions on the screen to assign an IP address to the node.
++
+Beginning with ONTAP 9.13.1, you can assign IPv6 addresses for management LIFs on A800 and FAS8700 platforms.  For ONTAP releases earlier than 9.13.1, or for 9.13.1 and later on other platforms, you must assign IPv4 addresses for management LIFs, then convert to IPv6 after you complete cluster setup.
+
+.. Press *Enter* to continue.
++
+----
+Do you want to create a new cluster or join an existing cluster? {create, join}:
+----
+
+.. Enter `join`
+.. Follow the instructions on the screen to set up the node and join it to the cluster.
+.. After set up is completed, verify that the node is healthy and eligible to participate in the cluster: `cluster show`
++
+The following example shows a cluster after the second node (cluster1-02) has been joined to the cluster:
++
+----
+cluster1::> cluster show
+Node                  Health  Eligibility
+--------------------- ------- ------------
+cluster1-01           true    true
+cluster1-02           true    true
+----
+
+. Repeat step 7 to join each remaining node.
+
+--
+====
+
+// end tabbed area
+
+.What's next
+* If needed, link:convert-ipv4-to-ipv6-task.html[convert from IPv4 to IPv6].
+
+* link:task_check_cluster_with_config_advisor.html[Run Active IQ Config Advisor to validate your configuration and check for common configuration errors].
+
+// 2025 March 25, ONTAPDOC 1325
+// 2025 Feb 26, ONTAPDOC-2834
+// 2025 Jan 22, ONTAPDOC-1070
+// 2024 May 29, Internal Git Issue 1825
+// 2024 May 29, Git Issue 1298
+// 2024 Mar 25, Jira 1810
+// 2023 May 02, Jira 781
+// 2023 May 02, Jira 782
