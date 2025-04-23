@@ -14,19 +14,61 @@ Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (
 == Enable SAML authentication
 To enable SAML authentication with System Manager or with the CLI, perform the following steps. If your cluster is running ONTAP 9.7 or earlier, the System Manager steps you need to follow are different. Refer to the System Manager online help available on your system.
 
-NOTE: After you enable SAML authentication, only remote users can access the System Manager GUI. Local users cannot access the System Manager GUI after SAML authentication is enabled.
+NOTE: After you enable SAML authentication, only remote users configured for SAML authentication can access the System Manager GUI. Local users cannot access the System Manager GUI after SAML authentication is enabled.
 
 image:workflow_security_mfa_setup.gif[Workflow of the task to set up multifactor authentication with SAML]
 
 .Before you begin
 
-* The IdP that you plan to use for remote authentication must be <<Configure third-party IdP, configured>>. You must have the URI of the IdP.
+* The IdP that you plan to use for remote authentication must be <<Configure third-party IdP, configured>>. You must have the URI of the IdP. The IdP URI is the web address of the IdP, which System Manager uses to send authentication requests and receive responses.
 
-* Ports 443 and 80 must be open between the ONTAP cluster and the IdP.
+* Port 443 must be open between the ONTAP cluster and the IdP.
 
 * The ONTAP cluster and the IdP must each be able to ping the other's fully qualified domain name. Ensure DNS is properly configured and the cluster certificate is not expired.
 
 * You must be able to access the Remote LAN Module (RLM) or the link:/system-admin/sp-concept.html[Service Processor (SP)] of the ONTAP cluster. If SAML is misconfigured, you will need to disable it from the RLM or SP.
+
+* You must create SAML users the `http` or `ontapi` application prior to enabling SAML authentication. You can create users with the `security login create` command. The users must be configured for SAML authentication. For more information, see the link:https://docs.netapp.com/us-en/ontap-cli/security-login-create.html[ONTAP command reference^].
+//todo: check procedure for adding SAML to existing users
+.. Create a login method for new users with SAML authentication: 
++
+NOTE: The `user_name` value is case-sensitive. Include only the user name, and do not include any portion of the domain.
++
+`security login create -user-or-group-name <user_name> -application [http | ontapi] -authentication-method saml -vserver <svm_name>`
++
+Example:
++
+----
+cluster_12::> security login create -user-or-group-name admin1 -application http -authentication-method saml -vserver  cluster_12
+----
+
+ .. Verify that the user entry is created:
++
+`security login show`
++
+Example:
++
+[subs=+quotes]
+----
+cluster_12::> security login show
+
+Vserver: cluster_12
+                                                                 Second
+User/Group                 Authentication                 Acct   Authentication
+Name           Application Method        Role Name        Locked Method
+-------------- ----------- ------------- ---------------- ------ --------------
+admin          console     password      admin            no     none
+admin          http        password      admin            no     none
+admin          http        saml          admin            -      none
+admin          ontapi      password      admin            no     none
+admin          ontapi      saml          admin            -      none
+admin          service-processor
+                           password      admin            no     none
+admin          ssh         password      admin            no     none
+admin1         http        password      backup           no     none
+**admin1         http        saml          backup           -      none**
+----
+
 //todo: there is no mention of RLM in the docs. Is this support-only info? There is a public KB: https://kb.netapp.com/on-prem/ontap/OHW/OHW-KBs/What_is_a_Remote_LAN_Module_and_how_do_I_use_it. Also maybe mention BMC here
 
 //todo: do we need to add SAML users before enabling SAML as described in https://kb.netapp.com/on-prem/ontap/DM/System_Manager/SM-KBs/What_are_the_pre-requisites_for_enabling_SAML_authentication_in_ONTAP_System_Manager? This topic states: "Any existing user that accesses the http or ontapi application is automatically configured for SAML authentication."
@@ -84,7 +126,7 @@ Perform the following steps depending on your environment:
 
 . Click *Logout* to enable SAML-based authentication.  The IdP system will display an authentication screen.
 
-. In the IdP system, enter your SAML-based credentials. After your credentials are verified, you will be directed to the System Manager home page.
+. In the IdP sign-on page, enter your SAML-based credentials. After your credentials are verified, you will be directed to the System Manager home page.
 --
 
 .CLI
@@ -123,47 +165,6 @@ For more information about configuring the IdP, see the IdP documentation.
 +
 `security saml-sp modify -is-enabled true`
 +
-Any existing user that accesses the `http` or `ontapi` application is automatically configured for SAML authentication.
-
-. If you want to create users for the `http` or `ontapi` application after SAML is configured, specify SAML as the authentication method for the new users.
-.. Create a login method for new users with SAML authentication:
-+
-NOTE: The `user_name` value is case-sensitive. Include only the user name, and do not include any portion of the domain.
-+
-`security login create -user-or-group-name <user_name> -application [http | ontapi] -authentication-method saml -vserver <svm_name>`
-+
-Example:
-+
-----
-cluster_12::> security login create -user-or-group-name admin1 -application http -authentication-method saml -vserver  cluster_12
-----
-
- .. Verify that the user entry is created:
-+
-`security login show`
-+
-Example:
-+
-[subs=+quotes]
-----
-cluster_12::> security login show
-
-Vserver: cluster_12
-                                                                 Second
-User/Group                 Authentication                 Acct   Authentication
-Name           Application Method        Role Name        Locked Method
--------------- ----------- ------------- ---------------- ------ --------------
-admin          console     password      admin            no     none
-admin          http        password      admin            no     none
-admin          http        saml          admin            -      none
-admin          ontapi      password      admin            no     none
-admin          ontapi      saml          admin            -      none
-admin          service-processor
-                           password      admin            no     none
-admin          ssh         password      admin            no     none
-admin1         http        password      backup           no     none
-**admin1         http        saml          backup           -      none**
-----
 
 --
 ====
@@ -171,7 +172,7 @@ admin1         http        password      backup           no     none
 
 == Disable SAML authentication
 
-You can disable SAML authentication when you want to stop authenticating web users by using an external Identity Provider (IdP). When SAML authentication is disabled, the configured directory service providers such as Active Directory and LDAP are used for authentication.
+You can disable SAML authentication when you want to stop authenticating remote users by using an external Identity Provider (IdP). When SAML authentication is disabled, local user authentication or the configured directory service providers such as Active Directory and LDAP are used to authenticate users.
 
 // .What you'll need
 
