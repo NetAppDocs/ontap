@@ -26,11 +26,13 @@ image:workflow_security_mfa_setup.gif[Workflow of the task to set up multifactor
 
 * The ONTAP cluster and the IdP must each be able to ping the other's fully qualified domain name. Ensure DNS is properly configured and the cluster certificate is not expired.
 
-* You must be able to access the Remote LAN Module (RLM) or the link:/system-admin/sp-concept.html[Service Processor (SP)] of the ONTAP cluster. If SAML is misconfigured, you will need to disable it from the RLM or SP.
+* You must add the IdP's trusted certificate authority (CA) to ONTAP. You can link:../authentication/manage-certificates-sm-task.html[Manage ONTAP certificates with System Manager]. You may need to configure the ONTAP cluster certificate in the IdP.
 
-* You must create SAML users the `http` or `ontapi` application prior to enabling SAML authentication. You can create users with the `security login create` command. The users must be configured for SAML authentication. For more information, see the link:https://docs.netapp.com/us-en/ontap-cli/security-login-create.html[ONTAP command reference^].
+* You must be able to access the Remote LAN Module (RLM) or the link:../system-admin/sp-concept.html[Service Processor (SP)] of the ONTAP cluster. If SAML is misconfigured, you will need to disable it from the RLM or SP.
+
+* You must create SAML users for the `http` or `ontapi` application prior to enabling SAML authentication. You can create users with the `security login create` command. The users must be configured for SAML authentication. For more information, see the link:https://docs.netapp.com/us-en/ontap-cli/security-login-create.html[ONTAP command reference^].
 //todo: check procedure for adding SAML to existing users
-.. Create a login method for new users with SAML authentication: 
+.. Create a login method for new users with SAML authentication. The `user_name` must match the username configured in the IdP: 
 +
 NOTE: The `user_name` value is case-sensitive. Include only the user name, and do not include any portion of the domain.
 +
@@ -72,6 +74,7 @@ admin1         http        password      backup           no     none
 //todo: there is no mention of RLM in the docs. Is this support-only info? There is a public KB: https://kb.netapp.com/on-prem/ontap/OHW/OHW-KBs/What_is_a_Remote_LAN_Module_and_how_do_I_use_it. Also maybe mention BMC here
 
 //todo: do we need to add SAML users before enabling SAML as described in https://kb.netapp.com/on-prem/ontap/DM/System_Manager/SM-KBs/What_are_the_pre-requisites_for_enabling_SAML_authentication_in_ONTAP_System_Manager? This topic states: "Any existing user that accesses the http or ontapi application is automatically configured for SAML authentication."
+
 //todo: Check group behavior, both pre and post 9.17.1. According to https://kb.netapp.com/on-prem/ontap/DM/System_Manager/SM-KBs/What_are_the_pre-requisites_for_enabling_SAML_authentication_in_ONTAP_System_Manager, "Active Directory Domain Groups configured on a cluster will work with SAML starting in ONTAP 9.14.1 and later."
 
 
@@ -157,26 +160,19 @@ Configure the IdP and Data ONTAP users for the same directory server domain to e
 +
 The URL to access the ONTAP host metadata is displayed.
 
-. From the IdP host, configure the IdP with the ONTAP host metadata.
-+
-For more information about configuring the IdP, see the IdP documentation.
+. From the IdP host, <<configure the IdP,Configure third-party IdP>> with the ONTAP host metadata.
 
-. Enable SAML configuration:
+. Once the IdP is configured, enable SAML configuration:
 +
 `security saml-sp modify -is-enabled true`
 +
 
 --
 ====
-// end tabbed block
 
 == Disable SAML authentication
 
 You can disable SAML authentication when you want to stop authenticating remote users by using an external Identity Provider (IdP). When SAML authentication is disabled, local user authentication or the configured directory service providers such as Active Directory and LDAP are used to authenticate users.
-
-// .What you'll need
-
-// You must be logged in from the console.
 
 Perform the following steps depending on your environment:
 
