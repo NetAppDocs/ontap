@@ -18,14 +18,14 @@ Key management with Barbican KMS can be configured with the CLI or the ONTAP RES
 
 * Barbican KMS is not supported for NetApp Storage Encryption (NSE) and NetApp Aggregate Encryption (NAE). link:enable-external-key-management-96-later-nve-task.html[External KMIPs] or the link:enable-onboard-key-management-96-later-nve-task.html[Onboard Key Manager] can be used instead.
 * Barbican KMS is not supported for MetroCluster configurations.
-* Barbican KMS can only be configured for a data SVM.
+* Barbican KMS can only be configured for a data SVM. It is not available for the admin SVM.
 
 .Before you begin
 * Barbican KMS and Keystone must be configured.
 //todo: more info on configuring Barbican KMS and Keystone
 
 == Add and activate a new Barbican KMS configuration
-You can create a new Barbican KMS configuration for an SVM and activate it. An SVM can have multiple inactive Barbican KMS configurations, but only one can be active at a time.
+You can create a new Barbican KMS configuration for an SVM and activate it. An SVM can have multiple inactive Barbican KMS configurations, but only one can be active at a time. Administrators at the `admin` privilege level can access this procedure. 
 
 .Steps
 . Create a new inactive Barbican KMS configuration for an SVM:
@@ -43,7 +43,7 @@ NOTE: The question mark (?) activates the command line active help. In order to 
 * `-keystone-url` is the URL of the Keystone authorization host. Enter a full URL, including `https://`.
 * `-application-cred-id` is the application credentials ID.
 +
-Administrators at the `admin` privilge level can access this command. After entering this command, you will be prompted for the application credentials secret key. An inactive Barbican KMS configuration is created, and needs to be activated before taking effect.
+After entering this command, you will be prompted for the application credentials secret key. An inactive Barbican KMS configuration is created, and needs to be activated before taking effect.
 
 . Activate the new Barbican KMS configuration:
 +
@@ -64,8 +64,7 @@ You can view and update the current settings of an active or inactive Barbican K
 security key-manager external barbican show -vserver <svm_name>
 ----
 //todo: verify that this command shows all the configs, not just the active
-//todo: list required privilege level for each command?
-The key ID, keystone URL, and application credentials ID are displayed for each Barbican KMS configuration on the SVM.
+The key ID, keystone URL, and application credentials ID are displayed for each Barbican KMS configuration on the SVM. Administrators at the `admin` privilege level can access this command.
 
 . Update the credentials of an active or inactive Barbican KMS configuration:
 +
@@ -73,16 +72,15 @@ The key ID, keystone URL, and application credentials ID are displayed for each 
 ----
 security key-manager external barbican update-credentials -vserver <svm_name> -config-name <unique_config_name> -application-cred-id <keystone_applications_credentials_id>
 ----
-After entering this command, you will be prompted for the new application credentials secret key.
+After entering this command, you will be prompted for the new application credentials secret key. Administrators at the `admin` privilege level can access this command.
 
-. Restore missing SVM key encryption keys (KEKs) for an active Barbican KMS configuration:
-+
-[source,cli]
-----
-security key-manager external barbican restore -vserver <svm_name>
-----
-This command will restore the SVM KEKs for the active Barbican KMS configuration.
-//todo: confirm this is only for active configs
+// . Restore missing SVM key encryption keys (KEKs) for an active Barbican KMS configuration:
+// +
+// [source,cli]
+// ----
+// security key-manager external barbican restore -vserver <svm_name>
+// ----
+// This command will restore the SVM KEKs for the active Barbican KMS configuration. Administrators at the `advanced` privilege level can access this command.
 
 . Rekey the SVM KEK for a Barbican KMS configuration:
 +
@@ -90,7 +88,27 @@ This command will restore the SVM KEKs for the active Barbican KMS configuration
 ----
 security key-manager external barbican rekey-internal -vserver <svm_name>
 ----
-Administrators at the `advanced` privilge level can access this command. This command generates a new SVM KEK for the specified SVM and re-wraps the volume encryption keys (VDEKs) with the new SVM KEK. The new SVM KEK will be protected by the active Barbican KMS configuration.
+This command generates a new SVM KEK for the specified SVM and re-wraps the volume encryption keys (VDEKs) with the new SVM KEK. The new SVM KEK will be protected by the active Barbican KMS configuration. Administrators at the `advanced` privilege level can access this command.
+
+== Migrate keys between Barbican KMS and the Onboard Key Manager
+You can migrate keys from Barbican KMS to the Onboard Key Manager (OKM), and vice-versa. Administrators at the `advanced` privilege level can access this procedure.
+
+.Steps
+. If needed, migrate keys from Barbican KMS to the OKM:
++
+[source,cli]
+----
+security key-manager key migrate -from-vserver <svm_name> -to-vserver admin  
+----
+`svm_name` is the name of the SVM with the Barbican KMS configuration. 
+//todo: is admin SVM name always admin?
+. If needed, migrate keys from the OKM to Barbican KMS:
++
+[source,cli]
+----
+security key-manager key migrate -from-vserver admin -to-vserver <svm_name>
+----
+`svm_name` is the name of the SVM with the Barbican KMS configuration.
 
 == Disable and delete a Barbican KMS configuration
 You can disable an active Barbican KMS configuration with no encrypted volumes, and you can delete an inactive Barbican KMS configuration.
@@ -100,9 +118,9 @@ You can disable an active Barbican KMS configuration with no encrypted volumes, 
 +
 [source,cli]
 ----
-security key-manager keystore disable -vserver <svm_name> -config-name <unique_config_name> -type barbican
+security key-manager keystore disable -vserver <svm_name>
 ----
-If NVE encrypted volumes exist on the SVM, you must first decrypt them before disabling the Barbican KMS configuration. Alternatively, you can update the active Barbican KMS configuration to a new Barbican KMS configuration even with NVE encrypted volumes on the SVM.
+If NVE encrypted volumes exist on the SVM, you must first decrypt them before disabling the Barbican KMS configuration. Alternatively, you can update the active Barbican KMS configuration to a new Barbican KMS configuration even with NVE encrypted volumes on the SVM. Administrators at the `advanced` privilege level can access this command. 
 //todo: verify the procedure for disabling an active Barbican KMS configuration with encrypted volumes
 . Delete an inactive Barbican KMS configuration:
 +
@@ -110,5 +128,6 @@ If NVE encrypted volumes exist on the SVM, you must first decrypt them before di
 ----
 security key-manager keystore delete -vserver <svm_name> -config-name <unique_config_name> -type barbican
 ----
+Administrators at the `admin` privilege level can access this command. 
 
-// 3-26-25 ONTAPDOC-2715
+// 4-29-25 ONTAPDOC-2715
