@@ -21,48 +21,62 @@ A production LUN must exist and be mapped to an igroup that includes the WWPN or
 +
 You can use the command provided by your host operating system, or you can use SnapDrive for Windows or SnapDrive for UNIX. You can also opt to make this step part of your SAN backup pre-processing script.
 
-. Use the `volume snapshot create` command to create a snapshot of the production LUN.
+. Create a snapshot of the production LUN.
 +
-`volume snapshot create -vserver vs0 -volume vol3 -snapshot vol3_snapshot -comment "Single snapshot" -foreground false`
+[source,cli]
+----
+volume snapshot create -vserver <SVM_name> -volume <volume_name> -snapshot <snapshot> -comment <comment> -foreground false
+----
 
-. Use the `volume file clone create` command to create a clone of the production LUN.
+. Create a clone of the production LUN.
 +
-`volume file clone create -vserver vs3 -volume vol3 -source-path lun1 -snapshot-name snap_vol3 -destination-path lun1_backup`
+[source,cli]
+----
+volume file clone create -vserver <SMV_name> -volume <volume> -source-path <path> -snapshot-name <snapshot> -destination-path <destination_path> 
+----
 
-. Use the `lun igroup create` command to create an igroup that includes the WWPN of the backup server.
+. Create an igroup that includes the WWPN of the backup server.
 +
-`lun igroup create -vserver vs3 -igroup igroup3 -protocol fc -ostype windows -initiator 10:00:00:00:c9:73:5b:91`
-+
-Learn more about `lun igroup create` in the link:https://docs.netapp.com/us-en/ontap-cli/lun-igroup-create.html[ONTAP command reference^].
+[source,cli]
+----
+lun igroup create -vserver <SVM_name> -igroup <igroup> -protocol <protocol> -ostype <os_type> -initiator <initiator>
+----
 
-. Use the `lun mapping create` command to map the LUN clone you created in Step 3 to the backup host.
+. Map the LUN clone you created in Step 3 to the backup host.
 +
-`lun mapping create -vserver vs3 -volume vol3 -lun lun1_backup -igroup igroup3`
+[source,cli]
+----
+lun mapping create -vserver <SVM_name> -volume <volume_name> -lun <lun_name> -igroup <igroup>
+----
 +
 You can opt to make this step part of your SAN backup application's post-processing script.
-+
-Learn more about `lun mapping create` in the link:https://docs.netapp.com/us-en/ontap-cli/lun-mapping-create.html[ONTAP command reference^].
 
 . From the host, discover the new LUN and make the file system available to the host.
 +
 You can opt to make this step part of your SAN backup application's post-processing script.
 
 . Back up the data in the LUN clone from the backup host to tape by using your SAN backup application.
-. Use the `lun modify` command to take the LUN clone offline.
-+
-`lun modify -vserver vs3 -path /vol/vol3/lun1_backup -state offline`
-+
-Learn more about `lun modify` in the link:https://docs.netapp.com/us-en/ontap-cli/lun-modify.html[ONTAP command reference^].
 
-. Use the `lun delete` to remove the LUN clone.
+. Take the LUN clone offline.
 +
-`lun delete -vserver vs3 -volume vol3 -lun lun1_backup`
-+
-Learn more about `lun delete` in the link:https://docs.netapp.com/us-en/ontap-cli/lun-delete.html[ONTAP command reference^].
+[source,cli]
+----
+lun modify -vserver <SVM_name> -path <path> -state offline
+----
 
-. Use the `volume snapshot delete` command to remove the snapshot.
+. Remove the LUN clone.
 +
-`volume snapshot delete -vserver vs3 -volume vol3 -snapshot vol3_snapshot`
+[source,cli]
+----
+lun delete -vserver <SVM_name> -volume <volume> -lun <lun_name>
+----
+
+. Remove the snapshot.
++
+[source,cli]
+----
+volume snapshot delete -vserver <SVM_name> -volume <volume> -snapshot <snapshot>
+----
 
 // 2025 Apr22, ONTAPDOC-2974
 // 2025 Apr 24, ONTAPDOC-2960
