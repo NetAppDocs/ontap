@@ -74,6 +74,13 @@ The S3 client might prompt for a secret key. In the absence of a secret key, any
 +
 .. Perform basic S3 operations from the S3 client for which the user has permissions.
 
+==== Base64 credentials
+ONTAP S3’s default configuration excludes HTTP and exclusively uses HTTPs and a Transport Layer Security (TLS) connection. Using CA certificates creates a trusted relationship between client applications and the ONTAP object store server. Although ONTAP can generate self-signed certificates, using signed certificates from a third-party certificate authority is the recommended best practice.
+ 
+Be aware that credentials encoded using Base64 are easily decoded. Using HTTPS will prevent encoded credentials from being captured by man-in-the-middle packet sniffers. 
+
+Do not use LDAP fast bind mode for authentication when creating pre-signed urls. Authentication is based exclusively on the Base64 access key which is included in the pre-signed url. Username and password will be revealed to anyone decoding the Base64 access key. 
+
 === Authentication method is nsswitch and LDAP is enabled example
 
 ----
@@ -110,6 +117,7 @@ $curl -siku FQDN\\user:<user_password> -X POST https://<LIF_IP_Address>/api/prot
 [NOTE]
 Direct the API to the cluster management LIF, not to the SVM's data LIF. If you want to allow users to generate their own keys, you must add HTTP permissions to their role to use curl. This permission is in addition to S3 API permissions. You only need to add the optional domain value (@fqdn) to a user name if there are no trusted domains.
 
+// 2025-May-01 Attention to Base64 vulnerabilities
 // 27-MAR-2025 ONTAPDOC-2909
 // 2025-March 14, Split LDAP and AD into separate sections
 // 2025-Jan-15, Additional AD information
