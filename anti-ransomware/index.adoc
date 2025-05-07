@@ -23,12 +23,12 @@ ARP support is included with the link:https://kb.netapp.com/onprem/ontap/os/ONTA
 [cols="2*",options="header"]
 |===
 | ONTAP releases| License
-a| ONTAP 9.11.1 and later a| Anti_ransomware
-a| ONTAP 9.10.1 a| MT_EK_MGMT (Multi-Tenant Key Management)
+a| ONTAP 9.11.1 and later a| `Anti_ransomware`
+a| ONTAP 9.10.1 a| `MT_EK_MGMT` (Multi-Tenant Key Management)
 |===
 
-* If you are upgrading from ONTAP 9.10.1 to ONTAP 9.11.1 or later and ARP is already configured on your system, you do not need to install the new Anti-ransomware license. For new ARP configurations, the new license is required.
-* If you are reverting from ONTAP 9.11.1 or later to ONTAP 9.10.1, and you have enabled ARP with the Anti-ransomware license, you will see a warning message and might need to reconfigure ARP.
+* If you are upgrading from ONTAP 9.10.1 to ONTAP 9.11.1 or later and ARP is already configured on your system, you do not need to install the new `Anti-ransomware` license. For new ARP configurations, the new license is required.
+* If you are reverting from ONTAP 9.11.1 and later to ONTAP 9.10.1, and you have enabled ARP with the Anti-ransomware license, you will see a warning message and might need to reconfigure ARP.
 
 link:../revert/anti-ransomware-license-task.html[Learn about reverting ARP].
 
@@ -111,13 +111,62 @@ You can view information about moderate threats in System Manager's *Events* sec
 
 .ARP snapshots
 
-For ONTAP 9.16.1 and earlier, when ONTAP detects an abnormality it creates a snapshot of the volume to create the best recovery point. Beginning with ONTAP 9.17.1, ARP snapshots are generated at regular intervals for both NAS and SAN volumes. link:recover-data-task.html[ONTAP prepends a name to the ARP snapshot] to make it easily identifiable. 
+For ONTAP 9.16.1 and earlier, when ONTAP detects an abnormality it creates a snapshot of the volume to create the best recovery point. Beginning with ONTAP 9.17.1, ARP snapshots are generated at regular intervals for both NAS and SAN volumes. ONTAP prepends a name to the ARP snapshot to make it easily identifiable. 
 
-For ONTAP 9.16.1 and earlier, individual ARP snapshots are retained for two days. If there are multiple ARP snapshots, they are retained for five days by default. Beginning with ONTAP 9.17.1, the retention duration of a snapshot is determined by the level of abnormal activity detected following its creation. 
+//For ONTAP 9.16.1 and earlier, individual ARP snapshots are retained for two days. If there are multiple ARP snapshots, they are retained for five days by default. Beginning with ONTAP 9.17.1, the retention duration of a snapshot is determined by the level of abnormal activity detected following its creation. 
 
 Beginning with ONTAP 9.11.1, you can modify the retention settings. For more information, see xref:modify-automatic-shapshot-options-task.html[Modify options for snapshots].
 
 //Similar information repeated in respond-abnormal-task.adoc
+
+The following table summarizes the differences between ONTAP 9.16.1 and earlier and ONTAP 9.17.1 for ARP snapshots.
+
+[cols="1,3,3", options="header"]
+|===
+| Feature  | ONTAP 9.16.1 and earlier  | ONTAP 9.17.1 Snapshots
+
+| Creation Trigger
+a| * High-entropy is detected
+* A new file extension is detected
+* A surge of file operations is detected
+
+Snapshots creation interval based on trigger
+a| Snapshots are created at fixed 4-hour intervals, regardless of any specific trigger, and are not necessarily indicative of an attack.
+
+| Naming Convention
+| "Anti_ransomware_backup"
+| "Anti_ransomware_periodic_backup"
+
+| Deletion Behavior
+| ARP snapshot is locked and cannot be deleted by the administrator
+| ARP snapshot is locked and cannot be deleted by the administrator
+
+| Maximum Snapshot Count
+| 6 snapshots (configurable limit)
+| 6 snapshots (configurable limit)
+
+| Retention Period
+a| * Determined based on trigger conditions (not fixed)
+* Snapshots created before the attack are retained until admin marks the attack as true or a false positive (clear-suspect).
+a| Snapshots are normally retained for 12 hours. 
+
+If an attack is detected:
+* (NAS) Snapshots created before the attack are retained until admin marks the attack as true or a false positive (clear-suspect).
+* (SAN) Entropy-triggered snapshots have extended retention (10 days, configurable).
+
+| Clear-suspect action
+| Administrators can perform a clear-suspect action which sets retention based on confirmation:
+* 48 hours for false-positive retention
+* 5 days for true-positive retention
+| Administrators can perform a clear-suspect action which sets retention based on confirmation:
+* 24 hours for false-positive retention
+* 7 days for true-positive retention
+
+| Expiration notification
+| None
+| An expiration time is set for all snapshots to alert the administrator
+//to be verified if visible in System Manager
+|===
 
 == How to recover data in ONTAP after a ransomware attack
 
