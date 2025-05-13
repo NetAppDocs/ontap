@@ -1,12 +1,61 @@
 ---
 permalink: data-protection/manage-snapshot-copy-reserve-concept.html
 sidebar: sidebar
-keywords: manage, snapshot, copy, reserve
+keywords: manage, snapshot, copy, reserve, increase, protected files
 summary: "The snapshot reserve sets aside a percentage of disk space for snapshots, five percent by default. Because snapshots use space in the active file system when the snapshot reserve is exhausted, you might want to increase the snapshot reserve as needed. Alternatively, you can autodelete snapshots when the reserve is full."
 ---
-= Manage the snapshot reserve overview 
+= Learn about managing the ONTAP snapshot reserve  
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
 The _snapshot reserve_ sets aside a percentage of disk space for snapshots, five percent by default. Because snapshots use space in the active file system when the snapshot reserve is exhausted, you might want to increase the snapshot reserve as needed. Alternatively, you can autodelete snapshots when the reserve is full.
+
+== When to increase the snapshot reserve
+
+In deciding whether to increase the snapshot reserve, it's important to remember that a snapshot records only changes to files since the last snapshot was made. It consumes disk space only when blocks in the active file system are modified or deleted.
+
+This means that the rate of change of the file system is the key factor in determining the amount of disk space used by snapshots. No matter how many snapshots you create, they will not consume disk space if the active file system has not changed.
+
+A FlexVol volume containing database transaction logs, for example, might have a snapshot reserve as large as 20% to account for its greater rate of change. Not only will you want to create more snapshots to capture the more frequent updates to the database, you will also want to have a larger snapshot reserve to handle the additional disk space the snapshots consume.
+
+[TIP]
+====
+A snapshot consists of pointers to blocks rather than copies of blocks. You can think of a pointer as a "claim" on a block: ONTAP "holds" the block until the snapshot is deleted.
+====
+
+image:how-snapshots-consume-disk-space.gif[Disk space consumed by snapshots]
+
+// 2023 Nov 10 Jira 1466
+
+== How deleting protected files can lead to less file space than expected
+
+A snapshot points to a block even after you delete the file that used the block. This explains why an exhausted snapshot reserve might lead to the counter-intuitive result in which deleting an entire file system results in less space being available than the file system occupied.
+
+Consider the following example. Before deleting any files, the `df` command output is as follows:
+
+----
+
+Filesystem          kbytes  used    avail  capacity
+/vol/vol0/          3000000 3000000 0       100%
+/vol/vol0/.snapshot 1000000 500000  500000   50%
+----
+
+After deleting the entire file system and making a snapshot of the volume, the `df` command generates the following output:
+
+----
+
+Filesystem          kbytes  used    avail  capacity
+/vol/vol0/          3000000 2500000 500000   83%
+/vol/vol0/.snapshot 1000000 3500000 0       350%
+----
+
+As the output shows, the entire 3 GB formerly used by the active file system is now being used by snapshots, in addition to the 0.5 GB used before the deletion.
+
+Because the disk space used by the snapshots now exceeds the snapshot reserve, the overflow of 2.5 GB "`spills`" into the space reserved for active files, leaving you with 0.5 GB free space for files where you might reasonably have expected 3 GB.
+
+Learn more about the commands described in this procedure in the link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^].
+
+// 2025-May-9, ONTAPDOC-2803
+// 2025 Apr 01, ONTAPDOC-2758
+// 2023 Nov 10 Jira 1466
