@@ -4,14 +4,14 @@ sidebar: sidebar
 keywords: access, read-only, lun, copy, snapvault, backup
 summary: "You can access a read-only copy of a LUN from the latest snapshot in a SnapVault backup. The LUN ID, path, and serial number are different from the source LUN and must first be mapped. Persistent reservations, LUN mappings, and igroups are not replicated to the SnapVault secondary volume."
 ---
-= Access a read-only LUN copy from a SnapVault backup
+= Access a read-only LUN copy from an ONTAP SnapVault backup
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
 You can access a read-only copy of a LUN from the latest snapshot in a SnapVault backup. The LUN ID, path, and serial number are different from the source LUN and must first be mapped. Persistent reservations, LUN mappings, and igroups are not replicated to the SnapVault secondary volume.
 
-.What you'll need
+.Before you begin
 
 * The SnapVault relationship must be initialized and the latest snapshot in the SnapVault secondary volume must contain the desired LUN.
 * The storage virtual machine (SVM) containing the SnapVault backup must have one or more LIFs with the desired SAN protocol accessible from the host used to access the LUN copy.
@@ -25,7 +25,12 @@ If a new snapshot is added to the SnapVault secondary volume while you have a LU
 
 .Steps
 
-. Run the `lun show` command to list the available LUNs in the SnapVault secondary volume.
+. List the available LUNs in the SnapVault secondary volume.
++
+[source,cli]
+----
+lun show
+----
 +
 In this example, you can see both the original LUNs in the primary volume srcvolA and the copies in the SnapVault secondary volume dstvolB:
 +
@@ -43,8 +48,15 @@ vserverB  /vol/dstvolB/lun_C  online  unmapped windows  300.0GB
 
 6 entries were displayed.
 ----
++
+Learn more about `lun show` in the link:https://docs.netapp.com/us-en/ontap-cli/lun-show.html[ONTAP command reference^].
 
-. If the igroup for the desired host does not already exist on the SVM containing the SnapVault secondary volume, run the `igroup create` command to create an igroup.
+. If the igroup for the desired host does not already exist on the SVM containing the SnapVault secondary volume, create an igroup.
++
+[source,cli]
+----
+igroup create -vserver <SVM_name> -igroup <igroup_name> -protocol <protocol> -ostype <ostype> -initiator <initiator_name>
+----
 +
 This command creates an igroup for a Windows host that uses the iSCSI protocol:
 +
@@ -54,11 +66,22 @@ cluster::> igroup create -vserver vserverB -igroup temp_igroup
   -initiator iqn.1991-05.com.microsoft:hostA
 ----
 
-. Run the `lun mapping create` command to map the desired LUN copy to the igroup.
+. Map the desired LUN copy to the igroup.
++
+[source,cli]
+----
+lun mapping create -vserver <SVM_name> -path <LUN_path> -igroup <igroup_name>
+----
 +
 ----
 cluster::> lun mapping create -vserver vserverB -path /vol/dstvolB/lun_A
   -igroup temp_igroup
 ----
++
+Learn more about `lun mapping create` in the link:https://docs.netapp.com/us-en/ontap-cli/lun-mapping-create.html[ONTAP command reference^].
 
 . Connect the host to the LUN and access the contents of the LUN as desired.
+
+// 2025 Apr22, ONTAPDOC-2974
+// 2025 Apr 24, ONTAPDOC-2960
+

@@ -11,7 +11,7 @@ summary: "You can create space-efficient and time-efficient clones of files and 
 [.lead]
 You can create space-efficient and time-efficient clones of files and LUNs present in FlexVol volumes or FlexClone volumes by using the `volume file clone create` command.
 
-.What you'll need
+.Before you begin
 
 * The FlexClone license must be installed on the cluster. This license is included with link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one[ONTAP One].
 * If multiple block ranges are used for sub-LUN cloning or sub-file cloning, the block numbers must not overlap.
@@ -29,9 +29,15 @@ You can overwrite an existing FlexClone file or FlexClone LUN when you create a 
 
 When the node reaches its maximum split load, the node temporarily stops accepting requests to create FlexClone files and FlexClone LUNs and issues an `EBUSY` error message. When the split load for the node falls below the maximum, the node accepts requests to create FlexClone files and FlexClone LUNs again. You should wait until the node has capacity to create the clones before trying the create request again.
 
+The FlexClone LUN inherits the space reservations attribute of the parent LUN. A space-reserved FlexClone LUN requires as much space as the space-reserved parent LUN. If the FlexClone LUN is not space-reserved, the volume must have enough space to accommodate changes to the clone.
+
 .Steps
 
-. Create a FlexClone file or FlexClone LUN by using the `volume file clone create` command.
+. If you are cloning a LUN, verify that the LUN is not mapped or being written to.
+
+. Create the FlexClone LUN or file:
++ 
+`volume file clone create -vserver _vserver_name_ -volume _volume_name_ -source-path _source_path_ -destination-path _destination_path_`
 +
 The following example shows how you can create a FlexClone file file1_clone of the parent file file1_source in the volume vol1:
 +
@@ -41,11 +47,53 @@ cluster1::> volume file clone create -vserver vs0 -volume vol1 -source-path /fil
 +
 Learn more about `volume file clone create` in the link:https://docs.netapp.com/us-en/ontap-cli/volume-file-clone-create.html[ONTAP command reference^].
 
-.Related information
+== Create FlexClone LUNs from a snapshot in a volume
 
-link:../concepts/manual-pages.html[ONTAP command reference]
+You can use a snapshot in your volume to create FlexClone copies of your LUNs. FlexClone copies of LUNs are both readable and writeable.
+
+.Before you begin
+
+A FlexClone license must be installed. This license is included with link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one[ONTAP One].
+
+.About this task
 
 
+The FlexClone LUN inherits the space reservations attribute of the parent LUN. A space-reserved FlexClone LUN requires as much space as the space-reserved parent LUN. If the FlexClone LUN is not space-reserved, the volume must have enough space to accommodate changes to the clone.
+
+.Steps
+
+. Verify that the LUN is not mapped or being written to.
+. Create a snapshot of the volume that contains the LUNs:
++
+`volume snapshot create -vserver _vserver_name_ -volume _volume_name_ -snapshot _snapshot_name_`
++
+You must create a snapshot (the backing snapshot) of the LUN you want to clone.
+
+. Create the FlexClone LUN from the snapshot:
++
+`volume file clone create -vserver _vserver_name_ -volume _volume_name_ -source-path _source_path_ -snapshot-name _snapshot_name_ -destination-path _destination_path_`
++
+If you need the FlexClone LUN to be available for automatic deletion, you include `-autodelete true`. If you are creating this FlexClone LUN in a volume using semi-thick provisioning, you must enable automatic deletion for all FlexClone LUNs.
+
+. Verify that the FlexClone LUN is correct:
++
+`lun show -vserver _vserver_name_`
++
+----
+
+Vserver Path                      State    Mapped    Type     Size
+------- ----------------------    -------- --------- -------- -------
+vs1     /vol/vol1/lun1_clone      online   unmapped windows   47.07MB
+vs1     /vol/vol1/lun1_snap_clone online   unmapped windows   47.07MB
+----
+
+// 2025 Apr22, ONTAPDOC-2974
+// 2024-Mar-28, ONTAPDOC-1366
+// 2025 Apr22, ONTAPDOC-2974
+
+
+
+// 2025 Apr22, ONTAPDOC-2974
 // 2025 Jan 17, ONTAPDOC-2569
 // 2024-Mar-28, ONTAPDOC-1366
 // ONTAPDOC-2119/GH-1818 2024-6-25
