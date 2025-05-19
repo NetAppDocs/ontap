@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: configure, active directory, domain, controller access, authentication tunnel, SMB server, create, svm, computer, account, domain, cifs server
 summary: "You must configure AD domain controller access to the cluster or SVM before an AD account can access the SVM. If you have already configured an SMB server for a data SVM, you can configure the SVM as a gateway, or tunnel, for AD access to the cluster. If you have not configured an SMB server, you can create a computer account for the SVM on the AD domain."
 ---
-= Configure Active Directory domain controller access overview
+= Configure Active Directory domain controller access in ONTAP
 :icons: font
 :imagesdir: ../media/
 
@@ -47,6 +47,8 @@ NOTE: When you upgrade to ONTAP 9.14.1 or later, the AES setting for existing SV
 
 If you have already configured a SMB server for a data SVM, you can use the `security login domain-tunnel create` command to configure the SVM as a gateway, or _tunnel_, for AD access to the cluster.
 
+Prior to ONTAP 9.16.1, you must use an authentication tunnel to manage cluster administrator accounts with AD.
+
 .Before you begin
 
 * You must have configured a SMB server for a data SVM.
@@ -58,20 +60,23 @@ Beginning with ONTAP 9.10.1, if you have an SVM gateway (domain tunnel) for AD a
 [NOTE]
 Kerberos authentication is always attempted first. In case of failure, NTLM authentication is then attempted.
 
-.Step
+.Steps
 
 . Configure a SMB-enabled data SVM as an authentication tunnel for AD domain controller access to the cluster:
 +
-`security login domain-tunnel create -vserver _svm_name_`
+[source,cli]
+----
+security login domain-tunnel create -vserver <svm_name>
+----
 +
-For complete command syntax, see the link:config-worksheets-reference.html[worksheet].
+Learn more about `security login domain-tunnel create` in the link:https://docs.netapp.com/us-en/ontap-cli/security-login-domain-tunnel-create.html[ONTAP command reference^].
 +
 [NOTE]
 ====
 The SVM must be running for the user to be authenticated.
 ====
 +
-The following command configures the SMB-enabled data SVM "`engData`" as an authentication tunnel.
+The following command configures the SMB-enabled data SVM `engData` as an authentication tunnel.
 +
 ----
 cluster1::>security login domain-tunnel create -vserver engData
@@ -85,19 +90,24 @@ If you have not configured an SMB server for a data SVM, you can use the `vserve
 
 After you enter the `vserver active-directory create` command, you are prompted to provide the credentials for an AD user account with sufficient privileges to add computers to the specified organizational unit in the domain. The password of the account cannot be empty.
 
+Beginning with ONTAP 9.16.1, you can use this procedure to manage cluster administrator accounts with AD.
+
 .Before you begin
 
 You must be a cluster or SVM administrator to perform this task.
 
-.Step
+.Steps
 
 . Create a computer account for an SVM on the AD domain:
 +
-`vserver active-directory create -vserver _SVM_name_ -account-name _NetBIOS_account_name_ -domain _domain_ -ou _organizational_unit_`
+[source,cli]
+----
+vserver active-directory create -vserver <SVM_name> -account-name <NetBIOS_account_name> -domain <domain> -ou <organizational_unit>
+----
 +
-For complete command syntax, see the link:config-worksheets-reference.html[worksheet].
+Beginning with ONTAP 9.16.1, the `-vserver` parameter accepts the admin SVM. Learn more about `vserver active-directory create` in the link:https://docs.netapp.com/us-en/ontap-cli/vserver-active-directory-create.html[ONTAP command reference^].
 +
-The following command creates a computer account named "`ADSERVER1`" on the domain "`example.com`" for SVM "`engData`". You are prompted to enter the AD user account credentials after you enter the command.
+The following command creates a computer account named `ADSERVER1` on the domain `example.com` for SVM `engData`. You are prompted to enter the AD user account credentials after you enter the command.
 +
 ----
 cluster1::>vserver active-directory create -vserver engData -account-name ADSERVER1 -domain example.com
@@ -109,6 +119,8 @@ Enter the user name: Administrator
 Enter the password:
 ----
 
+// 2025 April 23, GH-1460
+// 2025 Feb 20, ONTAPDOC-2758
 // 2021 Dec 02, BURT 1351274
 // 2021 Dec 02, BURT 1389116
 // 2022 Feb 04, BURT 1451789
