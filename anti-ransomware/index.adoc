@@ -69,23 +69,21 @@ For ARP, the learning mode and active mode behaviors differ by ONTAP version, vo
 
 === NAS environments and mode types
 
-Learning and active modes are used for NAS environments. With ARP/AI beginning in ONTAP 9.16.1, there is no learning period when ARP is used with FlexVol volumes. 
+Learning and active modes are used for NAS environments. For ARP/AI running in NAS environments beginning in ONTAP 9.16.1, there is no learning period when ARP is used with FlexVol volumes.
 
 The following table summarizes the differences between ONTAP 9.10.1 and later versions for NAS environments.
 
-[cols="1,1,5,1", options="header"]
+[cols="1,5,1", options="header"]
 |===
-| Mode | State | Description | Versions and volume types
+| Mode | Description | Versions and volume types
 | Learning 
-a| `dry-run` 
-a| Learning mode is set automatically when you enable ARP for ONTAP 9.10.1 to 9.15.1. In learning mode, the ONTAP system develops an alert profile based on the analytic areas: entropy, file extension types, and file IOPS. It's recommended that you leave ARP in learning mode for 30 days. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning interval and automates the switch, which may occur before 30 days.
+a| For ONTAP 9.10.1 to 9.15.1, ARP is automatically set to learning mode when you enable ARP. In learning mode, the ONTAP system develops an alert profile based on the analytic areas: entropy, file extension types, and file IOPS. It's recommended that you leave ARP in learning mode for 30 days. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning interval and automates the switch, which might occur before 30 days. For versions earlier than ONTAP 9.13.1, you can make the switch manually.
 
 TIP: The command `security anti-ransomware volume workload-behavior show` shows file extensions that have been detected in the volume. If you run this command early in learning mode and it shows an accurate representation of file types, you should not use that data as a basis to move to active mode, as ONTAP is still collecting other metrics. Learn more about `security anti-ransomware volume workload-behavior show` in the link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-workload-behavior-show.html[ONTAP command reference^].
 a| * FlexVolumes with ONTAP 9.10.1 to 9.15.1 
 * FlexGroup volumes with ONTAP 9.16.1
 
-| Active
-| `enabled` 
+| Active 
 a| After running ARP in learning mode for enough time to assess workload characteristics, you can switch to active mode and start protecting your data. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning interval and automates the switch, which may occur before 30 days.
 For ARP running with ONTAP 9.10.1 to 9.15.1, ARP switches to active mode after the optimal learning period is completed. After ARP has switched to active mode, ONTAP creates ARP snapshots to protect the data if a threat is detected.
 
@@ -100,17 +98,18 @@ a| * FlexVolumes with ONTAP 9.10.1 to 9.15.1
 
 SAN environments use evaluation periods (similar to learning modes in NAS environments) before transitioning to active detection. The following table summarizes evaluation and active modes.
 
-[cols="1,1,5,1", options="header"]
+[cols="1,5,1", options="header"]
 |===
-| Mode | Status | Description | Versions and volume types
-| Learning
-a| `evalution-period`
+| Mode | Description | Versions and volume types
+| Evaluation
 a| A two- to four-week evaluation period is performed to determine baseline encryption behavior. You can determine if the evaluation period is complete by running the `security anti-ransomware volume show` command and checking `Block device detection status`.
+
+link:respond-san-entropy-eval-period.html[Learn more about SAN volumes and the entropy evaluation period].
 a| * FlexVolumes with ONTAP 9.17.1 and later
 
 | Active
-a| `Active_suitable_workload`
-a| A two- to four-week evaluation period is performed to determine baseline encryption behavior. You can determine if the evaluation period is complete by running the `security anti-ransomware volume show` command and checking `Block device detection status `. Learn more about `security anti-ransomware volume show` in the link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-show.html[ONTAP command reference^].
+a| After the evaluation period, you can determine if the ARP SAN protection is active by running the `security anti-ransomware volume show` command and checking `Block device detection status`. A status of `Active_suitable_workload` indicates that the amount of entropy can be successfully monitored. ARP automatically adjusts the adaptive threshold according to data reviewed during the evaluation.
+
 a| * FlexVolumes with ONTAP 9.17.1 and later
 |===
 
@@ -234,6 +233,7 @@ Beginning with ONTAP 9.13.1, it's recommended that you enable multi-admin verifi
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
 
+// 2025 May 20, ONTAPDOC-2998
 // 2025-4-7, ontapdoc-2689
 // 2025 Mar 31, ONTAPDOC-2758
 // 2025 Jan 22, ONTAPDOC-1070
