@@ -13,7 +13,7 @@ summary: "Beginning with ONTAP 9.17.1, ARP requires evaluation periods to determ
 [.lead]
 Beginning with ONTAP 9.17.1, ARP requires evaluation periods to determine if entropy levels for SAN volume workloads are suitable for ransomware protection. Once enabled on a SAN volume, ARP monitors data continuously during an evaluation period to determine an optimal encryption threshold. ARP distinguishes between suitable and unsuitable workloads in the evaluated SAN volume and, if the workloads are determined to be suitable for protection, automatically sets an encryption threshold based on evaluation period statistics. 
 
-== Understanding entropy evaluation
+== Understand entropy evaluation
 
 The system collects continuous encryption statistics in 10-minute intervals. During the evaluation, ARP snapshots are also continuously created every four hours. If the encryption percentage within an interval is excessive, an alert is triggered and snapshot retention time is increased.
 
@@ -80,18 +80,21 @@ vs0         lun1              96-100%         0               0
 
 The evaluation ends with one of the following results:
 
-* *The workload is suitable for ARP protection*. The adaptive threshold is correspondingly set to 10% higher than the maximum encryption percentage seen during the evaluation period.
-* *The workload is unsuitable for ARP protection*. The adaptive threshold is set to the maximum encryption percentage seen during the evaluation period. The adaptive threshold is not updated again until the evaluation period is restarted. A notification is sent to the administrator to take corrective action.
+* *The workload is suitable for ARP protection*. ARP automatically sets the adaptive threshold to higher than 10% of the maximum encryption percentage seen during the evaluation period. Statistics collection and periodic ARP snapshots continue.
+* *The workload is unsuitable for ARP protection*. ARP automatically sets the adaptive threshold to the maximum encryption percentage seen during the evaluation period. Statistics collection and periodic ARP snapshots continue but the system ultimately recommends disabling ARP on the volume.
+
+.Determine evaluation results
+After the evaluation period ends, ARP automatically sets the adaptive threshold based on the evaluation results.
 
 You can determine the evaluation results by running the following command. Volume suitability is indicated in the `Block device detection status` field:
-+
+
 [source,cli]
 ----
 security anti-ransomware volume show  -vserver <vserver_name> -volume <volume_name>
 ----
 
 Example response:
-+
+
 ----
 Vserver Name                               : vs1
 Volume Name                                : v1
@@ -103,6 +106,26 @@ Attack Detected By                         : -
 Block device detection status              : Active_suitable_workload
 
 Block device evaluation start time :  5/16/2025 01:49:01
+----
+
+You can also show the value threshold adopted as a result of the evaluation:
+
+[source,cli]
+----
+security anti-ransomware volume attack-detection-parameters show -vserver <vserver_name> -volume <volume_name>
+----
+
+Example response:
+[subs=+quotes]
+----
+
+                                  Vserver Name : vs_1
+
+                                   Volume Name : vm_2
+
+*Block Device Auto Learned Encryption Threshold : 10*
+...
+
 ----
 
 // 2025 May 20, ONTAPDOC-2998
