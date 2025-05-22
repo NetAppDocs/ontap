@@ -6,20 +6,17 @@ summary: "ARP creates snapshots to protect against a potential ransomware threat
 ---
 
 = Restore data from ONTAP ARP snapshots after a ransomware attack
-:toclevels: 1
-:hardbreaks:
-:nofooter:
 :icons: font
-:linkattrs:
 :imagesdir: ../media/
 
 [.lead]
 Autonomous Ransomware Protection (ARP) creates snapshots to protect against a potential ransomware threat. You can use one of these ARP snapshots or another snapshot of your volume to restore data. 
 
 .About this task
-The ARP snapshot creates snapshots with one of the following prepended names:
-* `Anti_ransomware_backup`: Used in ONTAP 9.16.1 and earlier (Example: `Anti_ransomware_backup.2022-12-20_1248`) with snapshots that are created in response to abnormalities.
-* Anti_ransomware_periodic_backup": Used in ONTAP 9.17.1 and later (Example: `Anti_ransomware_periodic_backup.2025-06-01_1248`) for snapshots created at regular intervals.
+The ARP creates snapshots with one of the following prepended names:
+
+* `Anti_ransomware_backup`: Used in ONTAP 9.16.1 and earlier with snapshots that are created in response to abnormalities. For example, `Anti_ransomware_backup.2022-12-20_1248`. 
+* `Anti_ransomware_periodic_backup`: Used in ONTAP 9.17.1 and later for snapshots created at regular intervals. For example, `Anti_ransomware_periodic_backup.2025-06-01_1248`.
 
 To restore from a snapshot other than the `Anti_ransomware` snapshot after a system attack is identified, you must first release the ARP snapshot.
 
@@ -59,16 +56,22 @@ Select *Storage > Volumes*, then select the volume and *Snapshot Copies*.
 .CLI
 --
 .Restore after a system attack
-. To restore from the ARP snapshot, skip to step two. To restore data from earlier snapshots, you must release the lock on the ARP snapshot.
-+
+To restore from the ARP snapshot, skip to step two. To restore data from earlier snapshots, you must release the lock on the ARP snapshot.
+
 NOTE: It is only necessary to release the anti-ransomware Snaplock before restoring from earlier snapshots if you are using the `volume snapshot restore` command as outlined below. If you are restoring data using FlexClone, Single File Snap Restore, or other methods, this is not necessary.
+
+. Mark the attack as a potential ransomware attack (`-false-positive false`) and clear suspect files (`clear-suspect`):
 +
-Mark the attack as a potential ransomware attack (`-false-positive false`) and clear suspect files (`clear-suspect`):
-`anti-ransomware volume attack clear-suspect -vserver _svm_name_ -volume _vol_name_ [_extension identifiers_] -false-positive false`
+[source,cli]
+----
+anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> [<extension identifiers>] -false-positive false
+----
++
 Use one of the following parameters to identify the extensions:
-`[-seq-no _integer_]` Sequence number of the file in the suspect list.
-`[-extension _text_, … ]` File extensions
-`[-start-time _date_time_ -end-time _date_time_]` Starting and ending times for the range of files to be cleared, in the form "MM/DD/YYYY HH:MM:SS".
+
+* `[-seq-no _integer_]`: Sequence number of the file in the suspect list.
+* `[-extension _text_, … ]`: File extensions
+* `[-start-time _date_time_ -end-time _date_time_]`: Starting and ending times for the range of files to be cleared, in the form "MM/DD/YYYY HH:MM:SS".
 include::../_include/restore-snapshots-cli.adoc[]
 
 

@@ -17,7 +17,9 @@ Autonomous Ransomware Protection (ARP) is available for NAS workloads beginning 
 
 == Supported and unsupported configurations 
 
-When deciding to use ARP, it's important to ensure that your volume's workload is suited to ARP and that it meets required system configurations. 
+When deciding to use ARP, it's important to ensure that your volume's workload is suited to ARP and that it meets required system configurations.
+
+(SAN environments only) Beginning with ONTAP 9.17.1, ARP requires link:respond-san-entropy-eval-period.html[evaluation periods] to determine if entropy levels for SAN volume workloads are suitable for ransomware protection. ARP distinguishes between suitable and unsuitable workloads in the evaluated SAN volume and, if the workloads are determined to be suitable for protection, automatically sets an encryption threshold based on evaluation period statistics. 
 
 === Suitable workloads
 
@@ -38,11 +40,12 @@ ARP is not suited for:
 * Workloads with a high frequency of file create or delete (hundreds of thousands of files in few seconds; for example, test/development workloads).
 * ARP's threat detection depends on its ability to recognize an unusual surge in file create, rename, or delete activity. If the application itself is the source of the file activity, it cannot be effectively distinguished from ransomware activity.
 * Workloads where the application or the host encrypts data.
++
 ARP depends on distinguishing incoming data as encrypted or unencrypted. If the application itself is encrypting the data, then the effectiveness of the feature is reduced. However, the feature can still work based on file activity (delete, overwrite, or create, or a create or rename with a new file extension) and file type.
 
 === Supported configurations
 
-ARP is available for NAS NFS and SMB FlexVol volumes in on-premises ONTAP systems beginning with ONTAP 9.10.1. Beginning in 9.17.1, ARP is also available for SAN FlexVol volumes with LUNs or VDMKs.
+ARP is available for NAS NFS and SMB FlexVol volumes in on-premises ONTAP systems beginning with ONTAP 9.10.1. Beginning in 9.17.1, ARP is also available for SAN FlexVol volumes.
 
 Support for other configurations and volume types is available in the following ONTAP versions:
 
@@ -54,12 +57,12 @@ Support for other configurations and volume types is available in the following 
 | Volumes protected with SnapMirror asynchronous | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | 
 | SVMs protected with SnapMirror asynchronous (SVM disaster recovery) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | 
 | SVM data mobility (`vserver migrate`) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | | 
-| FlexGroup volumes* | ✓ | ✓ | ✓ | ✓ | ✓ | | | 
+| FlexGroup volumes^1^ | ✓ | ✓ | ✓ | ✓ | ✓ | | | 
 | Multi-admin verification | ✓ | ✓ | ✓ | ✓ | ✓ | | | 
 | ARP/AI with automatic updates | ✓ | ✓ | | | | | | 
 |===
 
-*ARP/AI does not support FlexGroup volumes. After being upgraded to ONTAP 9.16.1, FlexGroup volumes enabled for ARP continue to operate with the same ARP model used prior to ARP/AI.
+^1^ ARP/AI does not support FlexGroup volumes. After being upgraded to ONTAP 9.16.1, FlexGroup volumes enabled for ARP continue to operate with the same ARP model used prior to ARP/AI.
 
 [[snapmirror]]
 ==== SnapMirror and ARP interoperability
@@ -124,7 +127,7 @@ ARP can have a minimal impact on system performance as measured in throughput an
 |===
 | Workload characteristics
 | Recommended volume limit per node
-| Performance degradation when per-node volume limit is exceeded pass:[*]
+| Performance degradation when per-node volume limit is exceeded ^1^
 
 | Read-intensive or the data can be compressed.
 | 150
@@ -138,7 +141,7 @@ a| * NAS: 10% of maximum IOPS for ONTAP 9.15.1 and earlier
 //review 9.17.1
 |===
 
-pass:[*] System performance is not degraded beyond these percentages regardless of the number of volumes added in excess of the recommended limits.
+^1^ System performance is not degraded beyond these percentages regardless of the number of volumes added in excess of the recommended limits.
 
 Because ARP analytics run in a prioritized sequence, as the number of protected volumes increases, analytics run on each volume less frequently.
 
