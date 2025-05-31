@@ -18,19 +18,19 @@ NOTE: Beginning with ONTAP 9.11.1, you can modify the xref:modify-automatic-snap
 //Nearly identical content to threat assessment and arp snapshots in link
 .About this task
 
-ARP in NAS environments displays a list of suspected files when it detects any combination of high data entropy, abnormal volume activity with data encryption, and unusual file extensions. Beginning with ONTAP 9.17.1, details of entropy spikes in NAS and SAN environments are reported on the Anti-ransomware page in System Manager.
+ARP in NAS environments displays a list of suspected files when it detects any combination of high data entropy, abnormal volume activity with data encryption, and unusual file extensions. Beginning with ONTAP 9.17.1 for both NAS and SAN environments, details of entropy spikes are also reported on the Anti-ransomware page in System Manager.
 
-When an ARP warning is issued, respond by designating the file activity in one of two ways:
+When an ARP warning notification is issued, respond by designating the activity in one of two ways:
 
 * *False positive*
 +
-The identified file type is expected in your workload and can be ignored.
+The identified file type or entropy spike is expected in your workload and can be ignored.
 
 * *Potential ransomware attack*
 +
-The identified file type is unexpected in your workload and should be treated as a potential attack.
+The identified file type or entropy spike is unexpected in your workload and should be treated as a potential attack.
 
-In both cases, normal monitoring resumes after updating and clearing the notices. ARP records your evaluation to the threat assessment profile, using your choice to monitor subsequent file activities. 
+Normal monitoring resumes after you update with your decision and clear the ARP notifications. ARP records your evaluation to the threat assessment profile, using your choice to monitor subsequent file activities. 
 
 In the case of a suspected attack, you must determine whether it is an attack, respond to it if it is, and restore protected data before clearing the notices. link:index.html#how-to-recover-data-in-ontap-after-a-ransomware-attack[Learn more about how to recover from a ransomware attack].
 
@@ -39,7 +39,7 @@ If you restore an entire volume, there are no notices to clear.
 
 .Before you begin 
 
-ARP must be actively protecting and not in learning mode.
+ARP must be actively protecting and not in a learning or evaluation mode.
 
 .Steps
 
@@ -49,32 +49,39 @@ You can use System Manager or the ONTAP CLI to respond to abnormal activity.
 ====
 .System Manager
 --
-. When you receive an "abnormal activity" notification, follow the link. Alternately, navigate to the *Security* tab of the *Volumes* overview.
+. When you receive an "abnormal activity" notification, follow the link. Alternatively, navigate to the *Security* tab of the *Volumes* overview.
 +
 Warnings are displayed in the *Overview* pane of the *Events* menu.
 
-. When a message appears about the detection of abnormal volume activity, view the suspected file types.
-+
-In the *Security* tab, select the option to review the suspected file types.
+. In the *Security* tab, review the suspected file types or entropy spikes report.
+** For suspected files, examine each file type in the *Suspected File Types* dialog box and mark each individually.
+** For entropy spikes, examine the entropy report.
 
-. In the *Suspected File Types* dialog box, examine each file type and mark it as either "False Positive" or "Potential Ransomware attack".
+. Record your response:
 +
 [cols="25,75"]
 |===
 
-h| If you selected this value... h| Take this action...
+h| If you select this value... h| Take this action...
 
-a| False Positive a| . Select *Update* and *Clear Suspect File Types* to record your decision.
+a| False Positive a| . Do one of the following:
+** For file type warnings, select *Update and Clear Suspect File Types*.
+** For entropy spikes, select *Mark as false positive*.
++
+These actions clear warning notices about suspected files or activity. ARP then resumes normal monitoring of the volume. For ONTAP 9.15.1 and earlier, related ARP snapshots are automatically deleted after you clear suspected file types. For ARP/AI in ONTAP 9.16.1 and later, ARP snapshots are automatically deleted after an abbreviated retention period triggered by the categorization operation.
 +
 NOTE: Beginning with ONTAP 9.13.1, if you are using MAV to protect your ARP settings, the clear-suspect operation prompts you to obtain the approval of one or more additional administrators. link:../multi-admin-verify/request-operation-task.html[Approval must be received from all administrators] associated with the MAV approval group or the operation will fail.
-+
-This action clears warning notices about suspected files. ARP then resumes normal monitoring of the volume.
-For ONTAP 9.15.1 and earlier, the ARP snapshots are automatically deleted after you clear suspected file types. For ARP/AI in ONTAP 9.16.1 and later, ARP snapshots are automatically deleted after an abbreviated retention period triggered by the categorization operation.
 
-a| Potential Ransomware Attack a| . Respond to the attack and link:recover-data-task.html[restore protected data]. 
-. Select *Update* and *Clear Suspect File Types* to record your decision and resume normal ARP monitoring. 
+a| Potential Ransomware Attack a| . Respond to the attack:
+** For file type warnings, mark selected files as *Potential ransomware attack* and link:recover-data-task.html[restore protected data].
+** For entropy spikes that indicate an attack, select *Mark as potential ransomware attack* and link:recover-data-task.html[restore protected data].
+. After data restoration is complete, record your decision and resume normal ARP monitoring:
+** For file type warnings, select *Update and Clear Suspect File Types*.
+** For entropy spikes, select *Mark as potential ransomware attack* and select *Save and dismiss*.
 
-This action clears the attack report. There are no suspected file type notices to clear if you've restored an entire volume. For ONTAP 9.15.1 and earlier, after you restore a volume the ARP snapshots are automatically deleted. For ARP/AI in ONTAP 9.16.1 and later, ARP snapshots are automatically deleted after an abbreviated retention period triggered by the categorization operation.
+NOTE: There are no suspected file type notices to clear if you've restored an entire volume.
+
+Recording your decision clears the attack report. For ONTAP 9.15.1 and earlier, after you restore a volume the ARP snapshots are automatically deleted. For ARP/AI in ONTAP 9.16.1 and later, ARP snapshots are automatically deleted after an abbreviated retention period triggered by the categorization operation.
 |===
 --
 
