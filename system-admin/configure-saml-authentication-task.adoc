@@ -36,6 +36,7 @@ See the documentation that is provided by the IdP that you have configured.
 The `http` and `ontapi` applications are used by the following web services: Service Processor Infrastructure, ONTAP APIs, or System Manager.
 
 * SAML authentication is applicable only for accessing the admin SVM.
+* Beginning with ONTAP 9.17.1, IdP-provided group information can be mapped to ONTAP roles. This allows you to assign roles to users based on the groups that are defined in the IdP. For more information, see link:../authentication/authentication-groups.html[Working with groups].
 
 The following IdPs have been validated with System Manager: 
 
@@ -48,6 +49,7 @@ The following IdPs have been validated with System Manager:
 ** 9.11.1P4 and later 9.11 releases
 ** 9.12.1 and later releases
 * Shibboleth
+* Entra beginning with ONTAP 9.17.1
 
 Perform the following steps depending on your environment:
 
@@ -62,7 +64,7 @@ Perform the following steps depending on your environment:
 
 . Ensure there is a check in the *Enable SAML Authentication* checkbox.
 
-. Enter the URL of the IdP URI (including "https://").
+. Enter the URL of the IdP URI (including "https://"). If you are using Entra, skip this step for now.
 
 . Modify the host system address, if needed.
 
@@ -74,7 +76,7 @@ Perform the following steps depending on your environment:
 
 . Click *Save*. A confirmation window displays the metadata information, which has been automatically copied to your clipboard.
 
-. Go to the IdP system you specified and copy the metadata from your clipboard to update the system metadata.
+. Go to the IdP system you specified and copy the metadata from your clipboard to update the system metadata. If you are using Entra, copy the IdP URI into ONTAP after you have configured Entra with the system metadata.
 
 . Return to the confirmation window (in System Manager) and check the checkbox *I have configured the IdP with the host URI or metadata*.
 
@@ -85,6 +87,15 @@ Perform the following steps depending on your environment:
 
 .CLI
 --
+. If you are using Entra, generate the metadata file for ONTAP by running the following command:
++
+[source,cli]
+----
+security saml-sp default-metadata create
+----
++
+Configure Entra with the provided metadata. You must configure Entra before creating an ONTAP SAML configuration. Entra will not provide the IdP URI until it is confiugred with the ONTAP metadata. This step is not required if you are using a different IdP.
+
 . Create a SAML configuration so that ONTAP can access the IdP metadata:
 +
 `security saml-sp create -idp-uri <idp_uri> -sp-host <ontap_host_name>`
@@ -111,7 +122,7 @@ Configure the IdP and Data ONTAP users for the same directory server domain to e
 +
 The URL to access the ONTAP host metadata is displayed.
 
-. From the IdP host, configure the IdP with the ONTAP host metadata.
+. From the IdP host, configure the IdP with the ONTAP host metadata. If you are using Entra, you have already completed this step.
 +
 For more information about configuring the IdP, see the IdP documentation.
 
@@ -288,8 +299,7 @@ SAML Service Provider Enabled: false
 * link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
 * link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+saml-sp[security saml-sp^]
 
-// 2025 Apr 14, ONTAPDOC-2960
-// 2025 Mar 27, GH-1675
+// 2025-06-11 ONTAPDOC-2709
 // 2025-MAR-10, ONTAPDOC-2875
 // 2025 Mar 03, ONTAPDOC-2758
 // 2021 DEC 09, BURT 1430515
