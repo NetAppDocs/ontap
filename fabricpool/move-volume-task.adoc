@@ -13,25 +13,29 @@ A link:../volumes/move-volume-task.html[volume move] is the way that ONTAP moves
 
 It is important to understand how volume move works with FabricPool because the changes that take place at both the local tier, the attached cloud tier, and the volume (volume tiering policies) can have a major impact on functionality.
 
-include::_include/local-tier-aggregate-note.adoc[]
+include::../_include/local-tier-aggregate-note.adoc[]
 
 == Destination local tier
 If a volume move's destination local tier does not have an attached cloud tier, data on the source volume that is stored on the cloud tier is written to the local tier on the destination local tier. 
 
-Beginning with ONTAP 9.8, when a volume has link:determine-data-inactive-reporting-task.html[inactive data reporting] enabled, FabricPool will use the volume's heat map to immediately queue cold data to begin tiering as soon as it is written to the destination aggregate. 
+Beginning with ONTAP 9.8, when a volume has link:determine-data-inactive-reporting-task.html[inactive data reporting] enabled, FabricPool will use the volume's heat map to immediately queue cold data to begin tiering as soon as it is written to the destination local tier. 
 
 Prior to ONTAP 9.8, moving a volume to another local tier resets the inactivity period of blocks on the local tier. For example, a volume using the Auto volume tiering policy with data on the local tier that has been inactive for 20 days, but had not yet tiered, will have the temperature of the data reset to 0 days after a volume move.
 
 == Optimized volume moves
 
-Beginning with ONTAP 9.6, if a volume move's destination local tier uses the same bucket as the source local tier, data on the source volume that is stored in the bucket does not move back to the local tier. This optimized volume move results in significant network efficiencies.
+Beginning with ONTAP 9.6, if a volume move's destination local tier uses the same bucket as the source local tier, data on the source volume that is stored in the bucket does not move back to the local tier. Tiered data stays at rest and only hot data needs to be moved from one local tier to another. This optimized volume move results in significant network efficiencies.
+
+For example, a 300TB optimized volume move means that even though 300TB of cold data moves from one local tier to another, it will not trigger 300TB of reads and 300TB of writes to the object store. 
+
+Unoptimized volume moves generate additional network and compute traffic (reads/GETs and writes/PUTs), increasing demands on the ONTAP cluster and object store, potentially raising costs when tiering to public object stores.
 
 [NOTE]
 ====
 Some configurations are incompatible with optimized volume moves:
 
 * Changing tiering policy during volume move 
-* Source and destination aggregates using different encryption keys 
+* Source and destination local tiers using different encryption keys 
 * FlexClone volumes 
 * FlexClone parent volumes 
 * MetroCluster (supports optimized volume moves in ONTAP 9.8 and later) 
@@ -43,6 +47,14 @@ If a volume move's destination local tier has an attached cloud tier, data on th
 Writing data to the local tier first improves the performance of the volume move and reduces cutover time. If a volume tiering policy is not specified when performing a volume move, the destination volume uses the tiering policy of the source volume. 
 
 If a different tiering policy is specified when performing the volume move, the destination volume is created with the specified tiering policy and the volume move is not optimized. 
+
+=== Volume metadata
+Regardless of whether a volume move is optimized, ONTAP stores a significant amount of metadata about the location, storage efficiency, permissions, usage patterns, etc., of all data, both local and tiered. Metadata always stays on the local tier and is not tiered. When a volume is moved from one local tier to another, this information needs to be moved to the destination local tier as well. 
+
+=== Duration
+Volume moves still take time to complete and the expectation should be that an optimized volume move will take approximately the same amount of time as moving an equal amount of non-tiered data.
+
+It is important to understand that "throughput" reported by the `volume move show` command does not represent throughput in terms of data being moved from the cloud tier, but volume data being updated locally.
 
 [NOTE]
 When in an SVM DR relationship, source and destination volumes must use the same tiering policy.
@@ -58,7 +70,8 @@ cluster1::> volume move start -vserver vs1 -volume myvol2
 -destination-aggregate dest_FabricPool 
 ----
 
-
+// 2025-May-29, Added duration info, moved example to different section
+// 2025-Apr-16, Additional optimized vol move details
 // 2025-Mar-20, Major rewrite that includes optimized vol move details
 // 2025-Mar-12, ONTAPDOC-2850
 // 2025-Mar-12, issue# 1670
