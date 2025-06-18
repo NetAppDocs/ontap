@@ -4,59 +4,190 @@ sidebar: sidebar
 keywords: ontap, upgrade, mixed, version, clusters, mixed-version nodes, requirements
 summary: 'A mixed version ONTAP cluster consists of nodes running two different major ONTAP releases, such as ONTAP 9.8 and 9.12.1. Mixed version ONTAP clusters are only supported  in specific scenarios.'
 ---
-= Check for mixed version ONTAP clusters before an upgrade
+= Verify compatibility of ONTAP versions for mixed version clusters
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-A mixed version ONTAP cluster consists of nodes running two different major ONTAP releases for a limited time.  For example, if a cluster currently consists of nodes running ONTAP 9.8 and 9.12.1, the cluster is a mixed version cluster.  Similarly, a cluster in which nodes are running ONTAP 9.9.1 and 9.13.1 would be a mixed version cluster.  NetApp supports mixed version ONTAP clusters for limited periods of time and in specific scenarios.  
+In a mixed version ONTAP cluster, nodes run two different major ONTAP versions for a short time. For example, a cluster with nodes running ONTAP 9.8 and 9.12.1 or ONTAP 9.9.1 and 9.13.1 is a mixed version cluster. Clusters with nodes running different patch levels within the same version, like ONTAP 9.9.1P1 and 9.9.1P5, are not mixed version clusters.
 
-The following are the  most common scenarios in which an ONTAP cluster will be in a mixed version state:
+[NOTE]
+Mixed version clusters are not supported for Cloud Volumes ONTAP.
+
+NetApp supports mixed version ONTAP clusters for limited periods of time and in specific scenarios.
+
+The following are the most common scenarios in which an ONTAP cluster will be in a mixed version state:
 
 * ONTAP software upgrades in large clusters
-* ONTAP software upgrades required when you plan to add new nodes to a cluster 
-
-The information applies to ONTAP versions that support NetApp platforms systems, such as AFF A-Series and C-Series, ASA, and FAS, and C-series systems. The information does not apply to ONTAP cloud releases (9.x.0) such as 9.12.0.
-
-== Requirements for mixed version ONTAP clusters
-
-If your cluster needs to enter a mixed ONTAP version state, you need to be aware of important requirements and restrictions. 
-
-* There cannot be more than two different major ONTAP versions in a cluster at any given time. For example, ONTAP 9.9.1 and 9.13.1 is supported but ONTAP 9.9.1, 9.12.1, and 9.13.1 is not. Clusters that have nodes running with different P or D patch levels of the same ONTAP release, such as ONTAP 9.9.1P1 and 9.9.1P5, are not considered mixed version ONTAP clusters. 
-
-* While the cluster is in a mixed version state, you should not enter any commands that alter the cluster operation or configuration except those that are required for the upgrade or data migration process.  For example, activities such as (but not limited to) LIF migration, planned storage failover operations, or large-scale object creation or deletion should not be performed until upgrade and data migration are complete.
-
-* For optimal cluster operation, the length of time that the cluster is in a mixed version state should be as short as possible.  The maximum length of time a cluster can remain in a mixed version state depends on the lowest ONTAP version in the cluster.
 +
-[cols="2*", options="header"]
+It can take several days or weeks to upgrade all the nodes in a large cluster.  The cluster enters and remains in a mixed version state until all the nodes are upgraded.
+
+* ONTAP software upgrades required when you plan to add new nodes to a cluster
++
+You might add new nodes to your cluster to expand its capacity, or you might add new nodes as part of the process of completely replacing your controllers. In either case, you need might need to enter a mixed version state to enable the migration of your data from existing controllers to the new nodes in your new system.
+
+For optimal cluster operation, the length of time that the cluster is in a mixed version state should be as short as possible. The maximum length of time a cluster is eligible for support in a mixed version state depends on the lowest ONTAP version in the cluster.
+
+[cols="2", options="header"]
+|===
+|If the lowest version of ONTAP running in the mixed version cluster is... |Then you can remain in a mixed version state for a maximum of...
+|ONTAP 9.8 or later | 90 days
+|ONTAP 9.7 or earlier | 7 days
 |===
 
-| If the lowest version of ONTAP running in the mixed version cluster is:
-| Then you can remain in a mixed version state for a maximum of
+While the cluster is in a mixed version state, you should not enter any commands that alter the cluster operation or configuration except those that are required for the upgrade or data migration process. For example, activities such as (but not limited to) LIF migration, planned storage failover operations, or large-scale object creation or deletion should not be performed until upgrade and data migration are complete.
 
-| ONTAP 9.8 or higher
-| 90 days
+== Mixed version clusters supported for ONTAP software upgrades
 
-| ONTAP 9.7 or lower
-| 7 days
+You can enter a mixed version state with any ONTAP version supported for a direct upgrade from your lowest current release.  For example, if you are running ONTAP 9.11.1, you can enter a mixed version state with nodes running ONTAP 9.15.1.  You cannot enter a mixed version state with nodes running ONTAP 9.11.1 and ONTAP 9.16.1.  ONTAP 9.16.1 is not supported for direct upgrade from ONTAP 9.11.1. 
+
+To upgrade to an ONTAP version that is not supported for a direct upgrade from your current release, you must perform a multi-stage upgrade. In a multi-stage upgrade, you first enter a mixed version state with the highest release supported for a direct upgrade from your current release.  You complete that upgrade; then you perform a separate upgrade to your target release.  For example, if your lowest current release is ONTAP 9.10.1 and you want to upgrade to ONTAP 9.16.1, you first enter a mixed version state to upgrade all your nodes to ONTAP 9.14.1; then you perform a separate upgrade from ONTAP 9.14.1 to ONTAP 9.16.1. Learn more about link:concept_upgrade_paths.html#types-of-upgrade-paths[multi-stage upgrades] and link:concept_upgrade_paths.html#supported-upgrade-paths[supported upgrade paths].
+
+A mixed version cluster can contain only two major ONTAP releases.  For example, you can have a mixed version cluster with nodes running ONTAP 9.13.1 and 9.15.1; or with nodes running ONTAP 9.13.1 and 9.16.1.  You cannot have a mixed version cluster with nodes running ONTAP 9.13.1, 9.15.1 and 9.16.1. 
+
+[cols="25,25,50", options="header"]
+|===
+|If your current ONTAP release is… |And your target ONTAP release is… |Mixed version state for upgrade is…
+
+//9.15.1
+|9.15.1
+|9.16.1
+|Supported
+
+//9.14.1
+.2+|9.14.1
+
+|9.16.1
+|Supported
+
+|9.15.1
+|Supported
+
+// 9.13.1 
+.3+|9.13.1
+
+|9.16.1
+|Supported
+
+|9.15.1
+|Supported
+
+|9.14.1
+|Supported
+
+// 9.12.1 
+.4+|9.12.1
+
+|9.16.1
+|Supported
+
+|9.15.1
+|Supported
+
+|9.14.1
+|Supported
+
+|9.13.1
+|Supported
+
+// 9.11.1 
+.5+|9.11.1
+
+|9.16.1
+a|Not supported
+
+|9.15.1
+|Supported
+
+|9.14.1
+|Supported
+
+|9.13.1
+|Supported
+
+|9.12.1
+|Supported
+
+// 9.10.1 
+.6+|9.10.1
+
+|9.16.1
+a|Not supported
+
+|9.15.1
+a|Not supported
+
+|9.14.1
+|Supported
+
+|9.13.1
+|Supported
+
+|9.12.1
+|Supported
+
+|9.11.1
+|Supported
+
+// 9.9.1 
+.7+|9.9.1
+
+|9.16.1
+a|Not supported
+
+|9.15.1
+a|Not supported
+
+|9.14.1
+a|Not supported
+
+|9.13.1
+|Supported
+
+|9.12.1
+|Supported
+
+|9.11.1
+|Supported
+
+|9.10.1
+|Supported
+
+// 9.8 
+.8+|9.8
+
+|9.16.1
+a|Not supported
+
+|9.15.1
+a|Not supported
+
+|9.14.1
+a|Not supported
+
+|9.13.1
+a|Not supported
+
+|9.12.1
+|Supported
+
+|9.11.1
+|Supported
+
+|9.10.1
+a|Supported
+
+|9.9.1
+|Supported
 
 |===
-
-* Beginning with ONTAP 9.8, the version difference between the original nodes and the new nodes cannot be greater than four. For example, a mixed version ONTAP cluster could have nodes running ONTAP 9.8 and 9.12.1, or it could have nodes running ONTAP 9.9.1 and 9.13.1. However, a mixed version ONTAP cluster with nodes running ONTAP 9.8 and 9.13.1 would not be supported.
-+
-For a complete list of supported mixed version clusters, see link:concept_upgrade_paths.html[supported upgrade paths]. All _direct_ upgrade paths are supported for mixed version clusters.
-
-== Updating the ONTAP version of a large cluster
-
-One scenario for entering a mixed version cluster state involves upgrading the ONTAP version of a cluster with multiple nodes to take advantage of the features available in later versions of ONTAP 9. When you need to upgrade the ONTAP version of a larger cluster, you will enter a mixed version cluster state for a period of time as you upgrade each node in your cluster. 
 
 == Adding new nodes to an ONTAP cluster
 
-Another scenario for entering a mixed version cluster state involves adding new nodes to your cluster. You might add new nodes to your cluster to expand its capacity, or you might add new nodes as part of the process of completely replacing your controllers. In either case, you need to enable the migration of your data from existing controllers to the new nodes in your new system.
+If you plan to add new nodes to your cluster, and those nodes require a minimum version of ONTAP that's later than the version currently running in your cluster, you need to perform any supported software upgrades on the existing nodes in your cluster before adding the new nodes. Ideally, you would upgrade all existing nodes to the minimum version of ONTAP required by the nodes you plan to add to the cluster. However, if this is not possible because some of your existing nodes don't support the later version of ONTAP, you'll need to enter a mixed version state for a limited amount of time as part of your upgrade process. 
 
-If you plan to add new nodes to your cluster, and those nodes require a minimum version of ONTAP that's later than the version currently running in your cluster, you need to perform any supported software upgrades on the existing nodes in your cluster before adding the new nodes. 
 
-Ideally, you would upgrade all existing nodes to the minimum version of ONTAP required by the nodes you plan to add to the cluster. However, if this is not possible because some of your existing nodes don't support the later version of ONTAP, you'll need to enter a mixed version state for a limited amount of time as part of your upgrade process. If you have nodes that do not support the minimum ONTAP version required by your new controllers, you should do the following:
+.Steps
 
 . link:concept_upgrade_methods.html[Upgrade] the nodes that do not support the minimum ONTAP version required by your new controllers to the maximum ONTAP version that they do support.  
 +
@@ -78,6 +209,7 @@ For details on data migration see:
 * link:https://docs.netapp.com/us-en/ontap-metrocluster/transition/task_move_linux_iscsi_hosts_from_mcc_fc_to_mcc_ip_nodes.html#setting-up-new-iscsi-connections[Setting up new iSCSI connections for SAN volume moves^]
 * link:../encryption-at-rest/encrypt-existing-volume-task.html[Moving volumes with encryption^]
 
+// 2025 May 14, ONTAPDOC-2671
 // 2025-Jan-3, ONTAPDOC-2606
 // 2023 Dec 12, Jira 1275
 // 2023 OCT 9, ONTAPDOC-1416

@@ -5,7 +5,7 @@ keywords: example LIFs, add LIFs, configure LIFs, create, creation, creating, ad
 summary: Create a LIF, which is an IP address associated with a physical or logical port.
 ---
 
-= Create a LIF (network interface) in ONTAP
+= Create ONTAP LIFs
 :hardbreaks:
 :nofooter:
 :icons: font
@@ -27,6 +27,8 @@ Switch ports connected to ONTAP should be configured as spanning-tree edge ports
 * If you are planning to use a subnet name to allocate the IP address and network mask value for a LIF, the subnet must already exist.
 +
 Subnets contain a pool of IP addresses that belong to the same layer 3 subnet. They are created using System Manager or the `network subnet create` command.
++
+Learn more about `network subnet create` in the link:https://docs.netapp.com/us-en/ontap-cli/network-subnet-create.html[ONTAP command reference^].
 
 * The mechanism for specifying the type of traffic handled by a LIF has changed. For ONTAP 9.5 and earlier, LIFs used roles to specify the type of traffic it would handle. Beginning with ONTAP 9.6, LIFs use service policies to specify the type of traffic it would handle.
 
@@ -45,6 +47,8 @@ The supported protocols are SMB, NFS, FlexCache, iSCSI, and FC; iSCSI and FC can
 * If you have a large number of LIFs in your cluster, you can verify the LIF capacity supported on the cluster:
 ** System Manager: Beginning with ONTAP 9.12.0, view the throughput on the Network Interface grid.
 ** CLI: Use the `network interface capacity show` command and the LIF capacity supported on each node by using the `network interface capacity details show` command (at the advanced privilege level).
++
+Learn more about `network interface capacity show` and `network interface capacity details show` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=network+interface+capacity+show[ONTAP command reference^].
 * Beginning with ONTAP 9.7, if other LIFs already exist for the SVM in the same subnet, you do not need to specify the home port of the LIF. ONTAP automatically chooses a random port on the specified home node in the same broadcast domain as the other LIFs already configured in the same subnet.
 +
 Beginning with ONTAP 9.4, FC-NVMe is supported. If you are creating an FC-NVMe LIF you should be aware of the following:
@@ -53,7 +57,7 @@ Beginning with ONTAP 9.4, FC-NVMe is supported. If you are creating an FC-NVMe L
 ** FC-NVMe can be the only data protocol on data LIFs.
 * One LIF handling management traffic must be configured for every storage virtual machine (SVM) supporting SAN.
 * NVMe LIFs and namespaces must be hosted on the same node.
-* Only one NVMe LIF handling data traffic can be configured per SVM.
+* A maximum of two NVMe LIFs handling data traffic can be configured per SVM, per node.
 * When you create a network interface with a subnet, ONTAP automatically selects an available IP address from the selected subnet and assigns it to the network interface. You can change the subnet if there is more than one subnet, but you cannot change the IP address.
 * When you create (add) an SVM, for a network interface, you cannot specify an IP address that is in the range of an existing subnet. You will receive a subnet conflict error. This issue occurs in other workflows for a network interface, such as creating or modifying inter-cluster network interfaces in SVM settings or cluster settings.
 * Beginning with ONTAP 9.10.1, the `network interface` CLI commands include an `-rdma-protocols` parameter for NFS over RDMA configurations. Creating network interfaces for NFS over RDMA configurations is supported in System Manager beginning with ONTAP 9.12.1. For more information, see xref:../nfs-rdma/configure-lifs-task.html[Configure LIFS for NFS over RDMA].
@@ -134,10 +138,13 @@ ipspace1
                                 node2:e0d   complete
                                 node2:e0e   complete
 ....
-
++
+Learn more about `network port broadcast-domain show` in the link:https://docs.netapp.com/us-en/ontap-cli/network-port-broadcast-domain-show.html[ONTAP command reference^].
 . Verify that the subnet you want to use for the LIFs contains sufficient unused IP addresses.
 +
 `network subnet show -ipspace _ipspace1_`
++
+Learn more about `network subnet show` in the link:https://docs.netapp.com/us-en/ontap-cli/network-subnet-show.html[ONTAP command reference^].
 
 . Create one or more LIFs on the ports you want to use to access data.
 +
@@ -150,6 +157,8 @@ network interface create -vserver _SVM_name_ -lif _lif_name_ -service-policy _se
 * `-home-node` is the node to which the LIF returns when the `network interface revert` command is run on the LIF.
 +
 You can also specify whether the LIF should automatically revert to the home-node and home-port with the -auto-revert option.
++
+Learn more about `network interface revert` in the link:https://docs.netapp.com/us-en/ontap-cli/network-interface-revert.html[ONTAP command reference^].
 * `-home-port` is the physical or logical port to which the LIF returns when the `network interface revert` command is run on the LIF.
 * You can specify an IP address with the `-address` and `-netmask` options,  or you enable allocation from a subnet with the `-subnet_name` option.
 * When using a subnet to supply the IP address and network mask, if the subnet was defined with a gateway, a default route to that gateway is added automatically to the SVM when a LIF is created using that subnet.
@@ -160,9 +169,11 @@ When a service policy is specified for a LIF, the policy is used to construct a 
 * `-data-protocol` enables you to create a LIF that supports the FCP or NVMe/FC protocols. This option is not required when creating an IP LIF.
 
 . *Optional*: Assign an IPv6 address in the -address option:
-.. Use the network ndp prefix show command to view the list of RA prefixes learned on various interfaces.
+.. Use the `network ndp prefix show` command to view the list of RA prefixes learned on various interfaces.
 +
 The `network ndp prefix show` command is available at the advanced privilege level.
++
+Learn more about `network ndp prefix show` in the link:https://docs.netapp.com/us-en/ontap-cli/network-ndp-prefix-show.html[ONTAP command reference^].
 
 .. Use the format `prefix::id` to construct the IPv6 address manually.
 +
@@ -181,7 +192,8 @@ Vserver   Interface  Admin/Oper Address/Mask    Node      Port    Home
 vs1
            lif1       up/up      10.0.0.128/24   node1     e0d     true
 ....
-
++
+Learn more about `network interface show` in the link:https://docs.netapp.com/us-en/ontap-cli/network-interface-show.html[ONTAP command reference^].
 . Verify that the failover group configuration is as desired.
 +
 `network interface show -failover -vserver _vs1_`
@@ -229,9 +241,14 @@ network interface create -vserver vs1.example.com -lif datalif1 -data-protocol n
 --
 ====
 
+
+// 2025 May 26, ONTAPDOC-2960
+// 2025 May 14, ONTAPDOC-3006
+// 27-MAR-2025 ONTAPDOC-2909
 // 2025 Feb 14, ONTAPDOC-2758
 // 2025 Jan 22, ONTAPDOC-1070
 // 2024 Dec 09, ONTAPDOC-2507
+// 29-FEB-2024 remove more information as redundant with sidebar
 // IE-554, 2022-07-28
 // 06 OCT 2022, IE-582
 // IE-554, 2022-07-28
@@ -243,4 +260,3 @@ network interface create -vserver vs1.example.com -lif datalif1 -data-protocol n
 // 16-JUN-2022 BURT 1477167
 // added iSCSI LIF failover bullet Jun 2022
 // merge create_lifs file 
-// 29-FEB-2024 remove more information as redundant with sidebar
