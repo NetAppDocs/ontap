@@ -16,18 +16,18 @@ Beginning with ONTAP 9.14.1, as an ONTAP administrator, you can create custom ro
 You have to perform a few configuration steps on your storage VM so that the custom role can be created and assigned to the user that invokes the API for access key generation.
 
 [NOTE]
-If LDAP is disabled, you can use link:../smb-config/create-server-active-directory-domain-task.html[active directory and SMB with domain-based authentication] to generate access keys.
+If LDAP is disabled, you can configure link:configure-access-ldap.html[active directory and SMB with domain-based authentication] to allow users to generate access keys.
 
 .Before you begin
 Ensure the following:
 
 . An S3-enabled storage VM containing an S3 server has been created. See link:../s3-config/create-svm-s3-task.html[Create an SVM for S3].
 . A bucket has been created in that storage VM. See link:../s3-config/create-bucket-task.html[Create a bucket].
-. DNS is configured on the storage VM. See link:../networking/configure_dns_services_manual.html[Configure DNS services].
+. DNS is configured on the storage VM. See link:../networking/configure_dns_services_auto.html[Configure DNS services].
 . A self-signed root certification authority (CA) certificate of the LDAP server is installed on the storage VM. See link:../nfs-config/install-self-signed-root-ca-certificate-svm-task.html[Install the self-signed root CA certificate on the SVM].
-. An LDAP client is configured with TLS enabled on the storage VM. See link:../nfs-config/create-ldap-client-config-task.html[Create an LDAP client configuration].
-. Associate the client configuration with the Vserver. See link:../nfs-config/enable-ldap-svms-task.html[Associate the LDAP client configuration with SVMs]. Learn more about `vserver services name-service ldap create` in the link:https://docs.netapp.com/us-en/ontap-cli//vserver-services-name-service-ldap-create.html[ONTAP command reference^].
-. If you are using a data storage VM, create a management network interface (LIF) and on the VM, and also a service policy for the LIF. Learn more about the https://docs.netapp.com/us-en/ontap-cli/network-interface-create.html[`network interface create`^] and https://docs.netapp.com/us-en/ontap-cli//network-interface-service-policy-create.html[`network interface service-policy create`^] commands in the ONTAP command reference.
+. An LDAP client is configured with TLS enabled on the storage VM. See link:../nfs-config/create-ldap-client-config-task.html[Create LDAP client configurations for ONTAP NFS access].
+. Associate the client configuration with the Vserver. See link:../nfs-config/enable-ldap-svms-task.html[Associate LDAP client configurations with ONTAP NFS SVMs]. Learn more about `vserver services name-service ldap create` in the link:https://docs.netapp.com/us-en/ontap-cli//vserver-services-name-service-ldap-create.html[ONTAP command reference^].
+. If you are using a data storage VM, create a management network interface (LIF) and on the VM, and also a service policy for the LIF. Learn more about `network interface create` and `network interface service-policy create` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=network+interface[ONTAP command reference^].
 
 == Configure users for access key generation
 
@@ -63,7 +63,7 @@ In this example, the LDAP group `ldap-group-1` is created in `svm-1`, and the cu
 security login create -user-or-group-name ldap-group-1 -application http -authentication-method nsswitch -role s3role -is-ns-switch-group yes -second-authentication-method none -vserver svm-1 -is-ldap-fastbind yes
 ----
 +
-For more information, see link:../nfs-admin/ldap-fast-bind-nsswitch-authentication-task.html[Use LDAP fast bind for nsswitch authentication].
+For more information, see link:../nfs-admin/ldap-fast-bind-nsswitch-authentication-task.html[Use LDAP fast bind for nsswitch authentication for ONTAP NFS SVMs].
 
 Adding the custom role to the domain or LDAP group allows users in that group a limited access to the ONTAP `/api/protocols/s3/services/{svm.uuid}/users` endpoint. By invoking the API, the domain or LDAP group users can generate their own access and secret keys to access the S3 client. They can generate the keys for only themselves and not for other users.
 
@@ -118,6 +118,9 @@ curl
 
 ----
 
+// 2025 May 29, ONTAPDOC-2982
+// 2025 Apr 28, ONTAPDOC-2960
+// 27-MAR-2025 ONTAPDOC-2909
 // 2025-Mar-11, ONTAPDOC-2854
 // 2024-12-20, ontapdoc-2606
 // 2024 Dec 09, ONTAPDOC-2569
