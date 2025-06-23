@@ -36,12 +36,14 @@ image:workflow_security_mfa_setup.gif[Workflow of the task to set up multifactor
 
 * SAML authentication applies only to the `http` and `ontapi` applications.
 +
-The `http` and `ontapi` applications are used by the following web services: Service Processor Infrastructure, ONTAP APIs, or System Manager.
+The `http` and `ontapi` applications are used by the following web services: Service Processor Infrastructure, ONTAP APIs, and System Manager.
 
 * SAML authentication is applicable only for accessing the admin SVM.
+* Beginning with ONTAP 9.17.1, IdP-provided group information can be mapped to ONTAP roles. This allows you to assign roles to users based on groups that are defined in the IdP. For more information, see link:../authentication/authentication-groups.html[Working with OAuth 2.0 or SAML IdP groups in ONTAP].
 
 The following IdPs have been validated with System Manager: 
 
+* Microsoft Entra ID (validated with ONTAP 9.17.1 and later)
 * Active Directory Federation Services
 * Cisco Duo (validated with the following ONTAP versions:)
 ** 9.7P21 and later 9.7 releases (refer to the https://docs.netapp.com/us-en/ontap-system-manager-classic/online-help-96-97/task_setting_up_saml_authentication.html[System Manager Classic documentation^])
@@ -65,7 +67,7 @@ Perform the following steps depending on your environment:
 
 . Ensure there is a check in the *Enable SAML Authentication* checkbox.
 
-. Enter the URL of the IdP URI (including "https://").
+. Enter the URL of the IdP URI (including "https://"). If you are using Entra ID, skip this step. Entra ID will not provide the IdP URI until it is configured with the ONTAP metadata.
 
 . Modify the host system address, if needed. This is the address that the IdP will direct to after authentication. The default is the cluster-management IP.
 
@@ -77,7 +79,7 @@ Perform the following steps depending on your environment:
 
 . Click *Save*. A confirmation window displays the metadata information, which has been automatically copied to your clipboard.
 
-. Go to the IdP system you specified and copy the metadata from your clipboard to update the system metadata.
+. Go to the IdP system you specified and copy the metadata from your clipboard to update the system metadata. If you are using Entra ID, copy the IdP URI into ONTAP after you have configured Entra ID with the system metadata.
 
 . Return to the confirmation window (in System Manager) and check the checkbox *I have configured the IdP with the host URI or metadata*.
 
@@ -88,6 +90,17 @@ Perform the following steps depending on your environment:
 
 .CLI
 --
+. If you are using Entra ID, generate the metadata file for ONTAP by running the following command:
++
+[source,cli]
+----
+security saml-sp default-metadata create -sp-host <ontap_host_name>
+----
++
+`ontap_host_name` is the host name or IP address of the SAML service provider host, which in this case is the ONTAP system. By default, the IP address of the cluster-management LIF is used. You can optionally provide the ONTAP server certificate information. By default, the ONTAP web server certificate information is used.
++
+Configure Entra ID with the provided metadata. You must configure Entra ID before creating an ONTAP SAML configuration. Entra ID will not provide the IdP URI until it is configured with the ONTAP metadata. This step is not required if you are using a different IdP.
+
 . Create a SAML configuration so that ONTAP can access the IdP metadata:
 +
 `security saml-sp create -idp-uri <idp_uri> -sp-host <ontap_host_name>`
@@ -114,7 +127,7 @@ Configure the IdP and Data ONTAP users for the same directory server domain to e
 +
 The URL to access the ONTAP host metadata is displayed.
 
-. From the IdP host, <<configure the IdP,Configure third-party IdP>> with the ONTAP host metadata.
+. From the IdP host, <<configure the IdP,Configure third-party IdP>> with the ONTAP host metadata. If you are using Entra ID, you have already completed this step.
 
 . Once the IdP is configured, enable SAML configuration:
 +
@@ -132,7 +145,7 @@ NOTE: The `user_name` value is case-sensitive. Include only the user name, and d
 Example:
 +
 ----
-cluster_12::> security login create -user-or-group-name admin1 -application http -authentication-method saml -vserver  cluster_12
+cluster_12::> security login create -user-or-group-name admin1 -application http -authentication-method saml -vserver cluster_12
 ----
 
  .. Verify that the user entry is created:
@@ -347,8 +360,10 @@ SAML Service Provider Enabled: false
 
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
+* link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+saml-sp[security saml-sp^]
 
 // 2025 June 13, ONTAPDOC-2853
+// 2025-06-11 ONTAPDOC-2709
 // 2025 Mar 27, GH-1675
 // 2025-MAR-10, ONTAPDOC-2875
 // 2025 Mar 03, ONTAPDOC-2758

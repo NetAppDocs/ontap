@@ -2,37 +2,39 @@
 permalink: flexgroup/provision-automatically-task.html
 sidebar: sidebar
 keywords: provision, flexgroup, volume, automatic, create, flex group, aggregate, space
-summary: "When you create a FlexGroup volume, you can choose to have ONTAP provision the FlexGroup volume by automatically selecting the aggregates. Aggregates are selected based on the best practices for optimum performance."
+summary: "When you create a FlexGroup volume, you can choose to have ONTAP provision the FlexGroup volume by automatically selecting the local tiers (aggregates). Local tiers are selected based on the best practices for optimum performance."
 ---
-= Provision a FlexGroup volume automatically
+= Provision an ONTAP FlexGroup volume automatically
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-When you create a FlexGroup volume, you can choose to have ONTAP automatically provision the FlexGroup volume by selecting the aggregates. Aggregates are selected based on the best practices for optimum performance and capacity.
+When you create a FlexGroup volume, you can choose to have ONTAP automatically provision the FlexGroup volume by selecting the underlying local tiers (aggregates). Local tiers are selected based on the best practices for optimum performance and capacity.
 
 .Before you begin
 
-Each node in the cluster must have at least one aggregate.
+Each node in the cluster must have at least one local tier.
 
 [NOTE]
 ====
-For creating a FlexGroup volume for FabricPool in ONTAP 9.5, each node must have at least one aggregate that is FabricPool.
+When creating a FlexGroup volume that will tier inactive data, each node must have at least one local tier with FabricPool enabled.
 ====
 
 .About this task
 
-ONTAP selects two aggregates with the largest amount of usable space on each node to create the FlexGroup volume. If two aggregates are not available, ONTAP selects one aggregate per node to create the FlexGroup volume.
+ONTAP selects two local tiers with the largest amount of usable space on each node to create the FlexGroup volume. If two local tiers are not available, ONTAP selects one local tier per node to create the FlexGroup volume.
 
-Beginning with ONTAP 9.15.1, when you automatically provision a FlexGroup volume, ONTAP uses balanced placement (BP) to choose the aggregates and FlexGroup constituent layout.  One aspect of BP is how it limits over-provisioning aggregates when creating 'none' guaranteed FlexGroup volumes.  The size of the overall FlexGroup volume is limited by the amount of free space on the aggregates, although the limit is higher than it is for 'volume' guaranteed FlexGroup volumes. When you create a FlexGroup volume using REST APIs or `auto-provision-as` with the ONTAP CLI, provisioning might fail because of insufficient space due to this limit. You can avoid this by creating smaller FlexGroup volumes, or by link:create-task.html[creating a FlexGroup volume and selecting the aggregates manually] using the `aggr-list` parameter.
+Beginning with ONTAP 9.15.1, when you automatically provision a FlexGroup volume, ONTAP uses balanced placement (BP) to choose the local tiers and FlexGroup member (constituent) volumes layout. One aspect of BP is how it limits over-provisioning local tiers when creating 'none' guaranteed (thin-provisioned) FlexGroup volumes. The size of the overall FlexGroup volume is limited by the amount of free space on the local tier, although the limit is higher than it is for 'volume' guaranteed (thick-provisioned) FlexGroup volumes. When you create a FlexGroup volume using REST APIs or `auto-provision-as` with the ONTAP CLI, provisioning might fail because of insufficient space due to this limit. You can avoid this by creating smaller FlexGroup volumes, or by link:create-task.html[creating a FlexGroup volume and selecting the local tiers manually] using the `aggr-list` parameter.
 
 .Steps
 
 . Provision the FlexGroup volume:
 +
-`volume create -vserver svm_name -volume fg_vol_name –auto-provision-as flexgroup -size fg_size [–encrypt true] [-qos-policy-group qos_policy_group_name] [-support-tiering true]`
+`volume create -vserver svm_name -volume fg_vol_name –auto-provision-as flexgroup -size fg_size [–encrypt true] [-qos-policy-group qos_policy_group_name] [-support-tiering true] [-granular-data advanced]`
 +
-Beginning with ONTAP 9.5, you can create FlexGroup volumes for FabricPool. To automatically provision a FlexGroup volume on FabricPool, you must set the `-support-tiering` parameter to `true`. The volume guarantee must be always set to `none` for FabricPool. You can also specify the tiering policy and tiering minimum cooling period for the FlexGroup volume.
+include::../_include/flexgroup-advanced-cap-balancing-blurb.adoc[]
++
+Beginning with ONTAP 9.5, you can create FlexGroup volumes on local tiers with FabricPool enabled. To automatically provision a FlexGroup volume on local tiers with FabricPool enabled, you must set the `-support-tiering` parameter to `true`. The volume guarantee must be always set to `none` for FabricPool. You can also specify the tiering policy and tiering minimum cooling period for the FlexGroup volume.
 +
 link:../disks-aggregates/index.html[Disk and aggregate management]
 +
@@ -72,7 +74,7 @@ Do you want to continue? {y|n}: y
 [Job 34] Job succeeded: Successful
 ----
 +
-The following example shows how to provision a FlexGroup volume of size 400 TB on aggregates in FabricPool in ONTAP 9.5:
+The following example shows how to provision a FlexGroup volume of size 400 TB on local tiers with FabricPool enabled:
 +
 ----
 cluster-1::> volume create -vserver vs0 -volume fg –auto-provision-as flexgroup -size 400TB -support-tiering true -tiering-policy auto
@@ -82,7 +84,7 @@ Do you want to continue? {y|n}: y
 [Job 34] Job succeeded: Successful
 ----
 +
-The FlexGroup volume is created with eight constituents on each node in the cluster. The constituents are distributed equally between the two largest aggregates on each node.
+The FlexGroup volume is created with eight member volumes on each node in the cluster. The member volumes are distributed equally between the two largest local tiers on each node.
 +
 By default, the FlexGroup volume is created with the `volume` space guarantee setting except on AFF systems. For AFF systems, by default the FlexGroup volume is created with the `none` space guarantee.
 
@@ -106,6 +108,12 @@ If you are running ONTAP 9.6 or earlier and if the storage virtual machine (SVM)
 file1  file2
 ----
 
+.Related information
+* link:https://docs.netapp.com/us-en/ontap-cli/qos-policy-group-create.html[qos policy-group create^]
+
+// 2025 May 26, ONTAPDOC-2960
+// 2025 May 07, linked to advanced capacity balancing (ACB/GDD), added GDD to the example, cleaned up FabricPool language, aggr updated to local tier 
+// 2-APR-2025 ONTAPDOC-2919
 // 2025 Mar 10, ONTAPDOC-2617
 // 2024-June-21, CONTAP-248246
 // 2022-7-19, issue #582
