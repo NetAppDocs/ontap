@@ -11,20 +11,20 @@ summary: "Use Barbican KMS to manage ONTAP NVE keys."
 
 
 [.lead]
-Beginning with ONTAP 9.17.1, you can use OpenStack's link:https://docs.openstack.org/barbican/latest/[Barbican KMS^] to protect ONTAP encryption keys. Barbican KMS is a service for securely storing and accessing keys. Barbican KMS can be used to protect NetApp Volume Encryption (NVE) keys for data SVMs. Barbican relies on link:https://docs.openstack.org/keystone/latest/[Keystone^], OpenStack's identity service, for authentication.
+Beginning with ONTAP 9.17.1, you can use OpenStack's link:https://docs.openstack.org/barbican/latest/[Barbican KMS^] to protect ONTAP encryption keys. Barbican KMS is a service for securely storing and accessing keys. Barbican KMS can be used to protect NetApp Volume Encryption (NVE) keys for data SVMs. Barbican relies on link:https://docs.openstack.org/keystone/latest/[OpenStack Keystone^], OpenStack's identity service, for authentication.
 
 .About this task
-Key management with Barbican KMS can be configured with the CLI or the ONTAP REST API. With the 9.17.1 release, Barbican KMS support has the following limitations:
+You can configure key management with Barbican KMS with the CLI or the ONTAP REST API. With the 9.17.1 release, Barbican KMS support has the following limitations:
 
-* Barbican KMS is not supported for NetApp Storage Encryption (NSE) and NetApp Aggregate Encryption (NAE). link:enable-external-key-management-96-later-nve-task.html[External KMIPs] or the link:enable-onboard-key-management-96-later-nve-task.html[Onboard Key Manager (OKM)] can be used instead.
+* Barbican KMS is not supported for NetApp Storage Encryption (NSE) and NetApp Aggregate Encryption (NAE). You can use link:enable-external-key-management-96-later-nve-task.html[external KMIPs] or the link:enable-onboard-key-management-96-later-nve-task.html[Onboard Key Manager (OKM)].
 * Barbican KMS is not supported for MetroCluster configurations.
 * Barbican KMS can only be configured for a data SVM. It is not available for the admin SVM.
 
 Unless otherwise noted, administrators at the `admin` privilege level can perform the following procedures. 
 
 .Before you begin
-* Barbican KMS and Keystone must be configured. The SVM you are using with Barbican must have network access to the Barbican and Keystone servers.
-* If you are using a custom Certificate Authority (CA) for the Barbican and Keystone servers, you must install the CA certificate with `security certificate install -type server-ca -vserver <admin_svm>`.
+* Barbican KMS and OpenStack Keystone must be configured. The SVM you are using with Barbican must have network access to the Barbican and OpenStack Keystone servers.
+* If you are using a custom Certificate Authority (CA) for the Barbican and OpenStack Keystone servers, you must install the CA certificate with `security certificate install -type server-ca -vserver <admin_svm>`.
 
 == Create and activate a Barbican KMS configuration
 You can create a new Barbican KMS configuration for an SVM and activate it. An SVM can have multiple inactive Barbican KMS configurations, but only one can be active at a time.
@@ -39,12 +39,12 @@ security key-manager external barbican create-config -vserver <svm_name> -config
 * `-key-id` is the key identifier of the Barbican key encryption key (KEK). Enter a full URL, including `https://`.
 
 +
-NOTE: The question mark (?) activates the command line active help. In order to enter a question mark as part of a URL, it is necessary to disable active help with the command `set -active-help false`. Active help can later be re-enabled with the command `set -active-help true`. Learn more in the link:https://docs.netapp.com/us-en/ontap-cli/set.html[ONTAP command reference].
+NOTE: Some URLs include the question mark (?) character. The question mark activates the ONTAP command line active help. In order to enter a URL with a question mark, you need to first disable active help with the command `set -active-help false`. Active help can later be re-enabled with the command `set -active-help true`. Learn more in the link:https://docs.netapp.com/us-en/ontap-cli/set.html[ONTAP command reference].
 
-* `-keystone-url` is the URL of the Keystone authorization host. Enter a full URL, including `https://`.
+* `-keystone-url` is the URL of the OpenStack Keystone authorization host. Enter a full URL, including `https://`.
 * `-application-cred-id` is the application credentials ID.
 +
-After entering this command, you will be prompted for the application credentials secret key. An inactive Barbican KMS configuration is created, and needs to be activated before taking effect.
+After entering this command, you will be prompted for the application credentials secret key. This command creates an inactive Barbican KMS configuration.
 +
 The following example creates a new inactive Barbican KMS configuration named `config1` for the SVM `svm1`:
 +
@@ -92,7 +92,7 @@ You can view and update the current settings of an active or inactive Barbican K
 ----
 security key-manager external barbican show -vserver <svm_name>
 ----
-The key ID, keystone URL, and application credentials ID are displayed for each Barbican KMS configuration on the SVM.
+The key ID, OpenStack Keystone URL, and application credentials ID are displayed for each Barbican KMS configuration on the SVM.
 
 . Update the settings of a Barbican KMS configuration:
 +
@@ -185,4 +185,4 @@ If NVE encrypted volumes exist on the SVM, you must decrypt them or <<Migrate ke
 security key-manager keystore delete -vserver <svm_name> -config-name <unique_config_name> -type barbican
 ----
 
-// 6-02-25 ONTAPDOC-2715
+// 6-23-25 ONTAPDOC-2715
