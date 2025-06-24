@@ -4,12 +4,12 @@ sidebar: sidebar
 keywords: s3, svm, bucket, object, server, versioning, protocol, filesystems, nas, directories
 summary: "An S3 NAS buckets is a mapping between an S3 bucket name and a NAS path. "
 ---
-= Create S3 NAS bucket  
+= Create an ONTAP S3 NAS bucket  
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-An S3 NAS buckets is a mapping between an S3 bucket name and a NAS path. S3 NAS buckets allow you to provide S3 access to any part of an SVM namespace having existing volumes and directory structure.
+An S3 NAS bucket is a mapping between an S3 bucket name and a NAS path. S3 NAS buckets allow you to provide S3 access to any part of an SVM namespace having existing volumes and directory structure.
 
 .Before you begin 
 
@@ -27,21 +27,25 @@ You can also set bucket policies that allow or disallow access to NAS data based
 
 For example, you might want separate bucket policies that grant read-only data access to a large group of users, and another that allows a limited group to perform operations on a subset of that data.
 
-Beginning with ONTAP 9.17.1, you can directly link a S3 NAS bucket to a volume rather than the junction path. By default, an S3 bucket on a NAS volume is associated with a junction path, which can be changed by an ONTAP administrator at any time. These changes can potentially disrupt S3 bucket operations. You can use the `-is-nas-path-mutable false` option in the ONTAP CLI to enable linking the S3 NAS bucket to a volume. By default, `-is-nas-path-mutable` is set to `true`.
+Beginning with ONTAP 9.17.1, you can directly link a S3 NAS bucket to a volume rather than the junction path. By default, an S3 bucket on a NAS volume is associated with a junction path, which can be changed by an ONTAP administrator at any time. These changes can potentially disrupt S3 bucket operations. Beginning with ONTAP 9.17.1, you can use the `-is-nas-path-mutable false` option with the `vserver object-store-server bucket create` command in the ONTAP CLI to enable linking the S3 NAS bucket to a volume. By default, `-is-nas-path-mutable` is set to `true`.
 
-Because S3 NAS “buckets” are mappings and not S3 buckets, the following properties of standard S3 buckets don't apply to S3 NAS buckets.
+Because S3 NAS "buckets" are mappings and not S3 buckets, the following properties of standard S3 buckets don't apply to S3 NAS buckets.
 
 * *aggr-list \ aggr-list-multiplier \ storage-service-level \ volume \ size \ exclude-aggr-list \ qos-policy-group* +
 No volumes or qtree are created when configuring S3 NAS buckets.
 * *role \ is -protected \ is -protected-on-ontap \ is -protected-on-cloud* +
-S3 NAS buckets are not protected or mirrored using SnapMirror S3, but will instead be using regular SnapMirror protection available at volume granularity.
+S3 NAS buckets are not protected or mirrored using SnapMirror S3, but instead use regular SnapMirror protection available at volume granularity.
 * *versioning-state* +
 NAS volumes usually have snapshot technology available to save different versions. However, versioning is not currently available in S3 NAS buckets.
 * *logical-used \ object-count* +
 Equivalent statistics are available for NAS volumes through the volume commands.
 * *multipart objects* +
 Beginning with ONTAP 9.16.1, multipart objects are supported in S3 NAS buckets when link:../flexgroup/enable-adv-capacity-flexgroup-task.html[advanced capacity balancing] is enabled on the underlying FlexGroup volume.
-Advanced capacity balancing can only be enabled on FlexGroup volumes. It cannot be enabled on FlexVols. 
+Advanced capacity balancing can only be enabled on FlexGroup volumes. It cannot be enabled on FlexVol volumes. 
+
+.Steps
+
+You can use System Manager or the ONTAP CLI to create a NAS bucket.
 
 // start tabbed area
 
@@ -64,13 +68,14 @@ Otherwise, click *Save* to complete S3 NAS bucket configuration.
 
 .CLI
 --
-Create an S3 NAS bucket in an SVM containing NAS filesystems. +
+. Create an S3 NAS bucket in an SVM containing NAS filesystems. +
 `vserver object-store-server bucket create -vserver <svm_name> -bucket <bucket_name> -type nas -nas-path <junction_path> -is-nas-path-mutable true|false [-comment <text>]`
-
-Example creating a S3 NAS bucket: +
++
+Example 1: Create a S3 NAS bucket: 
++
 `cluster1::> vserver object-store-server bucket create -bucket testbucket -type nas -path /vol1`
-
-Example creating an S3 NAS bucket and linking the bucket to a volume: +
++
+Example 2: Create an S3 NAS bucket and linking the bucket to a volume: +
 `vserver object-store-server bucket create -vserver vs1 -bucket nasbucket1 -type nas -nas-path /pathA/dir1 -is-nas-path-mutable false`
 --
 
