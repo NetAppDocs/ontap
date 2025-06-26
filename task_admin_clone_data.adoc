@@ -4,7 +4,7 @@ permalink: task_admin_clone_data.html
 keywords: netapp, ontap, administration, clone, cloning, data, volumes, LUN, testing, clone volume, clone LUN, testing, temporary data, FlexClone license, clone deletion
 summary: You can clone volumes and LUNs to create copies for testing or to give access to the data without giving access to production data.
 ---
-= Clone volumes and LUNs for testing
+= Clone volumes and LUNs for testing with ONTAP System Manager
 :toclevels: 1
 :hardbreaks:
 :nofooter:
@@ -15,8 +15,10 @@ summary: You can clone volumes and LUNs to create copies for testing or to give 
 [.lead]
 You can clone volumes and LUNs to create temporary, writable copies for testing.  The clones reflect the current, point-in-time state of the data.  You can also use clones to give additional users access to data without giving them access to production data.
 
-// 2021 Jun 17, GitHub Issue 91
-NOTE: The FlexClone license should be https://docs.netapp.com/us-en/ontap/system-admin/install-license-task.html[installed] on the storage system.
+
+.Before you begin
+
+The FlexClone license should be https://docs.netapp.com/us-en/ontap/system-admin/install-license-task.html[installed] on the storage system.
 
 == Cloning a volume
 
@@ -34,9 +36,20 @@ Alternatively, you can clone a volume from the *Overview* that displays when you
 
 == Cloning a LUN
 
-Create a clone of a LUN, as follows:
+You can create copies of your LUNs by cloning the LUNs in the active volume. These FlexClone LUNs are readable and writeable copies of the original LUNs in the active volume.
+
+A space-reserved FlexClone LUN requires as much space as the space-reserved parent LUN. If the FlexClone LUN is not space-reserved, you must ensure that the volume has enough space to accommodate changes to the FlexClone LUN.
+
+[NOTE]
+This procedure applies to FAS, AFF, and current ASA systems. If you have an ASA r2 system (ASA A1K, ASA A90, ASA A70, ASA A50, ASA A30, ASA A20, or ASA C30), follow link:https://docs.netapp.com/us-en/asa-r2/manage-data/data-cloning.html[these steps^] to clone data. ASA r2 systems provide a simplified ONTAP experience specific to SAN-only customers.
 
 .Steps
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
 
 . Click *Storage > LUNs*.
 . Click image:icon_kabob.gif[Menu options icon] next to the name of the LUN you want to clone.
@@ -48,5 +61,46 @@ Alternatively, you can clone a LUN from the *Overview* that displays when you vi
 
 When you create a LUN clone, System Manager automatically enables the deletion of the clone when space is needed.
 
+--
 
+.CLI
+--
+
+. Verify that the LUNs are not mapped to an igroup or are written to before making the clone.
+. Use the `lun show` command to verify that the LUN exists.
++
+`lun show -vserver vs1`
++
+----
+Vserver  Path              State     Mapped    Type     Size
+-------- ----------------- --------- --------- -------- -------
+vs1      /vol/vol1/lun1    online   unmapped  windows  47.07MB
+----
+
+. Use the `volume file clone create` command to create the FlexClone LUN.
++
+`volume file clone create -vserver vs1 -volume vol1 -source-path lun1 -destination-path/lun1_clone`
++
+If you need the FlexClone LUN to be available for automatic deletion, you include `-autodelete true`. If you are creating this FlexClone LUN in a volume using semi-thick provisioning, you must enable automatic deletion for all FlexClone LUNs.
+
+. Use the `lun show` command to verify that you created a LUN.
++
+`lun show -vserver vs1`
++
+----
+
+Vserver  Path                    State    Mapped   Type     Size
+-------- ----------------------- -------- -------- -------- ------
+vs1      /vol/volX/lun1          online   unmapped windows  47.07MB
+vs1      /vol/volX/lun1_clone    online   unmapped windows  47.07MB
+----
+--
+====
+
+
+// 2025 June 13, ONTAPDOC-3078
+// 2025 Apr 22, ONTAPDOC 2974
+// 2025 Feb 26, ONTAPDOC-2834
+// 2024-Mar-28, ONTAPDOC-1366
 // 2024-Feb-21, ONTAPDOC-1366
+// 2021 Jun 17, GitHub Issue 91
