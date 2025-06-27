@@ -1,0 +1,93 @@
+---
+sidebar: sidebar
+permalink: snapmirror-active-sync/cloud-mediator-install-task.html
+keywords: SM-BC, SMBC, cluster, peering, ONTAP Cloud Mediator, initialize, snapmirror active sync
+summary: SnapMirror active sync requires you to install and initialize the ONTAP Mediator and ensure proper cluster peering. 
+---
+
+= Configure the ONTAP Cloud Mediator and clusters for SnapMirror active sync
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+
+[.lead]
+SnapMirror active sync uses peered clusters to protect your data in the event of a failover scenario. Beginning with ONTAP 9.17.1, ONTAP Cloud Mediator is a cloud service that enables business continuity by monitoring the health of each cluster. To configure SnapMirror active sync, you must first install the ONTAP Mediator and verify that your primary and secondary clusters are configured properly. 
+
+.ONTAP Cloud Meditor
+
+Similar to ONTAP Mediator, ONTAP Cloud Meidator provides a persistent and fenced store for high availability (HA) metadata used by the ONTAP clusters in a SnapMirror active sync relationship. Additionally, ONTAP Mediator provides a synchronous node health query functionality to aid in quorum determination and serves as a ping proxy for controller liveliness detection.
+
+.Before you begin
+
+Before you configure ONTAP Cloud Mediator, you should confirm the following:
+
+. The BlueXP Connector is installed.
++
+link:https://docs.netapp.com/us-en/bluexp-setup-admin/task-install-connector-on-prem.html[Install and set up a Connector on-premises]
+. You have a valid BlueXP subscription.
++
+link:https://docs.netapp.com/us-en/bluexp-setup-admin/task-subscribe-standard-mode.html[Subscribe to BlueXP data services (standard mode)] 
+. You have a BlueXP service account ID for the Mediator-Setup role and the client secret.
++
+link:https://docs.netapp.com/us-en/bluexp-setup-admin/task-managing-netapp-accounts.html#create-and-manage-service-accounts[Manage your BlueXP account]
+
+. A cluster peering relationship exists between the clusters.
++
+NOTE: The default IPspace is required by SnapMirror active sync for cluster peer relationships. A custom IPspace isn't supported.
++
+xref:../peering/create-cluster-relationship-93-later-task.html[Creating a cluster peer relationship]
+
+. The SVMs are created on each cluster.
++
+xref:../smb-config/create-svms-data-access-task.html[Creating an SVM]
+
+. A peer relationship exists between the SVMs on each cluster.
++
+xref:../peering/create-intercluster-svm-peer-relationship-93-later-task.html[Creating an SVM peering relationship]
+
+. The volumes exist for your LUNs.
++
+xref:../smb-config/create-volume-task.html[Creating a volume]
+
+. At least one SAN LIF is created on each node in the cluster.
++
+link:../san-admin/manage-lifs-all-san-protocols-concept.html[Considerations for LIFs in a cluster SAN environment]
++
+link:../networking/create_a_lif.html[Creating a LIF]
+
+. The necessary LUNs are created and mapped to an igroup, which is used to map LUNs to the initiator on the application host.
++
+xref:../san-admin/provision-storage.html[Create LUNs and map igroups]
+
+. Re-scan the application host to discover any new LUNs.
+
+.Steps
+
+You can add ONTAP Cloud Mediator using System Manager or the ONTAP CLI.
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+1.	Navigate to Protection > Overview > Mediator and select Add.
+2.	In the Add a mediator window, select Cloud as the mediator type and enter the following information:
++
+* BlueXP account ID
+* BlueXP client ID
+* BlueXP client secret
+3.	Select the cluster peer.
+4.	If it is not already configured, enter the HTTP proxy information for the local and remote hosts.
+5.	Select Add.
+--
+.CLI
+--
+1.	Configure ONTAP Cloud Mediator:
+snapmirror mediator add -peer-cluster <peerClusterName> -type cloud -bluexp-org-id <BlueXP Organization ID> -service-account-client-id <Service Account Client ID> -use-http-proxy-local <true|false> -use-http-proxy-remote <true|false>
+--
+====
+
+// 2025-June-27, ONTAPDOC-2763
