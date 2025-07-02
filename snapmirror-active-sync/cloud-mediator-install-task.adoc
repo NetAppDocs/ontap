@@ -2,7 +2,7 @@
 sidebar: sidebar
 permalink: snapmirror-active-sync/cloud-mediator-install-task.html
 keywords: SM-BC, SMBC, cluster, peering, ONTAP Cloud Mediator, initialize, snapmirror active sync
-summary: When you use ONTAP Cloud Mediator with SnapMirror active sync, you must first confirm that BlueXP services and client information are configured and ensure proper cluster peering. 
+summary: When you use ONTAP Cloud Mediator with SnapMirror active sync, you must first confirm that BlueXP services and client information are configured. 
 ---
 
 = Configure the ONTAP Cloud Mediator and clusters for SnapMirror active sync
@@ -14,7 +14,7 @@ summary: When you use ONTAP Cloud Mediator with SnapMirror active sync, you must
 
 
 [.lead]
-SnapMirror active sync uses peered clusters to protect your data in the event of a failover scenario. Beginning with ONTAP 9.17.1, you can use ONTAP Cloud Mediator to enable business continuity by monitoring the health of each cluster. ONTAP Cloud Mediator is a cloud-based service. When you use ONTAP Cloud Mediator with SnapMirror active sync, you must first confirm that BlueXP services and client information are configured and ensure proper cluster peering. 
+Beginning with ONTAP 9.17.1, you can use ONTAP Cloud Mediator to enable business continuity by monitoring the health of each cluster. ONTAP Cloud Mediator is a cloud-based service. When you use ONTAP Cloud Mediator with SnapMirror active sync, you must first confirm that BlueXP services and client information are configured and ensure proper cluster peering. 
 
 .ONTAP Cloud Mediator
 
@@ -22,122 +22,19 @@ As with ONTAP Mediator, ONTAP Cloud Mediator provides a persistent and fenced st
 
 .Before you begin
 
-Before you configure ONTAP Cloud Mediator, you should confirm the following:
+Before you configure ONTAP Cloud Mediator, you should confirm the following information:
 
-. The BlueXP Connector is installed.
+* The cluster is configured.
 +
-link:https://docs.netapp.com/us-en/bluexp-setup-admin/task-install-connector-on-prem.html[Install and set up a Connector on-premises]
-. You have a valid BlueXP subscription.
+link:cluster-config-task.html[Configure ONTAP clusters for SnapMirror active sync]
+
+* You have a valid BlueXP subscription.
 +
 link:https://docs.netapp.com/us-en/bluexp-setup-admin/task-subscribe-standard-mode.html[Subscribe to BlueXP data services (standard mode)] 
-. You have a BlueXP service account ID with the Mediator-Setup role and you have the client secret.
+
+* You have copied your BlueXP organization ID and created a BlueXP member service account. When you create the service account, the organization must be set to the subscription where you configured the ONTAP Cloud Mediator. The category must be set to *Application*, and the role type must be *ONTAP Mediator Setup Role*. You must save the client ID and client secret when you create the role.
 +
-link:https://docs.netapp.com/us-en/bluexp-setup-admin/task-managing-netapp-accounts.html#create-and-manage-service-accounts[Manage your BlueXP account]
-
-. A cluster peering relationship exists between the clusters.
-+
-NOTE: The default IPspace is required by SnapMirror active sync for cluster peer relationships. A custom IPspace isn't supported.
-+
-xref:../peering/create-cluster-relationship-93-later-task.html[Creating a cluster peer relationship]
-
-. The SVMs are created on each cluster.
-+
-xref:../smb-config/create-svms-data-access-task.html[Creating an SVM]
-
-. A peer relationship exists between the SVMs on each cluster.
-+
-xref:../peering/create-intercluster-svm-peer-relationship-93-later-task.html[Creating an SVM peering relationship]
-
-. The volumes exist for your LUNs.
-+
-xref:../smb-config/create-volume-task.html[Creating a volume]
-
-. At least one SAN LIF is created on each node in the cluster.
-+
-link:../san-admin/manage-lifs-all-san-protocols-concept.html[Considerations for LIFs in a cluster SAN environment]
-+
-link:../networking/create_a_lif.html[Creating a LIF]
-
-. The necessary LUNs are created and mapped to an igroup, which is used to map LUNs to the initiator on the application host.
-+
-xref:../san-admin/provision-storage.html[Create LUNs and map igroups]
-
-. The application host is re-scanned to discover any new LUNs.
-
-. The firewall setting on the domain controller allows HTTPS traffic to `api.bluexp.netapp.com` from both clusters.
-
-== Locate the root certificate authority (CA) certificate
-
-ONTAP comes with well-known root CA certificates pre-installed so in most cases you do not need to install the BlueXP server's root CA certificate. If you are connecting directly to the BlueXP server, before you begin the ONTAP Cloud Mediator installation, you can check the cluster to verify that the certificates exist:
-
-*Example*
------
-C1_cluster% openssl s_client -showcerts -connect api.bluexp.netapp.com:443|egrep "s:|i:"
-depth=2 C = US, O = DigiCert Inc, OU = www.digicert.com, CN = DigiCert Global Root G2
-verify return:1
-depth=1 C = US, O = Microsoft Corporation, CN = Microsoft Azure RSA TLS Issuing CA 04
-verify return:1
-depth=0 C = US, ST = WA, L = Redmond, O = Microsoft Corporation, CN = *.azureedge.net
-verify return:1
- 0 s:/C=US/ST=WA/L=Redmond/O=Microsoft Corporation/CN=*.azureedge.net
-   i:/C=US/O=Microsoft Corporation/CN=Microsoft Azure RSA TLS Issuing CA 04
- 1 s:/C=US/O=Microsoft Corporation/CN=Microsoft Azure RSA TLS Issuing CA 04
-   i:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert Global Root G2
- 2 s:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert Global Root G2
-   i:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert Global Root G2 <====
-
-C1_cluster::> security certificate show -common-name DigiCert*
-Vserver    Serial Number   Certificate Name                       Type
----------- --------------- -------------------------------------- ------------
-C1_cluster 0CE7E0EXXXXX46FE8FE560FC1BFXXXXX DigiCertAssuredIDRootCA server-ca
-    Certificate Authority: DigiCert Assured ID Root CA
-          Expiration Date: Mon Nov 10 05:30:00 2031
- 
-C1_cluster 0B931C3XXXXX67EA6723BFC3AF9XXXXX DigiCertAssuredIDRootG2 server-ca
-    Certificate Authority: DigiCert Assured ID Root G2
-          Expiration Date: Fri Jan 15 17:30:00 2038
-
-C1_cluster 0BA15AFXXXXXA0B54944AFCD24AXXXXX DigiCertAssuredIDRootG3 server-ca
-    Certificate Authority: DigiCert Assured ID Root G3
-          Expiration Date: Fri Jan 15 17:30:00 2038
- 
-C1_cluster 083BE05XXXXX46B1A1756AC9599XXXXX DigiCertGlobalRootCA server-ca
-    Certificate Authority: DigiCert Global Root CA
-          Expiration Date: Mon Nov 10 05:30:00 2031
- 
-C1_cluster 033AF1EXXXXXA9A0BB2864B11D0XXXXX DigiCertGlobalRootG2 server-ca
-    Certificate Authority: DigiCert Global Root G2
-          Expiration Date: Fri Jan 15 17:30:00 2038
- 
-C1_cluster 055556BXXXXXA43535C3A40FD5AXXXXX DigiCertGlobalRootG3 server-ca
-    Certificate Authority: DigiCert Global Root G3
-          Expiration Date: Fri Jan 15 17:30:00 2038
- 
-C1_cluster 02AC5C2XXXXX409B8F0B79F2AE4XXXXX DigiCertHighAssuranceEVRootCA server-ca
-    Certificate Authority: DigiCert High Assurance EV Root CA
-          Expiration Date: Mon Nov 10 05:30:00 2031
- 
-C1_cluster 059B1B5XXXXX2132E23907BDA77XXXXX DigiCertTrustedRootG4 server-ca
-    Certificate Authority: DigiCert Trusted Root G4
-          Expiration Date: Fri Jan 15 17:30:00 2038
------
-
-If you are using a proxy to connect to the ONTAP Cloud Mediator service in BlueXP. you can check the proxy server for installed certificates:
-
-*Example*
------
-C1_cluster% openssl s_client -showcerts -proxy <ip:port> -connect staging.api.bluexp.netapp.com:443 |egrep "s:|i:"
------
-
-== Download the CA certificate:
-If necessary, the you can download the root-CA certificates fom the certificate authority's website and install them on the clusters.
-
-*Example*
------
-C1_cluster::> security certificate install -type server-ca -vserver C1_cluster
-
-C2_cluster::> security certificate install -type server-ca -vserver C2_cluster
------
+link:https://docs.netapp.com/us-en/bluexp-setup-admin/task-iam-manage-members-permissions.html#add-members[Add BlueXP members and service accounts]
 
 == Install ONTAP Cloud Mediator
 
@@ -151,22 +48,34 @@ You can add ONTAP Cloud Mediator using System Manager or the ONTAP CLI.
 .System Manager
 --
 . Navigate to *Protection > Overview > Mediator* and select *Add*.
-.In the *Add a mediator* window, select *Cloud* as the mediator type and enter the following information:
+. In the *Add a mediator* window, select *Cloud* as the mediator type and enter the following information:
 +
-* BlueXP account ID
+* BlueXP organization ID
 * BlueXP client ID
 * BlueXP client secret
 . Select the cluster peer.
 . If you are using an HTTP proxy and it's not already configured, enter the HTTP proxy information for the local and remote hosts. 
 +
 It's recommended that you use a different proxy server for each cluster.
-. Optional: Paste the BlueXP server root CA certificate.  
+. Optional: If needed when setting up proxy servers, paste the BlueXP server root CA certificate.  
 . Select *Add*.
+. Navigate to *Protection > Overview* and check the status of the relationship between the SnapMirror active sync clusters and ONTAP Cloud Mediator.
 --
 .CLI
 --
-1.	Configure ONTAP Cloud Mediator:
+. Configure ONTAP Cloud Mediator:
 `snapmirror mediator add -peer-cluster <peerClusterName> -type cloud -bluexp-org-id <BlueXP Organization ID> -service-account-client-id <Service Account Client ID> -use-http-proxy-local <true|false> -use-http-proxy-remote <true|false>`
+
+. Check ONTAP Cloud Mediator status:
+`snapmirror mediator show`
++
+.Example:
+----
+C1_cluster::> snapmirror mediator show
+Mediator Address Peer Cluster     Connection Status Quorum Status Type
+---------------- ---------------- ----------------- ------------- -------
+0.0.0.0          C2_cluster       connected         true          cloud
+----
 --
 ====
 

@@ -1,0 +1,109 @@
+---
+sidebar: sidebar
+permalink: snapmirror-active-sync/cloud-mediator-requirements-concept.html
+keywords: SM-BC, SMBC, ONTAP, Cloud Mediator, prerequisites, requirements, configuration, firewall, latency, proxy, certificate, snapmirror active sync
+summary: You must meet certain requirements before you install ONTAP Cloud Mediator. 
+---
+
+= Prepare to install ONTAP Cloud Mediator
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+
+[.lead]
+
+Before you link:cloud-mediator-install-task.html[configure ONTAP Cloud Mediator], you must ensure that the prerequisites are met.
+
+== Firewall requirements
+
+The firewall setting on the domain controller must allow HTTPS traffic to `api.bluexp.netapp.com` from both clusters.
+
+== Proxy server requirements
+
+If you use proxy servers for SnapMirror active sync, ensure the proxy servers are created and you have the following proxy server information:
+* HTTPS proxy IP
+* Port
+* Username
+* Password 
+
+== Latency
+
+The recommended ping latency of the BlueXP cloud server is 200 ms.
+
+== Root CA certificates
+
+.Check the cluster for certificates
+ONTAP comes with well-known root CA certificates pre-installed so in most cases you do not need to install the BlueXP server's root CA certificate. Before you begin the ONTAP Cloud Mediator installation, you can check the cluster to verify that the certificates exist:
++
+*Example*
+-----
+C1_cluster% openssl s_client -showcerts -connect api.bluexp.netapp.com:443|egrep "s:|i:"
+depth=2 C = US, O = DigiCert Inc, OU = www.digicert.com, CN = DigiCert Global Root G2
+verify return:1
+depth=1 C = US, O = Microsoft Corporation, CN = Microsoft Azure RSA TLS Issuing CA 04
+verify return:1
+depth=0 C = US, ST = WA, L = Redmond, O = Microsoft Corporation, CN = *.azureedge.net
+verify return:1
+ 0 s:/C=US/ST=WA/L=Redmond/O=Microsoft Corporation/CN=*.azureedge.net
+   i:/C=US/O=Microsoft Corporation/CN=Microsoft Azure RSA TLS Issuing CA 04
+ 1 s:/C=US/O=Microsoft Corporation/CN=Microsoft Azure RSA TLS Issuing CA 04
+   i:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert Global Root G2
+ 2 s:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert Global Root G2
+   i:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert Global Root G2 <====
+
+C1_cluster::> security certificate show -common-name DigiCert*
+Vserver    Serial Number   Certificate Name                       Type
+---------- --------------- -------------------------------------- ------------
+C1_cluster 0CE7E0EXXXXX46FE8FE560FC1BFXXXXX DigiCertAssuredIDRootCA server-ca
+    Certificate Authority: DigiCert Assured ID Root CA
+          Expiration Date: Mon Nov 10 05:30:00 2031
+ 
+C1_cluster 0B931C3XXXXX67EA6723BFC3AF9XXXXX DigiCertAssuredIDRootG2 server-ca
+    Certificate Authority: DigiCert Assured ID Root G2
+          Expiration Date: Fri Jan 15 17:30:00 2038
+
+C1_cluster 0BA15AFXXXXXA0B54944AFCD24AXXXXX DigiCertAssuredIDRootG3 server-ca
+    Certificate Authority: DigiCert Assured ID Root G3
+          Expiration Date: Fri Jan 15 17:30:00 2038
+ 
+C1_cluster 083BE05XXXXX46B1A1756AC9599XXXXX DigiCertGlobalRootCA server-ca
+    Certificate Authority: DigiCert Global Root CA
+          Expiration Date: Mon Nov 10 05:30:00 2031
+ 
+C1_cluster 033AF1EXXXXXA9A0BB2864B11D0XXXXX DigiCertGlobalRootG2 server-ca
+    Certificate Authority: DigiCert Global Root G2
+          Expiration Date: Fri Jan 15 17:30:00 2038
+ 
+C1_cluster 055556BXXXXXA43535C3A40FD5AXXXXX DigiCertGlobalRootG3 server-ca
+    Certificate Authority: DigiCert Global Root G3
+          Expiration Date: Fri Jan 15 17:30:00 2038
+ 
+C1_cluster 02AC5C2XXXXX409B8F0B79F2AE4XXXXX DigiCertHighAssuranceEVRootCA server-ca
+    Certificate Authority: DigiCert High Assurance EV Root CA
+          Expiration Date: Mon Nov 10 05:30:00 2031
+ 
+C1_cluster 059B1B5XXXXX2132E23907BDA77XXXXX DigiCertTrustedRootG4 server-ca
+    Certificate Authority: DigiCert Trusted Root G4
+          Expiration Date: Fri Jan 15 17:30:00 2038
+-----
+
+.Check proxy server for installed certificates
+If you are using a proxy to connect to the ONTAP Cloud Mediator service in BlueXP, before you begin you can check the proxy server for installed certificates:
+
+*Example*
+-----
+C1_cluster% openssl s_client -showcerts -proxy <ip:port> -connect api.bluexp.netapp.com:443 |egrep "s:|i:"
+-----
+
+.Download the CA certificate:
+If necessary, you can download the root-CA certificates fom the certificate authority's website and install them on the clusters.
+
+*Example*
+-----
+C1_cluster::> security certificate install -type server-ca -vserver C1_cluster
+
+C2_cluster::> security certificate install -type server-ca -vserver C2_cluster
+-----
