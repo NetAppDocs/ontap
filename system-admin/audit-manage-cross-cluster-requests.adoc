@@ -2,48 +2,60 @@
 permalink: system-admin/audit-manage-cross-cluster-requests.html
 sidebar: sidebar
 keywords: audit, peered, cross cluster, log, cluster, get request
-summary: "While SET requests are logged by default, GET requests are not. However, you can use the settings command to control whether get requests sent from ONTAP HTML (-httpget), the ONTAP CLI (-cliget) or from the ONTAP APIs (-ontapiget) are logged in the file."
+summary: "Enable cross-cluster auditing to log operations initiated from a peered cluster and improve tracking of user-driven and internal operations between clusters."
 ---
-= Manage ONTAP cross-cluster audits
+= Enable ONTAP cross-cluster audits
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.16.1 P1, cross-cluster auditing is enabled in ONTAP to log operations initiated from a peered cluster, allowing administrators to track user-driven and internal operations between clusters. This remote auditing is particularly valuable for cloud environments where multiple clusters interact because it provides traceability and accountability of remote actions.
+Beginning with ONTAP 9.16.1 P4, you can enable cross-cluster auditing in ONTAP to log operations initiated from a peered cluster. This allows administrators to track user-driven and internal operations between clusters. This remote auditing is particularly valuable in cloud environments where multiple clusters interact, providing traceability and accountability of remote actions.
 
+.Before you begin
+* You must have `advanced` level permissions 
+* The cluster must be peered with another cluster and both clusters must be running ONTAP 9.16.1 P4 or later.
++
+NOTE: In environments where some but not all nodes are upgraded to ONTAP 9.16.1 P4, audit logging occurs only on nodes running the upgraded version. It's recommended to upgrade all nodes to a supported version to ensure consistent auditing behavior.
 
+== Cross-cluster auditing options
+Cross-cluster auditing can distinguish between internal or user-driven actions, GET (read) or SET (create/modify/remove) operations, and operations initiated by the admin role or non-admin relationships. 
 
+Only user-initiated SET operations are audited on destination clusters by default. Any request that reads data, such as a GET or `show` command in the CLI, is not audited regardless of whether the request is cross cluster.
 
+Advanced tracking of GET and internal operations is off by default. These tracking options can be enabled using _diag_ privileges with help from NetApp.
 
+== Enable or disable cross-cluster auditing
 
+.Steps
+. Enable (or disable) cross-cluster auditing on the cluster by setting the `cluster-peer` parameter to `on` or `off`:
++
+[source,cli]
+----
+security audit modify -cluster-peer {on|off}
+----
 
+. Confirm that the cluster peer setting is enabled or disabled by checking the current audit state:
++
+----
+security audit show
+----
++
+Response:
++
+----
+    Audit Setting State
+    ------------- -----
+         CLI GET: off
+        HTTP GET: off
+      ONTAPI GET: off
+    Cluster Peer: on
+----
 
+== Modify cross-cluster auditing operation logging
 
-While SET requests are logged by default, GET requests are not. However, you can control whether GET requests sent from ONTAP HTML (`-httpget`), the ONTAP CLI (`-cliget`), or from the ONTAP APIs (`-ontapiget`) are logged in the file.
+You can modify the cross-cluster auditing settings to add additional types of operations to be logged. By default, only user-initiated SET operations are logged on destination clusters. This option cannot be changed, but additional tracking options for GET and internal operations can be enabled using _diag_ privileges with help from NetApp.
 
-You can modify audit logging settings from the ONTAP CLI, and beginning with ONTAP 9.11.1, from System Manager.
-
-[role="tabbed-block"]
-====
-
-.System Manager
---
-
-
---
-
-.CLI
---
-* To specify that GET requests from the ONTAP CLI or APIs should be recorded in the audit log (the audit.log file), in addition to default set requests, enter: +
-`security audit modify [-cliget {on|off}][-httpget {on|off}][-ontapiget {on|off}]`
-
-* To display the current settings, enter: +
-`security audit show`
-
-Learn more about `security audit show` in the link:https://docs.netapp.com/us-en/ontap-cli/security-audit-show.html[ONTAP command reference^].
---
-====
+//Refer to KB link?
 
 // 2025 June 9, ontapdoc-2937
-// 2025 Jan 16, ONTAPDOC-2569
-// 2022-05-03, jira-481
+
