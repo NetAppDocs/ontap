@@ -31,6 +31,11 @@ Ensure the following:
 
 == Configure users for access key generation
 
+.Steps
+[role="tabbed-block"]
+====
+.LDAP users
+--
 . Specify LDAP as the _name service database_ of the storage VM for the group and password to LDAP:
 +
 ----
@@ -67,7 +72,42 @@ For more information, see link:../nfs-admin/ldap-fast-bind-nsswitch-authenticati
 +
 Learn more about `security login create` in the link:https://docs.netapp.com/us-en/ontap-cli/security-login-create.html[ONTAP command reference^].
 
-Adding the custom role to the domain or LDAP group allows users in that group a limited access to the ONTAP `/api/protocols/s3/services/{svm.uuid}/users` endpoint. By invoking the API, the domain or LDAP group users can generate their own access and secret keys to access the S3 client. They can generate the keys for only themselves and not for other users.
+Adding the custom role to the LDAP group allows users in that group a limited access to the ONTAP `/api/protocols/s3/services/{svm.uuid}/users` endpoint. By invoking the API, the LDAP group users can generate their own access and secret keys to access the S3 client. They can generate the keys for only themselves and not for other users.
+
+--
+
+.Domain users
+--
+
+. Create a custom role with access to S3 user REST API endpoint:
+`security login rest-role create -vserver <vserver-name> -role <custom-role-name> -api "/api/protocols/s3/services/*/users" -access <access-type>`
+In this example, the `s3-role` role is generated for users on the storage VM `svm-1`, to which all access rights, read, create, and update are granted.
++
+----
+security login rest-role create -vserver svm-1 -role s3role -api "/api/protocols/s3/services/*/users" -access all
+----
++
+Learn more about `security login rest-role create` in the link:https://docs.netapp.com/us-en/ontap-cli/security-login-rest-role-create.html[ONTAP command reference^].
+
+. Create a domain user group with the security login command and add the new custom role for accessing the S3 user REST API endpoint. Learn more about `security login create` in the link:https://docs.netapp.com/us-en/ontap-cli//security-login-create.html[ONTAP command reference^].
+
++
+----
+security login create -user-or-group-name domain\<group-name> -application http -authentication-method domain -role <custom-role-name>
+----
++
+In this example, the domain group `domain\group1` is created in `svm-1`, and the custom role `s3role` is added to it for accessing the API endpoint.
++
+----
+security login create -user-or-group-name domain\group1 -application http -authentication-method domain -role s3role -vserver svm-1
+----
++
+Learn more about `security login create` in the link:https://docs.netapp.com/us-en/ontap-cli/security-login-create.html[ONTAP command reference^].
+
+Adding the custom role to the domain group allows users in that group a limited access to the ONTAP `/api/protocols/s3/services/{svm.uuid}/users` endpoint. By invoking the API, the domain group users can generate their own access and secret keys to access the S3 client. They can generate the keys for only themselves and not for other users.
+--
+====
+
 
 == As an S3 or LDAP user, generate your own access keys
 Beginning with ONTAP 9.14.1, you can generate your own access and secret keys for accessing S3 clients, if your administrator has granted you the role to generate your own keys. You can generate keys for only yourself by using the following ONTAP REST API endpoint.
@@ -120,7 +160,7 @@ curl
 
 ----
 
-
+// 2025 July 3, ONTAPDOC-3091
 // 2025 June 16, ONTAPDOC-2981
 // 2025 June 16, ONTAPDOC-2960
 // 2025 May 29, ONTAPDOC-2982
