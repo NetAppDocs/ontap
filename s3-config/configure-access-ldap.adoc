@@ -84,25 +84,26 @@ Do not use LDAP fast-bind mode for authentication when creating pre-signed URLs.
 === Authentication method is nsswitch and LDAP is enabled example
 
 ----
-$curl -siku <user>:<user_password> -X POST https://<LIF_IP_Address>/api/protocols/s3/services/<SVM_UUID>/users -d {"comment":"<S3_user_name>", "name":<user>,"<key_time_to_live>":"PT6H3M"}'
+$curl -siku <user>:<user_password> -X POST https://<LIF_IP_Address>/api/protocols/s3/services/<SVM_UUID>/users -d {"comment":"<S3_user_name>", "name":<user>,"key_time_to_live":"PT6H3M"}
 ----
 
 [NOTE]
 Direct the API to the cluster management LIF, not to the SVM's data LIF. If you want to allow users to generate their own keys, you must add HTTP permissions to their role to use curl. This permission is in addition to S3 API permissions.
 
-== Configure S3 access for Active Directory or CIFs servers 
+== Configure S3 access for Active Directory or SMB servers 
 If the nasgroup specified in the bucket policy statement or the users who are part of the nasgroup do not have UID and GID set, lookups fail when these attributes are not found. Active Directory uses SID, not UID. If SID entries cannot be mapped to UID, the necessary data needs to be brought to ONTAP. 
 
 To do so, use link:../authentication/enable-ad-users-groups-access-cluster-svm-task.html[vserver active-directory create] so that the SVM can authenticate with Active Directory and get the necessary user and group information.
 
 Alternatively, use link:../authentication/enable-ad-users-groups-access-cluster-svm-task.html[vserver cifs create] to create a SMB server in an Active Directory domain.
 
-To avoid lookup failures, NetApp recommends using trusted domains for resource authorization in UPN format: `nasgroup/group@trusted_domain.com`
+If you have different domain names for name servers and object stores, you might experience lookup failures. To avoid lookup failures, NetApp recommends using trusted domains for resource authorization in UPN format: `nasgroup/group@trusted_domain.com`
+Trusted domains are those that have been added to the SMB server trusted domains list. Learn how to link:../smb-admin/add-remove-replace-trusted-domains-preferred-lists-task.html[add, remove, and modify preferred trusted domains] in the SMB server list. 
 
 === Generate keys when the authentication method is domain and trusted domains are configured in Active Directory
 Use the `s3/services/<svm_uuid>/users` endpoint with users specified in UPN format. Example:
 ----
-$curl -siku FQDN\\user:<user_password> -X POST https://<LIF_IP_Address>/api/protocols/s3/services/<SVM_UUID>/users -d {"comment":"<S3_user_name>", "name":<user@fqdn>,"<key_time_to_live>":"PT6H3M"}'
+$curl -siku FQDN\\user:<user_password> -X POST https://<LIF_IP_Address>/api/protocols/s3/services/<SVM_UUID>/users -d {"comment":"<S3_user_name>", "name":<user@fqdn>,"key_time_to_live":"PT6H3M"}
 ----
 [NOTE]
 Direct the API to the cluster management LIF, not to the SVM's data LIF. If you want to allow users to generate their own keys, you must add HTTP permissions to their role to use curl. This permission is in addition to S3 API permissions.
@@ -112,12 +113,13 @@ Direct the API to the cluster management LIF, not to the SVM's data LIF. If you 
 This action is possible when LDAP is disabled or when non-POSIX users have not configured UID and GID. Example:
 
 ----
-$curl -siku FQDN\\user:<user_password> -X POST https://<LIF_IP_Address>/api/protocols/s3/services/<SVM_UUID>/users -d {"comment":"<S3_user_name>", "name":<user[@fqdn]>,"<key_time_to_live>":"PT6H3M"}'
+$curl -siku FQDN\\user:<user_password> -X POST https://<LIF_IP_Address>/api/protocols/s3/services/<SVM_UUID>/users -d {"comment":"<S3_user_name>", "name":<user[@fqdn]>,"key_time_to_live":"PT6H3M"}
 ----
 [NOTE]
 Direct the API to the cluster management LIF, not to the SVM's data LIF. If you want to allow users to generate their own keys, you must add HTTP permissions to their role to use curl. This permission is in addition to S3 API permissions. You only need to add the optional domain value (@fqdn) to a user name if there are no trusted domains.
 
-
+// 2025-July-9, GH issue# 1764
+// 2025-July-8, GH issue# 1763
 // 2025 June 16, ONTAPDOC-2981
 // 2025 May 29, ONTAPDOC-2982
 // 2025-May-01 Attention to Base64 vulnerabilities
