@@ -2,7 +2,7 @@
 permalink: smb-hyper-v-sql/verify-domain-accounts-map-default-unix-user-task.html
 sidebar: sidebar
 keywords: verfiy, domain, account, default, unix, server, smb, share, user
-summary: "Hyper-V and SQL Server use domain accounts to create SMB connections to continuously available shares. To successfully create the connection, the computer account must successfully map to a UNIX user. The most convenient way to accomplish this is to map the computer account to the default UNIX user."
+summary: "Hyper-V and SQL Server require domain computer accounts to map to a UNIX user for SMB access. It's easiest to map them to the default UNIX user."
 ---
 = Verify that domain accounts map to the default UNIX user in ONTAP
 :icons: font
@@ -15,46 +15,60 @@ Hyper-V and SQL Server use domain accounts to create SMB connections to continuo
 
 Hyper-V and SQL Server use the domain computer accounts to create SMB connections. In addition, SQL Server uses a domain user account as the service account that also makes SMB connections.
 
-When you create a storage virtual machine (SVM), ONTAP automatically creates the default user named "`pcuser`" (with a UID of `65534`) and the group named "`pcuser`" (with a GID of `65534`), and adds the default user to the "`pcuser`" group. If you are configuring a Hyper-V over SMB solution on anSVM that existed prior to upgrading the cluster to Data ONTAP 8.2, the default user and group might not exist. If they do not, you must create them before configuring the CIFS server's default UNIX user.
+When you create a storage virtual machine (SVM), ONTAP automatically creates the default user named `pcuser` (with a UID of `65534`) and the group named `pcuser` (with a GID of `65534`), and adds the default user to the `pcuser` group. If you are configuring a Hyper-V over SMB solution on anSVM that existed prior to upgrading the cluster to Data ONTAP 8.2, the default user and group might not exist. If they do not, you must create them before configuring the CIFS server's default UNIX user.
 
 .Steps
 
 . Determine whether there is a default UNIX user:
 +
-`*vserver cifs options show -vserver _vserver_name_*`
+[source,cli]
+vserver cifs options show -vserver <vserver_name>
+
 . If the default user option is not set, determine whether there is a UNIX user that can be designated as the default UNIX user:
 +
-`*vserver services unix-user show -vserver _vserver_name_*`
-. If the default user option is not set and there is not a UNIX user that can be designated as the default UNIX user, create the default UNIX user and the default group, and add the default user to the group.
-+
-Generally, the default user is given the user name "`pcuser`" and must be assigned the UID of `65534`. The default group is generally given the group name "`pcuser`". The GID assigned to the group must be `65534`.
+[source,cli]
+vserver services unix-user show -vserver <vserver_name>
 
- .. Create the default group:
- +
- `*vserver services unix-group create -vserver _vserver_name_ -name pcuser -id 65534*`
- .. Create the default user and add the default user to the default group:
- +
- `*vserver services unix-user create -vserver _vserver_name_ -user pcuser -id 65534 -primary-gid 65534*`
- .. Verify that the default user and default group are configured correctly:
- +
- `*vserver services unix-user show -vserver _vserver_name_*`
- +
- `*vserver services unix-group show -vserver _vserver_name_ -members*`
+. If the default user option is not set and there is not a UNIX user that can be designated as the default UNIX user, create the default group and the default UNIX user, and add the default user to the group.
++
+Generally, the default user is given the user name "pcuser" and must be assigned the UID of `65534`. The default group is generally given the group name "pcuser". The GID assigned to the group must be `65534`.
+
+.. Create the default group:
++
+[source,cli]
+vserver services unix-group create -vserver <vserver_name> -name pcuser -id 65534
+
+.. Create the default user and add the default user to the default group:
++
+[source,cli]
+vserver services unix-user create -vserver <vserver_name> -user pcuser -id 65534 -primary-gid 65534
+
+.. Verify that the default user and default group are configured correctly:
++
+[source,cli]
+vserver services unix-user show -vserver <vserver_name>
++
+[source,cli]
+vserver services unix-group show -vserver <vserver_name> -members
 
 . If the CIFS server's default user is not configured, perform the following:
- .. Configure the default user:
+.. Configure the default user:
 +
-`*vserver cifs options modify -vserver *vserver_name* -default-unix-user pcuser*`
- .. Verify that the default UNIX user is configured correctly:
+[source,cli]
+vserver cifs options modify -vserver <vserver_name> -default-unix-user pcuser
+
+.. Verify that the default UNIX user is configured correctly:
 +
-`*vserver cifs options show -vserver _vserver_name_*`
+[source,cli]
+vserver cifs options show -vserver <vserver_name>
+
 . To verify that the application server's computer account correctly maps to the default user, map a drive to a share residing on the SVM and confirm the Windows user to UNIX user mapping by using the `vserver cifs session show` command.
 +
 Learn more about `vserver cifs options` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=vserver+cifs+options[ONTAP command reference^].
 
 .Example
 
-The following commands determine that the CIFS server's default user is not set, but determines that the "`pcuser`" user and "`pcuser`" group exist. The "`pcuser`" user is assigned as the CIFS server's default user on SVM vs1.
+The following commands determine that the CIFS server's default user is not set, but determines that the `pcuser` user and `pcuser` group exist. The `pcuser` user is assigned as the CIFS server's default user on SVM vs1.
 
 ----
 cluster1::> vserver cifs options show
@@ -105,5 +119,5 @@ Vserver: vs1
   WINS Servers           : -
 ----
 
-
+// 2025 June 26, pr-1755
 // 2025 Jan 17, ONTAPDOC-2569
