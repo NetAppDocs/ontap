@@ -17,24 +17,29 @@ Beginning with ONTAP 9.10.1, you can configure storage VMs (SVMs) so that new vo
 
 If you want to configure only individual new or existing volumes without making ARP the default, see this link:enable-task.html[related ARP procedure].
 
+//This procedure applies to FAS, AFF, and ASA systems. If you have an ASA r2 system (ASA A1K, ASA A90, ASA A70, ASA A50, ASA A30, or ASA A20), follow these steps (link to be provided) to enable ARP.
+
 .About this task
 
-By default, new volumes are created with ARP in disabled mode. ARP will only be enabled by default on new volumes created in the SVM after you have enabled ARP for NAS volumes functionality. 
+By default, new volumes are created with ARP in disabled mode. ARP will only be enabled by default on new volumes created in the SVM after you have enabled anti-ransomware functionality. 
 
-ARP will not be automatically enabled on existing volumes. Setting changes described in this procedure only affect new volumes. Learn how to link:enable-task.html[enable ARP for existing volumes].
+ARP will not be automatically enabled on existing volumes. The setting changes described in this procedure only affect new volumes. Learn how to link:enable-task.html[enable ARP for existing volumes].
 
-* *For ONTAP 9.10.1 to 9.15.1 and ARP with FlexGroup volumes* 
-By default, new volumes enabled with ARP enabled are set to link:index.html#learning-and-active-modes[learning mode] (or "dry-run") mode in which the system analyzes the workload to characterize normal behavior. Learning mode can be transitioned to active mode manually (all ARP versions) or automatically (beginning in ARP 9.13.1). With ARP 9.13.1 and later, adaptive learning has been added to ARP analytics so that the switch from learning mode to active mode is done automatically. 
+* *(NAS environments only) For ONTAP 9.10.1 to 9.15.1 or ARP with FlexGroup volumes* 
+By default, new volumes with ARP enabled are set to link:index.html#learning-and-active-modes[learning mode] (or "dry-run" state) in which the system analyzes the workload to characterize normal behavior. Learning mode can be transitioned to active mode manually (all ARP versions) or automatically (beginning in ARP 9.13.1). With ARP 9.13.1 and later, adaptive learning has been added to ARP analytics so that the switch from learning mode to active mode is done automatically. 
 
-* *For ONTAP 9.16.1 and later with FlexVol volumes*
-When you enable ARP, ARP/AI protection is enabled and active immediately. No learning period is required.
+* *(NAS environments only) For ONTAP 9.16.1 and later with FlexVol volumes*
+When you enable ARP using System Manager or the CLI, ARP/AI protection is enabled and active immediately. No learning period is required.
+
+* *(SAN environments only) For ONTAP 9.17.1 and later with FlexVol volumes*
+When you enable ARP using System Manager or the CLI, ARP/AI functionality is automatically enabled. Once enabled on a SAN volume, link:respond-san-entropy-eval-period.html[ARP/AI monitors data continuously during an evaluation period] to determine if the workloads are suitable for ARP and sets an optimal encryption threshold for detection.
 
 .Before you begin 
 
 * The xref:index.html[correct license] must be installed for your ONTAP version.
-* The volume must be less than 100% full.
-* Junction paths must be active. 
-* Beginning with ONTAP 9.13.1, it's recommended you enable multi-admin verification (MAV) so that two or more authenticated user admins are required for anti-ransomware operations. link:../multi-admin-verify/enable-disable-task.html[Learn more].
+* Volumes must be less than 100% full.
+* (NAS environments only) Volumes you want to set ARP on must be protected and have an active link:../concepts/namespaces-junction-points-concept.html[junction path].
+* Beginning with ONTAP 9.13.1, it's recommended that you enable multi-admin verification (MAV) so that two or more authenticated user admins are required for anti-ransomware operations. link:../multi-admin-verify/enable-disable-task.html[Learn more].
 
 .Steps
 
@@ -44,14 +49,10 @@ You can use System Manager or the ONTAP CLI to enable ARP by default on new volu
 ====
 .System Manager
 --
-. Select *Storage > Storage VMs* then select the storage VM that contains volumes you want to protect with ARP.
-. Navigate to the *Settings* tab. Under *Security*, locate the **Anti-ransomware** tile then select image:icon_pencil.gif[Edit icon].
-. Check the box to enable ARP for NAS volumes. Check the additional box to enable ARP on all eligible NAS volumes in the storage VM.
-+
-[NOTE]
-For ONTAP 9.16.1, these actions enable ARP/AI protection as the default for new FlexVol volumes and no learning period is required.
-
-. If you have upgraded to ARP 9.13.1 or later, optionally select *Switch automatically from learning to active mode after sufficient learning*. This allows ARP to determine the optimal learning period interval and automate the switch to active mode.
+. Select *Storage* or *Cluster* (depending on your environment), select *Storage VMs*, and select the storage VM that contains volumes you want to protect with ARP.
+. Navigate to the *Settings* tab. Under *Security*, locate the *Anti-ransomware* tile then select image:icon_pencil.gif[Edit icon].
+. Check the box to enable anti-ransomware (ARP). Check the additional box to enable ARP on all eligible volumes in the storage VM.
+. For ONTAP 9.13.1 or later, optionally select *Switch automatically from learning to active mode after sufficient learning*. This allows ARP to determine the optimal learning period interval and automate the switch to active mode.
 
 --
 
@@ -59,23 +60,25 @@ For ONTAP 9.16.1, these actions enable ARP/AI protection as the default for new 
 --
 * Modify an existing SVM to enable ARP by default in new volumes:
 +
-NOTE: For ONTAP 9.15.1 and earlier and FlexGroup volumes, new volumes begin in learning mode. For ONTAP 9.16.1 and later with FlexVol volumes, ARP/AI is enabled immediately. In either case, use `dry-run` as the value.
+** For NAS environments without ARP/AI or for FlexGroup volumes, use `dry-run` state so that new volumes start in learning mode. 
+** For NAS environments running ONTAP 9.16.1 or later or SAN environments with ONTAP 9.17.1, use `enabled` state.
 +
 [source, cli]
 ----
-vserver modify -vserver <svm_name> -anti-ransomware-default-volume-state dry-run
+vserver modify -vserver <svm_name> -anti-ransomware-default-volume-state <dry-run|enabled>
 ----
 
 * Create a new SVM with ARP enabled by default for new volumes:
 +
-NOTE: For ONTAP 9.15.1 and earlier and FlexGroup volumes, new volumes begin in learning mode. For ONTAP 9.16.1 and later with FlexVol volumes, ARP/AI is enabled immediately. In either case, use `dry-run` as the value.
+** For NAS environments without ARP/AI or for FlexGroup volumes, use `dry-run` state so that new volumes start in learning mode. 
+** For NAS environments running ONTAP 9.16.1 or later or SAN environments with ONTAP 9.17.1, use `enabled` state.
 +
 [source, cli]
 ----
-vserver create -vserver <svm_name> -anti-ransomware-default-volume-state dry-run <other parameters as needed>
+vserver create -vserver <svm_name> -anti-ransomware-default-volume-state <dry-run|enabled>
 ----
 
-* If you upgraded to ONTAP 9.13.1 through ONTAP 9.15.1 and the default state is `dry-run`, adaptive learning is enabled so that the change to `active` state is done automatically. Modify the existing SVM if you do not want this behavior to be automatically enabled:
+* If you upgraded to ONTAP 9.13.1 through ONTAP 9.15.1 and the default state is `dry-run` (learning mode), adaptive learning is enabled so that the change to `enabled` state (active mode) is done automatically. Modify the existing SVM if you do not want this behavior to be automatically enabled:
 +
 [source, cli]
 ----
@@ -98,6 +101,7 @@ Learn more about `security anti-ransomware volume show` in the link:https://docs
 * link:switch-learning-to-active-mode.html[Switch to active mode after a learning period]
 
 // 2025 May 27, ONTAPDOC-2960
+// 2025-May 21, ontapdoc-2689
 // 2025 Jan 21, ONTAPDOC-1070
 // 2025-1-16, ontapdoc-2645
 // 2024-9-17, ontapdoc-2204
