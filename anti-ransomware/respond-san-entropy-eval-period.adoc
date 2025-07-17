@@ -1,0 +1,133 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/respond-san-entropy-eval-period.html
+keywords: ransomware, arp, san, mode, switch, active, learning, entropy, autonomous ransomware protection
+summary: "Beginning with ONTAP 9.17.1, ARP requires evaluation periods to determine if SAN volume entropy levels are suitable for ransomware protection."
+---
+
+= Learn about ONTAP ARP evaluation periods for SAN volumes
+
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.17.1, ARP requires evaluation periods to determine if entropy levels for SAN volume workloads are suitable for ransomware protection. After ARP is enabled on a SAN volume, it monitors data continuously during an evaluation period to determine an optimal encryption threshold. ARP distinguishes between suitable and unsuitable workloads in the evaluated SAN volume and, if the workloads are determined to be suitable for protection, automatically sets an encryption threshold based on evaluation period statistics. 
+
+== Understand entropy evaluation
+
+The system collects continuous encryption statistics in 10-minute intervals. During the evaluation, ARP snapshots are also continuously created every four hours. If the encryption percentage within an interval exceeds the optimal encryption threshold identified for this volume, an alert is triggered and snapshot retention time is increased.
+
+.Confirm that the evaluation period is active
+You can confirm that the evaluation is active by running the following command and confirming a status of `evaluation_period`. The evaluation period applies to volumes containing either LUNs or VMDKs. If a volume does not contain a LUN or VMDK, the evaluation status will not be displayed.
+
+[source,cli]
+----
+security anti-ransomware volume show -vserver <svm_name> -volume <volume_name>
+----
+
+Example response:
+
+[subs=+quotes]
+----
+Vserver Name                                : vs1
+Volume Name                                 : v1
+State                                       : enabled
+Attack Probability                          : none
+Attack Timeline                             : -
+Number of Attacks                           : -
+Attack Detected By                          : -
+*Block device detection status               : evaluation_period*
+----
+
+.Monitor evaluation period data collection
+
+You can monitor encryption detection in real time by running the following command. The command returns a histogram showing the amount of data in each encryption percentage range. The histogram is updated every 10 minutes.
+
+[source,cli]
+----
+security anti-ransomware volume entropy-stat show-encryption-percentage-histogram -vserver <svm_name> -name <lun_name> -duration real_time
+----
+
+Example response:
+
+----
+Vserver     Name              Entropy Range   Seen N Time     Data Written
+----------  ----------------  --------------- --------------  -------------
+vs0         lun1              0-5%            4               100MB
+vs0         lun1              6-10%           10              900MB
+vs0         lun1              11-15%          20              40MB
+vs0         lun1              16-20%          10              70MB
+vs0         lun1              21-25%          60              450MB
+vs0         lun1              26-30%          4               100MB
+vs0         lun1              31-35%          10              900MB
+vs0         lun1              36-40%          20              40MB
+vs0         lun1              41-45%          0               0
+vs0         lun1              46-50%          0               0
+vs0         lun1              51-55%          0               0
+vs0         lun1              56-60%          0               0
+vs0         lun1              61-65%          0               0
+vs0         lun1              66-70%          0               0
+vs0         lun1              71-75%          0               0
+vs0         lun1              76-80%          0               0
+vs0         lun1              81-85%          0               0
+vs0         lun1              86-90%          0               0
+vs0         lun1              91-95%          0               0
+vs0         lun1              96-100%         0               0
+
+20 entries were displayed.
+----
+
+== Suitable workloads and adaptive thresholds
+
+The evaluation ends with one of the following results:
+
+* *The workload is suitable for ARP*. ARP automatically sets the adaptive threshold to higher than 10% of the maximum encryption percentage seen during the evaluation period. ARP also continues statistics collection and creates periodic ARP snapshots.
+* *The workload is unsuitable for ARP*. ARP automatically sets the adaptive threshold to the maximum encryption percentage seen during the evaluation period. ARP also continues statistics collection and creates periodic ARP snapshots, but the system ultimately recommends disabling ARP on the volume.
+
+.Determine evaluation results
+After the evaluation period ends, ARP automatically sets the adaptive threshold based on the evaluation results.
+
+You can determine the evaluation results by running the following command. Volume suitability is indicated in the `Block device detection status` field:
+
+[source,cli]
+----
+security anti-ransomware volume show  -vserver <svm_name> -volume <volume_name>
+----
+
+Example response:
+
+[subs=+quotes]
+----
+Vserver Name                               : vs1
+Volume Name                                : v1
+State                                      : enabled
+Attack Probability                         : none
+Attack Timeline                            : -
+Number of Attacks                          : -
+Attack Detected By                         : -
+*Block device detection status              : Active_suitable_workload*
+
+Block device evaluation start time :  5/16/2025 01:49:01
+----
+
+You can also show the value threshold adopted as a result of the evaluation:
+
+[source,cli]
+----
+security anti-ransomware volume attack-detection-parameters show -vserver <svm_name> -volume <volume_name>
+----
+
+Example response:
+[subs=+quotes]
+----
+
+                                  Vserver Name : vs_1
+
+                                   Volume Name : vm_2
+
+*Block Device Auto Learned Encryption Threshold : 10*
+...
+
+----
+
+// 2025 May 20, ONTAPDOC-2998
