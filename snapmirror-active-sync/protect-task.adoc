@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar
 permalink: snapmirror-active-sync/protect-task.html
-keywords: SM-BC, snapmirror business continuity, consistency group, remote protection, destination
+keywords: SM-BC, snapmirror business continuity, consistency group, remote protection, destination, scsi, nvme
 summary: Configuring protection for business continuity involves selecting LUNs on the ONTAP source cluster and adding them to a consistency group.
 ---
 
@@ -145,7 +145,7 @@ You can use System Manager or the ONTAP CLI to configure symmetric active/active
 +
 `snapmirror show -destination-path <destination_path>`
 . On your host, configure host connectivity with access to each cluster according to your needs. 
-. Establish the NVMe subsystem configuration. Set the preferred paths for initiators on the local cluster. Specify the option to replicate the configuration to the peer cluster for inverse affinity. 
+. Establish the igroup configuration. Set the preferred paths for initiators on the local cluster. Specify the option to replicate the configuration to the peer cluster for inverse affinity. 
 +
 `SiteA::> igroup create -vserver <svm_name> -ostype <os_type> -igroup <igroup_name> -replication-peer <peer_svm_name> -initiator <host>`
 +
@@ -185,6 +185,14 @@ SiteB::> igroup create -vserver <svm_name> -igroup <igroup_name> -initiator <hos
 
 == Configure symmetric active/active protection using an NVMe SnapMirror active sync configuration
 
+.Before you begin
+You should be aware of the supported and unsupported configurations with NVMe namespaces.
+
+* Consistency groups can have one or more subsystem.
+* Volumes within the consistency group can have namespace maps from both the subsystems. 
+* Subsystems cannot have namespace maps that belong to more than one consistency group.
+* Subsystems must have namespace maps that are part of the same consistency group.
+
 .Steps
 Beginning with ONTAP 9.17.1, you can use System Manager or the ONTAP CLI to create a consistency group and configure symmetric active/active protection using NVMe protocol host mappings. 
 
@@ -194,7 +202,7 @@ Beginning with ONTAP 9.17.1, you can use System Manager or the ONTAP CLI to crea
 .System Manager
 --
 .Steps
-. On the primary site, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes[create a consistency group using new volumes or LUNs.^]
+. On the primary site, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes[create a consistency group using new volumes or NVMe namespaces.^]
 . select *+Add* and choose *Using new NVMe namespaces*.
 . Enter the consistency group name.
 . Select *More*.
