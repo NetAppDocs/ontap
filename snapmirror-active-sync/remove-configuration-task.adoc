@@ -35,7 +35,7 @@ If you no longer require zero RTO SnapMirror synchronous protection, you can del
 + 
 . Beginning with ONTAP 9.10.1, deleting the SnapMirror relationship does not delete the consistency group. If you want to delete the consistency group, you must use System Manager or the ONTAP REST API. See xref:../consistency-groups/delete-task.adoc[Delete a consistency group] for more information.
 
-== Remove a symmetric active/active configuration 
+== Remove iSCSI or FC symmetric active/active configuration 
 
 You can remove a symmetric configuration using System Manager or the ONTAP CLI. In both interfaces, there are different steps for xref:index.html#key-concepts[uniform and non-uniform configurations]. 
 
@@ -109,5 +109,43 @@ SiteB::> igroup delete -vserver <svm_name> -igroup <igroup_name>`
 
 ====
 
+== Remove an NVMe symmetric active/active configuration 
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Steps
+. On the source cluster, navigate to *Protection > Replication*. 
+. Locate the relationship you want to remove, select image:icon_kabob.gif[Menu options icon] and choose *Delete*. 
+
+--
+
+.CLI
+--
+. From the destination cluster, delete the SnapMirror active sync relationship.
++
+`snapmirror delete -destination-path <destination_path> -force true`
++
+Example:
++
+----
+DST::> snapmirror delete -destination-path vs1:/cg/cg_dst_1 -force true
+----
+. From the source cluster, release the SnapMirror active sync relationship from primary site.
++
+`snapmirror release -destination-path <destination_path>`
++
+Example:
++
+----
+SRC::> snapmirror release -destination-path vs1:/cg/cg_dst_1
+----
+. Rediscover the paths to verify that only the local path is available to the host.
+
+--
+====
+
+// 2025-July-17, ONTAPDOC-2726
 // 2024 8 july, ONTAPDOC-2156
 // 6 may 2024, ontapdoc-1478
