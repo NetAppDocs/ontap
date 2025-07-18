@@ -13,7 +13,7 @@ A link:../volumes/move-volume-task.html[volume move] is the way that ONTAP moves
 
 It is important to understand how volume move works with FabricPool because the changes that take place at both the local tier, the attached cloud tier, and the volume (volume tiering policies) can have a major impact on functionality.
 
-include::_include/local-tier-aggregate-note.adoc[]
+include::../_include/local-tier-aggregate-note.adoc[]
 
 == Destination local tier
 If a volume move's destination local tier does not have an attached cloud tier, data on the source volume that is stored on the cloud tier is written to the local tier on the destination local tier. 
@@ -25,6 +25,8 @@ Prior to ONTAP 9.8, moving a volume to another local tier resets the inactivity 
 == Optimized volume moves
 
 Beginning with ONTAP 9.6, if a volume move's destination local tier uses the same bucket as the source local tier, data on the source volume that is stored in the bucket does not move back to the local tier. Tiered data stays at rest and only hot data needs to be moved from one local tier to another. This optimized volume move results in significant network efficiencies.
+
+For example, a 300TB optimized volume move means that even though 300TB of cold data moves from one local tier to another, it will not trigger 300TB of reads and 300TB of writes to the object store. 
 
 Unoptimized volume moves generate additional network and compute traffic (reads/GETs and writes/PUTs), increasing demands on the ONTAP cluster and object store, potentially raising costs when tiering to public object stores.
 
@@ -47,11 +49,12 @@ Writing data to the local tier first improves the performance of the volume move
 If a different tiering policy is specified when performing the volume move, the destination volume is created with the specified tiering policy and the volume move is not optimized. 
 
 === Volume metadata
-Regardless of whether a volume move is optimized, ONTAP stores information about the location of all data, including both local and tiered data. When a volume is moved from one local tier to another, this information needs to be moved to the destination local tier as well. This metadata always stays on the local tier, but depending on the amount of tiered data this can cause the volume move process to take more then expected to finish.
+Regardless of whether a volume move is optimized, ONTAP stores a significant amount of metadata about the location, storage efficiency, permissions, usage patterns, etc., of all data, both local and tiered. Metadata always stays on the local tier and is not tiered. When a volume is moved from one local tier to another, this information needs to be moved to the destination local tier as well. 
 
-For example, a 300TB optimized volume move means that 300TB of cold data doesn't need to move from one local tier to another (or trigger 300TB of reads and 300TB of writes to the object store). But it does mean that the metadata associated with 300TB of data (~15TB of data in this example) will need to be written to the destination local tier.
+=== Duration
+Volume moves still take time to complete and the expectation should be that an optimized volume move will take approximately the same amount of time as moving an equal amount of non-tiered data.
 
-It is important to understand that "throughput" reported by the `volume move show` command does not represent throughput in terms of data being moved from the cloud tier, but metadata being updated locally.
+It is important to understand that "throughput" reported by the `volume move show` command does not represent throughput in terms of data being moved from the cloud tier, but volume data being updated locally.
 
 [NOTE]
 When in an SVM DR relationship, source and destination volumes must use the same tiering policy.
@@ -67,6 +70,7 @@ cluster1::> volume move start -vserver vs1 -volume myvol2
 -destination-aggregate dest_FabricPool 
 ----
 
+// 2025-May-29, Added duration info, moved example to different section
 // 2025-Apr-16, Additional optimized vol move details
 // 2025-Mar-20, Major rewrite that includes optimized vol move details
 // 2025-Mar-12, ONTAPDOC-2850
