@@ -1,0 +1,54 @@
+---
+permalink: system-admin/audit-manage-cross-cluster-requests.html
+sidebar: sidebar
+keywords: audit, peered, cross cluster, log, cluster, get request
+summary: "Enable cross-cluster auditing to log operations initiated from a peered cluster and improve tracking of operations between clusters."
+---
+= Enable ONTAP cross-cluster audits
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.17.1, and with ONTAP 9.16.1 P4 and later 9.16.1 patch releases, you can enable cross-cluster auditing in ONTAP to log operations initiated from a peered cluster. This remote auditing is particularly valuable in environments where multiple ONTAP clusters interact, providing traceability and accountability of remote actions.
+
+Cross-cluster auditing can distinguish between user-initiated GET (read) or SET (create/modify/remove) operations. Only user-initiated SET operations are audited on destination clusters by default. Any request that reads data, such as a GET or `show` command in the CLI, is not audited by default regardless of whether the request is cross cluster.
+
+.Before you begin
+* You must have `advanced` level permissions 
+* The cluster must be peered with another cluster, and both clusters must be running ONTAP 9.16.1 P4 or later.
++
+NOTE: In environments where some but not all nodes are upgraded to ONTAP 9.16.1 P4 or later, audit logging occurs only on nodes running the upgraded version. It's recommended to upgrade all nodes to a supported version to ensure consistent auditing behavior.
+
+== Enable or disable cross-cluster auditing
+
+.Steps
+. Enable (or disable) cross-cluster auditing on the cluster by setting the `cluster-peer` parameter to `on` or `off`:
++
+[source,cli]
+----
+security audit modify -cluster-peer {on|off}
+----
+
+. Confirm that the cluster peer setting is enabled or disabled by checking the current audit state:
++
+----
+security audit show
+----
++
+Response:
++
+----
+    Audit Setting State
+    ------------- -----
+         CLI GET: off
+        HTTP GET: off
+      ONTAPI GET: off
+    Cluster Peer: on
+----
+
+== Effects of enabling GET auditing
+
+Beginning with ONTAP 9.17.1, if you https://docs.netapp.com/us-en/ontap-cli/security-audit-modify.html[enable CLI, HTTP, ONTAPI GET auditing^] on a peered cluster, you also enable auditing of cross-cluster user-initiated GET requests. In earlier ONTAP versions, GET auditing only applied to requests on a local cluster. With ONTAP 9.17.1, if you enable GET auditing with the `cluster-peer` option set to `on`, both local cluster and cross-cluster requests will be audited.
+
+// 2025 July 15, ontapdoc-2937
+
