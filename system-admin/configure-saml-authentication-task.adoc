@@ -1,57 +1,73 @@
 ---
 permalink: system-admin/configure-saml-authentication-task.html
 sidebar: sidebar
-keywords: tdp, ldap, identity, provider, saml, security, assertion, markup, lanaguage, active, directory, disable, authentication, idp, active directory, troubleshoot, repair
+keywords: tdp, ldap, identity, provider, saml, security, assertion, markup, language, active, directory, disable, authentication, idp, active directory, troubleshoot, repair
 summary: "Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (SAML) authentication for web services."
 ---
-= Configure SAML authentication
+= Configure SAML authentication for remote ONTAP users
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (SAML) authentication for web services. When SAML authentication is configured and enabled, users are authenticated by an external Identity Provider (IdP) instead of the directory service providers such as Active Directory and LDAP. When SAML authentication is disabled, the configured directory service providers such as Active Directory and LDAP are used for authentication
+Beginning with ONTAP 9.3, you can configure Security Assertion Markup Language (SAML) authentication for web services. When SAML authentication is configured and enabled, users are authenticated by an external Identity Provider (IdP) instead of the directory service providers such as Active Directory and LDAP. When SAML authentication is disabled, the configured directory service providers such as Active Directory and LDAP are used for authentication.
 
 == Enable SAML authentication
 To enable SAML authentication with System Manager or with the CLI, perform the following steps. If your cluster is running ONTAP 9.7 or earlier, the System Manager steps you need to follow are different. Refer to the System Manager online help available on your system.
 
-NOTE: After you enable SAML authentication, only remote users can access the System Manager GUI. Local users cannot access the System Manager GUI after SAML authentication is enabled.
+NOTE: After you enable SAML authentication, only remote users configured for SAML authentication can access the System Manager GUI. Local users cannot access the System Manager GUI after SAML authentication is enabled.
 
-image:workflow_security_mfa_setup.gif[Workflow of the task to set up multfactor authentication with SAML]
-
-.Before you begin
-
-* The IdP that you plan to use for remote authentication must be configured.
-+
-[NOTE]
-====
-See the documentation that is provided by the IdP that you have configured.
-====
-
-* You must have the URI of the IdP.
+image:workflow_security_mfa_setup.gif[Workflow of the task to set up multifactor authentication with SAML]
 
 .About this task
 
-* SAML authentication applies only to the `http` and `ontapi` applications.
+* SAML authentication applies only to the ONTAP `http` and `ontapi` applications.
 +
-The `http` and `ontapi` applications are used by the following web services: Service Processor Infrastructure, ONTAP APIs, or System Manager.
+The `http` and `ontapi` applications are used by the following web services: Service Processor Infrastructure, ONTAP APIs, and System Manager.
 
 * SAML authentication is applicable only for accessing the admin SVM.
+* Beginning with ONTAP 9.17.1, IdP-provided group information can be mapped to ONTAP roles. This allows you to assign roles to users based on groups that are defined in the IdP. For more information, see link:../authentication/authentication-groups.html[Working with OAuth 2.0 or SAML IdP groups in ONTAP].
 
 The following IdPs have been validated with System Manager: 
 
+* Microsoft Entra ID (validated with ONTAP 9.17.1 and later)
 * Active Directory Federation Services
-* Cisco DUO (validated with the following ONTAP versions:)
+* Cisco Duo (validated with the following ONTAP versions:)
 ** 9.7P21 and later 9.7 releases (refer to the https://docs.netapp.com/us-en/ontap-system-manager-classic/online-help-96-97/task_setting_up_saml_authentication.html[System Manager Classic documentation^])
-** 9.8P17 and later 9.8 releases
-** 9.9.1P13 and later 9.9 releases
-** 9.10.1P9 and later 9.10 releases
-** 9.11.1P4 and later 9.11 releases
+** 9.8P17 and later 9.8 patch releases
+** 9.9.1P13 and later 9.9.1 patch releases
+** 9.10.1P9 and later 9.10.1 patch releases
+** 9.11.1P4 and later 9.11.1 patch releases
 ** 9.12.1 and later releases
 * Shibboleth
 
-Perform the following steps depending on your environment:
+.Before you begin
+
+* The IdP that you plan to use for remote authentication must be <<Configure third-party IdP, configured>>. You must have the URI of the IdP. The IdP URI is the web address that ONTAP sends authentication requests to and receive responses from.
+
+* Port 443 must be open between the ONTAP cluster and the IdP.
+
+* The ONTAP cluster and the IdP must each be able to ping the other's fully qualified domain name. Ensure DNS is properly configured and the cluster certificate is not expired.
+
+* If needed, add the IdP's trusted certificate authority (CA) to ONTAP. You can link:../authentication/manage-certificates-sm-task.html[manage ONTAP certificates with System Manager]. You might need to configure the ONTAP cluster certificate in the IdP.
+
+* You must be able to access the ONTAP cluster's link:../system-admin/sp-concept.html[Service Processor (SP)] console. If SAML is misconfigured, you will need to disable it from the SP console.
+
+* If you are using Entra ID (validated beginning with ONTAP 9.17.1), you must configure Entra ID with the ONTAP metadata before creating the ONTAP SAML configuration. Entra ID will not provide the IdP URI until it is configured with the ONTAP metadata. The IdP URI is required to create the ONTAP SAML configuration.
+** If you are using System Manager to configure SAML, leave the IdP URI field blank until System Manager provides the ONTAP metadata. Configure Entra ID with the ONTAP metadata, and then copy the IdP URI into System Manager before enabling the SAML configuration.
+** If you are using the ONTAP CLI to configure SAML, you must generate the ONTAP metadata before enabling the ONTAP SAML configuration. You can generate the ONTAP metadata file with the following command:
++
+[source,cli]
+----
+security saml-sp default-metadata create -sp-host <ontap_host_name>
+----
++
+`ontap_host_name` is the host name or IP address of the SAML service provider host, which in this case is the ONTAP system. By default, the cluster-management IP address is used. You can optionally provide the ONTAP server certificate information. By default, the ONTAP web server certificate information is used.
++
+Configure Entra ID with the provided metadata. You must configure Entra ID before creating the ONTAP SAML configuration. After Entra is configured, proceed with the below CLI procedure.
+** You cannot generate the ONTAP metadata for Entra ID until all nodes in the cluster are on version 9.17.1.
 
 .Steps
+Perform the following steps depending on your environment:
 [role="tabbed-block"]
 ====
 .System Manager
@@ -62,9 +78,9 @@ Perform the following steps depending on your environment:
 
 . Ensure there is a check in the *Enable SAML Authentication* checkbox.
 
-. Enter the URL of the IdP URI (including "https://").
+. Enter the URL of the IdP URI (including "https://"). If you are using Entra ID, skip this step.
 
-. Modify the host system address, if needed.
+. Modify the host system address, if needed. This is the address that the IdP will direct to after authentication. The default is the cluster-management IP address.
 
 . Ensure the correct certificate is being used:
 
@@ -74,13 +90,13 @@ Perform the following steps depending on your environment:
 
 . Click *Save*. A confirmation window displays the metadata information, which has been automatically copied to your clipboard.
 
-. Go to the IdP system you specified and copy the metadata from your clipboard to update the system metadata.
+. Go to the IdP system you specified and copy the metadata from your clipboard to update the system metadata. If you are using Entra ID, copy the IdP URI into ONTAP after you have configured Entra ID with the system metadata.
 
 . Return to the confirmation window (in System Manager) and check the checkbox *I have configured the IdP with the host URI or metadata*.
 
 . Click *Logout* to enable SAML-based authentication.  The IdP system will display an authentication screen.
 
-. In the IdP system, enter your SAML-based credentials. After your credentials are verified, you will be directed to the System Manager home page.
+. In the IdP sign-on page, enter your SAML-based credentials. After your credentials are verified, you will be directed to the System Manager home page.
 --
 
 .CLI
@@ -91,7 +107,7 @@ Perform the following steps depending on your environment:
 +
 `idp_uri` is the FTP or HTTP address of the IdP host from where the IdP metadata can be downloaded. 
 +
-NOTE: The question mark (`?`) activates the command line active help. In order to enter a question mark as part of a URI, it is necessary to disable active help with the command `set -active-help false`. Active help can later be re-enabled with the command `set -active-help true`. Learn more about `set` in the link:https://docs.netapp.com/us-en/ontap-cli/set.html[ONTAP command reference^].
+NOTE: Some URLs include the question mark (?) character. The question mark activates the ONTAP command line active help. In order to enter a URL with a question mark, you need to first disable active help with the command `set -active-help false`. Active help can later be re-enabled with the command `set -active-help true`. Learn more in the link:https://docs.netapp.com/us-en/ontap-cli/set.html[ONTAP command reference].
 +
 `ontap_host_name` is the host name or IP address of the SAML service provider host, which in this case is the ONTAP system. By default, the IP address of the cluster-management LIF is used.
 +
@@ -106,23 +122,22 @@ Do you want to continue? {y|n}: y
 [Job 179] Job succeeded: Access the SAML SP metadata using the URL:
 https://10.0.0.1/saml-sp/Metadata
 
-Configure the IdP and Data ONTAP users for the same directory server domain to ensure that users are the same for different authentication methods. See the "security login show" command for the Data ONTAP user configuration.
+Configure the IdP and ONTAP users for the same directory server domain to ensure that users are the same for different authentication methods. See the "security login show" command for the ONTAP user configuration.
 ----
 +
 The URL to access the ONTAP host metadata is displayed.
 
-. From the IdP host, configure the IdP with the ONTAP host metadata.
-+
-For more information about configuring the IdP, see the IdP documentation.
+. From the IdP host, <<Configure third-party IdP,configure the IdP>> with the ONTAP host metadata. If you are using Entra ID, you have already completed this step.
 
-. Enable SAML configuration:
+. Once the IdP is configured, enable SAML configuration:
 +
 `security saml-sp modify -is-enabled true`
 +
 Any existing user that accesses the `http` or `ontapi` application is automatically configured for SAML authentication.
 
-. If you want to create users for the `http` or `ontapi` application after SAML is configured, specify SAML as the authentication method for the new users.
-.. Create a login method for new users with SAML authentication:
+. If you want to create users for the `http` or `ontapi` application after SAML is configured, specify SAML as the authentication method for the new users. Prior to ONTAP 9.17.1, a SAML login is automatically created for existing `http` or `ontapi` users when SAML is enabled. New users must be configured for SAML. Beginning with ONTAP 9.17.1, all users created with `password`, `domain`, or `nsswitch` authentication methods are automatically authenticated against the IdP when SAML is enabled.
+
+.. Create a login method for new users with SAML authentication. The `user_name` must match the username configured in the IdP: 
 +
 NOTE: The `user_name` value is case-sensitive. Include only the user name, and do not include any portion of the domain.
 +
@@ -131,7 +146,7 @@ NOTE: The `user_name` value is case-sensitive. Include only the user name, and d
 Example:
 +
 ----
-cluster_12::> security login create -user-or-group-name admin1 -application http -authentication-method saml -vserver  cluster_12
+cluster_12::> security login create -user-or-group-name admin1 -application http -authentication-method saml -vserver cluster_12
 ----
 
  .. Verify that the user entry is created:
@@ -160,18 +175,14 @@ admin          ssh         password      admin            no     none
 admin1         http        password      backup           no     none
 **admin1         http        saml          backup           -      none**
 ----
-
++
+Learn more about `security login show` in the link:https://docs.netapp.com/us-en/ontap-cli/security-login-show.html[ONTAP command reference^].
 --
 ====
-// end tabbed block
 
 == Disable SAML authentication
 
-You can disable SAML authentication when you want to stop authenticating web users by using an external Identity Provider (IdP). When SAML authentication is disabled, the configured directory service providers such as Active Directory and LDAP are used for authentication.
-
-// .Before you begin
-
-// You must be logged in from the console.
+You can disable SAML authentication when you want to stop authenticating remote System Manager users with an external Identity Provider (IdP). When SAML authentication is disabled, local user authentication or the configured directory service providers such as Active Directory and LDAP are used to authenticate users.
 
 Perform the following steps depending on your environment:
 
@@ -197,6 +208,126 @@ Perform the following steps depending on your environment:
 `security saml-sp delete`
 --
 ====
+
+== Configure third-party IdP
+
+.About this task
+
+In order to authenticate with ONTAP, you might need to change the settings for your IdP. The following sections provide configuration information for supported IdPs.
+
+[role="tabbed-block"]
+====
+
+.Entra ID
+--
+When configuring Entra ID, create a new application and configure SAML sign-on with the metadata provided by ONTAP. After the application is created, edit the "Attributes & Claims" section of the application SAML settings to match the following:
+
+[cols="2,2" options="header"]
+|===
+
+| Setting
+| Value
+
+| Name
+| urn:oid:0.9.2342.19200300.100.1.1
+
+| Namespace
+| _Leave blank_
+
+| Name format
+| URI
+
+| Source
+| Attribute
+
+| Source attribute
+| user.userprincipalname
+
+|===
+
+If you want to use groups with Entra ID, add a group claim with the following settings:
+
+[cols="2,2" options="header"]
+|===
+
+| Setting
+| Value
+
+| Name
+| urn:oid:1.3.6.1.4.1.5923.1.5.1.1
+
+| Namespace
+| _Leave blank_
+
+| Source attribute
+| Group ID
+
+|===
+
+Entra ID provides group information in UUID format. For more information on using groups with Entra ID, refer to link:../authentication/authentication-groups.html#manage-groups-with-uuids[Manage groups with UUIDs].
+
+The _App Federation Metadata URL_ provided in the "SAML certificate" section of the application SAML settings is the IdP URI that you will enter in ONTAP.
+
+For information on configuring Entra ID multifactor authentication, refer to link:https://learn.microsoft.com/en-us/entra/identity/authentication/howto-mfa-getstarted[Plan a Microsoft Entra multifactor authentication deployment^].
+
+For more information, refer to the link:https://learn.microsoft.com/en-us/entra/identity/[Entra ID documentation^].
+--
+
+.Active Directory Federation Services
+--
+When configuring Active Directory Federation Services (AD FS), you must add a new claims-aware Relying Party Trust with the service provider metadata provided by ONTAP. Once the Relying Party Trust is created, add the following claim rules to the Relying Party Trust's Claim Issuance Policy using the "Send LDAP Attributes as Claims" template:
+
+[cols="1,2,2" options="header"]
+|===
+
+| Attribute store
+| LDAP attribute
+| Outgoing claim type
+
+| Active Directory
+| SAM-account-name
+| Name ID
+
+| Active Directory
+| SAM-account-name
+| urn:oid:0.9.2342.19200300.100.1.1
+
+| Active Directory
+| Name Format
+| urn:oasis:names:tc:SAML:2.0:attrname-format:uri
+
+| Active Directory
+| Token groups - Qualified by Domain Name
+| urn:oid:1.3.6.1.4.1.5923.1.5.1.1
+
+| Active Directory
+| sAMAccountName
+| urn:oid:1.2.840.113556.1.4.221
+
+|===
+
+AD FS provides group information in name format. For more information on using groups with AD FS, refer to link:../authentication/authentication-groups.html#manage-groups-with-names[Manage groups with names].
+
+For more information, refer to the link:https://learn.microsoft.com/en-us/windows-server/identity/ad-fs/ad-fs-overview[AD FS documentation^].
+
+--
+
+.Cisco Duo
+--
+Refer to the link:https://duo.com/docs/sso-netapp-ontap[Cisco Duo documentation^] for configuration information.
+--
+
+.Shibboleth
+--
+Prior to configuring the Shibboleth IdP, you must have configured an LDAP server.
+
+When enabling SAML on ONTAP, save the provided host metadata XML. On the host where Shibboleth is installed, replace the contents of `metadata/sp-metadata.xml` with the host metadata XML within the Shibboleth IdP home directory.
+
+For more information, refer to link:https://www.shibboleth.net[Shibboleth^].
+--
+
+====
+
 
 == Troubleshoot issues with SAML configuration
 
@@ -237,6 +368,8 @@ SAML Service Provider Enabled: false
         ID of SAML Config Job: 180
 2 entries were displayed.
 ----
++
+Learn more about `security saml-sp status show` in the link:https://docs.netapp.com/us-en/ontap-cli/security-saml-sp-status-show.html[ONTAP command reference^].
 
 . Repair the SAML configuration on the failed node:
 +
@@ -255,6 +388,8 @@ Do you want to continue? {y|n}: y
 ----
 +
 The web server is restarted and any active HTTP connections or HTTPS connections are disrupted.
++
+Learn more about `security saml-sp repair` in the link:https://docs.netapp.com/us-en/ontap-cli/security-saml-sp-repair.html[ONTAP command reference^].
 
 . Verify that SAML is successfully configured on all of the nodes:
 +
@@ -283,12 +418,19 @@ SAML Service Provider Enabled: false
         ID of SAML Config Job: 180
 2 entries were displayed.
 ----
++
+Learn more about `security saml-sp status show` in the link:https://docs.netapp.com/us-en/ontap-cli/security-saml-sp-status-show.html[ONTAP command reference^].
 
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
 * link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+saml-sp[security saml-sp^]
+* link:https://docs.netapp.com/us-en/ontap-cli/security-login-create.html[security login create^]
 
-// 2025 Apr 14, ONTAPDOC-2960
+
+
+// 2025 July 1, ONTAPDOC-2709
+// 2025 June 20, ONTAPDOC-2960
+// 2025 June 13, ONTAPDOC-2853
 // 2025 Mar 27, GH-1675
 // 2025-MAR-10, ONTAPDOC-2875
 // 2025 Mar 03, ONTAPDOC-2758
