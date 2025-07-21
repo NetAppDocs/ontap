@@ -1,7 +1,7 @@
 ---
 sidebar: sidebar
 permalink: snapmirror-active-sync/protect-task.html
-keywords: SM-BC, snapmirror business continuity, consistency group, remote protection, destination
+keywords: SM-BC, snapmirror business continuity, consistency group, remote protection, destination, scsi, nvme
 summary: Configuring protection for business continuity involves selecting LUNs on the ONTAP source cluster and adding them to a consistency group.
 ---
 
@@ -145,7 +145,7 @@ You can use System Manager or the ONTAP CLI to configure symmetric active/active
 +
 `snapmirror show -destination-path <destination_path>`
 . On your host, configure host connectivity with access to each cluster according to your needs. 
-. Establish the NVMe subsystem configuration. Set the preferred paths for initiators on the local cluster. Specify the option to replicate the configuration to the peer cluster for inverse affinity. 
+. Establish the igroup configuration. Set the preferred paths for initiators on the local cluster. Specify the option to replicate the configuration to the peer cluster for inverse affinity. 
 +
 `SiteA::> igroup create -vserver <svm_name> -ostype <os_type> -igroup <igroup_name> -replication-peer <peer_svm_name> -initiator <host>`
 +
@@ -186,6 +186,15 @@ SiteB::> igroup create -vserver <svm_name> -igroup <igroup_name> -initiator <hos
 
 == Configure symmetric active/active protection using an NVMe SnapMirror active sync configuration
 
+.Before you begin
+In addition to the requirements for configuring symmetric active/active protection, you should be aware of the supported and unsupported configurations when using the NVMe protocol.
+
+* Consistency groups can have one or more subsystem.
+* Volumes within the consistency group can have namespace maps from multiple subsystems. 
+* Subsystems cannot have namespace maps that belong to more than one consistency group.
+* Subsystems cannot have some namespace maps that belong to a consistency group and some namespace maps that do not belong to a consistency group.
+* Subsystems must have namespace maps that are part of the same consistency group.
+
 .Steps
 Beginning with ONTAP 9.17.1, you can use System Manager or the ONTAP CLI to create a consistency group and configure symmetric active/active protection using NVMe protocol host mappings. 
 
@@ -194,35 +203,19 @@ Beginning with ONTAP 9.17.1, you can use System Manager or the ONTAP CLI to crea
 ====
 .System Manager
 --
-.Steps for a uniform configuration
-. On the primary site, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes[create a consistency group using new volumes or LUNs.^]
+. On the primary site, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes[create a consistency group using new volumes or NVMe namespaces.^]
 . select *+Add* and choose *Using new NVMe namespaces*.
 . Enter the consistency group name.
 . Select *More*.
 . In the *Protection* section, select *Enable SnapMirror* then choose the `AutomatedFailoverDuplex` policy.
 . In the *Host mapping* section, choose either *Existing NVMe subsystem* or *New NVMe subsystem*. 
 . Select *In proximity to* to change the proximal SVM. The source SVM is selected by default.
-. Select *Save*.
-
-
-.Steps for a non-uniform configuration
-. On the primary site, link:../consistency-groups/configure-task.html#create-a-consistency-group-with-new-luns-or-volumes[create a consistency group using new volumes or LUNs.^]
-.. To configure the consistency group using NVMe, select *+Add* and choose *Using new NVMe namespaces*.
-.. Enter the consistency group name.
-.. Select *More*.
-.. In the *Protection* area, select *Enable SnapMirror* then choose the `AutomatedFailoverDuplex` policy.
-.. Select *Save*. 
-. On the secondary site, create an NVMe subsystem. 
-.. Navigate to *Hosts > NVMe subsystem*. 
-.. Select *+Add* to create a new NVMe subsystem.
-.. Provide a *Name*, select the *Host Operating System*, choose the *Host NQN*, and set *In proximity to*.
-.. Select *Save* to initialize the relationship. 
+. If necessary, add another NVMe subsystem.
 --
 
 .CLI
---
-.Steps for a uniform configuration 
-. Create a new SnapMirror relationship grouping all the volumes in the application. Ensure you designate the `AutomatedFailOverDuplex` policy to establish bidirectional sync replication.
+-- 
+. Create a new SnapMirror relationship grouping all the volumes containing all NVMe namespaces used by the application. Ensure you designate the `AutomatedFailOverDuplex` policy to establish bidirectional sync replication.
 +
 `snapmirror create -source-path <source_path> -destination-path <destination_path> -cg-item-mappings <source_volume:@destination_volume> -policy AutomatedFailOverDuplex`
 +
@@ -242,48 +235,19 @@ DST::> snapmirror initialize -destination-path vs1:/cg/cg_dst_1
 . Confirm the operation has succeeded by waiting for the `Mirrored State` to show as `SnapMirrored` and the `Relationship Status` as `Insync`.
 +
 `snapmirror show -destination-path <destination_path>`
++
+The NVMe subsystems associated with the NVMe namespaces in the primary volumes are automatically replicated to the secondary cluster. 
 . On your host, configure host connectivity with access to each cluster according to your needs. 
-. Establish the NVMe host proximity. Specify the option to replicate the configuration to the peer cluster for inverse affinity. 
+. Specify the SVM that is proximal to each of your hosts. This enables host access to the NVMe namespace using a path from the preferred cluster. This might be the SVM in the primary cluster _or_ the SVM in DR cluster. 
++
+The following command indicates that SVM VS_A is proximal to host H1 and set VS_A as the proximal SVM:
 +
 `SiteA::> vserver nvme subsystem host add -subsystem ss1 -host-nqn <H1_NQN> -proximal-vservers <VS_A>`
-
++
+The following command indicates that SVM VS_B is proximal to host H2 and sets VS_B as the proximal SVM:
 +
 `SiteB::> vserver nvme subsystem host add -subsystem ss1 -host-nqn <H2_NQN> -proximal-vservers <VS_B>`
 
-
-. From the host, discover the paths and verify the hosts have an active/optimized path to the storage from the preferred cluster. 
-. Deploy the application and distribute the VM workloads across clusters to achieve the required load balancing. 
-
-.Steps for a non-uniform configuration 
-. Create a new SnapMirror relationship grouping all the volumes in the application. Ensure you designate the `AutomatedFailOverDuplex` policy to establish bidirectional sync replication.
-+
-`snapmirror create -source-path <source_path> -destination-path <destination_path> -cg-item-mappings <source_volume:@destination_volume> -policy AutomatedFailOverDuplex`
-+
-Example:
-+
-----
-DST::> snapmirror create -source-path vs_src:/cg/cg_src_1 -destination-path vs_dst:/cg/cg_dst_1 -cg-item-mappings vs_src_vol1:@vs_dst_vol1,vs_src_vol2:@vs_dst_vol2 -policy AutomatedFailOverDuplex
-----
-. Initialize the SnapMirror relationship: 
-`snapmirror initialize -destination-path <destination-consistency-group>`
-+
-Example:
-+
-----
-DST::> snapmirror initialize -destination-path vs1:/cg/cg_dst_1
-----
-. Confirm the operation has succeeded by waiting for the `Mirrored State` to show as `SnapMirrored` and the `Relationship Status` as `Insync`.
-+
-`snapmirror show -destination-path <destination_path>`
-. On your host, configure host connectivity with access to each cluster according to your needs. 
-. Establish the NVMe host proximity on both the source and destination clusters.
-+
-`# primary site
-SiteA::> vserver nvme subsystem host add -subsystem ss1 -host-nqn <H1_NQN> -proximal-vservers <VS_A>`
-+
-`# secondary site
-SiteB::> vserver nvme subsystem host add -subsystem ss1 -host-nqn <H2_NQN> -proximal-vservers <VS_B>`
-+
 . From the host, discover the paths and verify the hosts have an active/optimized path to the storage from the preferred cluster. 
 . Deploy the application and distribute the VM workloads across clusters to achieve the required load balancing. 
 
