@@ -4,7 +4,7 @@ permalink: snapmirror-active-sync/prerequisites-reference.html
 keywords: SM-BC, SMBC, prerequisites, planning, software, hardware, licensing, protocols, network, snapmirror active sync
 summary: There are several prerequisites that you should consider as part of planning a SnapMirror active sync solution deployment.
 ---
-= Prerequisites for SnapMirror active sync in ONTAP
+= Prerequisites for ONTAP SnapMirror active sync
 :hardbreaks:
 :nofooter:
 :icons: font
@@ -22,26 +22,28 @@ The following table outlines the supported NetApp cluster configurations.
 [cols="25,25,25,25"]
 |===
 
-h| Cluster type h| Supported models h| Supported features h| Nodes supported
+h| Cluster type h| Supported models h| Supported features h| Maximum supported cluster nodes
 
 a| AFF
 a| A-Series, C-Series
 a| Automated Failover Duplex (Symmetric Active/Active), Automated Failover (Asymmetric Active/Active)
-a| Two-node or four-node clusters ^1^
-a| All San Array (ASA)
+a| 
+* 2 (ONTAP 9.9.1 or later)  
+* 4 (ONTAP 9.16.1 with Symmetric AA configurations)
+
+a| ASA
 a| A-Series, C-Series
 a| Automated Failover Duplex (Symmetric AA), Automated Failover (Asymmetric AA)
-a| Two-node or four-node clusters ^1^
+a| 
+* 2 (ONTAP 9.9.1 or later 
+* 4 (ONTAP 9.16.1 with Symmetric AA configurations)
+
 a| ASA r2 
-a| -
+a| All
 a| Automated Failover Duplex (Symmetric AA)
-a| Two-node high availability (HA) clusters
+a| 2
 |===
 
-// Start snippet: numbered list - 1 entry
-// No placeholders
-. Support for four-node clusters is available beginning with ONTAP 9.16.1 and requires Symmetric AA.
-// End snippet
 
 The table below outlines the capability for replication between cluster types.
 
@@ -59,15 +61,16 @@ a| AFF
 a| ASA
 a| No 
 
-a| ASA ^1^
+a| ASA 
 a| ASA r2
 a| No
+
+a| ASA r2
+a| ASA r2
+a| Yes
+
 |===
 
-// Start snippet: numbered list - 1 entry
-// No placeholders
-. For more information on the cluster types ASA supports, see link:../asa/support-limitations.html[All-Flash SAN Array configuration limits and support].
-// End snippet
 
 == Software
 * ONTAP 9.9.1 or later
@@ -90,10 +93,25 @@ If your ONTAP storage systems were purchased before June 2019, see link:https://
 * Beginning with ONTAP 9.14.1, link:https://kb.netapp.com/onprem/ontap/da/SAN/What_are_SCSI_Reservations_and_SCSI_Persistent_Reservations[SCSI-3 persistent reservations] are supported with SnapMirror active sync.
 
 == Supported protocols
+SnapMirror active sync supports SAN protocols. 
 
-* Only SAN protocols are supported (not NFS/SMB).
-* Only Fibre Channel and iSCSI protocols are supported. 
-* The default IPspace is required by SnapMirror active sync for cluster peer relationships. Custom IPspace is not supported.
+* The FC and iSCSI protocols are supported beginning with ONTAP 9.9.1.
+* The NVMe protocol is supported with VMware workloads beginning with ONTAP 9.17.1. 
++
+[NOTE]
+NVMe/TCP with VMware depends on the resolution of VMware Bug ID: TR1049746. 
++
+SnapMirror active sync does not support the following with the NVMe protocol:
+
+** 4-node symmetric active/active configurations 
+** Changes in consistency group size 
++
+You cannot expand or shrink a consistency group when using the NVMe protocol with SnapMirror active sync.   
+** Coexistence of LUNs and namespaces in the same consistency group is not supported.
+
+== IPspace
+
+The default IPspace is required by SnapMirror active sync for cluster peer relationships. Custom IPspace is not supported.
 
 == NTFS Security Style
 
@@ -115,6 +133,8 @@ NTFS security style is *not* supported on SnapMirror active sync volumes.
 * link:https://hwu.netapp.com/[Hardware Universe^]
 * link:../mediator/mediator-overview-concept.html[ONTAP Mediator overview^]
 
+
+// 2025-July-1, ONTAPDOC-2726
 // 20-May-2025, ONTAPDOC-2926
 // 27-Mar-2025, issue# 1690
 // 11 Feb 2025, ONTAPDOC-2670
