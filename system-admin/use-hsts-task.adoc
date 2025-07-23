@@ -1,0 +1,76 @@
+---
+permalink: system-admin/use-hsts-task.html
+sidebar: sidebar
+keywords: manage, http, https, hsts, strict transport security, security, web, access, certificate, encrypted, connection, server, browser, web services
+summary: "Use HSTS to enforce HTTPS connections for ONTAP web services."
+---
+= Use HSTS for ONTAP web services
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+HTTP Strict Transport Security (HSTS) is a web security policy mechanism that helps protect websites against man-in-the-middle attacks such as protocol downgrade attacks and cookie hijacking. By enforcing the use of HTTPS, HSTS ensures that all communications between the user's browser and the server are encrypted. Beginning with ONTAP 9.17.1, ONTAP can enforce HTTPS connections for ONTAP web services.
+
+NOTE: HSTS is enforced by the web browser only after an initial secure HTTPS connection is established with ONTAP. If the browser does not establish an initial secure connection, HSTS will not be enforced. Refer to your browser documentation for information on HSTS management.
+
+.About this task
+* For 9.17.1 and above, HSTS is enabled by default for newly installed ONTAP clusters. When you upgrade to 9.17.1, HSTS is not enabled by default. You must enable HSTS after the upgrade.
+* HSTS is supported for all link:../system-admin/manage-web-services-concept.html[ONTAP web services].
+
+.Before you begin
+* Advanced privileges are required for the following tasks.
+
+== Show HSTS configuration
+You can show the current HSTS configuration to check if it is enabled and view the maximum age setting.
+
+.Steps
+. Use the `system services web show` command to show the current web services configuration, including HSTS settings:
++
+----
+cluster-1::system services web*> show
+
+                   External Web Services: true
+                               HTTP Port: 80
+                              HTTPS Port: 443
+                         Protocol Status: online
+                       Per Address Limit: 80
+                     Wait Queue Capacity: 192
+                            HTTP Enabled: true
+                 CSRF Protection Enabled: true
+Maximum Number of Concurrent CSRF Tokens: 500
+       CSRF Token Idle Timeout (Seconds): 900
+   CSRF Token Absolute Timeout (Seconds): 0
+          Allow Web Management via Cloud: true
+Enforce Network Interface Service-Policy: -
+                            HSTS Enabled: true
+                  HSTS max age (Seconds): 63072000
+----
+
+== Enable HSTS and set the maximum age
+Beginning with ONTAP 9.17.1, HSTS is enabled by default on new ONTAP cluster. If you upgrade an existing cluster to 9.17.1 or later, you need to manually enable HSTS on your cluster to enforce use of HTTPS. You can enable HSTS and set the maximum age. You can change the maximum age at any time if HSTS is enabled. Once HSTS is enabled, browsers will begin enforcing secure connections only after an initial secure connection is established.
+
+.Steps
+. Use the `system services web modify` command to enable HSTS or modify the maximum age:
++
+[source,cli]
+----
+system services web modify -hsts-enabled true -hsts-max-age <seconds>
+----
+`-hsts-max-age` specifies the duration in seconds for which the browser will remember to enforce HTTPS. The default value is 63072000 seconds (two years).
+
+== Disable HSTS
+
+Browsers save the HSTS maximum age setting with each connection, and they continue to enforce HSTS for the entire duration even if HSTS is disabled on ONTAP. It will take up to the configured maximum age duration for the browser to stop enforcing HSTS after it is disabled. If a secure connection becomes impossible during this time, browsers enforcing HSTS will not permit access to ONTAP web services until the issue is resolved or the browser's maximum age expires.
+
+.Steps 
+. Disable HSTS using the `system services web modify` command:
++
+[source,cli]
+----
+system services web modify -hsts-enabled false
+----
+
+.Related information
+link:https://datatracker.ietf.org/doc/html/rfc6797[RFC 6797 - HTTP Strict Transport Security (HSTS)^]
+
+//6-27-25 ONTAPDOC-2930
