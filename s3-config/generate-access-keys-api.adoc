@@ -16,7 +16,7 @@ Beginning with ONTAP 9.14.1, as an ONTAP administrator, you can create custom ro
 You have to perform a few configuration steps on your storage VM so that the custom role can be created and assigned to the user that invokes the API for access key generation.
 
 [NOTE]
-If LDAP is disabled, you can configure link:configure-access-ldap.html[active directory and SMB with domain-based authentication] to allow users to generate access keys.
+If LDAP is disabled, you can link:configure-access-ldap.html[configure external directory services for ONTAP S3 access] to allow users to generate access keys.
 
 .Before you begin
 Ensure the following:
@@ -31,8 +31,14 @@ Ensure the following:
 
 == Configure users for access key generation
 
+.Steps
+[role="tabbed-block"]
+====
+.LDAP users
+--
 . Specify LDAP as the _name service database_ of the storage VM for the group and password to LDAP:
 +
+[source,cli]
 ----
 ns-switch modify -vserver <vserver-name> -database group -sources files,ldap
 ns-switch modify -vserver <vserver-name> -database passwd -sources files,ldap
@@ -50,9 +56,10 @@ security login rest-role create -vserver svm-1 -role s3role -api "/api/protocols
 +
 Learn more about `security login rest-role create` in the link:https://docs.netapp.com/us-en/ontap-cli/security-login-rest-role-create.html[ONTAP command reference^].
 
-. Create an LDAP user group with the security login command and add the new custom role for accessing the S3 user REST API endpoint. Learn more about `security login create` in the link:https://docs.netapp.com/us-en/ontap-cli//security-login-create.html[ONTAP command reference^].
+. Create an LDAP user group with the `security login` command and add the new custom role for accessing the S3 user REST API endpoint. Learn more about `security login create` in the link:https://docs.netapp.com/us-en/ontap-cli//security-login-create.html[ONTAP command reference^].
 
 +
+[source,cli]
 ----
 security login create -user-or-group-name <ldap-group-name> -application http -authentication-method nsswitch -role <custom-role-name> -is-ns-switch-group yes
 ----
@@ -67,14 +74,55 @@ For more information, see link:../nfs-admin/ldap-fast-bind-nsswitch-authenticati
 +
 Learn more about `security login create` in the link:https://docs.netapp.com/us-en/ontap-cli/security-login-create.html[ONTAP command reference^].
 
-Adding the custom role to the domain or LDAP group allows users in that group a limited access to the ONTAP `/api/protocols/s3/services/{svm.uuid}/users` endpoint. By invoking the API, the domain or LDAP group users can generate their own access and secret keys to access the S3 client. They can generate the keys for only themselves and not for other users.
+Adding the custom role to the LDAP group allows users in that group a limited access to the ONTAP `/api/protocols/s3/services/{svm.uuid}/users` endpoint. By invoking the API, the LDAP group users can generate their own access and secret keys to access the S3 client. They can generate the keys for only themselves and not for other users.
+
+--
+
+.Domain users
+--
+
+. Create a custom role with access to S3 user REST API endpoint:
+
+[source,cli]
+----
+security login rest-role create -vserver <vserver-name> -role <custom-role-name> -api "/api/protocols/s3/services/*/users" -access <access-type>
+----
+
+In this example, the `s3-role` role is generated for users on the storage VM `svm-1`, to which all access rights, read, create, and update are granted.
+
+----
+security login rest-role create -vserver svm-1 -role s3role -api "/api/protocols/s3/services/*/users" -access all
+----
+
+Learn more about `security login rest-role create` in the link:https://docs.netapp.com/us-en/ontap-cli/security-login-rest-role-create.html[ONTAP command reference^].
+
+. Create a domain user group with the `security login` command and add the new custom role for accessing the S3 user REST API endpoint. Learn more about `security login create` in the link:https://docs.netapp.com/us-en/ontap-cli//security-login-create.html[ONTAP command reference^].
+
++
+[source,cli]
+----
+security login create -vserver <vserver-name> -user-or-group-name domain\<group-name> -application http -authentication-method domain -role <custom-role-name>
+----
++
+In this example, the domain group `domain\group1` is created in `svm-1`, and the custom role `s3role` is added to it for accessing the API endpoint.
++
+----
+security login create -user-or-group-name domain\group1 -application http -authentication-method domain -role s3role -vserver svm-1
+----
++
+Learn more about `security login create` in the link:https://docs.netapp.com/us-en/ontap-cli/security-login-create.html[ONTAP command reference^].
+
+Adding the custom role to the domain group allows users in that group a limited access to the ONTAP `/api/protocols/s3/services/{svm.uuid}/users` endpoint. By invoking the API, the domain group users can generate their own access and secret keys to access the S3 client. They can generate the keys for only themselves and not for other users.
+--
+====
+
 
 == As an S3 or LDAP user, generate your own access keys
 Beginning with ONTAP 9.14.1, you can generate your own access and secret keys for accessing S3 clients, if your administrator has granted you the role to generate your own keys. You can generate keys for only yourself by using the following ONTAP REST API endpoint.
 
-.HTTP method and endpoint
+.Create an S3 user and generate keys
 
-This REST API call uses the following method and endpoint. For information about the other methods of this endpoint, see the reference https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation[API documentation].
+This REST API call uses the following method and endpoint. For more information on this endpoint, see the reference https://docs.netapp.com/us-en/ontap-automation/reference/api_reference.html#access-a-copy-of-the-ontap-rest-api-reference-documentation[API documentation].
 
 [cols="25,75"*,options="header"]
 |===
@@ -83,6 +131,8 @@ This REST API call uses the following method and endpoint. For information about
 |POST
 |/api/protocols/s3/services/{svm.uuid}/users
 |===
+
+For domain users, use the following format for the S3 user name: `user@fqdn`, where `fqdn` is the fully qualified domain name of the domain.
 
 .Curl example
 
@@ -93,7 +143,7 @@ curl
 --include \
 --header "Accept: */*" \
 --header "Authorization: Basic $BASIC_AUTH"
---data '{"name":"_name_"}'
+--data '{"name":"user1@example.com"}'
 
 
 .JSON output example
@@ -102,7 +152,7 @@ curl
 {
   "records": [
     {
-      "access_key": "Pz3SB54G2B_6dsXQPrA5HrTPcf478qoAW6_Xx6qyqZ948AgZ_7YfCf_9nO87YoZmskxx3cq41U2JAH2M3_fs321B4rkzS3a_oC5_8u7D8j_45N8OsBCBPWGD_1d_ccfq",
+      "access_key": "4KX07KF7ML8YNWY01JWG",
       "_links": {
         "next": {
           "href": "/api/resourcelink"
@@ -111,8 +161,8 @@ curl
           "href": "/api/resourcelink"
         }
       },
-      "name": "user-1",
-      "secret_key": "A20_tDhC_cux2C2BmtL45bXB_a_Q65c_96FsAcOdo14Az8V31jBKDTc0uCL62Bh559gPB8s9rrn0868QrF38_1dsV2u1_9H2tSf3qQ5xp9NT259C6z_GiZQ883Qn63X1"
+      "name": "user1@example.com",
+      "secret_key": "<secret_key_value>"
     }
   ],
   "num_records": "1"
@@ -120,7 +170,51 @@ curl
 
 ----
 
+.Regenerate keys for an S3 user
 
+If an S3 user already exists, you can regenerate their access and secret keys. This REST API call uses the following method and endpoint.
+
+[cols="25,75"*,options="header"]
+|===
+|HTTP method
+|Path
+|PATCH
+|/api/protocols/s3/services/{svm.uuid}/users/{name}
+|===
+
+.Curl example
+
+[source,curl]
+curl 
+--request PATCH \
+--location "https://$FQDN_IP /api/protocols/s3/services/{svm.uuid}/users/{name} " \
+--include \
+--header "Authorization: Basic $BASIC_AUTH" \
+--data '{"regenerate_keys":"True"}'
+
+
+.JSON output example
+
+----
+{
+  "records": [
+    {
+      "access_key": "DX12U609DMRVD8U30Z1M",
+      "_links": {
+        "self": {
+          "href": "/api/resourcelink"
+        }
+      },
+      "name": "user1@example.com",
+      "secret_key": "<secret_key_value>"
+    }
+  ],
+  "num_records": "1"
+}
+
+----
+
+// 2025 July 3, ONTAPDOC-3091
 // 2025 June 16, ONTAPDOC-2981
 // 2025 June 16, ONTAPDOC-2960
 // 2025 May 29, ONTAPDOC-2982
