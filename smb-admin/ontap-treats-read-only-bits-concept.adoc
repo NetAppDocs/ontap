@@ -8,41 +8,8 @@ summary: "The read-only bit is set on a file-by-file basis to reflect whether a 
 :icons: font
 :imagesdir: ../media/
 
-[.lead]
-The read-only bit is set on a file-by-file basis to reflect whether a file is writable (disabled) or read-only (enabled).
+include::../_include/read-only-bit.adoc[]
 
-SMB clients that use Windows can set a per-file read-only bit. NFS clients do not set a per-file read-only bit because NFS clients do not have any protocol operations that use a per-file read-only bit.
-
-ONTAP can set a read-only bit on a file when an SMB client that uses Windows creates that file. ONTAP can also set a read-only bit when a file is shared between NFS clients and SMB clients. Some software, when used by NFS clients and SMB clients, requires the read-only bit to be enabled.
-
-For ONTAP to keep the appropriate read and write permissions on a file shared between NFS clients and SMB clients, it treats the read-only bit according to the following rules:
-
-* NFS treats any file with the read-only bit enabled as if it has no write permission bits enabled.
-* If an NFS client disables all write permission bits and at least one of those bits had previously been enabled, ONTAP enables the read-only bit for that file.
-* If an NFS client enables any write permission bit, ONTAP disables the read-only bit for that file.
-* If the read-only bit for a file is enabled and an NFS client attempts to discover permissions for the file, the permission bits for the file are not sent to the NFS client; instead, ONTAP sends the permission bits to the NFS client with the write permission bits masked.
-* If the read-only bit for a file is enabled and an SMB client disables the read-only bit, ONTAP enables the owner's write permission bit for the file.
-* Files with the read-only bit enabled are writable only by root.
-
-The read-only bit interacts with the ACL and Unix mode bits in the following ways:
-
-When the read-only bit is set on a file:
-
-* No changes are made to the ACL for that file. NFS clients will see the same ACL as before the read-only bit was set.
-* Any Unix mode bits that allow write access for the file are ignored.
-* Both NFS and SMB clients can read the file, but they cannot modify it.
-* ACLs and UNIX mode bits are ignored in favor of the read-only bit. This means that even if the ACL allows write access, the read-only bit prevents modifications.
-
-When the read-only bit is not set on a file:
-
-* ONTAP determines access based on the ACL and UNIX mode bits. 
-** If either the ACL or the UNIX mode bits deny write access, then NFS and SMB clients cannot modify the file. 
-** If neither the ACL nor UNIX mode bits deny write access, then NFS and SMB clients can modify the file.
-
-[NOTE]
-====
-Changes to file permissions take effect immediately on SMB clients, but might not take effect immediately on NFS clients if the NFS client enables attribute caching.
-====
 
 // 2025 July 16, ONTAPDOC-1774
 // 2025 May 29, ONTAPDOC-2981
