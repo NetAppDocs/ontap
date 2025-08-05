@@ -4,18 +4,27 @@ sidebar: sidebar
 keywords: perform, directory, delete, files, asynchronous, share, flexvol, flex vol, flexgroup, flex group, cancel
 summary: "Beginning with ONTAP 9.8, you can use the volume file async-delete command to delete files and directories from Linux and Windows client shares in the background. You can perform asynchronous delete on both FlexVol and FlexGroup volumes."
 ---
-= Delete directories asynchronously on the ONTAP cluster
+= Delete directories asynchronously from ONTAP FlexGroup volumes
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.8, you can use asynchronous delete functionality to delete directories from Linux and Windows client shares asynchronously (that is, in the background). Cluster and SVM administrators can perform asynchronous delete operations on both FlexVol and FlexGroup volumes.
+Beginning with ONTAP 9.8, you can delete directories from Linux and Windows client shares asynchronously (that is, in the background). Cluster and SVM administrators can perform asynchronous delete operations on both FlexVol and FlexGroup volumes.
 
-If you are using a version of ONTAP earlier than ONTAP 9.11.1, you must be a cluster administrator or an SVM administrator using the advanced privilege mode.
+.About this task
+
+You must be a cluster administrator or an SVM administrator using the advanced privilege mode.
+
+
+Beginning with ONTAP 9.8, you can use asynchronous delete functionality using the ONTAP CLI. Beginning with ONTAP 9.9.1, you can use this functionality with System Manager. For more information about this process, see link:../task_nas_file_system_analytics_take_corrective_action.html[Take corrective action based on ONTAP analytics in FSA].
 
 Beginning with ONTAP 9.11.1, a storage administrator can grant rights on a volume to allow NFS and SMB clients to perform asynchronous delete operations. For more information, see link:manage-client-async-dir-delete-task.html[Manage client rights to delete directories asynchronously].
 
-Beginning with ONTAP 9.8, you can use asynchronous delete functionality using the ONTAP CLI. Beginning with ONTAP 9.9.1, you can use this functionality with System Manager. For more information about this process, see link:../task_nas_file_system_analytics_take_corrective_action.html[Take corrective action based on analytics].
+You can use the `volume file async-delete show` command to check the status of in-progress asynchronous delete jobs, and, beginning with ONTAP 9.17.1, the status of asynchronous delete jobs issued from clients is also displayed.
+
+== Delete directories asynchronously
+
+You can use System Manager or the ONTAP CLI to delete directories asynchronously. 
 
 [role="tabbed-block"]
 ====
@@ -35,20 +44,22 @@ include::../_include/delete-directories-or-files-sm.adoc[]
 
 . Enter advanced privilege mode:
 +
-`-privilege advance`
+`set -privilege advanced`
 
 . Delete directories on a FlexVol or FlexGroup volume:
 +
-`volume file async-delete start -vserver vserver_name -volume volume_name -path file_path -throttle throttle`
+`volume file async-delete start -vserver <SVM_name> -volume <volume_name> -path <file_path> -throttle <throttle>`
 +
-The minimum throttle value is 10, the maximum is 100,000, and the default is 5000.
+The minimum throttle value is 10, the maximum is 100,000, and the default is 5000. Lower throttle values use less resources, which can result in a slower deletion rate, while higher throttle values use more resources, but can result in a faster deletion rate.
 +
 The following example deletes the directory named d2, which is located in the directory named d1.
 +
 ....
-cluster::*>volume file async-delete start -vserver vs1 -volume vol1 -path d1/d2
+cluster::*> volume file async-delete start -vserver vs1 -volume vol1 -path d1/d2
 ....
-
+. (Optional) Check the status of the in-progress async delete jobs:
++
+`volume file async-delete show`
 . Verify that the directory was deleted:
 +
 `event log show`
@@ -56,15 +67,18 @@ cluster::*>volume file async-delete start -vserver vs1 -volume vol1 -path d1/d2
 The following example shows output for the event log when the directory is successfully deleted.
 +
 ....
-cluster-cli::*> event log show
-Time                 Node             Severity      Event
--------------------  ---------------- ------------- --------------------
-MM/DD/YYYY 00:11:11  cluster-vsim     INFORMATIONAL asyncDelete.message.success: Async delete job on path d1/d2 of volume (MSID: 2162149232) was completed.
+cluster::*> event log show
+
+Time                Node             Severity      Event
+------------------- ---------------- ------------- ---------------------------
+7/7/2025 09:04:04   cluster-vsim     NOTICE        asyncDelete.message.success: Async delete job on path d1/d2 of volume (MSID: 2162149232) was completed. Number of files deleted: 7, Number of directories deleted: 5. Total number of bytes deleted: 135168.
 ....
 +
 Learn more about `event log show` in the link:https://docs.netapp.com/us-en/ontap-cli/event-log-show.html[ONTAP command reference^].
+--
+====
 
-*Cancel a directory delete job*
+== Cancel a directory delete job
 
 .  Enter advanced privilege mode:
 +
@@ -77,10 +91,12 @@ If the SVM, volume, JobID, and path of your directory is displayed, you can canc
 
 . Cancel the directory delete:
 +
-`volume file async-delete cancel -vserver _SVM_name_ -volume _volume_name_ -jobid _job_id_`
---
-====
+`volume file async-delete cancel -vserver <SVM_name> -volume <volume_name> -jobid <job_id>`
 
+
+// 2025-July-6, ONTAPDOC-2787
+// 2025 June 13, ONTAPDOC-3078
+// 2025 Mar 10, ONTAPDOC-2758
 // 2025-May-21, issue# 1732
 // 2025 Apr 18, ONTAPDOC-2960
 // 2-APR-2025 ONTAPDOC-2919
