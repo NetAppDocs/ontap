@@ -19,6 +19,7 @@ The source and destination volumes must be created in peered clusters with peere
 
 * Beginning with ONTAP 9.5, you can replicate WORM files with the XDP (extended data protection) type SnapMirror relationship rather than the DP (data protection) type relationship. XDP mode is ONTAP version-independent, and is able to differentiate files stored in the same block, making it much easier to resync replicated Compliance-mode volumes. For information on how to convert an existing DP-type relationship to an XDP-type relationship, see link:../data-protection/index.html[Data Protection].
 * A resync operation on a DP type SnapMirror relationship fails for a Compliance-mode volume if SnapLock determines that it will result in a loss of data. If a resync operation fails, you can use the `volume clone create` command to make a clone of the destination volume. You can then resync the source volume with the clone.
+* A SnapMirror relationship of a SnapLock volume only supports the `MirrorAllSnapshots` policy of type async-mirror. The retention period of a SnapLock volume is determined by the maximum retention period among all the WORM files that it holds. Because the destination is a DR copy of the source, the retention period of the destination SnapLock volume will be same as the source. 
 * A SnapMirror relationship of type XDP between SnapLock compliant volumes supports a resync after a break even if data on the destination has diverged from the source post the break.
 +
 On a resync, when data divergence is detected between the source the destination beyond the common snapshot, a new snapshot is cut on the destination to capture this divergence. The new snapshot and the common snapshot are both locked with a retention time as follows:
@@ -73,7 +74,7 @@ Beginning with ONTAP 9.12.1, you can use System Manager to set up SnapMirror rep
 `*volume create -vserver _SVM_name_ -volume _volume_name_ -aggregate _aggregate_name_ -snaplock-type compliance|enterprise -type DP -size _size_*`
 +
 [NOTE]
-Beginning with ONTAP 9.10.1, SnapLock and non-SnapLock volumes can exist on the same aggregate; therefore, you are no longer required to create a separate SnapLock aggregate if you are using ONTAP 9.10.1. You use the volume -snaplock-type option to specify a Compliance or Enterprise SnapLock volume type. In ONTAP releases earlier than ONTAP 9.10.1, the SnapLock mode--Compliance or Enterprise--is inherited from the aggregate. Version-flexible destination volumes are not supported. The language setting of the destination volume must match the language setting of the source volume.
+Beginning with ONTAP 9.10.1, SnapLock and non-SnapLock volumes can exist on the same aggregate; therefore, you are no longer required to create a separate SnapLock aggregate if you are using ONTAP 9.10.1. You use the volume -snaplock-type option to specify a Compliance or Enterprise SnapLock volume type. In ONTAP releases earlier than ONTAP 9.10.1, the SnapLock mode--Compliance or Enterprise--is inherited from the aggregate. The language setting of the destination volume must match the language setting of the source volume.
 +
 The following command creates a 2 GB SnapLock `Compliance` volume named `dstvolB` in `SVM2` on the aggregate `node01_aggr`:
 +
@@ -143,6 +144,7 @@ SVM2::> snapmirror initialize -destination-path SVM2:dstvolB
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-policy-create.html[snapmirror policy create^]
 
 
+// 2025-Aug-5, GitHub 1804
 // 2025 July 24, ONTAPDOC-2960
 // 2024-Fedb-21, ONTAPDOC-1366
 // 23 NOV 2021, remove non-existent link
