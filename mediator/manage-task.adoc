@@ -183,14 +183,17 @@ CGroup: /system.slice/ontap_mediator.service
          tcp6  0   0 :::3260         :::*           LISTEN
 ----
 
+== Perform host maintenance
 
-== Manually uninstall SCST to perform host maintenance
+If the VM running ONTAP Mediator needs to be upgraded with a newer kernel, this can cause compatibility issues with the SCST kernel modules used by ONTAP Mediator. In this scenario, NetApp recommends that you manually uninstall and reinstall SCST.
+
+=== Step 1: Manually uninstall SCST
 
 To uninstall SCST, you need the SCST tar bundle that is used for the installed version of ONTAP Mediator.
 
 .Steps
 
-. Download the appropriate SCST bundle (as shown in the following table) and untar it.
+. Download the appropriate SCST bundle (as shown in the following table) and extract it.
 +
 [[scst-bundle-table]]
 [cols="50,50"]
@@ -212,7 +215,11 @@ a| ONTAP Mediator 1.0      a| scst-3.3.0.tar.bz2
 
 |===
 
-. Issue the following commands in the "scst" directory:
+.. Access the open source package from the link:https://scst.sourceforge.net/downloads.html[SCST sourceforge downloads^].
+.. Select *Download released versions*.
+.. Extract the bundle to your VM.
+
+. Run the following uninstall commands in the `scst` directory:
 .. `systemctl stop mediator-scst`
 .. `make scstadm_uninstall`
 .. `make iscsi_uninstall`
@@ -220,22 +227,34 @@ a| ONTAP Mediator 1.0      a| scst-3.3.0.tar.bz2
 .. `make scst_uninstall`
 .. `depmod`
 
-== Manually install SCST to perform host maintenance
+=== Step 2: Manually install SCST
 
-To manually install SCST, you need the SCST tar bundle that is used for the installed version of ONTAP Mediator (see the <<scst-bundle-table,table above>>).
+To manually install SCST, you need the SCST tar bundle that is used for the installed version of ONTAP Mediator (see the <<scst-bundle-table,SCST table>>).
 
-. Issue the following commands in the "scst" directory:
+NOTE: Perform this step before you install the ONTAP Mediator. If the SCST version you're using is newer than the version bundled with the ONTAP Mediator installer, the installer skips this step.
+
+. Run the following install commands in the `scst` directory:
 .. `make 2release`
 .. `make scst_install`
 .. `make usr_install`
 .. `make iscsi_install`
 .. `make scstadm_install`
 .. `depmod`
-.. `cp scst/src/certs/scst_module_key.der /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/`
++
+[NOTE]
+====
+If you're performing a first-time installation and want to pre-install ONTAP Mediator, run the following command before continuing with the next step: 
+
+`mkdir -p /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys`.
+====
+
+.. `cp scst/src/certs/scst_module_key.der /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/` 
 .. `patch /etc/init.d/scst < /opt/netapp/lib/ontap_mediator/systemd/scst.patch`
++
+NOTE: If you're performing a first-time installation and want to pre-install SCST before installing ONTAP Mediator, you can skip this step. The ONTAP Mediator installer applies any relevant patches to the SCST components during installation.
 
 . Optionally, if Secure Boot is enabled, before you reboot, perform the following steps:
-.. Determine each file name for "scst_vdisk", "scst", and "iscsi_scst" modules:
+.. Determine each file name for the `scst_vdisk`, `scst`, and `iscsi_scst` modules:
 +
 ....
 [root@localhost ~]# modinfo -n scst_vdisk
@@ -249,7 +268,7 @@ To manually install SCST, you need the SCST tar bundle that is used for the inst
 [root@localhost ~]# uname -r
 ....
 
-.. Sign each file with the kernel:
+.. Sign each module file with the kernel:
 +
 ....
 [root@localhost ~]# /usr/src/kernels/<KERNEL-RELEASE>/scripts/sign-file \sha256 \
@@ -258,7 +277,7 @@ To manually install SCST, you need the SCST tar bundle that is used for the inst
 _module-filename_
 ....
 
-.. Install the correct key with the UEFI firmware.
+.. Install the UEFI key with the firmware.
 + 
 Instructions for installing the UEFI key are located at:
 +
@@ -268,7 +287,7 @@ The generated UEFI key is located at:
 +
 `/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/scst_module_key.der`
 
-. Perform a reboot:
+. Reboot the system:
 +
 `reboot`
 
@@ -996,6 +1015,7 @@ If the Online Certificate Status Protocol (OCSP) validation is being used, use t
 
 // ONTAPDOC-3089, 14 July 2025
 // 2025 Jun 27, LIPI error from duplicate anchors
+// 2025 JUNE 03, ONTAPDOC-2287
 // 2025 MAY 19, ONTAPDOC-2926
 // 2025 APR 03, ONTAPDOC-2920
 // 2025 Jan 16, ONTAPDOC-2636
