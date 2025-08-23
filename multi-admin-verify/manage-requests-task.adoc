@@ -2,14 +2,14 @@
 sidebar: sidebar
 permalink: multi-admin-verify/manage-requests-task.html
 keywords: ontap, mav, multi, admin, multi admin verify, verification, administrator, protected, operation, rules, request, cluster, approve, rbac, manage, cli, system, manager
-summary: "When administrators in a MAV approval group (MAV administrators) are notified of a pending operation execution request, they must respond with an approve or veto message within a fixed time period (approval expiry)."
+summary: "When administrators in a MAV approval group are notified of a pending operation request, they must respond with an approve or veto within a fixed time."
 ---
 = Manage MAV protected operation requests in ONTAP
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-When administrators in a MAV approval group (MAV administrators) are notified of a pending operation execution request, they must respond with an approve or veto message within a fixed time period (approval expiry). If a sufficient number of approvals are not received, the requester must delete the request and make another.
+When administrators in a MAV approval group (MAV administrators) are notified of a pending operation execution request, they must respond with an approve or veto message within a fixed time (approval expiry). If a sufficient number of approvals are not received, the requester must delete the request and make another.
 
 .About this task
 
@@ -33,13 +33,23 @@ Time approved:: The time when the request state changed to approved.
 Comment:: Any comments that are associated with the request.
 Users permitted:: The list of users permitted to perform the protected operation for which the request is approved. If `users-permitted` is empty, then any user with appropriate permissions can perform the operation.
 
-All expired or executed requests are deleted when a limit of 1000 requests is reached, or when the expired time is greater than 8hrs for expired requests. Vetoed requests are deleted once they are marked as expired.
+.Request deletion
 
-== System Manager procedure
+When a new admin request is created, the system checks an existing request for deletion based on the following criteria:
 
+* The request must be expired or executed.
+* If the request is more than one day old from its approval expiry time, it is deleted.
+* If there are more than 1000 requests in the table, an older request is deleted to maintain the limit.
+
+If the number of requests exceeds 1000 after this cleanup, a warning is issued to administrators.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
 MAV administrators receive email messages with details of the approval request, request expiry period, and a link to approve or reject the request. They can access an approval dialog by clicking the link in the email or navigate to *Events & Jobs>Requests* in System Manager.
 
-The *Requests* window is available when multi-admin verification is enabled, showing pending requests based on the user’s login ID and MAV role (approver or not).
+The *Requests* window is available when multi-admin verification is enabled, showing pending requests based on the user's login ID and MAV role (approver or not).
 
 * Operation
 * Index (number)
@@ -54,10 +64,11 @@ If a request is rejected by one approver, no further actions are possible.
 
 MAV administrators have additional controls in this window; they can approve, reject, or delete individual operations, or selected groups of operations. However, if the MAV administrator is the Requesting User, they cannot approve, reject or delete their own requests.
 
+--
 
-== CLI procedure
-
-.	When notified of pending requests by email, note the request’s index number and approval expiry period. The index number can also be displayed using the *show* or *show-pending* options mentioned below.
+.CLI
+--
+.	When notified of pending requests by email, note the request's index number and approval expiry period. The index number can also be displayed using the *show* or *show-pending* options mentioned below.
 . Approve or veto the request.
 +
 [cols=2a*,options="header", cols="50,50"]
@@ -142,9 +153,12 @@ Required Approvers: 2
    Users Permitted: -
 ----
 
+--
+====
+
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+multi-admin-verify[security multi-admin-verify^]
 
-
+// 2025-08-20, GH-1812
 // 2025 June 27, ONTAPDOC-2960
 // 2022-04-13, jira-467
