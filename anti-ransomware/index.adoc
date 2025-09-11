@@ -18,7 +18,7 @@ Beginning with ONTAP 9.10.1, ONTAP administrators can enable Autonomous Ransomwa
 
 ARP is built directly into ONTAP, ensuring integrated control and coordination with ONTAP's other features. ARP operates in real-time, processing data as it's written to or read from the file system, and detecting and responding to potential ransomware attacks quickly. 
 
-ARP creates locked snapshots at regular intervals alongside scheduled ones for added protection. It smartly manages snapshot retention duration. If no unusual activity is detected, snapshots are quickly recycled. However, if an attack is detected, a snapshot created before the start of an attack is kept for an extended period.
+ARP creates locked snapshots at regular intervals alongside scheduled ones for added protection. It smartly manages how long snapshots are kept. If no unusual activity is detected, snapshots are quickly recycled. However, if an attack is detected, a snapshot created before the start of an attack is kept for an extended period.
 
 == Licenses and enablement 
 
@@ -38,9 +38,7 @@ link:enable-task.html[You can enable Autonomous Ransomware Protection (ARP) on a
 
 == ONTAP ransomware protection strategy
 
-An effective ransomware detection strategy should include more than a single layer of protection.
-
-An analogy would be the safety features of a vehicle. You don't rely on a single feature, such as a seatbelt, to completely protect you in an accident. Air bags, anti-lock brakes, and forward-collision warning are all additional safety features that will lead to a much better outcome. Ransomware protection should be viewed in the same way.
+An effective ransomware detection strategy should include more than a single layer of protection. Consider the safety features of a vehicle as an analogy. You don't rely on a single feature, such as a seatbelt, to completely protect you in an accident. Air bags, anti-lock brakes, and forward-collision warning are safety features that collectively lead to a better outcome. Ransomware protection should be viewed in the same way.
 
 While ONTAP includes features like FPolicy, snapshots, SnapLock, and Active IQ Digital Advisor (also known as Digital Advisor) to help protect from ransomware, the following information focuses on the ARP feature with machine learning capabilities.
 
@@ -59,11 +57,11 @@ ONTAP ARP is designed to protect against denial-of-service attacks where the att
 ARP detects the spread of most ransomware attacks after only a small number of files are encrypted, responds automatically to protect data, and alerts you that a suspected attack is happening.
 
 [NOTE]
-No ransomware detection or prevention system can completely guarantee safety from a ransomware attack. Although it's possible an attack might go undetected, ARP acts as an important additional layer of defense if anti-virus software has failed to detect an intrusion.
+No ransomware detection system can guarantee complete safety. ARP provides an extra layer of defense if anti-virus software fails to detect an intrusion.
 
 == Learn about ARP modes
 
-After ARP is turned on for a volume, it progresses through two distinct modes. ARP uses a learning or evaluation period to establish a baseline of normal workload behavior. During that period, ARP analyzes system metrics to develop an alert profile before enabling active protection. After ARP transitions to an active detection mode, it begins monitoring abnormal activity in real time, automatically taking protective actions and generating alerts if abnormal behavior is detected.
+After ARP is enabled for a volume, it enters a learning period to establish a baseline. ARP analyzes system metrics to develop an alert profile before transitioning to active detection mode. In active mode, ARP monitors abnormal activity, taking protective actions and generating alerts if it detects abnormal behavior.
 
 For ARP, the learning mode and active mode behaviors differ by ONTAP version, volume type, and protocol (NAS or SAN).
 
@@ -135,9 +133,9 @@ You can view information about moderate threats in System Manager's *Events* sec
 
 === ARP snapshots
 
-In ONTAP 9.16.1 and earlier, ARP creates a snapshot when early signs of an attack are detected. A detailed analysis is then conducted to confirm or dismiss the potential attack. Because ARP snapshots are created proactively, even before an attack is fully confirmed, they might also be generated at regular intervals for certain legitimate applications. The presence of these snapshots should not be regarded as an anomaly. If an attack is confirmed, the attack probability is escalated to `Moderate`, and an attack notification is generated.
+ARP creates a snapshot when early signs of an attack are detected. A detailed analysis is then conducted to confirm or dismiss the potential attack. Because ARP snapshots are created proactively even before an attack is fully confirmed, they might also be generated at regular intervals for certain legitimate applications. The presence of these snapshots should not be regarded as an anomaly. If an attack is confirmed, the attack probability is escalated to `Moderate` and an attack notification is generated.
 
-Beginning with ONTAP 9.17.1, ARP snapshots are generated at regular intervals for both NAS and SAN volumes. ONTAP prepends a name to the ARP snapshot to make it easily identifiable.
+Beginning with ONTAP 9.17.1, ARP snapshots are generated at regular intervals for both NAS and SAN volumes as well as in response to detected anomalies. ONTAP prepends a name to the ARP snapshot to make it easily identifiable.
 
 Beginning with ONTAP 9.11.1, you can modify the retention settings. For more information, see link:modify-automatic-shapshot-options-task.html[Modify options for snapshots].
 
@@ -159,9 +157,14 @@ a| * High entropy is detected
 
 Snapshot creation interval is based on trigger type.
 
+a| * Snapshots are created at fixed 4-hour intervals, regardless of any specific trigger
+* Confirmation of an attack
+
+A "periodic" or "attack" snapshot is created based on trigger type.
+
 | Prepended name convention
 | "Anti_ransomware_periodic_backup"
-| "Anti_ransomware_backup"
+"Anti_ransomware_attack_backup"
 
 | Deletion behavior
 | ARP snapshot is locked and cannot be deleted by the administrator
@@ -203,11 +206,11 @@ This precautionary retention behavior doesn't exist earlier than ONTAP 9.16.1
 
 == How to recover data in ONTAP after a ransomware attack
 
-ARP builds on proven ONTAP data protection and disaster recovery technology to respond to ransomware attacks. ARP creates locked snapshots when early signs of an attack are detected in ONTAP 9.16.1 and earlier or at regular intervals in 9.17.1 and later. You'll need to first confirm whether the attack is real or a false positive. If you confirm the attack, the volume can be restored using the ARP snapshot.
+ARP builds on proven ONTAP data protection and disaster recovery technology to respond to ransomware attacks. ARP creates locked snapshots when early signs of an attack are detected. You'll need to first confirm whether the attack is real or a false positive. If you confirm the attack, the volume can be restored using the ARP snapshot.
 
-Locked snapshots cannot be deleted by normal means. However, if you decide later to mark the attack as a false positive, the locked copy will be deleted. 
+Locked snapshots cannot be deleted by normal means. However, if you decide later to mark the attack as a false positive, ONTAP deletes the locked copy. 
 
-With the knowledge of the affected files and the time of attack, it is possible to selectively recover the affected files from various snapshots rather than simply reverting the whole volume to one of the snapshots.
+You can recover affected files from select snapshots instead of reverting the entire volume.
 
 See the following topics for more information on responding to an attack and recovering data:
 
@@ -245,8 +248,8 @@ link:arp-ai-automatic-updates.html[Learn more about ARP/AI updates]
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
 
-
-// 2025 Aug 27, ONTAPDOC-1127
+// 2025 9-9, ONTAPDOC-3321
+// 2025 Aug 15, ONTAPDOC-1127
 // 2025, Jul 7, ontapdoc-2689
 // 2025, Jun 4, ontapdoc-3048
 // 2025 May 20, ONTAPDOC-2998
