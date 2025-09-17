@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: dump, restore, file, write, system, data, disk
 summary: "A dump restore writes file system data from tape to disk using a predefined process."
 ---
-= How a dump restore works
+= How a dump restore works with ONTAP NDMP
 :icons: font
 :imagesdir: ../media/
 
@@ -34,3 +34,39 @@ a|
 a|
 ONTAP repeats stages 2 and 3 until all the specified files are copied from the tape.
 |===
+
+== Types of data that the dump engine restores
+When a disaster or controller disruption occurs, the dump engine provides multiple methods for you to recover all of the data that you backed up, from single files, to file attributes, to entire directories. Knowing the types of data that dump engine can restore and when to use which method of recovery can help minimize downtime.
+
+You can restore data to an online mapped LUN. However, host applications cannot access this LUN until the restore operation is complete. After the restore operation is complete, the host cache of the LUN data should be flushed to provide coherency with the restored data.
+
+The dump engine can recover the following data:
+
+* Contents of files and directories
+* UNIX file permissions
+* ACLs
++
+If you restore a file that has only UNIX file permissions to an NTFS qtree or volume, the file has no Windows NT ACLs. The storage system uses only the UNIX file permissions on this file until you create a Windows NT ACL on it.
++
+[NOTE]
+====
+If you restore ACLs backed up from storage systems running Data ONTAP 8.2 to storage systems running Data ONTAP 8.1.x and earlier that have an ACE limit lower than 1,024, a default ACL is restored.
+====
+
+* Qtree information
++
+Qtree information is used only if a qtree is restored to the root of a volume. Qtree information is not used if a qtree is restored to a lower directory, such as `/vs1/vol1/subdir/lowerdir`, and it ceases to be a qtree.
+
+* All other file and directory attributes
+* Windows NT streams
+* LUNs
+ ** A LUN must be restored to a volume level or a qtree level for it to remain as a LUN.
++
+If it is restored to a directory, it is restored as a file because it does not contain any valid metadata.
+
+ ** A 7-Mode LUN is restored as a LUN on an ONTAP volume.
+* A 7-Mode volume can be restored to an ONTAP volume.
+* VM-aligned files restored to a destination volume inherit the VM-align properties of the destination volume.
+* The destination volume for a restore operation might have files with mandatory or advisory locks.
++
+While performing restore operation to such a destination volume, the dump engine ignores these locks.
