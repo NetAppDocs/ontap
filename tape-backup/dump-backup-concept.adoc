@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: dump, backup, qtree, file, system, data
 summary: "A dump backup writes file system data from disk to tape using a predefined process. You can back up a volume, a qtree, or a subtree that is neither an entire volume nor an entire qtree."
 ---
-= How a dump backup works
+= How a dump backup works with ONTAP NDMP
 :icons: font
 :imagesdir: ../media/
 
@@ -49,3 +49,54 @@ When ONTAP performs multiple dump backups simultaneously, the dump engine create
 ====
 When you are backing up from a snapshot, the dump engine does not create an additional snapshot.
 ====
+
+== Types of data that the dump engine backs up
+The dump engine enables you to back up data to tape to guard against disasters or controller disruptions. In addition to backing up data objects such as a files, directories, qtrees, or entire volumes, the dump engine can back up many types of information about each file. Knowing the types of data that the dump engine can back up and the restrictions to take into consideration can help you plan your approach to disaster recovery.
+
+In addition to backing up data in files, the dump engine can back up the following information about each file, as applicable:
+
+* UNIX GID, owner UID, and file permissions
+* UNIX access, creation, and modification time
+* File type
+* File size
+* DOS name, DOS attributes, and creation time
+* Access control lists (ACLs) with 1,024 access control entries (ACEs)
+* Qtree information
+* Junction paths
+
+Junction paths are backed up as symbolic links.
+
+* LUN and LUN clones
++
+You can back up an entire LUN object; however, you cannot back up a single file within the LUN object. Similarly, you can restore an entire LUN object but not a single file within the LUN.
++
+[NOTE]
+====
+The dump engine backs up LUN clones as independent LUNs.
+====
+
+* VM-aligned files
++
+Backup of VM-aligned files is not supported in releases earlier than Data ONTAP 8.1.2.
+
+[NOTE]
+====
+When a snapshot-backed LUN clone is transitioned from Data ONTAP operating in 7-Mode to ONTAP, it becomes an inconsistent LUN. The dump engine does not back up inconsistent LUNs.
+====
+
+When you restore data to a volume, client I/O is restricted on the LUNs being restored. The LUN restriction is removed only when the dump restore operation is complete. Similarly, during a SnapMirror single file or LUN restore operation, client I/O is restricted on both files and LUNs being restored. This restriction is removed only when the single file or LUN restore operation is complete. If a dump backup is performed on a volume on which a dump restore or SnapMirror single file or LUN restore operation is being performed, then the files or LUNs that have client I/O restriction are not included in the backup. These files or LUNs are included in a subsequent backup operation if the client I/O restriction is removed.
+
+[NOTE]
+====
+A LUN running on Data ONTAP 8.3 that is backed up to tape can be restored only to 8.3 and later releases and not to an earlier release. If the LUN is restored to an earlier release, then the LUN is restored as a file.
+====
+
+When you back up a SnapVault secondary volume or a volume SnapMirror destination to tape, only the data on the volume is backed up. The associated metadata is not backed up. Therefore, when you try to restore the volume, only the data on that volume is restored. Information about the volume SnapMirror relationships is not available in the backup and therefore is not restored.
+
+If you dump a file that has only Windows NT permissions and restore it to a UNIX-style qtree or volume, the file gets the default UNIX permissions for that qtree or volume.
+
+If you dump a file that has only UNIX permissions and restore it to an NTFS-style qtree or volume, the file gets the default Windows permissions for that qtree or volume.
+
+Other dumps and restores preserve permissions.
+
+You can back up VM-aligned files and the `vm-align-sector` option. For more information about VM-aligned files, see link:../volumes/index.html[Logical storage management].
