@@ -1,15 +1,15 @@
 ---
-permalink: volumes/increase-volume-size.html
+permalink: volumes/increase-volume-active-file-system-size.html
 sidebar: sidebar
 keywords: increase, active, file system, volume, cpu offload, compression offload, dedicated offload processor, storage efficiency, compression
 summary: "If you are moving a volume from a platform that _does not_ support dedicated offload processor storage efficiency to a platform that _does_ support dedicated offload storage efficiency, you should increase the size of the volume's active file system before moving the volume to prevent the volume from running out of space."
 ---
-= Increase your ONTAP volume size before migrating from 8k adaptive compression
+= Increase your ONTAP volume active file system before migrating from 8k adaptive compression
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Platforms that support 8k adaptive compression save space at the volume level. AFF C-Series platforms and platforms that support 32k compression save space at the aggregate level.  When migrating a volume from 8k adaptive compression to an AFF C-Series platform or to a platform with 32k compression, increase the volume size by the expected 8k compression savings. This prevents the volume from running out of free space during the volume move.
+Platforms that support 8k adaptive compression save space at the volume level. AFF C-Series platforms and platforms that support 32k compression save space at the aggregate level.  When migrating a volume from 8k adaptive compression to an AFF C-Series platform or to a platform with 32k compression, increase the size of the volume's active file system by the 8k compression savings. This prevents the volume from running out of free space during the volume move.
 
 The following systems support 32k compression:
 
@@ -28,21 +28,21 @@ If logical space reporting and enforcement is not enabled on your volume, you ca
 
 .Steps
 
-. Verify the volume's current size:
+. Verify the volume's current size and snapshot reserve:
 +
 [source, cli]
 ----
-volume show -vserver <vserver_name> -volume <volume_name> -fields size
+volume show-space 
 ----
 
-. Check the volume's expected compression space savings:
+. Check the volume's compression space savings:
 +
 [source,cli]
 ----
 volume show -vserver -volume -fields compression-space-saved
 ----
 
-. Increase the volume's active filesystem size by the amount shown for `compression-space-saved`.
+. Increase the volume's active filesystem size by the amount shown for `compression-space-saved` plus the snapshot reserve.
 +
 [source, cli]
 ----
@@ -51,7 +51,7 @@ volume size -vserver <vserver_name> -volume <volume_name> -new-size +<size>
 +
 .Example
 +
-If `compression-space-saved` shows that 20GB of space savings is expected, you should increase the volume's size by at least 20GB. 
+IF a volume is 100GB and has a 20% snapshot reserve; then the the active filesystem is 80GB and the snapshot reserve is 20GB.  To increase the active filesystem by 20GB, you must add 25GB to the overall volume size; that is, 20GB for the active filesystem and 5GB (20%) for the snapshot reserve.
 +
 ----
 volume size -vserver svm1 -volume volx -size +20GB
