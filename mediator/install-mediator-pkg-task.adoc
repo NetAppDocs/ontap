@@ -24,20 +24,7 @@ To install ONTAP Mediator, you must get the installation package and run the ins
 NOTE: To skip signature check during installation, use this command: `./ontap-mediator-1.11/ontap-mediator-1.11 -y --skip-code-signature-check`
 
 +
-The installer creates the required accounts and installs the required packages. If Mediator is already installed, you are prompted to upgrade.
-
-. Beginning with ONTAP Mediator 1.4, the Secure Boot mechanism is enabled on UEFI systems. When Secure Boot is enabled, you must take additional steps to register the security key after installation:
-
-** Follow the instructions in the README file to sign the SCST kernel module.:
-+
-`/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/README.module-signing`
-
-** Locate the required keys: 
-+
-`/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys`
-
-+
-NOTE: After installation, the system output provides the README files and key location.
+The installer creates the required accounts and installs the required packages. If the Mediator is already installed, it prompts you to upgrade.
 
 .Example of ONTAP Mediator installation (console output)
 [%collapsible]
@@ -66,7 +53,7 @@ Error querying OCSP responder
 80BBA032607F0000:error:1E800080:HTTP routines:OSSL_HTTP_REQ_CTX_nbio:failed reading data:crypto/http/http_client.c:549:
 80BBA032607F0000:error:1E800067:HTTP routines:OSSL_HTTP_REQ_CTX_exchange:error receiving:crypto/http/http_client.c:901:server=http://ocsp.entrust.net:80
    WARNING: The OCSP check failed while attempting to test the Code-Signature-Check certificate
-   Continue without code signature checking (only recommended if integrity has been established manually)? y(es)/N(o): yes
+   Continue without code signature checking (only recommended if integrity has been established manually)? yes/no: yes
  SKIPPING: Code signature check, manual override due to lack of OCSP response
 + Unpacking the ONTAP Mediator installer
 
@@ -115,7 +102,7 @@ Installing:
  make                                                                 x86_64                                          1:4.4.1-9.el10                                                 BaseOS                                             591 k
  openssl-devel                                                        x86_64                                          1:3.2.2-16.el10                                                AppStream                                          3.9 M
  patch                                                                x86_64                                          2.7.6-26.el10                                                  AppStream                                          134 k
- perl-ExtUtils-MakeMaker                                              noarch                                          2:7.70-513.el10                                                AppStream                                          297 k
+ perl-ExtUtils-MakeMaker                                              noarch                                          2:7.70-513.el10                                                AppStream                                           297 k
  python3-devel                                                        x86_64                                          3.12.9-1.el10                                                  AppStream        
  334 k
  python3-pip                                                          noarch                                          23.3.2-7.el10                                                  AppStream                                          3.2 M
@@ -288,7 +275,7 @@ Installed:
 Complete!
 OS package installations finished
 + Installing ONTAP Mediator. (Log: /root/ontap_mediator.vdizgQ/ontap-mediator-1.11.0/ontap-mediator-1.11.0/install_20250715160240.log)
-    This step will take several minutes. Use the log file to view progress.
+    This step takes several minutes. View progress in the log file.
     Sudoer config verified
     ONTAP Mediator rsyslog and logging rotation enabled
 + Install successful. (Moving log to /opt/netapp/lib/ontap_mediator/log/install_20250715160240.log)
@@ -297,8 +284,8 @@ OS package installations finished
            If SB is enabled in the future, SCST will not work unless the following action is taken:
            Using the keys in /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys follow
            instructions in /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/README.module-signing
-           to sign the SCST kernel module. Note that reboot will be needed.
-     SCST will not start automatically when Secure Boot is enabled and not configured properly.
+           to sign the SCST kernel module. Note that a reboot is needed.
+     SCST does not start automatically when Secure Boot is enabled and not configured properly.
 
 + Note: ONTAP Mediator generated a self-signed server certificate for temporary use on
     this host. If the DNS name or IP address for the host is changed, the certificate
@@ -347,6 +334,55 @@ root@mediator_host:~#
 ----
 ====
 
+== Register the security key for UEFI Secure Boot
+
+Beginning with ONTAP Mediator 1.4, the Secure Boot mechanism is enabled on UEFI systems. When Secure Boot is enabled, you must take additional steps to register the security key after installation.
+
+. Follow the instructions in the README file to sign the SCST kernel module.:
++
+`/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/README.module-signing`
+
+. Locate the required keys: 
++
+`/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys`
+
++
+NOTE: After installation, the system output provides the README files and key location.
+
+. Add the public key to the MOK list:
++
+`mokutil --import /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/scst_module_key.der`
++
+NOTE: You can leave the private key in its default location or move it to a secure location. You must keep the public key in its existing location so the Boot Manager can use it. For more information, see the README.module-signing file:
++
+`[root@hostname ~]# ls /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/
+README.module-signing  scst_module_key.der  scst_module_key.priv`
+
+. Reboot the host and use your device's UEFI Boot Manager to approve the new MOK. You'll need the passphrase provided for the `mokutil` utility in <<step_1_uefi,the step where you check if UEFI Secure Boot is enabled on your system>>. 
+
+== Signing SCST kernel modules
+
+Once ONTAP Mediator is installed, if the systemctl status `mediator-scst` shows as failed (inactive), follow these steps to sign the SCST kernel module.
+
+. During the build process a public/private key pair is generated in the `/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/` directory:
++ 
+`[root@mediator-host ~]# ls /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/
+README.module-signing  scst_module_key.der  scst_module_key.priv
+[root@mediator-host ~]#`
+ 
+. Start the process of importing the public key into the UEFI key repository using the following command:
++
+`[root@mediator-host ~]# mokutil --import /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/scst_module_key.der
+input password:
+input password again:
+[root@mediator-host ~]#`
+ 
+. The mokutil software will request a temporary password to be used for this key during the import process. 
+
+. Verify whether the import process has started wth the `mokutil --list-new` and then reboot the system. The bootloader starts the EFI MOK manager.
+
+. Use the menus on the screen to turn on the SCST kernel module key. After booting, run `systemctl status mediator-scst`. If the service starts, the SCST kernel modules are signed.
+
 // 2023 July 24, Public PR 1012
 // 2021-04-21 ONTAPEX-133437
 // 2021-05-05 review comment in IDR-67
@@ -364,3 +400,5 @@ root@mediator_host:~#
 //ONTAPDOC-3053, 9 Jun 2025
 //ONTAPDOC-3089, 2 Jul 2025
 //ONTAPDOC-3217, 2 Oct 2025
+//ONTAPDOC-2683, 7 Oct 2025
+//ONTAPDOC-2369, 7 Oct 2025
