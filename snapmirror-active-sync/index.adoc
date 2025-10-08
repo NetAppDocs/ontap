@@ -12,10 +12,19 @@ summary: Use SnapMirror active sync to protect applications with LUNs, enabling 
 :imagesdir: ../media/
 
 [.lead]
-SnapMirror active sync (also referred to as SnapMirror Business Continuity _[SM-BC]_), enables business services to continue operating even through a complete site failure, supporting applications to fail over transparently using a secondary copy. There is no manual intervention or custom scripting required to trigger a failover with SnapMirror active sync.
+SnapMirror active sync, also known as SnapMirror Business Continuity (SM-BC), allows business services to continue functioning in the event of a complete site failure. This technology enables applications to failover seamlessly to a secondary copy without manual intervention or custom scripting.
+
+NetApp SnapMirror active sync (SM-as) is designed to be a more granular, lower-cost, easier-to-use application-level protection with automatic failover. SnapMirror active sync enables mission-critical business services to keep operating, even during a complete site failure. With SnapMirror active sync, you can now synchronously replicate multiple volumes of an application (by adding them to a consistency group) between sites at geographically dispersed locations. You can automatically failover to the secondary copy in case of disruption of the primary, thus enabling business continuity for tier one applications.
+
+Regulations for financial institutions in some countries require businesses to periodically be serviceable from their secondary data centers. SnapMirror active sync, with its high availability clusters, enables these data center switchovers for business continuity. 
+
+Available beginning with ONTAP 9.9.1, SnapMirror active sync is supported on AFF and All-Flash SAN Array (ASA) clusters. The primary and secondary clusters must be of the same type: either ASA, ASA r2, or AFF. SnapMirror active sync protects applications with iSCSI or FCP LUNs or NVMe namespaces.
+
+SnapMirror active sync supports both symmetric and asymmetric configurations. Support for symmetric active/active was introduced in ONTAP 9.15.1. Symmetric active/active configuration allows both copies of a protected LUN to perform read and write I/O operations with bidirectional synchronous replication, enabling each LUN copy to serve local I/O requests.
+
 
 [NOTE]
-Beginning July 2024, content from technical reports previously published as PDFs has been integrated with ONTAP product documentation. The ONTAP SnapMirror active sync documentation now includes content from _TR-4878: SnapMirror active sync_.
+Beginning July 2024, content from technical reports previously published as PDFs has been integrated with ONTAP product documentation. The ONTAP SnapMirror active sync documentation now includes content from _TR-4878: SnapMirror active sync_. 
 
 == Benefits
 
@@ -34,7 +43,7 @@ SnapMirror active sync allows you to protect your data LUNs or NVMe namespaces, 
 
 == Key concepts
 
-SnapMirror active sync uses consistency groups and either the ONTAP Mediator or, beginning with ONTAP 9.17.1, the ONTAP Cloud Mediator to ensure your data is replicated and served even in the event of a disaster scenario. When planning your SnapMirror active sync deployment, it is important to understand the essential concepts in SnapMirror active sync and its architecture. 
+SnapMirror active sync uses consistency groups to ensure your data is replicated. SnapMirror active sync uses the ONTAP Mediator or, beginning with ONTAP 9.17.1, the Cloud Mediator for automated failover, ensuring the data is served in the event of a disaster scenario. When planning your SnapMirror active sync deployment, it is important to understand the essential concepts in SnapMirror active sync and its architecture. 
 
 .Asymmetry and symmetry 
 
@@ -72,12 +81,16 @@ Beginning with ONTAP 9.15.1, System Manager displays the status of your SnapMirr
 
 .ONTAP Cloud Mediator
 
-ONTAP Cloud Mediator is available beginning with ONTAP 9.17.1. ONTAP Cloud Mediator provides the same services as ONTAP Mediator, except that it is hosted in the cloud using BlueXP. 
+ONTAP Cloud Mediator is available beginning with ONTAP 9.17.1. ONTAP Cloud Mediator provides the same services as ONTAP Mediator, except that it is hosted in the cloud using the NetApp Console. 
 
 
 .Planned failover
 
 A manual operation to change the roles of copies in a SnapMirror active sync relationship. The primary sites becomes the secondary, and the secondary becomes the primary.
+
+.Automatic unplanned failover (AUFO)
+
+An automatic operation to perform a failover to the mirror copy. The operation requires assistance from the ONTAP Mediator to detect that the primary copy is unavailable.
 
 .Primary-first and primary bias
 SnapMirror active sync uses a primary-first principle that gives preference to the primary copy to serve I/O in case of a network partition.
@@ -86,15 +99,11 @@ Primary-bias is a special quorum implementation that improves availability of a 
 
 Primary-first and primary bias are supported in SnapMirror active sync beginning with ONTAP 9.15.1. Primary copies are designated in System Manager and output with the REST API and CLI. 
 
-.Automatic unplanned failover (AUFO)
-
-An automatic operation to perform a failover to the mirror copy. The operation requires assistance from the ONTAP Mediator to detect that the primary copy is unavailable.
-
 .Out of Sync (OOS)
 
 When the application I/O is not replicating to the secondary storage system, it will be reported as **out of sync**. An out of sync status means the secondary volumes are not synchronized with the primary (source) and that SnapMirror replication is not occurring. 
 
-If the mirror state is `Snapmirrored`, this indicates a transfer failure or failure due to an unsupported operation.
+If the mirror state is `Snapmirrored`, this indicates a SnapMirror relationship is established and the data transfer is complete, meaning the destination volume is up-to-date with the source volume.
 
 SnapMirror active sync supports automatic resync, enabling copies to return to an InSync state. 
 
@@ -190,6 +199,7 @@ a| Asymmetric active/active
 Primary and secondary clusters must be of the same type: either link:../san-admin/learn-about-asa.html[ASA], link:https://docs.netapp.com/us-en/asa-r2/get-started/learn-about.html[ASA r2^], or AFF. 
 
 
+// 2025-Sept-19, ONTAPDOC-3356
 // 2025-Sept-12, ONTAPDOC-3306
 // 2025-June-25, ONTAPDOC-2763
 
