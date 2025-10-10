@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: move, volume
 summary: "Move a FlexVol volume to a different aggregate, node, or both within the same storage virtual machine (SVM) to balance storage capacity."
 ---
-= Move a volume
+= Move an ONTAP volume
 :icons: font
 :imagesdir: ../media/
 
@@ -17,13 +17,29 @@ By default, if the cutover operation fails to complete within 30 seconds, it wil
 
 You must be a cluster administrator to perform this task. 
 
-.Steps
+.Before you begin
 
-. If you are moving a data protection mirror and you have not initialized the mirror relationship, initialize the mirror relationship by using the `snapmirror initialize` command. Learn more about `snapmirror initialize` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-initialize.html[ONTAP command reference^].
+* If you are moving a volume that uses 8K adaptive compression to one of the following platforms, you should link:increase-volume-active-file-system-size.html[increase the size of the volume's active file system] before moving the volume. Data is compressed differently on these platforms so that space is saved at the aggregate level instead of the volume level. Because of this difference, the size of the volume's active file system should be increase by the amount of 8k compression savings to prevent the volume from running out of space during the volume move.
+
+** AFF and FAS platforms that support dedicated offload processor storage efficiency 
++
+Learn more about AFF and FAS platforms that support link:../concepts/builtin-storage-efficiency-concept.html[dedicated offload processor storage efficiency]. 
+** AFF C-Series platforms
++
+See the link:https://hwu.netapp.com/[Hardware Universe^] for a full list of C-series platforms.
+
+* If you are moving a data protection mirror and you have not initialized the mirror relationship, use the `snapmirror initialize` command to initialize the mirror relationship. Learn more about `snapmirror initialize` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-initialize.html[ONTAP command reference^].
 +
 Data protection mirror relationships must be initialized before you can move one of the volumes.
 
-. Determine an aggregate to which you can move the volume by using the `volume move target-aggr show` command.
+.Steps
+
+. Determine an aggregate to which you can move the volume:
++
+[source,cli]
+----
+volume move target-aggr show
+----
 +
 The aggregate that you select must have enough space for the volume; that is, the available size is bigger than the volume that you are moving.
 +
@@ -43,8 +59,21 @@ node12a_aggr4    10.36GB          hdd
 +
 Learn more about `volume move target-aggr show` in the link:https://docs.netapp.com/us-en/ontap-cli/volume-move-target-aggr-show.html[ONTAP command reference^].
 
-. Verify that the volume can be moved to the intended aggregate by using the `volume move start -perform-validation-only` command to run a validation check. Learn more about `volume move start` in the link:https://docs.netapp.com/us-en/ontap-cli/volume-move-start.html[ONTAP command reference^].
-. Move the volume by using the `volume move start` command.
+. Perform a validation check to verify that the volume can be moved to the intended aggregate: 
++
+[source,cli]
+----
+volume move start -perform-validation-only
+----
++
+Learn more about `volume move start` in the link:https://docs.netapp.com/us-en/ontap-cli/volume-move-start.html[ONTAP command reference^].
+
+. Move the volume:
++
+[source,cli]
+----
+volume move start
+----
 +
 The following command moves the user_max volume on the vs2 SVM to the node12a_aggr3 aggregate. The move runs as a background process.
 +
@@ -53,7 +82,12 @@ cluster1::> volume move start -vserver vs2 -volume user_max
 -destination-aggregate node12a_aggr3
 ----
 
-. Determine the status of the volume move operation by using the `volume move show` command.
+. Determine the status of the volume move operation:
++
+[source,cli]
+----
+volume move show
+----
 +
 The following example shows the state of a volume move that completed the replication phase and is in the cutover phase:
 +
@@ -69,9 +103,21 @@ The volume move is complete when it no longer appears in the `volume move show` 
 +
 Learn more about `volume move show` in the link:https://docs.netapp.com/us-en/ontap-cli/volume-move-show.html[ONTAP command reference^].
 
+. Optionally, view compression savings:
++
+[source,cli]
+----
+volume show-footprint -vserver <SVM> -volume <volume_name>
+----
++
+[NOTE]
+Additional aggregate-level savings might be realized through a post-process conversion scan that runs automatically and shortly after the volume move is completed.
+
 .Related information
 * link:recommendations-moving-concept.html[Considerations and recommendations when moving volumes]
 
 
+// 2025 Sept 25, Git Issue 1843
+// 2025 Sept 25, GitIssue 1843
 // 2025-Sept-12, ONTAPDOC-3298
 // 2025 Apr 09, ONTAPDOC-2758
