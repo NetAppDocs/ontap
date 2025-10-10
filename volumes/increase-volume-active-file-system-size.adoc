@@ -1,0 +1,74 @@
+---
+permalink: volumes/increase-volume-active-file-system-size.html
+sidebar: sidebar
+keywords: increase, active, file system, volume, cpu offload, compression offload, dedicated offload processor, storage efficiency, compression
+summary: "If you are moving a volume from a platform that _does not_ support dedicated offload processor storage efficiency to a platform that _does_ support dedicated offload storage efficiency, you should increase the size of the volume's active file system before moving the volume to prevent the volume from running out of space."
+---
+= Increase an ONTAP volume’s active file system before migrating from 8k adaptive compression
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Platforms that support 8k adaptive compression save space at the volume level. AFF C-Series platforms and platforms that support 32k compression save space at the aggregate level.  When migrating a volume from 8k adaptive compression to an AFF C-Series platform or to a platform with 32k compression, you need to increase the size of the volume's active file system by the 8k compression savings. This prevents the volume from running out of free space during the volume move.
+
+The following systems support 32k compression:
+
+include::_include/dedicated-offload-processor-supported-platforms.adoc[]
+
+Learn more about link:../concepts/builtin-storage-efficiency-concept.html[AFF and FAS platforms that support 32k compression]. 
+
+See the link:https://hwu.netapp.com/[Hardware Universe^] for a full list of AFF C-series platforms.
+
+.About this task
+Perform these steps if you are migrating your data using a volume move operation. If you are migrating your data using a SnapMirror operation, you do not need to manually increase the size of the active file system. SnapMirror destination volumes use volume autosize by default and therefore are not expected to run out of space due to compression savings being realized at the aggregate layer instead of the volume layer.
+
+.Before you begin
+
+If logical space reporting and enforcement is not enabled on your volume, you can optionally enable it by setting the `-is-space-reporting-logical` and `-is-space-enforcement-logical` parameters to *true*. Enabling these settings before the volume move can help you assess if your volume is large enough to accommodate the compression savings loss at the volume layer when you convert from 8k compression. You should enable these settings on the volume.  If you enable these settings at the SVM level, they are applied to newly created volumes only.
+
+.Steps
+
+. Verify the volume's current size and snapshot reserve:
++
+[source, cli]
+----
+volume show-space 
+----
+
+. Check the volume's compression space savings:
++
+[source,cli]
+----
+volume show -vserver -volume -fields compression-space-saved
+----
+
+. Increase the volume's active filesystem size by the amount shown for `compression-space-saved` plus the snapshot reserve.
++
+[source, cli]
+----
+volume size -vserver <vserver_name> -volume <volume_name> -new-size +<size>
+----
++
+.Example
++
+IF a volume is 100GB and has a 20% snapshot reserve; then the the active filesystem is 80GB and the snapshot reserve is 20GB.  To increase the active filesystem by 20GB, you must add 25GB to the overall volume size; that is, 20GB for the active filesystem and 5GB (20%) for the snapshot reserve.
++
+----
+volume size -vserver svm1 -volume volx -size +20GB
+----
+
+. Verify that the size of the volume is increase:
++
+[source, cli]
+----
+volume show -vserver <vserver_name> -volume <volume_name> -fields size
+----
+
+.Result
+Your volume's active file system size is increased and you are ready to move the volume.
+
+.What's next?
+
+Perform a link:move-volume-task.html[volume move] to migrate your data.
+
+// 2025 Sept 25, Git Issue 1843
