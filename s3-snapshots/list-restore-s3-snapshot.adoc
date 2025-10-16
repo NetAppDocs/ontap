@@ -19,6 +19,14 @@ The ONTAP S3 snapshot feature enables you to view and browse the S3 snapshot con
 .Before you begin
 
 * For viewing, browsing, and restoring ONTAP S3 snapshots on your buckets, the snapshots should have been created and the S3 base bucket should be accessible to you through the S3 protocol client. 
+* All nodes in the cluster must be running ONTAP 9.18.1 or later before you can perform the bucket snapshot restore operation. 
+* Only one snapshot restore operation is allowed at a time on a given bucket.
+
+.About this task
+
+Beginning with ONTAP 9.16.1, the ONTAP S3 snapshots feature was introduced to provide basic snapshot functionality for ONTAP S3 buckets, including manual and scheduled snapshot creation and deletion, snapshot policies for S3 buckets, and S3 client-based snapshot browsing. 
+
+Beginning with ONTAP 9.18.1, support is added for ONTAP snapshot restore, providing ONTAP administrators with point-in-time restore functionality. S3 clients can perform a restore by browsing a specific snapshot and manually updating each object to match the snapshot. Only the current bucket version is captured in the snapshot. Version history is not captured, and it will not be restored by the S3 snapshot restore operation.
 
 == List and view S3 snapshots
 You can view the S3 snapshot details, compare them, and identify errors. Using the ONTAP CLI, you can list all the snapshots created on your S3 buckets. 
@@ -51,14 +59,7 @@ The `CopyObject` operation is supported on an S3 snapshot bucket only if it is a
 For more information about these operations, refer to link:../s3-config/ontap-s3-supported-actions-reference.html[ONTAP S3 supported actions].
 
 == Restore a bucket using ONTAP S3 snapshots
-
-Beginning with ONTAP 9.16.1, the ONTAP S3 snapshots feature was introduced to provide basic snapshot functionality for ONTAP S3 buckets, including manual and scheduled snapshot creation and deletion, snapshot policies for S3 buckets, and S3 client-based snapshot browsing. 
-
-Beginning with ONTAP 9.18.1, support is added for ONTAP snapshot restore. S3 clients can perform a restore by browsing a specific snapshot and manually updating each object to match the snapshot.
-
-* You can restore an entire bucket using an ONTAP S3 snapshot. 
-* All nodes in the cluster must be running ONTAP 9.18.1 or later before you can perform the bucket snapshot restore operation. 
-* Only one snapshot restore operation is allowed at a time on a given bucket.
+Beginning with ONTAP 9.18.1, you can restore an entire bucket using an ONTAP S3 snapshot. You can restore only the version of the bucket that existed at the time the selected snapshot was created.
 
 .Steps
 
@@ -74,9 +75,11 @@ vserver object-store-server bucket snapshot show
 vserver object-store-server bucket snapshot restore start -vserver <SVM name> -bucket <bucket name> -snapshot <snapshot name>
 ----
 
-== Restore content from S3 snapshots (ONTAP 9.17.1 and earlier)
+== Restore content from S3 bucket snapshots
 
-For versions of ONTAP earlier than ONTAP 9.18.1, you can use this procedure to perform a restore operation on an S3 client to recover a single object, a set of objects, or an entire bucket by copying content from a snapshot bucket to the original or a different bucket. You can browse snapshots to determine which snapshot content you should copy. 
+You can perform a restore operation using a S3 bucket snapshot. A bucket snapshot is an object version captured in that snapshot. This restore operation is S3 client-driven. You perform a restore on an S3 client to recover a single object, a set of objects, or an entire bucket by copying content from a snapshot bucket to the original or a different bucket. You can browse snapshots to determine which snapshot content you should copy. 
+
+link:..index.html#snapshots-on-versioned-and-non-versioned-buckets[Learn more about versioned and non-versioned snapshots.]
 
 You restore the entire bucket, objects with a prefix, or a single object by using the `aws s3 cp` command.
 
