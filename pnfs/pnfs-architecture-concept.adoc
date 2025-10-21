@@ -17,11 +17,11 @@ Clients that wish to access pNFS need network connectivity to data and metadata 
 
 The metadata server in pNFS is established when a client initiates a mount using NFSv4.1 or later when pNFS is enabled on the NFS server. When this is done, all metadata traffic is sent over this connection and remains on this connection for the duration of the mount, even if the interface is migrated to another node.
 
-image::pNFFS_fig_007.png[Establishing the metadata server in pNFS in NetApp ONTAP]
+image::pNFS_fig_007.png[Establishing the metadata server in pNFS in NetApp ONTAP]
 
 pNFS support is determined during the mount call – specifically in the EXCHANGE_ID calls. This can be seen in a packet capture below the NFS operations as a flag. When the pNFS flags EXCHGID4_FLAG_USE_PNFS_DS and EXCHGID4_FLAG_USE_PNFS_MDS are set to 1, then the interface is eligible for both data and metadata operations in pNFS.
 
-image::pNFFS_fig_008.png[Packet capture for pNFS mount]
+image::pNFS_fig_008.png[Packet capture for pNFS mount]
 
 Metadata in NFS generally consists of file and folder attributes, such as file handles, permissions, access and modification times, ownership information, etc. Metadata can also include create and delete calls, link and unlink calls, and renames.
 
@@ -80,9 +80,9 @@ In the above commands, the volume names are not present. Instead, the numeric ID
 
 When a client attempts to read or write to a file located on a node that is remote to the metadata server connection, pNFS will negotiate the appropriate access paths to ensure data locality for those operations and the client will redirect to the advertised pNFS device rather than attempting to traverse the cluster network to access the file. This helps reduce CPU overhead and network latency.
 
-image::pNFFS_fig_009.png[Remote read path using NFSv4.1 without pNFS]
+image::pNFS_fig_009.png[Remote read path using NFSv4.1 without pNFS]
 
-image::pNFFS_fig_010.png[Localized read path using pNFS]
+image::pNFS_fig_010.png[Localized read path using pNFS]
 
 == pNFS control path
 
@@ -103,19 +103,19 @@ The following shows the details of how a pNFS device populates in ONTAP once a c
 
 FlexGroup volumes in ONTAP present storage via FlexVol volume constituents that span multiple nodes in a cluster, which allows a workload to leverage multiple hardware resources while maintaining a single mountpoint. Since multiple nodes - with multiple network interfaces – are interacting with the workload, it's a natural result to see remote traffic traverse the backend cluster network in ONTAP.
 
-image::pNFFS_fig_011.png[Single file access in a FlexGroup volume without pNFS]
+image::pNFS_fig_011.png[Single file access in a FlexGroup volume without pNFS]
 
 When utilizing pNFS, ONTAP keeps track of the file and volume layouts of the FlexGroup volume and maps them to the local data interfaces in the cluster. For instance, if a constituent volume contains a file being accessed resides on node 1, then ONTAP will notify the client to redirect the data traffic to the data interface on node 1.
 
-image::pNFFS_fig_012.png[Single file access in a FlexGroup volume with pNFS]
+image::pNFS_fig_012.png[Single file access in a FlexGroup volume with pNFS]
 
 pNFS also provides a way to present parallel network paths to files from a single client that NFSv4.1 without pNFS does not offer. For instance, if a client wants to access 4 files at the same time from the same mount using NFSv4.1 without pNFS, the same network path would be utilized for all files and the ONTAP cluster would instead send remote requests to those files. The mount path can become a bottleneck for the operations, as they all follow a single path and arrive at a single node and is also servicing metadata operations along with the data operations.
 
-image::pNFFS_fig_013.png[Multiple simultaneous file access in a FlexGroup volume without pNFS]
+image::pNFS_fig_013.png[Multiple simultaneous file access in a FlexGroup volume without pNFS]
 
 When pNFS is used to access the same 4 files simultaneously from a single client, the client and server negotiate local paths to each node with the files and uses multiple TCP connections for the data operations, while the mount path acts as the location for all metadata operations. This provides latency benefits by using local paths to the files, but also can add throughput benefits by way of multiple network interfaces being used, provided the client(s) can send enough data to saturate the network.
 
-image::pNFFS_fig_014.png[Multiple simultaneous file access in a FlexGroup volume with pNFS]
+image::pNFS_fig_014.png[Multiple simultaneous file access in a FlexGroup volume with pNFS]
 
 The following shows results from a simple test run on a single RHEL 9.5 client where four 10GB files (all residing on different constituent volumes across two ONTAP cluster nodes) are read in parallel using dd. For each file, the overall throughput and completion time was improved when using pNFS. When using NFSv4.1 without pNFS, the performance delta between files that were local to the mount point and remote was greater than with pNFS.
 
