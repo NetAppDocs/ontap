@@ -1,0 +1,336 @@
+---
+permalink: pnfs/pnfs-tuning-performance-concept.html
+sidebar: sidebar
+keywords: pnfs, performance, tuning, best practices, considerations, flexgroup, metadata, nconnect, session trunking, kerberos
+summary: "Follow these best practices and considerations when using pNFS in ONTAP for optimal performance and reliability."
+---
+= pNFS tuning and performance best practices
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When using pNFS in NetApp ONTAP, there are considerations and best practices that should be kept top of mind for best results. For questions or suggestions, contact NetApp at doccomments@netapp.com and include TECHNICAL REPORT 4063 BEST PRACTICES in the subject line.
+
+== Volume type recommendation
+
+pNFS in NetApp ONTAP works with both FlexVol volumes and FlexGroup volumes, but for the best overall results, use FlexGroup volumes.
+
+FlexGroup volumes provide:
+
+* A single mount point that can span multiple hardware resources in a cluster while allowing pNFS to localize data traffic
+* Massive capacity possibilities (up to 60PB) and high file counts (up to 200 billion files)
+* Support for multipart files for capacity balancing and potential performance benefits
+* Parallel access to volumes and hardware supporting a single workload
+
+.Related information
+
+* link:../flexgroup/index.html[FlexGroup volumes management]
+
+== Client recommendations
+
+Not all NFS clients support pNFS, but most modern clients do. RHEL 6.4 and Fedora 17 were the first supported pNFS clients (roughly in 2014), so it is reasonable to assume that client versions released in the past few years fully support the feature. NetApp ONTAP's NFS support stance is one of "if the client supports the feature and is RFC compliant, and we support the feature, then the combination is supported." However, it is a best practice to ensure that pNFS is supported by the client OS vendor.
+
+== Volume moves
+
+ONTAP provides the ability to nondisruptively move volumes across nodes or aggregates in the same cluster to provide capacity and performance balance flexibility. When a volume move takes place in ONTAP, the pNFS device mappings are automatically updated to inform clients to use the new volume:interface relationship if necessary.
+
+.Related information
+
+* link:../volumes/move-volume-task.html[Move a volume]
+
+== Network interface migration
+
+ONTAP provides the ability to move network interfaces across nodes in the same cluster to provide performance balance and maintenance flexibility. Like volume moves, when a network interface migration takes place in ONTAP, the pNFS device mappings are automatically updated to inform clients to use the new volume:interface relationship if necessary.
+
+However, since NFSv4.1 is a stateful protocol, a network interface migration can be disruptive to clients that are actively using the NFS mount. It is a best practice to conduct network interface migrations in a maintenance window and notify clients of potential network disruptions.
+
+.Related information
+
+* link:../networking/migrate_a_lif.html[Migrate a LIF]
+
+== Storage failovers/givebacks
+
+pNFS follows the same storage failover considerations as NFSv4.1. These are covered in detail in https://www.netapp.com/pdf.html?item=/media/10720-tr-4067.pdf[NetApp Technical Report 4067: NFS Best Practice and Implementation Guide^]. In general, any storage failovers/givebacks involving pNFS should be done in a maintenance window, with potential storage disruptions expected due to the statefulness of the protocol.
+
+.Related information
+
+* link:../high-availability/index.html[High availability]
+
+== Metadata workloads
+
+Metadata operations are small in size and can be large in numbers depending on the workload (Are you creating a large number of files? Are you running "find" commands?) and total file count. As a result, workloads that are high in metadata calls can be taxing on the CPU of the NFS server and can potentially bottleneck over a single connection. pNFS (and NFSv4.x in general) is not suited for performance-dependent high metadata workloads, as the stateful-ness, the locking mechanisms, and some of the security features of the protocol version can negatively impact CPU utilization and latency. These workload types (such as high GETATTR or SETATTR) generally fare better with NFSv3.
+
+== Metadata server
+
+The metadata server in pNFS is established at the initial mount of an NFS export. When the mount point is established, it remains in place until it is remounted or the data interface is moved. Because of this, it is a best practice to ensure that multiple clients accessing the same volume mount to different nodes and data interfaces across the SVM. This approach provides load balancing of the metadata servers across nodes and CPU resources while maximizing the network interfaces in the cluster. One way to accomplish this is to establish a round robin DNS setup, which is covered in https://www.netapp.com/pdf.html?item=/media/19384-tr-4523.pdf[NetApp Technical Report 4523: DNS Load Balancing in ONTAP^].
+
+== NFSv4.x ID domains
+
+NFSv4.x provides security functionality in many ways (covered in detail in https://www.netapp.com/pdf.html?item=/media/10720-tr-4067.pdf[NetApp Technical Report 4067: NFS Best Practice and Implementation Guide^]). NFSv4.x ID domains is one of those ways, where a client and server must agree on the ID domains when attempting to authenticate users and groups in an NFS export. One of the side effects of an ID domain mismatch would be the user or group showing up as an anonymized user (essentially squashed) to prevent unwanted access. With NFSv4.x (and also pNFS), it is a best practice to ensure the NFSv4.x ID domains match on client and server.
+
+.Related information
+
+* link:../nfs-admin/specify-nfsv4-id-domain-task.html[Specify the NFSv4 ID domain]
+
+== nconnect
+
+As mentioned previously, nconnect in ONTAP can help improve performance in some workloads. With pNFS, it is important to understand that while nconnect can improve performance by greatly increasing the total number of TCP connections to the storage system, it can also create issues when many clients are leveraging the mount option by overwhelming the TCP connections on the storage. NetApp's hardware universe covers the TCP connection limits per node.
+
+When a node's TCP connection limits are exceeded, no new TCP connections are allowed until existing connections are freed. This can create complications in environments that may experience mount storms.
+
+The following table shows how pNFS with nconnect may overwhelm TCP connection limits:
+
+[cols="20,20,60"]
+|===
+| Client count | nconnect value | Total potential TCP connections per mount, per node
+
+| 1
+| 4
+| 4
+
+| 100
+| 4
+| 400
+
+| 1000
+| 8
+| 8000
+
+| 10000
+| 8
+| 80000
+
+| 10000
+| 16
+| 160000*
+|===
+*Exceeds most ONTAP single node TCP connection limits
+
+== NFSv4.1 session trunking
+
+Session trunking in ONTAP can be used to increase throughput and path resiliency to NFSv4.x mounts. When used with pNFS, each node in a cluster can establish a session trunk. However, session trunks require at least two interfaces per node and pNFS requires at least one interface per node to work as intended. Additionally, all interfaces in the SVM must be routable to the NFS clients. Session trunking and pNFS do not work properly when also leveraging nconnect. Consider nconnect and session trunking as independent features.
+
+.Related information
+
+* link:../nfs-trunking/index.html[NFS trunking overview]
+
+== Network interface connectivity
+
+pNFS requires a routable network interface on each node in a cluster to function properly. If other network interfaces that are not routable to NFS clients exist in the same SVM as the NFS server hosting pNFS, ONTAP will still advertise those interfaces in the device mapping to clients. When the NFS client attempts to access data via the interfaces in a different subnet, they will not be able to connect and it will create an outage. It is a best practice to only allow network interfaces in an SVM that can be accessed by clients when using pNFS.
+
+== NFSv4.0
+
+NFSv4.0 is an option that can be enabled in an ONTAP NFS server alongside NFSv4.1. However, pNFS does not work over NFSv4.0. If NFSv4.0 is enabled in the NFS server, clients can potentially unknowingly mount that protocol version and will not be able to leverage pNFS. As a result, it is a best practice to explicitly disable NFSv4.0 when using pNFS. NFSv4.1 still must be enabled and can work independently of NFSv4.0.
+
+.Related information
+
+* link:../nfs-admin/ontap-support-nfsv40-concept.html[ONTAP support for NFSv4.0]
+
+== NFSv4.1 referrals
+
+NFSv4.1 referrals will localize the mount path from a client to the network interface on the node that owns a volume. pNFS localizes the data path and the mount path becomes a metadata server.
+
+While the two features can feasibly be used together, using NFSv4.1 referrals with pNFS may result in the undesired effect of stacking multiple metadata servers on the same node and reducing the ability to spread metadata servers across multiple cluster nodes. If metadata servers are not spread evenly across a cluster when using pNFS, then a single node's CPU can get overwhelmed with metadata requests and create a performance bottleneck.
+
+As such, it is a best practice to avoid using NFSv4.1 referrals when using pNFS. Instead, spread the mount points across multiple network interfaces and nodes in the cluster.
+
+.Related information
+
+* link:../nfs-admin/enable-disable-nfsv4-referrals-task.html[Enable or disable NFSv4 referrals]
+
+== NFS Kerberos
+
+With NFS Kerberos, it is possible to encrypt authentication with krb5 and to further encrypt data packets with krb5i and krb5p. This is enabled on a per-network interface basis in a SVM and is covered in full detail in https://www.netapp.com/pdf.html?item=/media/19384-tr-4616.pdf[NetApp Technical Report 4616: NFS Kerberos in ONTAP with Microsoft Active Directory^].
+
+Since pNFS is able to redirect data traffic across nodes and network interfaces in the SVM, NFS Kerberos must be enabled and functional on each network interface in the SVM. If any network interface in the SVM is not enabled for Kerberos, then pNFS will not be able to function properly when attempting to access data volumes on those interfaces.
+
+For instance, when running a read test using parallel dd on a pNFS-enabled SVM with two network interfaces (only one enabled for Kerberos), the files located on the Kerberos-enabled interface performed well, while the files on the node with the interface without Kerberos enabled never were able to complete their reads. When Kerberos was enabled on both interfaces, all files were able to perform as expected.
+
+NFS Kerberos can be used with pNFS provided NFS Kerberos is enabled on all network interfaces in the SVM. Keep in mind that NFS Kerberos can incur a performance penalty due to encryption/decryption of the packets, so it is a best practice to test pNFS with NFS Kerberos thoroughly with your workloads to ensure that any performance hit is not overly impactful to the workload.
+
+Below is an example of parallel read performance when using krb5 (authentication) and krb5p (end to end encryption) with pNFS on a RHEL 9.5 client. Krb5p saw a 70% performance degradation in this test.
+
+[cols="20,40,40"]
+|===
+| Kerberos flavor | MB/s | Completion time (s)
+
+| krb5
+a|
+* File1 – 243
+* File2 – 243
+* File3 – 238
+* File4 – 238
+a|
+* File1 – 43
+* File2 – 43.1
+* File3 – 44
+* File4 – 44.1
+
+| krb5p
+a|
+* File1 – 72.9
+* File2 – 72.8
+* File3 – 71.4
+* File4 – 71.2
+a|
+* File1 – 143.9
+* File2 – 144.1
+* File3 – 146.9
+* File4 – 147.3
+|===
+
+.Related information
+
+* link:../nfs-config/kerberos-nfs-strong-security-concept.html[Kerberos with NFS for strong security]
+
+== NFSv4.2
+
+NFSv4.2 was added to ONTAP 9.8 and is the latest NFSv4.x version available (RFC-7862). NFSv4.2 does not have an explicit option to enable/disable it. Instead, it is enabled/disabled alongside NFSv4.1 (`-4.1 enabled`). If a client supports NFSv4.2, it will negotiate the highest supported version of NFS during the mount command if not specified otherwise with the `minorversion=2` mount option.
+
+NFSv4.2 in ONTAP supports the following functionality:
+
+* Security labels (MAC labels)
+* Extended attributes
+* Sparse file ops (FALLOCATE)
+
+pNFS was introduced with NFSv4.1, but is also supported with NFSv4.2, as well as its accompanying features.
+
+.Related information
+
+* link:../nfs-admin/ontap-support-nfsv42-concept.html[ONTAP support for NFSv4.2]
+
+== pNFS commands, statistics and event logs
+
+The following section covers ONTAP CLI commands that pertain specifically to pNFS. This includes configuration, troubleshooting, and statistics.
+
+=== Enabling NFSv4.1
+
+----
+::> nfs modify -vserver SVM -v4.1 enabled
+----
+
+=== Enabling pNFS
+
+----
+::> nfs modify -vserver SVM -v4.1-pnfs enabled
+----
+
+=== Show pNFS devices (advanced priv)
+
+----
+::*> pnfs devices show -vserver SVM
+Vserver Name     Mapping ID      Volume MSID     Mapping Status  Generation
+---------------  --------------- --------------- --------------- -------------
+SVM              17              2157024470      notavailable    2
+SVM              18              2157024463      notavailable    2
+SVM              19              2157024469      available       3
+SVM              20              2157024465      available       4
+SVM              21              2157024467      available       3
+SVM              22              2157024462      available       1
+----
+
+=== Show pNFS device mappings (advanced priv)
+
+----
+::*> pnfs devices mappings show -vserver SVM
+Vserver Name    Mapping ID      Dsid            LIF IP
+--------------  --------------- --------------- --------------------
+SVM             19              2449            10.x.x.x
+SVM             20              2512            10.x.x.y
+SVM             21              2447            10.x.x.x
+SVM             22              2442            10.x.x.y
+----
+
+=== Capture pNFS-specific performance counters (advanced priv)
+
+----
+::*> statistics start -object nfsv4_1 -vserver SVM -sample-id [optional-name]
+----
+
+=== View pNFS-specific performance counters (advanced priv)
+
+----
+::*> statistics show -object nfsv4_1 -vserver SVM
+----
+
+=== View list of pNFS-specific counters (advanced priv)
+
+----
+::*> statistics catalog counter show -object nfsv4_1 -counter *layout*|*device*
+
+Object: nfsv4_1
+
+Counter                     Description
+--------------------------- ----------------------------------------------
+getdeviceinfo_avg_latency   Average latency of NFSv4.1 GETDEVICEINFO operations.
+getdeviceinfo_error         The number of failed NFSv4.1 GETDEVICEINFO operations.
+getdeviceinfo_percent       Percentage of NFSv4.1 GETDEVICEINFO operations.
+getdeviceinfo_success       The number of successful NFSv4.1 GETDEVICEINFO operations.
+getdeviceinfo_total         Total number of NFSv4.1 GETDEVICEINFO operations.
+getdevicelist_avg_latency   Average latency of NFSv4.1 GETDEVICELIST operations.
+getdevicelist_error         The number of failed NFSv4.1 GETDEVICELIST operations.
+getdevicelist_percent       Percentage of NFSv4.1 GETDEVICELIST operations.
+getdevicelist_success       The number of successful NFSv4.1 GETDEVICELIST operations.
+getdevicelist_total         Total number of NFSv4.1 GETDEVICELIST operations.
+layoutcommit_avg_latency    Average latency of NFSv4.1 LAYOUTCOMMIT operations.
+layoutcommit_error          The number of failed NFSv4.1 LAYOUTCOMMIT operations.
+layoutcommit_percent        Percentage of NFSv4.1 LAYOUTCOMMIT operations.
+layoutcommit_success        The number of successful NFSv4.1 LAYOUTCOMMIT operations.
+layoutcommit_total          Total number of NFSv4.1 LAYOUTCOMMIT operations.
+layoutget_avg_latency       Average latency of NFSv4.1 LAYOUTGET operations.
+layoutget_error             The number of failed NFSv4.1 LAYOUTGET operations.
+layoutget_percent           Percentage of NFSv4.1 LAYOUTGET operations.
+layoutget_success           The number of successful NFSv4.1 LAYOUTGET operations.
+layoutget_total             Total number of NFSv4.1 LAYOUTGET operations.
+layoutreturn_avg_latency    Average latency of NFSv4.1 LAYOUTRETURN operations.
+layoutreturn_error          The number of failed NFSv4.1 LAYOUTRETURN operations.
+layoutreturn_percent        Percentage of NFSv4.1 LAYOUTRETURN operations.
+layoutreturn_success        The number of successful NFSv4.1 LAYOUTRETURN operations.
+layoutreturn_total          Total number of NFSv4.1 LAYOUTRETURN operations.
+----
+
+=== Viewing active network connections for NFS
+
+You can verify if multiple TCP connections are being made to the SVM with the `network connections active show` command.
+
+For instance, if you want to see NFS session trunks, look for connections from the same clients across different interfaces per node:
+
+----
+cluster::*> network connections active show -node cluster-0* -vserver PNFS
+              Vserver   Interface         Remote
+      CID Ctx Name      Name:Local Port   Host:Port            Protocol/Service
+--------- --- --------- ----------------- -------------------- ----------------
+Node: node-01
+2304333128 14 PNFS      data1:2049        ubuntu22-224:740     TCP/nfs
+2304333144 10 PNFS      data3:2049        ubuntu22-224:864     TCP/nfs
+2304333151  5 PNFS      data1:2049        ubuntu22-226:848     TCP/nfs
+2304333167 15 PNFS      data3:2049        ubuntu22-226:684     TCP/nfs
+Node: node-02
+2497668321 12 PNFS      data2:2049        ubuntu22-224:963     TCP/nfs
+2497668337 18 PNFS      data4:2049        ubuntu22-224:859     TCP/nfs
+2497668344 14 PNFS      data2:2049        ubuntu22-226:675     TCP/nfs
+2497668360  7 PNFS      data4:2049        ubuntu22-226:903     TCP/nfs
+----
+
+=== Viewing NFS version information for connected clients
+
+You can also view NFS connections with the `nfs connected-clients show` command. Keep in mind that the list of clients shown are clients that have had active NFS traffic in the past 48 hours. Idle NFS clients (even if still mounted) may not show up until the mount is accessed. You can filter these to show only more recently accessed clients by specifying the `-idle-time` feature.
+
+For instance, to see clients with activity in the past 10 minutes for the PNFS SVM:
+
+----
+cluster::*> nfs connected-clients show -vserver PNFS -idle-time <10m>
+
+ Node: node-01
+
+Vserver: PNFS Data-Ip: 10.x.x.x Local Remote Client-Ip Protocol Volume Policy Idle-Time Reqs Reqs Trunking
+
+10.x.x.a nfs4.2 PNFS_root default 9m 10s 0 149 false 10.x.x.a nfs4.2 FG__0001 default 9m 10s 135847 0 false 10.x.x.b nfs4.2 PNFS_root default 8m 12s 0 157 false 10.x.x.b nfs4.2 FG__0001 default 8m 12s 52111 0 false
+----
+
+.Related information
+
+* link:../performance-admin/index.html[Performance management]
+* link:../performance-config/index.html[Performance monitoring setup]
+
+// 2025-10-21, ONTAPDOC-2826

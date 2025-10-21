@@ -1,0 +1,68 @@
+---
+permalink: pnfs/pnfs-use-cases-concept.html
+sidebar: sidebar
+keywords: pnfs, use cases, nconnect, session trunking, referrals, advanced capacity balancing
+summary: "pNFS can be used with various ONTAP features including nconnect, session trunking, and Advanced Capacity Balancing to improve performance and flexibility."
+---
+= pNFS use cases in ONTAP
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+pNFS can be used with various ONTAP features to improve performance and provide additional flexibility for NFS workloads.
+
+== pNFS with nconnect
+
+NFS introduced a new mount option with some more recent clients and servers that provides a way to deliver multiple TCP connections while mounting a single IP address. This provides a mechanism to better parallelize operations, work around NFS server and client limitation, and potentially provide greater overall performance to certain workloads. Nconnect is supported in ONTAP 9.8 and later, provided the client supports nconnect.
+
+When using nconnect with pNFS, connections will parallelize via the nconnect option over each pNFS device advertised by the NFS server. For instance, if nconnect is set to 4 and there are 4 eligible interfaces for pNFS, then the total number of connections created will be 16 per mount point.
+
+image::pNFFS_fig_015.png[pNFS with nconnect=4]
+
+.Related information
+
+* link:../nfs-admin/ontap-support-nfsv41-concept.html[ONTAP support for NFSv4.1]
+
+== pNFS with NFSv4.1 session trunking
+
+NFSv4.1 session trunking (RFC 5661, section 2.10.5) is the use of multiple TCP connections between a client and server in order to increase the speed of data transfer. Support for NFSv4.1 session trunking was added to ONTAP 9.14.1 and must be used with clients that also support session trunking.
+
+In ONTAP, session trunking can be used across multiple nodes in a cluster to provide extra throughput and redundancy across connections. Session trunking can be established manually by using the `max_connect=n` mount option, and the mount command must be run for each individual interface for the trunk to work properly. Some clients also support the mount option "trunkdiscovery," which will interact with the NFS server to negotiate available trunks.
+
+image::pNFFS_fig_016.png[NFSv4.1 session trunking in ONTAP]
+
+pNFS can provide a local path to each participating node in a cluster, and when used with session trunking, pNFS can leverage a session trunk per node to maximize throughput for the entire cluster.
+
+image::pNFFS_fig_017.png[NFSv4.1 session trunking with pNFS in ONTAP]
+
+When trunkdiscovery is used, an added GETATTR call (FS_Locations) is leveraged for the listed session trunk interfaces on the NFS server node where the mount interface is located. Once those are returned, subsequent mounts are made to the returned addresses. This can be seen via a packet capture during mount.
+
+image::pNFFS_fig_018.png[NFS session trunk discovery during mount – packet capture]
+
+.Related information
+
+* link:../nfs-trunking/index.html[NFS trunking overview]
+
+== pNFS versus NFSv4.1 referrals
+
+NFSv4.1 referrals are a mode of I/O path redirection that directs a client to the location of the volumes upon a mount request. NFSv4.1 referrals work within a single SVM. This feature attempts to localize the NFS mount to a network interface residing on the same node as the data volume. If that interface or volume moves to another node while mounted to a client, then the data path is no longer localized until a new mount is established.
+
+pNFS does not attempt to localize a mount path. Instead, it establishes a metadata server via a mount path and then localizes the data path dynamically as needed.
+
+.Related information
+
+* link:../nfs-admin/enable-disable-nfsv4-referrals-task.html[Enable or disable NFSv4 referrals]
+
+== Interaction of pNFS with Advanced Capacity Balancing
+
+Advanced Capacity Balancing in ONTAP writes portions of file data across constituent volumes of a FlexGroup volume (not supported with single FlexVol volumes). As a file grows, ONTAP decides to begin writing data to a new multipart inode on a different constituent volume which may be on the same node or a different node. Writes, reads, and metadata operations to these multi-inode files are transparent and non-disruptive to clients. Advanced Capacity Balancing improves space management among the FlexGroup constituent volumes which provides for more consistent performance.
+
+Recall that pNFS can redirect data IO to a localized network path depending on the file layout information stored in the NFS server. When a single large file is created in parts across multiple constituent volumes that can potentially span multiple nodes in the cluster, pNFS in ONTAP can still provide localized traffic to each file part because ONTAP maintains the file layout information for all of the file parts as well. When a file is read, then the data path locality will change as needed.
+
+image::pNFFS_fig_019.png[Advanced Capacity Balancing with pNFS]
+
+.Related information
+
+* link:../flexgroup/supported-unsupported-config-concept.html[FlexGroup volume configuration]
+
+// 2025-10-21, ONTAPDOC-2826
