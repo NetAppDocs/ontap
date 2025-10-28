@@ -15,87 +15,73 @@ Before deploying pNFS in your environment, ensure you meet the prerequisites and
 
 Before enabling and using pNFS in ONTAP, ensure the following requirements are met:
 
-* NFSv4.1 or later is enabled on the NFS server
-* At least one data LIF exists per node in the cluster for the SVM hosting the NFS server
-* All data LIFs in the SVM are routable to NFS clients
+* link:pnfs-overview.html#benefits-of-nfsv4x[NFSv4.1 or later] is enabled on the NFS server
+* At least one link:pnfs-architecture-concept.html#data-path-information[data LIF exists per node] in the cluster for the SVM hosting the NFS server
+* All link:pnfs-architecture-concept.html#data-path-information[data LIFs in the SVM are routable] to NFS clients
 * NFS clients support pNFS (most modern Linux distributions from 2014 onward)
 * Network connectivity between clients and all data LIFs in the SVM is functional
 * DNS resolution (if using hostnames) is configured properly for all data LIFs
-* FlexGroup volumes are configured (recommended for best results)
-* NFSv4.x ID domains match between clients and ONTAP
-* NFS Kerberos (if used) is enabled on all data LIFs in the SVM
-
-.Related information
-
-* link:../nfs-admin/enable-disable-nfsv41-task.html[Enable or disable NFSv4.1]
-* link:../nfs-config/create-lif-task.html[Create a LIF]
+* link:pnfs-architecture-concept.html#interaction-of-pnfs-with-flexgroup-volumes[FlexGroup volumes] are configured (recommended for best results)
+* link:pnfs-tuning-performance-concept.html#nfsv4x-id-domains[NFSv4.x ID domains match] between clients and ONTAP
+* link:pnfs-tuning-performance-concept.html#nfs-kerberos[NFS Kerberos] (if used) is enabled on all data LIFs in the SVM
 
 == Best practices summary
 
 When implementing pNFS in your environment, follow these best practices:
 
-* Use FlexGroup volumes for best performance and capacity scaling
-* Ensure all network interfaces in the SVM are routable to clients
-* Disable NFSv4.0 to ensure clients use NFSv4.1 or later
+* Use link:pnfs-tuning-performance-concept.html#volume-type-recommendation[FlexGroup volumes] for best performance and capacity scaling
+* Ensure all link:pnfs-tuning-performance-concept.html#network-interface-connectivity[network interfaces in the SVM are routable] to clients
+* link:pnfs-tuning-performance-concept.html#nfsv40[Disable NFSv4.0] to ensure clients use NFSv4.1 or later
 * Spread mount points across multiple network interfaces and nodes
-* Use round robin DNS for load balancing metadata servers
-* Verify NFSv4.x ID domains match on clients and servers
-* Conduct network interface migrations and storage failovers during maintenance windows
-* Enable NFS Kerberos on all data LIFs if using Kerberos security
-* Avoid using NFSv4.1 referrals when using pNFS
-* Test nconnect settings carefully to avoid overwhelming TCP connection limits
-* Consider session trunking as an alternative to nconnect (do not use both together)
-* Verify client OS vendor support for pNFS before deployment
+* Use round robin DNS for link:pnfs-tuning-performance-concept.html#metadata-server[load balancing metadata servers]
+* Verify link:pnfs-tuning-performance-concept.html#nfsv4x-id-domains[NFSv4.x ID domains match] on clients and servers
+* Conduct link:pnfs-tuning-performance-concept.html#network-interface-migration[network interface migrations] and link:pnfs-tuning-performance-concept.html#storage-failoversgivebacks[storage failovers] during maintenance windows
+* Enable link:pnfs-tuning-performance-concept.html#nfs-kerberos[NFS Kerberos] on all data LIFs if using Kerberos security
+* Avoid using link:pnfs-tuning-performance-concept.html#nfsv41-referrals[NFSv4.1 referrals] when using pNFS
+* Test link:pnfs-tuning-performance-concept.html#nconnect[nconnect settings] carefully to avoid overwhelming TCP connection limits
+* Consider link:pnfs-use-cases-concept.html#pnfs-with-nfsv41-session-trunking[session trunking] as an alternative to link:pnfs-use-cases-concept.html#pnfs-with-nconnect[nconnect] (do not use both together)
+* Verify link:pnfs-tuning-performance-concept.html#client-recommendations[client OS vendor support] for pNFS before deployment
 
 == Interoperability
 
 pNFS in ONTAP is designed to work with RFC-compliant NFS clients. The following considerations apply:
 
-* Most modern Linux distributions from 2014 onward support pNFS (RHEL 6.4, Fedora 17, and later)
+* Most modern link:pnfs-tuning-performance-concept.html#client-recommendations[Linux distributions from 2014 onward] support pNFS (RHEL 6.4, Fedora 17, and later)
 * NetApp's support stance is "if the client supports the feature and is RFC compliant, and we support the feature, then the combination is supported"
 * Verify with your client OS vendor that pNFS is supported
-* pNFS works with both FlexVol and FlexGroup volumes
-* pNFS is supported with NFSv4.1 and NFSv4.2
-* pNFS can be used with NFS Kerberos (krb5, krb5i, krb5p), but performance may be impacted
-* pNFS can be used alongside nconnect or session trunking (but not both simultaneously)
-* pNFS does not work over NFSv4.0
+* pNFS works with both FlexVol and link:pnfs-architecture-concept.html#interaction-of-pnfs-with-flexgroup-volumes[FlexGroup volumes]
+* pNFS is supported with link:pnfs-overview.html#pnfs-overview[NFSv4.1] and link:pnfs-tuning-performance-concept.html#nfsv42[NFSv4.2]
+* pNFS can be used with link:pnfs-tuning-performance-concept.html#nfs-kerberos[NFS Kerberos] (krb5, krb5i, krb5p), but performance may be impacted
+* pNFS can be used alongside link:pnfs-use-cases-concept.html#pnfs-with-nconnect[nconnect] or link:pnfs-use-cases-concept.html#pnfs-with-nfsv41-session-trunking[session trunking] (but not both simultaneously)
+* pNFS does not work over link:pnfs-tuning-performance-concept.html#nfsv40[NFSv4.0]
 
 .Related information
 
-* link:../nfs-admin/ontap-support-nfsv41-concept.html[ONTAP support for NFSv4.1]
-* link:../nfs-admin/ontap-support-nfsv42-concept.html[ONTAP support for NFSv4.2]
+
 
 == Limits
 
 The following limits apply to pNFS in ONTAP:
 
-* TCP connection limits per node vary by platform (check Hardware Universe for specific limits)
+* link:pnfs-tuning-performance-concept.html#nconnect[TCP connection limits] per node vary by platform (check Hardware Universe for specific limits)
 * Maximum file size: Depends on the volume type and ONTAP version
-* Maximum file count: Up to 200 billion files with FlexGroup volumes
-* Maximum capacity: Up to 60PB with FlexGroup volumes
-* Network interface count: At least one data LIF per node is required; more may be needed for load balancing
+* Maximum file count: Up to 200 billion files with link:pnfs-architecture-concept.html#interaction-of-pnfs-with-flexgroup-volumes[FlexGroup volumes]
+* Maximum capacity: Up to 60PB with link:pnfs-architecture-concept.html#interaction-of-pnfs-with-flexgroup-volumes[FlexGroup volumes]
+* link:pnfs-tuning-performance-concept.html#network-interface-connectivity[Network interface count]: At least one data LIF per node is required; more may be needed for load balancing
 
-When using nconnect with pNFS, be aware that TCP connection counts multiply quickly:
+When using link:pnfs-use-cases-concept.html#pnfs-with-nconnect[nconnect with pNFS], be aware that TCP connection counts multiply quickly:
 
 * Each client mount with nconnect creates multiple TCP connections per data LIF
-* With many clients using high nconnect values, TCP connection limits can be exceeded
+* With many clients using high nconnect values, link:pnfs-tuning-performance-concept.html#nconnect[TCP connection limits] can be exceeded
 * Exceeding TCP connection limits prevents new connections until existing connections are freed
 
 .Related information
 
+* link:../nfs-admin/enable-disable-nfsv41-task.html[Enable or disable NFSv4.1]
+* link:../nfs-config/create-lif-task.html[Create a LIF]
+* link:../nfs-admin/ontap-support-nfsv41-concept.html[ONTAP support for NFSv4.1]
+* link:../nfs-admin/ontap-support-nfsv42-concept.html[ONTAP support for NFSv4.2]
 * link:https://hwu.netapp.com[NetApp Hardware Universe^]
 * link:../flexgroup/index.html[FlexGroup volumes management]
-
-== Additional information
-
-For more information about pNFS and related NFS features in ONTAP, see the following resources:
-
-* link:../nfs-config/index.html[NFS configuration overview]
-* link:../nfs-admin/index.html[NFS management overview]
-* link:../flexgroup/index.html[FlexGroup volumes management]
-* link:../nfs-trunking/index.html[NFS trunking overview]
-* link:https://www.netapp.com/pdf.html?item=/media/10720-tr-4067.pdf[NetApp Technical Report 4067: NFS Best Practice and Implementation Guide^]
-* link:https://www.netapp.com/pdf.html?item=/media/19384-tr-4523.pdf[NetApp Technical Report 4523: DNS Load Balancing in ONTAP^]
-* link:https://www.netapp.com/pdf.html?item=/media/19384-tr-4616.pdf[NetApp Technical Report 4616: NFS Kerberos in ONTAP with Microsoft Active Directory^]
 
 // 2025-10-21, ONTAPDOC-2826
