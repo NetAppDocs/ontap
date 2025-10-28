@@ -11,21 +11,23 @@ summary: "The pNFS architecture separates metadata and data paths to provide per
 [.lead]
 The pNFS architecture is comprised of three main components: an NFS client that supports pNFS, a metadata server that provides a dedicated path for metadata operations, and a data server that provides localized paths to files.
 
-Clients that wish to access pNFS need network connectivity to data and metadata paths available on the NFS server. If the NFS server contains network interfaces that are not reachable by the clients, then the server may advertise data paths to the client that are inaccessible, which can cause outages.
+Client access to pNFS needs network connectivity to data and metadata paths available on the NFS server. If the NFS server contains network interfaces that are not reachable by the clients, then the server may advertise data paths to the client that are inaccessible, which can cause outages.
 
 == Metadata server
 
 The metadata server in pNFS is established when a client initiates a mount using NFSv4.1 or later when pNFS is enabled on the NFS server. When this is done, all metadata traffic is sent over this connection and remains on this connection for the duration of the mount, even if the interface is migrated to another node.
 
-image::pNFS_fig_007.png[Establishing the metadata server in pNFS in NetApp ONTAP]
+.Establish the metadata server in pNFS in NetApp ONTAP
+image::pNFS_fig_007.png[Establish the metadata server in pNFS in NetApp ONTAP]
 
-pNFS support is determined during the mount call – specifically in the EXCHANGE_ID calls. This can be seen in a packet capture below the NFS operations as a flag. When the pNFS flags EXCHGID4_FLAG_USE_PNFS_DS and EXCHGID4_FLAG_USE_PNFS_MDS are set to 1, then the interface is eligible for both data and metadata operations in pNFS.
+pNFS support is determined during the mount call, specifically in the EXCHANGE_ID calls. This can be seen in a packet capture below the NFS operations as a flag. When the pNFS flags `EXCHGID4_FLAG_USE_PNFS_DS` and `EXCHGID4_FLAG_USE_PNFS_MDS` are set to 1, then the interface is eligible for both data and metadata operations in pNFS.
 
+.Packet capture for pNFS mount
 image::pNFS_fig_008.png[Packet capture for pNFS mount]
 
 Metadata in NFS generally consists of file and folder attributes, such as file handles, permissions, access and modification times, ownership information, etc. Metadata can also include create and delete calls, link and unlink calls, and renames.
 
-In pNFS, there is also a subset of metadata calls that are specific to the pNFS feature and are covered in further detail in RFC 5661. These calls are used to help determine pNFS-eligible devices, mappings of devices to datasets, etc. The following table shows a list of these pNFS-specific metadata operations.
+In pNFS, there is also a subset of metadata calls that are specific to the pNFS feature and are covered in further detail in link:https://www.rfc-editor.org/rfc/rfc5661.html#section-12.3[RFC 5661^]. These calls are used to help determine pNFS-eligible devices, mappings of devices to datasets, etc. The following table shows a list of these pNFS-specific metadata operations.
 
 [cols="30,70"]
 |===
@@ -58,7 +60,7 @@ In pNFS, there is also a subset of metadata calls that are specific to the pNFS 
 
 == Data path information
 
-After the metadata server is established and data operations begin, ONTAP will begin to track the device IDs eligible for pNFS read and write operations, as well as the device mappings, which associate the volumes in the cluster with the local network interfaces. This process occurs when a read or write operation is performed in the mount. Metadata calls such as GETATTR will not trigger these device mappings. As such, running an "ls" command inside of the mount point will not update the mappings.
+After the metadata server is established and data operations begin, ONTAP will begin to track the device IDs eligible for pNFS read and write operations, as well as the device mappings, which associate the volumes in the cluster with the local network interfaces. This process occurs when a read or write operation is performed in the mount. Metadata calls, such as `GETATTR`. will not trigger these device mappings. As such, running an `ls` command inside of the mount point will not update the mappings.
 
 Devices and mappings can be seen using the ONTAP CLI in advanced privilege, as shown below.
 
@@ -76,21 +78,23 @@ Vserver Name    Mapping ID      Dsid            LIF IP
 DEMO            16              2488            10.193.67.211
 ----
 
-In the above commands, the volume names are not present. Instead, the numeric IDs associated with those volumes are used – the master set ID (MSID) and the data set ID (DSID). To find the volumes associated with the mappings, you can use `volume show -dsid [dsid_numeric]` or `volume show -msid [msid_numeric]` in advanced privilege of the ONTAP CLI.
+NOTE: In these commands, the volume names are not present. Instead, the numeric IDs associated with those volumes are used: the master set ID (MSID) and the data set ID (DSID). To find the volumes associated with the mappings, you can use `volume show -dsid [dsid_numeric]` or `volume show -msid [msid_numeric]` in advanced privilege of the ONTAP CLI.
 
 When a client attempts to read or write to a file located on a node that is remote to the metadata server connection, pNFS will negotiate the appropriate access paths to ensure data locality for those operations and the client will redirect to the advertised pNFS device rather than attempting to traverse the cluster network to access the file. This helps reduce CPU overhead and network latency.
 
+. Remote read path using NFSv4.1 without pNFS
 image::pNFS_fig_009.png[Remote read path using NFSv4.1 without pNFS]
 
+.Localized read path using pNFS
 image::pNFS_fig_010.png[Localized read path using pNFS]
 
 == pNFS control path
 
 In addition to the metadata and data portions of pNFS, there is also a pNFS control path. The control path is used by the NFS server to synchronize file system information. In the case of an ONTAP cluster, the backend cluster network replicates periodically to ensure all pNFS devices and device mappings are in sync.
 
-== Detailed steps – pNFS devices
+== pNFS device population workflow
 
-The following shows the details of how a pNFS device populates in ONTAP once a client makes a request to read or write a file in a volume.
+The following describes how a pNFS device populates in ONTAP after a client makes a request to read or write a file in a volume.
 
 . Client requests read or write; an OPEN is performed and the file handle is retrieved.
 . Once the OPEN is performed, the client sends the file handle to the storage in a LAYOUTGET call over the metadata server connection.
@@ -101,20 +105,24 @@ The following shows the details of how a pNFS device populates in ONTAP once a c
 
 == Interaction of pNFS with FlexGroup volumes
 
-FlexGroup volumes in ONTAP present storage via FlexVol volume constituents that span multiple nodes in a cluster, which allows a workload to leverage multiple hardware resources while maintaining a single mountpoint. Since multiple nodes - with multiple network interfaces – are interacting with the workload, it's a natural result to see remote traffic traverse the backend cluster network in ONTAP.
+FlexGroup volumes in ONTAP present storage via FlexVol volume constituents that span multiple nodes in a cluster, which allows a workload to leverage multiple hardware resources while maintaining a single mountpoint. Because multiple nodes with multiple network interfaces are interacting with the workload, it's a natural result to see remote traffic traverse the backend cluster network in ONTAP.
 
+.Single file access in a FlexGroup volume without pNFS
 image::pNFS_fig_011.png[Single file access in a FlexGroup volume without pNFS]
 
-When utilizing pNFS, ONTAP keeps track of the file and volume layouts of the FlexGroup volume and maps them to the local data interfaces in the cluster. For instance, if a constituent volume contains a file being accessed resides on node 1, then ONTAP will notify the client to redirect the data traffic to the data interface on node 1.
+When utilizing pNFS, ONTAP keeps track of the file and volume layouts of the FlexGroup volume and maps them to the local data interfaces in the cluster. For example, if a constituent volume that contains a file being accessed resides on node 1, then ONTAP will notify the client to redirect the data traffic to the data interface on node 1.
 
+.Single file access in a FlexGroup volume with pNFS
 image::pNFS_fig_012.png[Single file access in a FlexGroup volume with pNFS]
 
-pNFS also provides a way to present parallel network paths to files from a single client that NFSv4.1 without pNFS does not offer. For instance, if a client wants to access 4 files at the same time from the same mount using NFSv4.1 without pNFS, the same network path would be utilized for all files and the ONTAP cluster would instead send remote requests to those files. The mount path can become a bottleneck for the operations, as they all follow a single path and arrive at a single node and is also servicing metadata operations along with the data operations.
+pNFS also provides a way to present parallel network paths to files from a single client that NFSv4.1 without pNFS does not offer. For example, if a client wants to access four files at the same time from the same mount using NFSv4.1 without pNFS, the same network path would be utilized for all files and the ONTAP cluster would instead send remote requests to those files. The mount path can become a bottleneck for the operations, as they all follow a single path and arrive at a single node and is also servicing metadata operations along with the data operations.
 
+.Multiple simultaneous file access in a FlexGroup volume without pNFS
 image::pNFS_fig_013.png[Multiple simultaneous file access in a FlexGroup volume without pNFS]
 
-When pNFS is used to access the same 4 files simultaneously from a single client, the client and server negotiate local paths to each node with the files and uses multiple TCP connections for the data operations, while the mount path acts as the location for all metadata operations. This provides latency benefits by using local paths to the files, but also can add throughput benefits by way of multiple network interfaces being used, provided the client(s) can send enough data to saturate the network.
+When pNFS is used to access the same four files simultaneously from a single client, the client and server negotiate local paths to each node with the files and uses multiple TCP connections for the data operations, while the mount path acts as the location for all metadata operations. This provides latency benefits by using local paths to the files, but also can add throughput benefits by way of multiple network interfaces being used, provided the client(s) can send enough data to saturate the network.
 
+.Multiple simultaneous file access in a FlexGroup volume with pNFS
 image::pNFS_fig_014.png[Multiple simultaneous file access in a FlexGroup volume with pNFS]
 
 The following shows results from a simple test run on a single RHEL 9.5 client where four 10GB files (all residing on different constituent volumes across two ONTAP cluster nodes) are read in parallel using dd. For each file, the overall throughput and completion time was improved when using pNFS. When using NFSv4.1 without pNFS, the performance delta between files that were local to the mount point and remote was greater than with pNFS.
@@ -123,29 +131,29 @@ The following shows results from a simple test run on a single RHEL 9.5 client w
 |===
 | Test | Throughput per file (MB/s) | Completion time per file (s)
 
-| NFSv4.1 – no pNFS
+| NFSv4.1: no pNFS
 a|
-* File.1 – 228 (local)
-* File.2 – 227 (local)
-* File.3 – 192
-* File.4 – 192
+* File.1–228 (local)
+* File.2–227 (local)
+* File.3–192
+* File.4–192
 a|
-* File.1 – 46 (local)
-* File.2 – 46.1 (local)
-* File.3 – 54.5
-* File.4 – 54.5
+* File.1–46 (local)
+* File.2–46.1 (local)
+* File.3–54.5
+* File.4–54.5
 
-| NFSv4.1 – with pNFS
+| NFSv4.1: with pNFS
 a|
-* File.1 – 248 (local)
-* File.2 – 246 (local)
-* File.3 – 244
-* File.4 – 244
+* File.1–248 (local)
+* File.2–246 (local)
+* File.3–244
+* File.4–244
 a|
-* File.1 – 42.3 (local)
-* File.2 – 42.6 (local)
-* File.3 – 43
-* File.4 – 43
+* File.1–42.3 (local)
+* File.2–42.6 (local)
+* File.3–43
+* File.4–43
 |===
 
 .Related information
