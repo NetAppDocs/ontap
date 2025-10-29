@@ -338,6 +338,8 @@ root@mediator_host:~#
 
 Beginning with ONTAP Mediator 1.4, the Secure Boot mechanism is enabled on UEFI systems. When Secure Boot is enabled, you must take additional steps to register the security key after installation.
 
+.Steps
+
 . Follow the instructions in the README file to sign the SCST kernel module:
 +
 `/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/README.module-signing`
@@ -353,10 +355,13 @@ NOTE: After installation, the system output provides the README files and key lo
 +
 `mokutil --import /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/scst_module_key.der`
 +
-NOTE: You can leave the private key in its default location or move it to a secure location. You must keep the public key in its existing location so the Boot Manager can use it. For more information, see the README.module-signing file:
-+
+[NOTE]
+====
+You can leave the private key in its default location or move it to a secure location. You must keep the public key in its existing location so the Boot Manager can use it. For more information, see the README.module-signing file:
+
 `[root@hostname ~]# ls /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/
 README.module-signing  scst_module_key.der  scst_module_key.priv`
+====
 
 . Reboot the host and use your device's UEFI Boot Manager to approve the new MOK. You'll need the passphrase provided for the `mokutil` utility in <<step_1_uefi,the step where you check if UEFI Secure Boot is enabled on your system>>. 
 
@@ -364,13 +369,15 @@ README.module-signing  scst_module_key.der  scst_module_key.priv`
 
 After ONTAP Mediator is installed, if the systemctl status `mediator-scst` shows as failed (inactive), follow these steps to sign the SCST kernel module.
 
-. During the build process a public/private key pair is generated in the `/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/` directory:
+.Steps
+
+. During the build process a public/private key pair is generated in the `/opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/` directory, using the following command:
 + 
 `[root@mediator-host ~]# ls /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/
 README.module-signing  scst_module_key.der  scst_module_key.priv
 [root@mediator-host ~]#`
  
-. Start the process of importing the public key into the UEFI key repository using the following command:
+. Start the process of importing the public key into the UEFI key repository by running the following commands:
 +
 `[root@mediator-host ~]# mokutil --import /opt/netapp/lib/ontap_mediator/ontap_mediator/SCST_mod_keys/scst_module_key.der
 input password:
@@ -382,7 +389,7 @@ input password again:`
 
 . Verify whether the import process has started with the `mokutil --list-new` and then reboot the system. The bootloader starts the EFI MOK manager.
 
-. Use the menus on the screen to turn on the SCST kernel module key. After booting, run `systemctl status mediator-scst`. If the service starts, the SCST kernel modules are signed.
+. Use the menus on the screen to turn on the SCST kernel module key. After booting, run `systemctl status mediator-scst`. Once the service starts, the SCST kernel modules are signed.
 
 // 2023 July 24, Public PR 1012
 // 2021-04-21 ONTAPEX-133437
