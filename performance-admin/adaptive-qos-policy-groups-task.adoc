@@ -9,7 +9,7 @@ summary: "You can use an adaptive QoS policy group to automatically scale a thro
 :imagesdir: ../media/
 
 [.lead]
-You can use an _adaptive QoS_ policy group to automatically scale a throughput ceiling or floor to volume size, maintaining the ratio of IOPS to TBs|GBs as the size of the volume changes. That is a significant advantage when you are managing hundreds or thousands of workloads in a large deployment.
+You can use an _adaptive QoS_ policy group to automatically scale a throughput ceiling or floor to volume size, maintaining the ratio of IOPS to TBs/GBs as the size of the volume changes. That is a significant advantage when you are managing hundreds or thousands of workloads in a large deployment.
 
 .Before you begin
 
@@ -24,14 +24,14 @@ Adaptive QoS policy groups are always non-shared: the defined throughput ceiling
 
 The ratio of throughput limits to storage object size is determined by the interaction of the following fields:
 
-* `expected-iops` is the minimum expected IOPS per allocated TB|GB.
+* `expected-iops` is the minimum expected IOPS per allocated TB/GB.
 +
 [NOTE]
 ====
 `expected-iops` is guaranteed on AFF platforms only. `expected-iops` is guaranteed for FabricPool only if the tiering policy is set to "none" and no blocks are in the cloud. `expected-iops` is guaranteed for volumes that are not in a SnapMirror synchronous relationship.
 ====
 
-* `peak-iops` is the maximum possible IOPS per allocated or used TB|GB.
+* `peak-iops` is the maximum possible IOPS per allocated or used TB/GB.
 * `expected-iops-allocation` specifies whether allocated space (the default) or used space is used for expected-iops.
 +
 [NOTE]
@@ -45,6 +45,8 @@ The ratio of throughput limits to storage object size is determined by the inter
 For example, if you set `expected-iops` to 1,000 IOPS/TB, and the volume size is less than 1 GB, the calculated `expected-iops` will be a fractional IOP. The calculated `peak-iops` will be an even smaller fraction. You can avoid this by setting `absolute-min-iops` to a realistic value.
 
 * `block-size` specifies the application I/O block size. The default is 32K. Valid values are 8K, 16K, 32K, 64K, ANY. ANY means that the block size is not enforced.
+
+== Default adaptive QoS policy groups
 
 Three default adaptive QoS policy groups are available, as shown in the following table. You can apply these policy groups directly to a volume.
 
@@ -78,27 +80,47 @@ a|
 75
 |===
 
-You cannot assign a storage object to a policy group if its containing object or its child objects belong to a policy group. The following table lists the restrictions.
+== Storage object policy group assignment restrictions
+
+In some cases you cannot assign a storage object to a policy group if its containing object or its child objects belong to a policy group. 
+
+Beginning with ONTAP 9.18.1, you can use nested QoS policies, which allow assigning policy groups to both the containing object, such as an SVM, and its child object, such as a volume. In a multi-tenant environment, nested QoS policies enable administrators to subdivide the QoS limits on SVMs among the volumes and qtrees within the SVM, and to provide the ability to balance storage resources across computing environments while also enabling prioritization of mission-critical workloads.
+
+Nested QoS policies are supported for the following object pairs: 
+
+* SVMs and FlexVol or FlexGroup volumes contained by the SVM. 
+* FlexVol or FlexGroup volumes and qtrees within the volumes. 
+
+For nested QoS policies, the most restrictive applicable policy is used. 
+
+The following table lists the restrictions.
 
 [options="header"]
 |===
-| If you assign the...| Then you cannot assign...
+| If you assign the...| Then you cannot assign to a policy group...
 a|
 SVM to a policy group
 a|
-Any storage objects contained by the SVM to a policy group
+
+Any storage objects contained by the SVM. 
+
+[NOTE]
+If you are running ONTAP 9.18.1, FlexVol and FlexGroup volumes contained by SVMs _can_ be assigned to a policy group.
 a|
 Volume to a policy group
 a|
-The volume's containing SVM or any child LUNs to a policy group
+The SVM containing the volume or any child LUNs. 
+
+[NOTE]
+If you are running ONTAP 9.18.1 and later, the SVM containing the volume _can_ be assigned to a policy group. Additionally, qtrees in FlexVol or FlexGroup volumes can be assigned. 
 a|
 LUN to a policy group
 a|
-The LUN's containing volume or SVM to a policy group
+The volume or SVM containing the LUNs
 a|
 File to a policy group
 a|
-The file's containing volume or SVM to a policy group
+The volume or SVM containing the file
 |===
 
 .Steps
@@ -143,7 +165,7 @@ cluster1::> volume modify -vserver vs5 -volume app5 -qos-adaptive-policy-group e
 ----
 
 
-
+// 2025-Oct-7, ONTAPDOC-3271
 // 2024-Aug-30, ONTAPDOC-2346
 // 08 DEC 2021, BURT 1430515
 // 2022-03-23, sm-classic content rework
