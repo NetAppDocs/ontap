@@ -19,7 +19,7 @@ Beginning with ONTAP 9.11.1, you can modify the parameters for ransomware detect
 
 When Autonomous Ransomware Protection (ARP) is in a learning or evaluation mode, it develops baseline values for volume behaviors. These include entropy, file extensions, and, beginning with ONTAP 9.11.1, IOPS. These baselines are used to evaluate ransomware threats. For more information about these criteria, see link:index.html#what-arp-detects[what ARP detects].
 
-Certain volumes and workloads require different detection parameters. For example, your ARP-enabled volume may host numerous types of file extensions, in which case you may want to modify the threshold count for never-before-seen file extensions to a number greater than the default of 20 or disable warnings based on never-before-seen file extensions. Beginning with ONTAP 9.11.1, you can modify the attack detection parameters so they better fit your specific workloads.
+Certain volumes and workloads require different detection parameters. For example, the ARP-enabled volume might host numerous types of file extensions, in which case you may want to modify the threshold count for never-before-seen file extensions to a number greater than the default of 20 or disable warnings based on never-before-seen file extensions. Beginning with ONTAP 9.11.1, you can modify the attack detection parameters so they better fit your specific workloads.
 
 Beginning with ONTAP 9.14.1, you can configure alerts when ARP observes a new file extension and when ARP creates a snapshot. For more information, see <<modify-alerts>>.
 
@@ -38,7 +38,7 @@ Beginning with ONTAP 9.17.1, ARP issues a warning if it detects high encryption 
 
 == Modify attack detection parameters
 
-Depending on the expected behaviors of your ARP-enabled volume, you might want to modify the attack detection parameters.
+Depending on the expected behaviors of the ARP-enabled volume, you might want to modify the attack detection parameters.
 
 .Steps
 . View the existing attack detection parameters:
@@ -63,8 +63,8 @@ security anti-ransomware volume attack-detection-parameters show -vserver vs1 -v
                  File Create Rate Surge Notify Percentage : 100
                  File Rename Rate Surge Notify Percentage : 100
                  File Delete Rate Surge Notify Percentage : 100
- Never Seen before File Extensions Count Notify Threshold : 20
-       Never Seen before File Extensions Duration in Hour : 24
+ Never Seen before File Extensions Count Notify Threshold : 5
+       Never Seen before File Extensions Duration in Hour : 48
 ....
 . All the fields shown are modifiable with boolean or integer values. To modify a field, use the `security anti-ransomware volume attack-detection-parameters modify` command. 
 +
@@ -78,14 +78,20 @@ ARP continues to modify baseline values for detection parameters even when activ
 .Report a one-time surge
 . If a one-time surge is occurring under known circumstances and you want ARP to report a similar surge in future circumstances, clear the surge from the workload behavior:  
 +
-`security anti-ransomware volume workload-behavior clear-surge -vserver <svm_name> -volume <volume_name>`
+[source,cli]
+----
+security anti-ransomware volume workload-behavior clear-surge -vserver <svm_name> -volume <volume_name>
+----
 +
 Learn more about `security anti-ransomware volume workload-behavior clear-surge` in the link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-workload-behavior-clear-surge.html[ONTAP command reference^].
 
 .Modify baseline surge 
 . If a reported surge should be considered normal application behavior, report the surge as such to modify the baseline surge value.
 +
-`security anti-ransomware volume workload-behavior update-baseline-from-surge -vserver <svm_name> -volume <volume_name>`
+[source,cli]
+----
+security anti-ransomware volume workload-behavior update-baseline-from-surge -vserver <svm_name> -volume <volume_name>
+----
 +
 Learn more about `security anti-ransomware volume workload-behavior update-baseline-from-surge` in the link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-workload-behavior-update-baseline-from-surge.html[ONTAP command reference^].
 
@@ -127,19 +133,34 @@ You can use System Manager or the ONTAP CLI to set alerts for ARP events.
 .Set alerts for a volume
 * To set alerts for a new file-extension:
 +
-`security anti-ransomware volume event-log modify -vserver <svm_name> -is-enabled-on-new-file-extension-seen true`
+[source,cli]
+----
+security anti-ransomware volume event-log modify -vserver <svm_name> -volume <volume_name> -is-enabled-on-new-file-extension-seen true`
+----
+
 * To set alerts for the creation of an ARP snapshot:
 +
-`security anti-ransomware volume event-log modify -vserver <svm_name> -is-enabled-on-snapshot-copy-creation true`
+[source,cli]
+----
+security anti-ransomware volume event-log modify -vserver <svm_name> -volume <volume_name> -is-enabled-on-snapshot-copy-creation true
+----
+
 * Confirm your settings with the `anti-ransomware volume event-log show` command.
 
 .Set alerts for an SVM 
 * To set alerts for a new file-extension:
 +
-`security anti-ransomware vserver event-log modify -vserver <svm_name> -is-enabled-on-new-file-extension-seen true`
+[source,cli]
+----
+security anti-ransomware vserver event-log modify -vserver <svm_name> -is-enabled-on-new-file-extension-seen true
+----
+
 * To set alerts for the creation of an ARP snapshot:
 +
-`security anti-ransomware vserver event-log modify -vserver <svm_name> -is-enabled-on-snapshot-copy-creation true`
+[source,cli]
+----
+security anti-ransomware vserver event-log modify -vserver <svm_name> -is-enabled-on-snapshot-copy-creation true
+----
 
 * Confirm your settings with the `security anti-ransomware vserver event-log show` command.
 
