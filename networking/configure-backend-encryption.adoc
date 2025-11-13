@@ -1,0 +1,83 @@
+---
+sidebar: sidebar
+permalink: networking/configure-backend-encryption.html
+keywords: cluster network, encryption, TLS, data-in-flight, backend network
+summary: Configure cluster network encryption settings
+---
+
+= Configure ONTAP backend cluster network encryption
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.18.1, you can configure Transport Layer Security (TLS) encryption for data-in-flight on the backend cluster network. This encryption protects customer data stored in ONTAP when it is transmitted between ONTAP nodes on the backend cluster network.
+
+.About this task
+* Backend cluster network encryption is disabled by default.
+* When backend cluster network encryption is enabled, all customer data stored in ONTAP is encrypted when transmitted between ONTAP nodes on the backend cluster network. Some cluster network traffic, such as control path data, is not encrypted.
+* By default, backend cluster network encryption will use auto-generated certificates for each node in the cluster. You can <<Manage cluster network encryption certificates>> on each node to use a custom installed certificate.
+
+.Before you begin
+* You must be an ONTAP administrator at the `admin` privilege level to perform the following tasks.
+* All nodes in the cluster must be running ONTAP 9.18.1 or later to enable backend cluster network encryption.
+
+== Enable or disable encryption for cluster network communication
+
+.Steps
+
+. View the current cluster network encryption status:
++
+[source, cli]
+----
+security cluster-network show
+----
+This command shows the current status of cluster network encryption:
++
+```
+Cluster-1::*> security cluster-network show
+
+Enabled: true
+
+Mode: tls
+
+Status: READY
+```
+
+. Enable or disable TLS backend cluster network encryption:
++
+[source, cli]
+----
+security cluster-network modify -enabled <true|false>
+----
+This command enables or disables encrypted communication for customer data-in-flight on the backend cluster network.
+
+== Manage cluster network encryption certificates
+
+. View the current cluster network encryption certificate information:
++
+[source, cli]
+----
+security cluster-network certificate show
+----
+This command shows the current cluster network encryption certificate information:
++
+```
+security cluster-network certificate show
+Node                  Certificate Name                      CA
+--------------------- -----------------------------------   --------------
+node1                 -                                     Cluster-1_Root_CA
+node2                 -                                     Cluster-1_Root_CA
+node3                 google_issued_cert1                   Google_CA1
+node4                 google_issued_cert2                   Google_CA1
+```
+The certificate and certificate authority (CA) names are shown for each node in the cluster.
+
+. Modify the cluster network encryption certificate for a node:
++
+[source, cli]
+----
+security cluster-network certificate modify -node <node_name> -name <certificate_name>
+----
+This command modifies the cluster network encryption certificate for a specific node. The certificate must be installed and signed by an installed CA prior to running this command. For more information on certificate management, refer to link:../authentication/manage-certificates-sm-task.html[Manage ONTAP certificates with System Manager]. If `-name` is not specified, the auto-generated default certificate is used.
+
+// 10-2-25 ONTAPDOC-3258
