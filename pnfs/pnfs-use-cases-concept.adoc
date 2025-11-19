@@ -15,7 +15,7 @@ pNFS can be used with various ONTAP features to improve performance and provide 
 
 NFS introduced a new mount option with some more recent clients and servers that provides a way to deliver multiple TCP connections while mounting a single IP address. This provides a mechanism to better parallelize operations, work around NFS server and client limitation, and potentially provide greater overall performance to certain workloads. nconnect is supported in ONTAP 9.8 and later, provided the client supports nconnect.
 
-When using nconnect with pNFS, connections will parallelize via the nconnect option over each pNFS device advertised by the NFS server. For instance, if nconnect is set to four and there are four eligible interfaces for pNFS, then the total number of connections created will be 16 per mount point.
+When using nconnect with pNFS, connections will parallelize via the nconnect option over each pNFS device advertised by the NFS server. For instance, if nconnect is set to four and there are four eligible interfaces for pNFS, then the total number of connections created will be up to 16 per mount point (4 nconnect x 4 IP addresses).
 
 .pNFS with nconnect set to 4
 image::pNFS_fig_015.png[pNFS with nconnect=4]
@@ -26,7 +26,38 @@ link:../nfs-admin/ontap-support-nfsv41-concept.html[Learn more about ONTAP suppo
 
 NFSv4.1 session trunking (https://datatracker.ietf.org/doc/html/rfc5661#section-2.10.5[RFC 5661, section 2.10.5^]) is the use of multiple TCP connections between a client and server in order to increase the speed of data transfer. Support for NFSv4.1 session trunking was added to ONTAP 9.14.1 and must be used with clients that also support session trunking.
 
-In ONTAP, session trunking can be used across multiple nodes in a cluster to provide extra throughput and redundancy across connections. Session trunking can be established manually by using the `max_connect=n` mount option, and the mount command must be run for each individual interface for the trunk to work properly. Some clients also support the mount option `trunkdiscovery`, which will interact with the NFS server to negotiate available trunks.
+In ONTAP, session trunking can be used across multiple nodes in a cluster to provide extra throughput and redundancy across connections. 
+
+Session trunking can be established multiple ways:
+
+* *Discover automatically via mount options:* Session trunking in most modern NFS clients can be established via mount options (check your OS vendor's documentation) that signal to the NFS server to send information back to the client about session trunks. This information appears via an NFS packet as an `fs_location4` call.
++
+The mount option in use depends on the client OS version. For instance, Ubuntu Linux flavors generally use `max_connect=n` to signal a session trunk is to be used. In RHEL Linux distros, the `trunkdiscovery` mount option is used.
++
+.Ubuntu example
+----
+mount -o vers=4.1,max_connect=8 10.10.10.10:/pNFS /mnt/pNFS
+----
++
+.RHEL example
+----
+mount -o vers=4.1,trunkdiscovery 10.10.10.10:/pNFS /mnt/pNFS
+----
++
+NOTE: If you attempt to use `max_connect` on RHEL distros, it will be treated as nconnect instead and session trunking will not work as expected.
+
+* *Establish manually:* You can establish session trunking manually by mounting each individual IP address to the same export path and mount point. For example, if you have two IP addresses on the same node (10.10.10.10 and 10.10.10.11) for an export path of `/pNFS`, you would run the mount command twice:
++
+----
+mount -o vers=4.1 10.10.10.10:/pNFS /mnt/pNFS
+mount -o vers=4.1 10.10.10.11:/pNFS /mnt/pNFS
+----
++
+Repeat this process across all interfaces you want to participate in the trunk. 
+
+NOTE: Each node gets its own session trunk. Trunks do not traverse nodes.
+
+NOTE: When using pNFS, use only either session trunking _or_ nconnect. Using both will result in undesirable behavior, such as only the metadata server connection getting the benefits of nconnect with the data servers using a single connection.
 
 .NFSv4.1 session trunking in ONTAP
 image::pNFS_fig_016.png[NFSv4.1 session trunking in ONTAP]
@@ -44,9 +75,11 @@ link:../nfs-trunking/index.html[Learn more about NFS trunking]
 
 == pNFS versus NFSv4.1 referrals
 
-NFSv4.1 referrals are a mode of I/O path redirection that directs a client to the location of the volumes upon a mount request. NFSv4.1 referrals work within a single SVM. This feature attempts to localize the NFS mount to a network interface residing on the same node as the data volume. If that interface or volume moves to another node while mounted to a client, then the data path is no longer localized until a new mount is established.
+NFSv4.1 referrals are a mode of initial mount path redirection that directs a client to the location of the volumes upon a mount request. NFSv4.1 referrals work within a single SVM. This feature attempts to localize the NFS mount to a network interface residing on the same node as the data volume. If that interface or volume moves to another node while mounted to a client, then the data path is no longer localized until a new mount is established.
 
 pNFS does not attempt to localize a mount path. Instead, it establishes a metadata server via a mount path and then localizes the data path dynamically as needed.
+
+NFSv4.1 referrals can be used with pNFS, but the functionality is unnecessary. Enabling referrals with pNFS will not show noticeable results.
 
 link:../nfs-admin/enable-disable-nfsv4-referrals-task.html[Enable or disable NFSv4 referrals]
 
