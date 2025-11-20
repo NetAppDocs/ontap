@@ -55,7 +55,32 @@ C1_cluster 			  1-80-000011           Unavailable    ok
 
 Force a failover to enable I/O from Site B and then establish a zero RTO relationship from Site B to Site A. Complete the following steps to perform a forced failover on Site B.
 
-. Unmap all LUNs belonging to the consistency group from Site B.
+. Unmap all LUNs belonging to the consistency group from Site B. This will fail, so first the igroup must be modified to remove the replication peer vserver and then proceed to delete the lun map
+
+C1_sti233-vsim-sr092a_cluster::*> lun mapping show
+Vserver    Path                                      Igroup   LUN ID  Protocol
+---------- ----------------------------------------  -------  ------  --------
+vs0        /vol/cg1_lun/lun_1                        igroup1       0  mixed
+vs0        /vol/cg1_lun/lun_2                        igroup1       1  mixed
+2 entries were displayed.
+
+C1_sti233-vsim-sr092a_cluster::*> lun mapping delete -path /vol/cg1_lun/lun_5 -igroup igroup1
+Error: command failed: The peer cluster is unreachable and a SnapMirror
+       Mediator is not configured. The configuration is locked for replicated
+       objects in this Vserver peer relationship on both clusters. The only
+       supported configuration change is to manually disable replication on
+       both sides of the relationship, after which configuration changes are
+       supported.
+C1_sti233-vsim-sr092a_cluster::*> igroup modify -igroup igroup1 -replication-peer -
+
+C1_sti233-vsim-sr092a_cluster::*> lun mapping delete -path /vol/cg1_lun/lun_1 -igroup igroup1
+
+C1_sti233-vsim-sr092a_cluster::*> lun mapping show
+Vserver    Path                                      Igroup   LUN ID  Protocol
+---------- ----------------------------------------  -------  ------  --------
+vs0        /vol/cg1_lun/lun_2                        igroup1       1  mixed
+1 entries were displayed.
+
 
 . Delete the SnapMirror consistency group relationship using the force option.
 
