@@ -9,16 +9,16 @@ summary: "Follow best practices and considerations when using pNFS in ONTAP for 
 :imagesdir: ../media/
 
 [.lead]
-When using pNFS in NetApp ONTAP, use these considerations and best practices for best results. 
+When using pNFS in ONTAP, use these considerations and best practices for best results. 
 
 == Volume type recommendations
 
-pNFS in NetApp ONTAP works with both FlexVol volumes and FlexGroup volumes, but for the best overall results, use FlexGroup volumes.
+pNFS in ONTAP works with both FlexVol volumes and FlexGroup volumes, but for the best overall results, use FlexGroup volumes.
 
 FlexGroup volumes provide:
 
 * A single mount point that can span multiple hardware resources in a cluster while allowing pNFS to localize data traffic
-* Massive capacity possibilities (up to 60PB) and high file counts (up to 200 billion files)
+* Massive capacity possibilities (up to 60 PB) and high file counts (up to 200 billion files)
 * Support for multipart files for capacity balancing and potential performance benefits
 * Parallel access to volumes and hardware supporting a single workload
 
@@ -26,17 +26,17 @@ link:../flexgroup/index.html[Learn about FlexGroup volumes management]
 
 == Client recommendations
 
-Not all NFS clients support pNFS, but most modern clients do. RHEL 6.4 and Fedora 17 were the first supported pNFS clients (roughly in 2014), so it is reasonable to assume that client versions released in the past few years fully support the feature. NetApp ONTAP's NFS support stance is one of "if the client supports the feature and is RFC compliant, and we support the feature, then the combination is supported." However, it is a best practice to ensure that pNFS is supported by the client OS vendor.
+Not all NFS clients support pNFS, but most modern clients do. RHEL 6.4 and Fedora 17 were the first supported pNFS clients (roughly in 2014), so it is reasonable to assume that client versions released in the past few years fully support the feature. ONTAP's NFS support stance is one of "if the client supports the feature and is RFC compliant, and we support the feature, then the combination is supported." However, it is a best practice to ensure that pNFS is supported by the client OS vendor.
 
 == Volume moves
 
-ONTAP provides the ability to nondisruptively move volumes across nodes or aggregates in the same cluster to provide capacity and performance balance flexibility. When a volume move takes place in ONTAP, the pNFS device mappings are automatically updated to inform clients to use the new volume:interface relationship if necessary.
+ONTAP provides the ability to nondisruptively move volumes across nodes or aggregates in the same cluster to provide capacity and performance balance flexibility. When a volume move takes place in ONTAP, the pNFS device mappings are automatically updated to inform clients to use the new volume-to-interface relationship if necessary.
 
 link:../volumes/move-volume-task.html[Learn about moving a volume]
 
 == Network interface migration
 
-ONTAP provides the ability to move network interfaces across nodes in the same cluster to provide performance balance and maintenance flexibility. Like volume moves, when a network interface migration takes place in ONTAP, the pNFS device mappings are automatically updated to inform clients to use the new volume:interface relationship if necessary.
+ONTAP provides the ability to move network interfaces across nodes in the same cluster to provide performance balance and maintenance flexibility. Like volume moves, when a network interface migration takes place in ONTAP, the pNFS device mappings are automatically updated to inform clients to use the new volume-to-interface relationship if necessary.
 
 However, because NFSv4.1 is a stateful protocol, a network interface migration can be disruptive to clients that are actively using the NFS mount. It is a best practice to conduct network interface migrations in a maintenance window and notify clients of potential network disruptions.
 
@@ -46,7 +46,7 @@ pNFS follows the same storage failover considerations as NFSv4.1. These are cove
 
 == Metadata workloads
 
-Metadata operations are small in size and can be large in numbers depending on the workload (Are you creating a large number of files? Are you running "find" commands?) and total file count. As a result, workloads that are high in metadata calls can be taxing on the CPU of the NFS server and can potentially bottleneck over a single connection. pNFS (and NFSv4.x in general) is not suited for performance-dependent high metadata workloads, as the stateful-ness, the locking mechanisms, and some of the security features of the protocol version can negatively impact CPU utilization and latency. These workload types (such as high GETATTR or SETATTR) generally fare better with NFSv3.
+Metadata operations are small in size and can be large in numbers depending on the workload (Are you creating a large number of files? Are you running "find" commands?) and total file count. As a result, workloads that are high in metadata calls can be taxing on the CPU of the NFS server and can potentially bottleneck over a single connection. pNFS (and NFSv4.x in general) is not suited for performance-dependent high metadata workloads, as the statefulness, the locking mechanisms, and some of the security features of the protocol version can negatively impact CPU utilization and latency. These workload types (such as high GETATTR or SETATTR) generally fare better with NFSv3.
 
 == Metadata server
 
@@ -58,7 +58,7 @@ NFSv4.x provides security functionality in many ways (covered in detail in https
 
 == nconnect
 
-As mentioned previously, nconnect in ONTAP can help improve performance in some workloads. With pNFS, it is important to understand that while nconnect can improve performance by greatly increasing the total number of TCP connections to the storage system, it can also create issues when many clients are leveraging the mount option by overwhelming the TCP connections on the storage. NetApp's hardware universe covers the TCP connection limits per node.
+As mentioned previously, nconnect in ONTAP can help improve performance in some workloads. With pNFS, it is important to understand that while nconnect can improve performance by greatly increasing the total number of TCP connections to the storage system, it can also create issues when many clients are leveraging the mount option by overwhelming the TCP connections on the storage. The NetApp Hardware Universe covers the TCP connection limits per node.
 
 When a node's TCP connection limits are exceeded, no new TCP connections are allowed until existing connections are freed. This can create complications in environments that might experience mount storms.
 
@@ -92,21 +92,21 @@ The following table shows how pNFS with nconnect may overwhelm TCP connection li
 
 == NFSv4.1 session trunking
 
-Session trunking in ONTAP can be used to increase throughput and path resiliency to NFSv4.x mounts. When used with pNFS, each node in a cluster can establish a session trunk. However, session trunks require at least two interfaces per node and pNFS requires at least one interface per node to work as intended. Additionally, all interfaces in the SVM must be routable to the NFS clients. Session trunking and pNFS do not work properly when also leveraging nconnect. Consider nconnect and session trunking as independent features.
+Session trunking in ONTAP can be used to increase throughput and path resiliency to NFSv4.x mounts. When used with pNFS, each node in a cluster can establish a session trunk. However, session trunks require at least two interfaces per node, and pNFS requires at least one interface per node to work as intended. Additionally, all interfaces in the SVM must be routable to the NFS clients. Session trunking and pNFS do not work properly when also leveraging nconnect. Consider nconnect and session trunking as mutually exclusive features.
 
 link:../nfs-trunking/index.html[Learn about NFS trunking]
 
 == Network interface connectivity
 
-pNFS requires a routable network interface on each node in a cluster to function properly. If other network interfaces that are not routable to NFS clients exist in the same SVM as the NFS server hosting pNFS, ONTAP will still advertise those interfaces in the device mapping to clients. When the NFS client attempts to access data via the interfaces in a different subnet, they will not be able to connect and it will create an outage. It is a best practice to only allow network interfaces in an SVM that can be accessed by clients when using pNFS.
+pNFS requires a routable network interface on each node in a cluster to function properly. If other network interfaces that are not routable to NFS clients exist in the same SVM as the NFS server hosting pNFS, ONTAP will still advertise those interfaces in the device mapping to clients. When the NFS client attempts to access data via the interfaces in a different subnet, they will not be able to connect, and it will create an outage. It is a best practice to only allow network interfaces in an SVM that can be accessed by clients when using pNFS.
 
 == NFSv4.0
 
-NFSv4.0 is an option that can be enabled in an ONTAP NFS server alongside NFSv4.1. However, pNFS does not work over NFSv4.0. If NFSv4.0 is enabled in the NFS server, clients can potentially unknowingly mount that protocol version and will not be able to leverage pNFS. As a result, it is a best practice to explicitly disable NFSv4.0 when using pNFS. NFSv4.1 still must be enabled and can work independently of NFSv4.0.
+NFSv4.0 is an option that can be enabled in an ONTAP NFS server alongside NFSv4.1. However, pNFS does not work over NFSv4.0. If NFSv4.0 is enabled in the NFS server, clients can potentially unknowingly mount that protocol version and will not be able to leverage pNFS. As a result, it is a best practice to explicitly disable NFSv4.0 when using pNFS. NFSv4.1 must still be enabled and can work independently of NFSv4.0.
 
 == NFSv4.1 referrals
 
-NFSv4.1 referrals will localize the mount path from a client to the network interface on the node that owns a volume. pNFS localizes the data path and the mount path becomes a metadata server.
+NFSv4.1 referrals will localize the mount path from a client to the network interface on the node that owns a volume. pNFS localizes the data path, and the mount path becomes a metadata server.
 
 While the two features can feasibly be used together, using NFSv4.1 referrals with pNFS may result in the undesired effect of stacking multiple metadata servers on the same node and reducing the ability to spread metadata servers across multiple cluster nodes. If metadata servers are not spread evenly across a cluster when using pNFS, then a single node's CPU can get overwhelmed with metadata requests and create a performance bottleneck.
 
@@ -118,7 +118,7 @@ link:../nfs-admin/enable-disable-nfsv4-referrals-task.html[Learn about enabling 
 
 With NFS Kerberos, it is possible to encrypt authentication with krb5 and to further encrypt data packets with krb5i and krb5p. This is enabled on a per-network interface basis in a SVM and is covered in full detail in https://www.netapp.com/pdf.html?item=/media/19384-tr-4616.pdf[NetApp Technical Report 4616: NFS Kerberos in ONTAP with Microsoft Active Directory^].
 
-Because pNFS is able to redirect data traffic across nodes and network interfaces in the SVM, NFS Kerberos must be enabled and functional on each network interface in the SVM. If any network interface in the SVM is not enabled for Kerberos, then pNFS will not be able to function properly when attempting to access data volumes on those interfaces.
+Because pNFS can redirect data traffic across nodes and network interfaces in the SVM, NFS Kerberos must be enabled and functional on each network interface in the SVM. If any network interface in the SVM is not enabled for Kerberos, then pNFS will not be able to function properly when attempting to access data volumes on those interfaces.
 
 For example, when running a read test using parallel dd on a pNFS-enabled SVM with two network interfaces (only one enabled for Kerberos), the files located on the Kerberos-enabled interface performed well, while the files on the node with the interface without Kerberos enabled never were able to complete their reads. When Kerberos was enabled on both interfaces, all files were able to perform as expected.
 
