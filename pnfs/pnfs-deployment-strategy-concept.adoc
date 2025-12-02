@@ -1,0 +1,67 @@
+---
+permalink: pnfs/pnfs-deployment-strategy-concept.html
+sidebar: sidebar
+keywords: tr-4063, pnfs, deployment, strategy, configuration, traditional nfs, benefits, technical report
+summary: "Understanding the challenges of traditional NFS and how pNFS addresses them helps you plan an effective pNFS deployment."
+---
+= pNFS deployment strategy in ONTAP
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+pNFS was introduced to improve upon traditional NFS by separating metadata and data paths, providing data localization, and enabling parallel operations.
+
+== Challenges of traditional NFS and benefits of pNFS
+
+The following table shows the challenges of traditional NFS and explains how pNFS in ONTAP addresses them.
+
+[cols="40,60"]
+|===
+| Challenge | pNFS benefit
+
+| *Same path for metadata and data*
+
+In traditional NFS, metadata and data traverse the same path, which can saturate both network and CPU, as a single path will attach to a single hardware node in the cluster. This is exacerbated when many users are attempting to access the same NFS export. 
+
+| *Metadata and data paths are separate, data paths are parallelized*
+
+By separating the metadata and data paths for NFS traffic and providing multiple network paths for data paths, CPU and network resources are maximized in an ONTAP cluster, thus providing improved scale for workloads. 
+
+| *Workload distribution challenges*
+
+In an ONTAP NAS cluster, you can have up to 24 nodes, each of which can have its own set of data volumes and network interfaces. Each volume can host its own workload, or a subset of a workload, and with a FlexGroup volume that workload can exist across multiple nodes that access a single namespace for simplicity. When a client mounts an NFS export, network traffic will be established on a single node. When the data being accessed resides on a separate node in the cluster, remote traffic will occur, which can add latency to a workload and complexity in administration.
+
+| *Local, parallel paths to data structures*
+
+Because pNFS splits out the data paths from metadata and provides multiple parallel data paths depending on the locality of the volume in the cluster, latency can be reduced by reducing the distance of network traffic in the cluster, as well as leveraging multiple hardware resources in a cluster. Also, since pNFS in ONTAP redirects data traffic automatically, administrators have less need to manage multiple export paths and locations. 
+
+| *Relocation of NFS mount points*
+
+After a mount point is established, it would be disruptive to unmount and remount the volume. ONTAP offers the ability to migrate network interfaces between nodes, but that adds management overhead and is disruptive for stateful NFS connections using NFSv4.x. Some of the reasons for relocating a mount point are tied to the data locality challenges.
+
+| *Automatic path relocation*
+
+With pNFS, the NFS server maintains a table of the locations of network interfaces and volumes. When a data structure is requested from a client across the metadata path in pNFS, the server will deliver an optimized network path to the client, which will then use that path for data operations. This drastically reduces the management overhead for workloads and can improve performance in some cases. 
+
+|===
+
+== Configuration requirements
+
+Configuration of pNFS in NetApp ONTAP requires the following:
+
+* An NFS client that supports pNFS and is mounted with NFSv4.1 or later
+* NFSv4.1 enabled on the NFS server in ONTAP (`nfs modify -v4.1 enabled`; off by default)
+* pNFS enabled in the NFS server in ONTAP (`nfs modify -v4.1-pnfs enabled`; disabled by default)
+* At least one network interface per node, routable to the NFS clients
+* Data volumes in the SVM that have export policies and rules that allow NFSv4
+
+image::pNFS_fig_020.png[pNFS configuration requirements]
+
+After the above configuration requirements are met, pNFS will simply work on its own.
+
+.Related information
+
+* link:../nfs-config/index.html[NFS configuration]
+* link:../nfs-admin/ontap-support-nfsv41-concept.html[ONTAP support for NFSv4.1]
+
+// 2025-10-21, ONTAPDOC-2826
