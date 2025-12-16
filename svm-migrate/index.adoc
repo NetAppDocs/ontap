@@ -51,7 +51,7 @@ Follow link:https://docs.netapp.com/us-en/asa-r2/manage-data/migrate-svm.html[th
 
 [NOTE]
 
- When migrating from an AFF cluster to a FAS cluster with hybrid aggregates, auto volume placement will attempt to perform a like-to-like aggregate match. For example, if the source cluster has 60 volumes, the volume placement will try to find an AFF aggregate on the destination to place the volumes. When there is not sufficient space on the AFF aggregates, the volumes will be placed on aggregates with non-flash disks.
+ When migrating from an AFF cluster to a FAS cluster with hybrid aggregates, auto volume placement attempts to perform a like-to-like aggregate match. For example, if the source cluster has 60 volumes, the volume placement tries to find an AFF aggregate on the destination to place the volumes. When there is not sufficient space on the AFF aggregates, the volumes are placed on aggregates with non-flash disks.
 
 
 == Scalability support by ONTAP version
@@ -96,6 +96,9 @@ h| ONTAP version h| Maximum RTT
 
 == Maximum supported volumes per SVM
 
+[NOTE]
+The maximum number of volumes that you can migrate per SVM in a mixed or hybrid cluster is based on the  cluster member that supports the lower number of volumes.
+
 [cols="1,1,1,1,1,1"]
 |===
 
@@ -135,20 +138,23 @@ h| Source h| Destination h| ONTAP 9.14.1 and later h| ONTAP 9.13.1 h| ONTAP 9.12
 
 Before initiating an SVM migration, you must meet the following prerequisites:
 
-* You must be a cluster administrator.
-* link:../peering/create-cluster-relationship-93-later-task.html[The source and destination clusters must be peered to each other].
-* The source and destination clusters must have the SnapMirror synchronous link:../system-admin/install-license-task.html[license installed]. This license is included with link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one[ONTAP One].
-* All nodes in the source cluster must be running ONTAP 9.10.1 or later. For specific ONTAP array controller support, see link:https://hwu.netapp.com/[Hardware Universe^].
-* All nodes in the source cluster must be running the same ONTAP version.
-* All nodes in the destination cluster must be running the same ONTAP version.
-* The destination cluster ONTAP version must be at the same or no more than two major newer versions as the source cluster.
-* The source and destination clusters must support the same IP subnet for data LIF access.
-* The source SVM must contain fewer than the xref:Maximum supported volumes per SVM[maximum number of supported data volumes for the release]. 
-* Sufficient space for volume placement must be available on the destination.
-* The Onboard Key Manager or external key management must be configured at the cluster level on the destination if the source SVM has encrypted volumes.
-** In this case, key managers configured at the SVM level on the source will not migrate to the destination. The destination will use the cluster-level key manager.
+* You are a cluster administrator.
+* link:../peering/create-cluster-relationship-93-later-task.html[The source and destination clusters are peered to each other].
+* The source and destination clusters have the SnapMirror synchronous link:../system-admin/install-license-task.html[license installed]. This license is included with link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one[ONTAP One].
+* All nodes in the source cluster are running ONTAP 9.10.1 or later. For specific ONTAP array controller support, see link:https://hwu.netapp.com/[Hardware Universe^].
+* All nodes in the source cluster are running the same ONTAP version.
+* All nodes in the destination cluster are running the same ONTAP version.
+* The destination cluster ONTAP version is at the same or no more than two major newer versions as the source cluster.
+* The source and destination clusters support the same IP subnet for data LIF access.
+* The source SVM contains fewer than the xref:Maximum supported volumes per SVM[maximum number of supported data volumes for the release]. 
+* Sufficient space for volume placement is available on the destination.
+* The Onboard Key Manager or external key management is configured at the cluster level on the destination if the source SVM has encrypted volumes.
+** In this case, key managers configured at the SVM level on the source do not migrate to the destination. The destination uses the cluster-level key manager.
 * If the source has encrypted volumes and is configured for NetApp Aggregate Encryption (NAE), the destination must also be configured for NAE.
 * If you are migrating an SVM between a non-MetroCluster configuration and a MetroCluster configuration, or between two MetroCluster configurations, verify that your configuration meets the following requirements:
++
+NOTE: Migrating an SVM between the local and partner cluster in a MetroCluster configuration is not supported.
++
 ** The source and destination MetroCluster clusters are in a "normal" state. This means that they cannot be in switchover mode or in the "waiting-for-switchback" state. 
 ** The source and destination MetroCluster clusters aren't in the process of an FC-to-IP transition or a hardware refresh.
 ** The source and destination cluster must both be running ONTAP 9.16.1 or later.
@@ -163,12 +169,12 @@ When performing an SVM migration, it is a best practice to leave 30% CPU headroo
 
 == SVM operations
 
-You should check for operations that can conflict with an SVM migration:
+Check for operations that can conflict with an SVM migration:
 
 * No failover operations are in progress
 * WAFLIRON cannot be running
 * Fingerprint is not in progress
-* Vol move, rehost, clone, create, convert or analytics are not running
+* Vol move, rehost, clone, create, convert, or analytics are not running
 * No SVM migration is running on the destination cluster. Only one SVM migration is allowed at any given time.
 
 == Supported and unsupported features
@@ -253,12 +259,13 @@ The following MetroCluster SVM migrations are not supported for all ONTAP versio
 
 * Migrating an SVM between two MetroCluster FC configurations 
 * Migrating an SVM between a non-MetroCluster configuration and a MetroCluster FC configuration 
+* Migrating an SVM between the local and partner cluster in the same MetroCluster configuration.
 
 See the <<Prerequisites,prerequisites>> to migrate an SVM in a MetroCluster configuration. 
 
 | NetApp Aggregate Encryption (NAE)
 | ONTAP 9.11.1
-| NAE volumes must be placed on NAE supporting destination. If no NAE destination is available, migration operation will fail.
+| NAE volumes must be placed on NAE supporting destination. If no NAE destination is available, the migration operation fails.
 
 | NDMP configurations
 | Not supported
@@ -266,7 +273,7 @@ See the <<Prerequisites,prerequisites>> to migrate an SVM in a MetroCluster conf
 
 | NetApp Volume Encryption (NVE)
 | ONTAP 9.10.1
-| NVE volumes will be migrated as NVE volumes on the destination.
+| NVE volumes are migrated as NVE volumes on the destination.
 
 | NFS and SMB audit logs
 | ONTAP 9.13.1
@@ -331,7 +338,7 @@ SMB migrations are disruptive and require a client refresh after the migration.
 | ONTAP 9.11.1
 a|
 * Transfers can continue as normal on FlexVol SnapMirror relationships during most of the migration.
-* Any ongoing transfers are canceled during cutover and new transfers fail during cutover and they cannot be restarted until the migration completes.
+* Any ongoing transfers are canceled during cutover and new transfers fail during cutover. They cannot be restarted until the migration completes.
 * Scheduled transfers that were canceled or missed during the migration are not automatically started after the migration completes.
 +
 [NOTE]
@@ -382,6 +389,10 @@ When a SnapMirror source is migrated, ONTAP does not prevent deletion of the vol
 | Volume clones
 | Not supported
 |
+
+| Vscan
+| Not supported
+| Migration of Vscan-enabled SVMs is not supported.
 
 | vStorage
 | Not supported
@@ -491,6 +502,10 @@ h| Volume operation 3+h| SVM migration state
 
 |===
 
+// 2025-Dec-8, ONTAPDOC-3514
+// 2025-Dec-5, ONTAPDOC-3514
+// 2025-Dec-4, ONTAPDOC-3508
+// 2025 Nov 21, GH 1875
 // 2025-Nov-24, ONTAPDOC-3462
 // 2025 Nov 06, ONTAPDOC-3345
 // 2025-July-23 ONTAPDOC-2888
