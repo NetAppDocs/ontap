@@ -1,0 +1,69 @@
+---
+sidebar: sidebar
+permalink: networking/configure-tls-offload.html
+keywords: TLS offload, TLS, performance
+summary: Configure TLS offload settings
+---
+
+= Configure ONTAP TLS hardware offload
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.19.1, you can configure TLS offload to improve TLS post-handshake performance by leveraging resources on supported Ethernet cards. This feature offloads encryption and decryption, reducing CPU overhead and improving performance.
+
+.About this task
+* TLS offload is disabled by default.
+* Only AES-GCM cipher suites (TLSv1.2/TLSv1.3, 128/256-bit) are offloaded.
+* The TLS handshake phase is not offloaded. Only the post-handshake data phase is offloaded.
+* LIF migration to non-offload-capable ports causes an automatic software fallback.
+* Management interfaces (HTTPS, REST API) are unaffected by this setting.
+* The TLS hardware offload setting is cluster-wide.
+
+TLS hardware offload requires a supported network card. The following network cards are supported:
+Gizo
+
+These cards are supported on the following platforms:
+
+
+.Before you begin
+* You must be an ONTAP administrator at the `admin` privilege level to perform the following tasks.
+* All nodes must be running ONTAP 9.19.1 or later.
+
+== Enable or disable TLS offload
+
+.Steps
+
+. View the current TLS offload status:
++
+[source,cli]
+----
+security config show
+----
+This command displays the cluster-wide TLS offload setting:
++
+----
+cluster1::*> security config show                        
+Cluster    Supported Offload                                                                                                       
+FIPS Mode  Protocols Enabled Supported Cipher Suites                                                                               
+---------- --------- ------- --------------------------------------------------
+false      TLSv1.3,  false   TLS_RSA_WITH_AES_128_CCM,        
+           TLSv1.2           TLS_RSA_WITH_AES_128_CCM_8,        
+                             TLS_RSA_WITH_AES_128_GCM_SHA256,                                                                      
+                             TLS_RSA_WITH_AES_128_CBC_SHA,                                                                         
+                             TLS_RSA_WITH_AES_128_CBC_SHA256,                                                                      
+                             TLS_RSA_WITH_AES_256_CCM,                                                                             
+[...]
+----
+
+. Enable or disable TLS offload:
++
+[source,cli]
+----
+security config modify -is-offload-enabled <true|false>
+----
+This command enables or disables hardware offload for the TLS data phase on new connections. Existing connections remain unchanged.
+
+.Related information
+* link:https://docs.netapp.com/us-en/ontap-cli/security-config-show.html[security config show^]
+* link:https://docs.netapp.com/us-en/ontap-cli/security-config-modify.html[security config modify^]
