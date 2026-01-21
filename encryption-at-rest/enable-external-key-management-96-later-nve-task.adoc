@@ -9,13 +9,13 @@ summary: "You can use one or more KMIP servers to secure the keys the cluster us
 :imagesdir: ../media/
 
 [.lead]
-You can use one or more KMIP servers to secure the keys the cluster uses to access encrypted data. Beginning with ONTAP 9.6, you have the option to configure a separate external key manager to secure the keys that a data SVM uses to access encrypted data.
+Use KMIP servers to secure the keys the cluster uses to access encrypted data. Beginning with ONTAP 9.6, you have the option to configure a separate external key manager to secure the keys that a data SVM uses to access encrypted data.
 
 Beginning with ONTAP 9.11.1, you can add up to 3 secondary key servers per primary key server to create a clustered key server. For more information, see xref:configure-cluster-key-server-task.html[Configure clustered external key servers].
 
 .About this task
 
-You can connect up to four KMIP servers to a cluster or SVM. A minimum of two servers is recommended for redundancy and disaster recovery.
+You can connect up to four KMIP servers to a cluster or SVM. Use at least two servers for redundancy and disaster recovery.
 
 The scope of external key management determines whether key management servers secure all the SVMs in the cluster or selected SVMs only:
 
@@ -36,9 +36,12 @@ Learn more about `security key-manager key migrate` in the link:https://docs.net
 .Before you begin
 
 * The KMIP SSL client and server certificates must have been installed.
+* The KMIP server must be reachable from each node's node-management LIF.
 * You must be a cluster or SVM administrator to perform this task.
-* If you want to enable external key management for a MetroCluster environment, MetroCluster must be fully configured before enabling external key management.
-* In a MetroCluster environment, you must install the same KMIP SSL certificate on both clusters.
+* In a MetroCluster environment:
+** MetroCluster must be fully configured before enabling external key management.
+** You must install the same KMIP SSL certificate on both clusters.
+** An external key manager must be configured on both clusters.
 
 .Steps
 
@@ -47,11 +50,7 @@ Learn more about `security key-manager key migrate` in the link:https://docs.net
 `security key-manager external enable -vserver admin_SVM -key-servers host_name|IP_address:port,... -client-cert client_certificate -server-ca-cert server_CA_certificates`
 +
 [NOTE]
-====
-* The `security key-manager external enable` command replaces the `security key-manager setup` command. If you run the command at the cluster login prompt, `_admin_SVM_` defaults to the admin SVM of the current cluster.  You must be the cluster administrator to configure cluster scope. You can run the `security key-manager external modify` command to change the external key management configuration.
-
-* In a MetroCluster environment, if you are configuring external key management for the admin SVM, you must repeat the `security key-manager external enable` command on the partner cluster. 
-====
+The `security key-manager external enable` command replaces the `security key-manager setup` command. If you run the command at the cluster login prompt, `_admin_SVM_` defaults to the admin SVM of the current cluster.  You can run the `security key-manager external modify` command to change the external key management configuration.
 +
 The following command enables external key management for `cluster1` with three external key servers. The first key server is specified using its hostname and port, the second is specified using an IP address and the default port, and the third is specified using an IPv6 address and port:
 +
@@ -65,7 +64,7 @@ clusterl::> security key-manager external enable -vserver cluster1 -key-servers 
 +
 [NOTE]
 ====
-* If you run the command at the SVM login prompt, `SVM` defaults to the current SVM.  You must be a cluster or SVM administrator to configure SVM scope. You can run the `security key-manager external modify` command to change the external key management configuration.
+* If you run the command at the SVM login prompt, `SVM` defaults to the current SVM.  You can run the `security key-manager external modify` command to change the external key management configuration.
 
 * In a MetroCluster environment, if you are configuring external key management for a data SVM, you do not have to repeat the `security key-manager external enable` command on the partner cluster. 
 ====
@@ -121,12 +120,17 @@ node2
 +
 `volume encryption conversion start`
 +
-An external key manager must be fully configured before you convert the volumes. In a MetroCluster environment, an external key manager must be configured on both sites.
+An external key manager must be fully configured before you convert the volumes. 
 
 .Related information
-* link:https://docs.netapp.com/us-en/ontap-cli/security-key-manager-setup.html[security key-manager setup^]
+* xref:configure-cluster-key-server-task.html[Configure clustered external key servers]
+* link:https://docs.netapp.com/us-en/ontap-cli/system-license-add.html[system license add^]
+* link:https://docs.netapp.com/us-en/ontap-cli/security-key-manager-key-migrate.html[security key-manager key migrate^]
+* link:https://docs.netapp.com/us-en/ontap-cli/security-key-manager-external-add-servers.html[security key-manager external add-servers^]
+* link:https://docs.netapp.com/us-en/ontap-cli/security-key-manager-external-show-status.html[security key-manager external show-status^]
 
-
+// 2025 December 17, ONTAPDOC-2973
+// 2025 October 10-17, ONTAPDOC-3363, GH-2716, NADIAA, updates from Ed
 // 2025 June 09, ONTAPDOC-2960
 // 2025 Jan 15, ONTAPDOC-2569 
 // 2024 Sep 18, ONTAPDOC-2380

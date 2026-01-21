@@ -13,9 +13,13 @@ You can reestablish the original data protection relationship between the source
 
 .Before you begin
 
-If you have increased the size of destination volume while serving data from it, before you reactivate the source volume, you should manually increase max-autosize on the original source volume to ensure it can grow sufficiently.
+* If you have increased the size of destination volume while serving data from it, before you reactivate the source volume, you should manually increase max-autosize on the original source volume to ensure it can grow sufficiently.
+
 
 link:destination-volume-grows-automatically-concept.html[When a destination volume grows automatically]
+
+[WARNING]
+The cluster administrator should pause writes from the client before reactivating the original source SVM to avoid data loss.
 
 .About this task
 
@@ -25,36 +29,57 @@ NOTE: Quick resync does not preserve the storage efficiency of the destination v
 
 This procedure assumes that the baseline in the original source volume is intact. If the baseline is not intact, you must create and initialize the relationship between the volume you are serving data from and the original source volume before performing the procedure.
 
-Beginning with ONTAP 9.8, you can use System Manager to reactivate a source storage VM after a disaster. Reactivating the source storage VM stops the destination storage VM, and it reenables replication from the source to the destination.
+Beginning with ONTAP 9.8, you can use System Manager to reactivate a source storage VM after a disaster. 
 
-When you use System Manager to reactivate the source storage VM, System Manager performs the following operations in the background:
+//When you use System Manager to reactivate the source storage VM, System Manager performs the following operations in the background:
 
-* Creates a reverse SVM DR relationship from the original destination to original source using SnapMirror resync
-* Stops the destination SVM
-* Updates the SnapMirror relationship
-* Breaks the SnapMirror relationship
-* Restarts the original SVM
-* Issues a SnapMirror resync of the original source back to the original destination
-* Cleans up the SnapMirror relationships
+//* Creates a reverse SVM DR relationship from the original destination to original source using SnapMirror resync
+//* Stops the destination SVM
+//* Updates the SnapMirror relationship
+//* Breaks the SnapMirror relationship
+//* Restarts the original SVM
+//* Issues a SnapMirror resync of the original source back to the original destination
+//* Cleans up the SnapMirror relationships
 
 .Steps
-You can perform this task from System Manager or the ONTAP CLI.
+You can perform this task using System Manager or the ONTAP CLI.
 
 [role="tabbed-block"]
 ====
---
-.System Manager
-
-. From the destination cluster, click *Protection > Relationships*, and locate the desired protection relationship.
-
-. Hover over the source relationship name, click image:icon_kabob.gif[Menu options icon], and select *Reactivate Source Storage VM*.
-
-. In the *Reactivate source storage VM* window, click *Reactivate*.
-
-. Under *Relationships*, monitor the source reactivation progress by viewing *Transfer Status* for the protection relationship. When reactivation is complete, the relationship state should return to "Mirrored".
-
+.System Manager ONTAP 9.17.1 and later
 --
 
+. On the destination cluster, select the desired protection relationship: click *Protection > Replication*.
+. Hover your cursor over the source name, click image:icon_kabob.gif[Menu options icon], and click *Reverse resync*.
+. In the *Reverse resync relationship* window, click *Reverse resync*.
++
+The relationship disappears from the *Replication* table and is now being managed by the original source cluster.
+. On the original source cluster, click *Protection > Replication*, and verify the reverse resync is complete by checking that the state displays *Mirrored*.
+. On the original destination cluster, navigate to *Cluster > Storage VMs*.
+. Locate the storage VM, hover your cursor over the storage VM name, click image:icon_kabob.gif[Menu options icon], and click *Stop*.
+. In the *Stop storage VM* window, click *Stop*.
+. On the source cluster, navigate to *Protection > Replication*, and locate the storage VM you want to reactivate, hover your cursor over the storage VM name, click image:icon_kabob.gif[Menu options icon], and click *Activate destination storage VM*.
+. In the *Activate destination storage VM* window, select *Activate the destination storage VM and break the relationship*, and click *Activate*.
+. When you return to the *Replication* page, hover your cursor over the storage VM name again, click image:icon_kabob.gif[Menu options icon], and click *Reverse resync*.
+
+--
+.System Manager ONTAP 9.16.1 and earlier
+--
+
+. On the destination cluster, select the desired protection relationship: click *Protection > Relationships*.
+. Hover your cursor over the source name, click image:icon_kabob.gif[Menu options icon], and click *Reverse resync*.
+. In the *Reverse resync relationship* window, click *Reverse resync*.
++
+The relationship disappears from the *Relationships* table because it's now being managed by the original source cluster.
+. On the original source cluster, click *Protection > Relationships* and verify the reverse resync is complete by checking that the state shows as *Mirrored*.
+. On the original destination cluster, navigate to *Storage > Storage VMs*.
+. Locate the storage VM, hover your cursor over the storage VM name, click image:icon_kabob.gif[Menu options icon], and click *Stop*.
+. In the *Stop storage VM* window, click *Stop*.
+. On the source cluster, locate the storage VM (which is now the source SVM of the reversed relationship), hover your cursor over the SVM name, click image:icon_kabob.gif[Menu options icon], and click *Activate destination storage VM*.
+. In the *Activate destination storage VM* window, select *Activate the destination storage VM and break the relationship* and click *Activate*.
+. When you return to the *Relationships* page, hover your cursor over the storage VM name again, click image:icon_kabob.gif[Menu options icon], and click *Reverse resync*.
+
+--
 .CLI
 --
 . From the original source SVM or the original source cluster, create a reverse SVM DR relationship using the same configuration, policy, and identity-preserve setting as the original SVM DR relationship:
@@ -237,14 +262,16 @@ The following example releases the reversed relationship between the original de
 ----
 cluster_dst::> snapmirror release -source-path svm_backup: -destination-path svm1:
 ----
-
-.After you finish
-
-Use the `snapmirror show` command to verify that the SnapMirror relationship was created.
-
-Learn more about `snapmirror show` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-show.html[ONTAP command reference^].
 --
 ====
+
+.What's next
+
+* Use the `snapmirror show` command to verify that the SnapMirror relationship was created.
++
+Learn more about `snapmirror show` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-show.html[ONTAP command reference^].
+
+* Resume write operations from your client to the original source SVM.
 
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-create.html[snapmirror create^]
@@ -255,6 +282,7 @@ Learn more about `snapmirror show` in the link:https://docs.netapp.com/us-en/ont
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-resync.html[snapmirror resync^]
 
 
+//2025 Dec 19, ONTAPDOC-3580
 // 2025 July 17, ONTAPDOC-2960
 // 2025-Apr-21, ONTAPDOC-2803
 // 2025 Apr 01, ONTAPDOC-2758

@@ -55,7 +55,34 @@ C1_cluster 			  1-80-000011           Unavailable    ok
 
 Force a failover to enable I/O from Site B and then establish a zero RTO relationship from Site B to Site A. Complete the following steps to perform a forced failover on Site B.
 
-. Unmap all LUNs belonging to the consistency group from Site B.
+. Unmap all LUNs belonging to the consistency group from Site B. This will fail, so you must first modify the igroup to remove the replication peer SVM and then delete the lun map.
+
+Example:
+----
+C1_cluster::> lun mapping show
+Vserver    Path                                      Igroup   LUN ID  Protocol
+---------- ----------------------------------------  -------  ------  --------
+vs0        /vol/cg1_lun/lun_1                        igroup1       0  mixed
+vs0        /vol/cg1_lun/lun_2                        igroup1       1  mixed
+2 entries were displayed.
+
+C1_cluster::> lun mapping delete -path /vol/cg1_lun/lun_5 -igroup igroup1
+Error: command failed: The peer cluster is unreachable and a SnapMirror
+       Mediator is not configured. The configuration is locked for replicated
+       objects in this Vserver peer relationship on both clusters. The only
+       supported configuration change is to manually disable replication on
+       both sides of the relationship, after which configuration changes are
+       supported.
+C1_cluster::> igroup modify -igroup igroup1 -replication-peer -
+
+C1_cluster::> lun mapping delete -path /vol/cg1_lun/lun_1 -igroup igroup1
+
+C1_cluster::> lun mapping show
+Vserver    Path                                      Igroup   LUN ID  Protocol
+---------- ----------------------------------------  -------  ------  --------
+vs0        /vol/cg1_lun/lun_2                        igroup1       1  mixed
+1 entries were displayed.
+----
 
 . Delete the SnapMirror consistency group relationship using the force option.
 
@@ -87,6 +114,7 @@ You must issue the SnapMirror break command for each relationship in the consist
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-resync.html[snapmirror resync^]
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-show.html[snapmirror show^]
 
+// 2025-Dec-3, ONTAPDOC-3521
 // 2025-Aug-19, ONTAPDOC-2803
 // 2025 July 17, ONTAPDOC-2960
 // 18 sept 2023, issue #1106
