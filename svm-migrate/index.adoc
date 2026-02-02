@@ -96,6 +96,9 @@ h| ONTAP version h| Maximum RTT
 
 == Maximum supported volumes per SVM
 
+[NOTE]
+The maximum number of volumes that you can migrate per SVM in a mixed or hybrid cluster is based on the  cluster member that supports the lower number of volumes.
+
 [cols="1,1,1,1,1,1"]
 |===
 
@@ -143,6 +146,7 @@ Before initiating an SVM migration, you must meet the following prerequisites:
 * All nodes in the destination cluster are running the same ONTAP version.
 * The destination cluster ONTAP version is at the same or no more than two major newer versions as the source cluster.
 * The source and destination clusters support the same IP subnet for data LIF access.
+* Both the source and destination clusters must have at least one interface that has access to all the migrating SVM's networks, otherwise the migration precheck will fail.
 * The source SVM contains fewer than the xref:Maximum supported volumes per SVM[maximum number of supported data volumes for the release]. 
 * Sufficient space for volume placement is available on the destination.
 * The Onboard Key Manager or external key management is configured at the cluster level on the destination if the source SVM has encrypted volumes.
@@ -186,9 +190,28 @@ For information about ONTAP version interoperability between a source and destin
 
 h| Feature h| Release first supported h| Comments 
 
+| Audit logs (NFS and SMB)
+| ONTAP 9.13.1
+a| 
+[NOTE]
+====
+For on-premises SVM migration with audit enabled, you should disable audit on the source SVM and then perform the migration.
+====
+
+Before SVM migration:
+
+ * link:../nas-audit/enable-disable-auditing-svms-task.html[Audit log must be enabled on the destination cluster].
+
+ * link:../nas-audit/commands-modify-auditing-config-reference.html?q=audit+log+destination+path[The audit log destination path from the source SVM must be created on the destination cluster].
+
+
 | Autonomous Ransomware Protection
 | ONTAP 9.12.1
 |
+
+| Cloud instances
+| Not supported
+a| Migrating SVMs to or from on-prem instances to the cloud is not supported.
 
 | Cloud Volumes ONTAP
 | Not supported
@@ -272,20 +295,6 @@ See the <<Prerequisites,prerequisites>> to migrate an SVM in a MetroCluster conf
 | ONTAP 9.10.1
 | NVE volumes are migrated as NVE volumes on the destination.
 
-| NFS and SMB audit logs
-| ONTAP 9.13.1
-a| 
-[NOTE]
-====
-For on-premises SVM migration with audit enabled, you should disable audit on the source SVM and then perform the migration.
-====
-
-Before SVM migration:
-
- * link:../nas-audit/enable-disable-auditing-svms-task.html[Audit log redirect must be enabled on the destination cluster].
-
- * link:../nas-audit/commands-modify-auditing-config-reference.html?q=audit+log+destination+path[The audit log destination path from the source SVM must be created on the destination cluster].
-
 | NFS v3, NFS v4.1, and NFS v4.2
 | ONTAP 9.10.1
 |
@@ -306,6 +315,10 @@ Before SVM migration:
 | Not supported
 |
 
+| ONTAP Select
+| Not supported
+| Migrating SVMs to or from ONTAP Select instances is not supported.
+
 | Qtrees
 | ONTAP 9.14.1
 |
@@ -320,6 +333,7 @@ Before SVM migration:
 
 | SMB protocol
 | ONTAP 9.12.1
+However, SMB1 protocol is not supported. 
 a| 
 SMB migrations are disruptive and require a client refresh after the migration.
 
@@ -386,6 +400,10 @@ When a SnapMirror source is migrated, ONTAP does not prevent deletion of the vol
 | Volume clones
 | Not supported
 |
+
+| Vscan
+| Not supported
+| Migration of Vscan-enabled SVMs is not supported.
 
 | vStorage
 | Not supported
@@ -495,6 +513,18 @@ h| Volume operation 3+h| SVM migration state
 
 |===
 
+== Post-migration information
+
+* After migration, local snapshot policies have the extension -MIG that might break some automation. You should search for this extension and rename the policies and needed.
+
+* Migrated vault destination SnapMirror volumes must perform a resync to reactivate protection.
+The vault resync is necessary because the migration creates a new baseline between the migration SVMs that is more recent than the vault's previous baseline. Performing a resync reactivates the vault, which will also deletes any data newer than the current vault baseline, specifically the snapshot that was generated during the migration.
+
+// 2025-Jan-9, ONTAPDOC-3591
+// 2026-Jan-9, ONTAPDOC-3584
+// 2025-Dec-8, ONTAPDOC-3514
+// 2025-Dec-5, ONTAPDOC-3514
+// 2025-Dec-4, ONTAPDOC-3508
 // 2025 Nov 21, GH 1875
 // 2025-Nov-24, ONTAPDOC-3462
 // 2025 Nov 06, ONTAPDOC-3345

@@ -18,9 +18,13 @@ Beginning with ONTAP 9.10.1, ONTAP administrators can enable Autonomous Ransomwa
 
 ARP is built directly into ONTAP, ensuring integrated control and coordination with ONTAP's other features. ARP operates in real-time, processing data as it's written to or read from the file system, and detecting and responding to potential ransomware attacks quickly. 
 
-ARP creates locked snapshots at regular intervals alongside scheduled ones for added protection. It smartly manages how long snapshots are kept. If no unusual activity is detected, snapshots are quickly recycled. However, if an attack is detected, a snapshot created before the start of an attack is kept for an extended period.
+ARP creates locked snapshots at regular intervals alongside scheduled ones for added protection. It smartly manages how long snapshots are kept. If no unusual activity is detected, snapshots are quickly recycled. However, if an attack is detected, a snapshot created before the start of an attack is kept for an extended period. For more information, including changes added by ONTAP version, see <<ARP snapshots>>.
 
-== Licenses and enablement 
+== Licenses and enablement
+
+You need a license to use ARP. Decide whether to enable ARP by default on new volumes or enable it manually per volume.
+
+=== License options for ARP
 
 ARP support is included with the link:https://kb.netapp.com/onprem/ontap/os/ONTAP_9.10.1_and_later_licensing_overview[ONTAP One license^]. If you do not have the ONTAP One license, other licenses are available for ARP use that differ depending on your version of ONTAP. 
 
@@ -34,13 +38,32 @@ a| ONTAP 9.10.1 a| `MT_EK_MGMT` (Multi-Tenant Key Management)
 * If you are upgrading from ONTAP 9.10.1 to ONTAP 9.11.1 or later and ARP is already configured on your system, you do not need to install the new `Anti-ransomware` license. For new ARP configurations, the new license is required.
 * If you are reverting from ONTAP 9.11.1 or later to ONTAP 9.10.1, and you have enabled ARP with the Anti_ransomware license, you will see a warning message and might need to reconfigure ARP. link:../revert/anti-ransomware-license-task.html[Learn about reverting ARP].
 
-link:enable-task.html[You can enable Autonomous Ransomware Protection (ARP) on an existing volume or create a new volume and enable ARP].
+=== Enablement options for ARP
+
+ARP provides flexible enablement options at the cluster, SVM, and volume levels, allowing you to configure automatic default enablement for new volumes or enable ARP manually on existing volumes as needed.
+
+.Automatic default enablement on new volumes
+
+Beginning with ONTAP 9.18.1, ARP is enabled by default automatically on all new volumes for AFF A series and AFF C series, ASA, and ASA r2 systems. This automatic default ARP enablement does not apply to link:use-cases-restrictions-concept.html#unsupported-configurations[unsupported volumes or configurations].
+
+ARP default enablement on new volumes goes into effect after a 12-hour grace period following an upgrade or immediately for a new ONTAP 9.18.1 installation, provided that an ARP license is installed in either case. You must <<manual-default-enablement,enable ARP manually>> on existing volumes.
+
+During the grace period, you can link:default-enable-change.html[opt out of default enablement for new volumes at the cluster level using System Manager or the ONTAP CLI]. If you do not opt out, ARP is automatically enabled for all new volumes created after the end of the grace period. If needs change after the grace period, you also have the flexibility to turn on or turn off default enablement at any time.
+
+.Manual default enablement on new volumes
+If you disabled automatic default enablement of ARP at the cluster level, you can also choose to link:enable-default-task.html[manually enable ARP by default on all new volumes] at the SVM level. For ONTAP 9.17.1 and earlier, this is the only way to configure ARP to be enabled by default on new volumes.
+
+[[manual-default-enablement]]
+.ARP enablement on all or specific existing volumes
+Beginning with 9.18.1, you can manually enable ARP on all existing volumes from the cluster level (select *Cluster > Security* and image:icon_kabob.gif[Menu options icon] in the *Anti-ransomware* section then select *Enable on all existing volumes*). 
+
+If you'd prefer to limit ARP enablement to a specific volume, you can link:enable-task.html[enable ARP on a per-volume basis].
 
 == ONTAP ransomware protection strategy
 
-An effective ransomware detection strategy should include more than a single layer of protection. Consider the safety features of a vehicle as an analogy. You don't rely on a single feature, such as a seatbelt, to completely protect you in an accident. Air bags, anti-lock brakes, and forward-collision warning are safety features that collectively lead to a better outcome. Ransomware protection should be viewed in the same way.
+Effective ransomware protection requires many layers of protection working together.
 
-While ONTAP includes features like FPolicy, snapshots, SnapLock, and Active IQ Digital Advisor (also known as Digital Advisor) to help protect from ransomware, the following information focuses on the ARP feature with machine learning capabilities.
+While ONTAP includes features like FPolicy, snapshots, SnapLock, and Active IQ Digital Advisor (also known as Digital Advisor) to help protect from ransomware, ARP provides an additional layer of defense.
 
 To learn more about other features in the NetApp portfolio that safeguard against ransomware, see link:https://docs.netapp.com/us-en/ontap-technical-reports/ransomware-solutions/ransomware-active-iq.html[Ransomware and NetApp's protection portfolio^].
 
@@ -122,7 +145,7 @@ a| * FlexVol volumes with ONTAP 9.17.1 and later
 
 == Threat assessment and ARP snapshots
 
-ARP assesses threat probability based on incoming data measured against learned analytics. When ARP detects an abnormality, a measurement is assigned. A snapshot might be assigned at the time of detection or at regular intervals.
+ARP assesses threat probability based on incoming data measured against learned analytics. When ARP detects an abnormality, a measurement is assigned. ARP might assign a snapshot at the time of detection or at regular intervals.
 
 === ARP thresholds
 
@@ -252,9 +275,60 @@ Beginning with ONTAP 9.16.1, security updates for ARP/AI are available using Sys
 
 link:arp-ai-automatic-updates.html[Learn more about ARP/AI updates]
 
+== Differences between ARP/AI and ARP models at a glance
+
+[cols="1,1,1", options="header"]
+|===
+| Feature
+| ARP
+| ARP/AI
+
+| ONTAP versions
+| ONTAP 9.10.1-9.15.1
+| ONTAP 9.16.1 and later; 9.15.1 (tech preview)
+
+| Detection method
+| Analyzes file activity, data entropy, and file extension types
+| AI/machine learning model trained on large forensic datasets; analyzes entropy and file behavior
+
+| Learning period
+| Requires 30-day learning mode for NAS FlexVol volumes (auto-switch available in 9.13.1 and later)
+| No learning period; active immediately upon enablement
+
+| Volume type support
+a| * FlexVol: 9.10.1 and later
+* FlexGroup: 9.13.1 and later
+* SAN: Not supported
+a| * FlexVol: 9.16.1 and later
+* FlexGroup: 9.18.1 and later
+* SAN: 9.17.1 and later (with evaluation period)
+
+| Snapshot creation
+| Triggered by high entropy, new file extensions, or file operation surges
+| Created at fixed 4-hour intervals and on attack confirmation
+
+| Snapshot retention
+| Retained until admin clears suspect activity
+| 12-hour default; extended based on attack confirmation (24 hours for false positive, 7 days for confirmed positive)
+
+| Updates
+| Static detection logic (updated with ONTAP upgrades only)
+| Automatic security updates independent of ONTAP releases
+
+| Deployment
+| Manual enablement per volume or SVM-level default setting
+| Manual enablement per volume or SVM-level default setting; default enablement on all new volumes at cluster level for supported systems in 9.18.1 and later
+
+| Evaluation period
+| Not applicable
+| Required for SAN volumes (2-4 weeks) to establish baseline encryption thresholds
+|===
+
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
 
+// 2026-Jan-7, ONTAPDOC-3232
+// 2025-Jan-7, GitHub issue# 1944
 // 2025-10-6, ONTAPDOC-3376
 // 2025 9-9, ONTAPDOC-3321
 // 2025 Aug 15, ONTAPDOC-1127
@@ -266,7 +340,7 @@ link:arp-ai-automatic-updates.html[Learn more about ARP/AI updates]
 // 2024-9-17, ontapdoc-2204
 // 2025-1-22, ontapdoc-2663
 // 2025-1-16, ontapdoc-2645
-// 2023-02-27, #1259
+// 2023-02-27,#1259
 // 21 dec 2023, ontapdoc-1550
 // 22 august 2023, ONTAPDOC-1303
 // 6 august 2023, ontapdoc-840
