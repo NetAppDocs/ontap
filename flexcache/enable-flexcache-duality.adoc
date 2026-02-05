@@ -1,6 +1,6 @@
 ---
 sidebar: sidebar
-permalink: flexcache-duality-quick-start.html
+permalink: flexcache/enable-flexcache-duality.html
 keywords: flexcache, s3, nas, dual protocol, certificates, ontap 9.18.1
 summary: "Starting in ONTAP 9.18.1, you can enable S3 access to NAS FlexCache volumes. This allows clients to access data stored in a FlexCache volume using the S3 protocol, in addition to traditional NAS protocols like NFS and SMB. This is a quick start guide on how to set this up."
 ---
@@ -27,14 +27,14 @@ NOTE: For more thorough documentation on FlexCache duality, see link:https://doc
 
 To enable S3 access to a FlexCache volume, you need to install certificates for the SVM that hosts the FlexCache volume. This example uses self-signed certificates, but in a production environment, you should use certificates signed by a trusted Certificate Authority (CA).
 
-. <<anchor1-step>>Create an SVM root CA:
+. [[anchor1-step]]Create an SVM root CA:
 +
 [source,cli]
 ----
 security certificate create -vserver <svm> -type root-ca -common-name <arbitrary_name>
 ----
 
-. <<anchor2-step>>Generate a Certificate Signing Request:
+. [[anchor2-step]]Generate a Certificate Signing Request:
 +
 [source,cli]
 ----
@@ -74,15 +74,15 @@ TO02fuRvRR/G/HUz2yRd+A==
 +
 NOTE: Keep a copy of your certificate request and private key for future reference.
 
-. <<anchor3-step>>Sign the certificate:
+. [[anchor3-step]]Sign the certificate:
 +
-The `root-ca` is the one you created in [[anchor1-step,Create an SVM root CA]].
+The `root-ca` is the one you created in <<anchor1-step,Create an SVM root CA>>.
 +
 [source,cli]
 ----
 certificate sign -ca <svm_root_ca> -ca-serial <svm_root_ca_sn> -expire-days 364 -format PEM -vserver <svm>
 ----
-. Paste the Certificate Signing Request (CSR) generated in [[anchor2-step,Generate a Certificate Signing Request]].
+. Paste the Certificate Signing Request (CSR) generated in <<anchor2-step,Generate a Certificate Signing Request>>.
 +
 Example:
 +
@@ -125,7 +125,7 @@ J0eo1uDJhaNxqwEZRzFyGaa4k1+56oFzRfTc
 certificate install -type server -vserver <svm> -cert-name flexcache-duality
 ----
 
-. Paste the signed certificate from [[anchor3-step,Sign the certificate]].
+. Paste the signed certificate from <<anchor3-step,Sign the certificate>>.
 +
 Example:
 +
@@ -144,7 +144,7 @@ J0eo1uDJhaNxqwEZRzFyGaa4k1+56oFzRfTc
 -----END CERTIFICATE-----
 ----
 
-. Paste the private key generated in [[anchor2-step,Generate a Certificate Signing Request]].
+. Paste the private key generated in <<anchor2-step,Generate a Certificate Signing Request>>.
 +
 Example:
 +
@@ -181,11 +181,7 @@ serial: 187A256E0BF90CFA
 
 . Get the public key for the SVM root CA
 +
-[NOTE] 
-----
-This is needed to configure the client to trust the certificates signed by the SVM root-ca. The public key is printed to the console. Copy and save the public key. The values in this command are the same ones you entered in [[anchor1-step,Create an SVM root CA]].
-----
-+
+[source,cli]
 ----
 security certificate show -vserver <svm> -common-name <root_ca_cn> -ca <root_ca_cn> -type root-ca -instance
 
@@ -201,7 +197,9 @@ HlNzDR8iml4k9IuKf6BHLFA+VwLTJJZKrdf5Jvjgh0trGAbQGI/Hp2Bjuiopkui+
 n4aa5Rz0JFQopqQddAYnMuvcq10CyNn7S0vF/XLd3fJaprH8kQ==
 -----END CERTIFICATE-----
 ----
++
 
+NOTE: This is needed to configure the client to trust the certificates signed by the SVM root-ca. The public key is printed to the console. Copy and save the public key. The values in this command are the same ones you entered in <<anchor1-step,Create an SVM root CA>>.
 == Step 2: Configure the S3 server
 
 . Enable S3 protocol access:
