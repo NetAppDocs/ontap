@@ -4,16 +4,16 @@ permalink: flexcache-duality-quick-start.html
 keywords: flexcache, s3, nas, dual protocol, certificates, ontap 9.18.1
 summary: "Starting in ONTAP 9.18.1, you can enable S3 access to NAS FlexCache volumes. This allows clients to access data stored in a FlexCache volume using the S3 protocol, in addition to traditional NAS protocols like NFS and SMB. This is a quick start guide on how to set this up."
 ---
-= FlexCache Duality quick start guide
+= Enable S3 access to NAS FlexCache volumes
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Starting in ONTAP 9.18.1, you can enable S3 access to NAS FlexCache volumes, also referred to as "Duality." This allows clients to access data stored in a FlexCache volume using the S3 protocol, in addition to traditional NAS protocols like NFS and SMB. This is a quick start guide on how to set this up.
+Beginning in ONTAP 9.18.1, you can enable S3 access to NAS FlexCache volumes, also referred to as "duality." This allows clients to access data stored in a FlexCache volume using the S3 protocol, in addition to traditional NAS protocols like NFS and SMB. You can use the following information to set up FlexCache duality.
 
 == Prerequisites
 
-The following prerequisites must be met before you can follow this quick start guide:
+Before you begin, you must ensure you complete the following prerequisites:
 
 * Make sure the S3 protocol and desired NAS protocols (NFS, SMB, or both) are licensed and configured on the SVM.
 * Verify that DNS and any other required services are configured.
@@ -21,25 +21,28 @@ The following prerequisites must be met before you can follow this quick start g
 * FlexCache Volume create
 * Data-lif created
 
-NOTE: For more thorough documentation on FlexCache Duality, see link:https://docs.netapp.com/us-en/ontap/s3-multiprotocol/index.html#how-s3-multiprotocol-support-works[ONTAP S3 multiprotocol support].
+NOTE: For more thorough documentation on FlexCache duality, see link:https://docs.netapp.com/us-en/ontap/s3-multiprotocol/index.html#how-s3-multiprotocol-support-works[ONTAP S3 multiprotocol support].
 
-== Create and sign certificates
+== Step 1: Create and sign certificates
 
-To enable S3 access to a FlexCache volume, you need to install certificates for the SVM that hosts the FlexCache volume. This example will use self-signed certificates, but in a production environment, you should use certificates signed by a trusted Certificate Authority (CA).
+To enable S3 access to a FlexCache volume, you need to install certificates for the SVM that hosts the FlexCache volume. This example uses self-signed certificates, but in a production environment, you should use certificates signed by a trusted Certificate Authority (CA).
 
-=== Create an SVM root CA
-
+. <<anchor1-step>>Create an SVM root CA:
++
+[source,cli]
 ----
 security certificate create -vserver <svm> -type root-ca -common-name <arbitrary_name>
 ----
 
-=== Generate a Certificate Signing Request
-
+. <<anchor2-step>>Generate a Certificate Signing Request:
++
+[source,cli]
 ----
 security certificate generate-csr -common-name <dns_name_of_data_lif> -dns-name <dns_name_of_data_lif> -ipaddr <data_lif_ip>
 ----
-
-That outputs something like this:
++
+Example output:
++
 
 ----
 -----BEGIN CERTIFICATE REQUEST-----
@@ -52,9 +55,11 @@ vMIGN351+FgzLQ4X5lKfoMXCV70NqIakxzEmkTIUDKv7n9EVZ4b5DTTlrL03X/nK
 D7gm3g/O70qa5OxbAEal5o4NbOl95U0T0rwqTaSzFG0XQnK2PmA1OIwS5ET35p3Z
 dLU=
 -----END CERTIFICATE REQUEST-----
-
-
-Private Key :
+----
++
+Private key example:
++
+----
 -----BEGIN PRIVATE KEY-----
 MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCusJk075O8Uh32
 9cHI6x+BaRS2w5wrqvzoYlidXtYmdCH3m1DDprBiAyfIwBC0/iU3Xd5NpB7nc1wK
@@ -66,19 +71,21 @@ Svxm19jHT5QqloDaZVUmMXFKyKoqPDdfvcDk2Eb5gMfIIb0a3TPC/jqqpDn9BzuH
 TO02fuRvRR/G/HUz2yRd+A==
 -----END PRIVATE KEY-----
 ----
-
++
 NOTE: Keep a copy of your certificate request and private key for future reference.
 
-=== Sign the certificate
-
-The `root-ca` this step is referring to is the one created in <<Create an SVM root CA>>.
-
+. <<anchor3-step>>Sign the certificate:
++
+The `root-ca` is the one you created in [[anchor1-step,Create an SVM root CA]].
++
+[source,cli]
 ----
 certificate sign -ca <svm_root_ca> -ca-serial <svm_root_ca_sn> -expire-days 364 -format PEM -vserver <svm>
 ----
-
-Paste the Certificate Signing Request (CSR) generated in <<Generate a Certificate Signing Request>>.
-
+. Paste the Certificate Signing Request (CSR) generated in [[anchor2-step,Generate a Certificate Signing Request]].
++
+Example:
++
 ----
 -----BEGIN CERTIFICATE REQUEST-----
 MIICzjCCAbYCAQAwHzEdMBsGA1UEAxMUY2FjaGUxZy1kYXRhLm5hcy5sYWIwggEi
@@ -91,11 +98,13 @@ D7gm3g/O70qa5OxbAEal5o4NbOl95U0T0rwqTaSzFG0XQnK2PmA1OIwS5ET35p3Z
 dLU=
 -----END CERTIFICATE REQUEST-----
 ----
++
+This prints a signed certificate to the console, similar to the following example. 
++
 
-This will print a signed certificate to the console, like the following. Copy it for the next step.
-
+Signed Certificate example:
++
 ----
-Signed Certificate :
 -----BEGIN CERTIFICATE-----
 MIIDdzCCAl+gAwIBAgIIGHolbgv5DPowDQYJKoZIhvcNAQELBQAwLjEfMB0GA1UE
 AxMWY2FjaGUtMTY0Zy1zdm0tcm9vdC1jYTELMAkGA1UEBhMCVVMwHhcNMjUxMTIx
@@ -107,15 +116,19 @@ wswvv0rNydrNnWhJLhSl8TW5Tex+OMyTXgk9/3K8kB0mAMrtxxYjt8tm+gztkivf
 J0eo1uDJhaNxqwEZRzFyGaa4k1+56oFzRfTc
 -----END CERTIFICATE-----
 ----
+. Copy the certificate for the next step.
 
-=== Install the server certificate on the SVM
-
+. Install the server certificate on the SVM:
++
+[source,cli]
 ----
 certificate install -type server -vserver <svm> -cert-name flexcache-duality
 ----
 
-Paste the signed certificate from <<Sign the certificate>>.
-
+. Paste the signed certificate from [[anchor3-step,Sign the certificate]].
++
+Example:
++
 ----
 Please enter Certificate: Press <Enter> [twice] when done
 -----BEGIN CERTIFICATE-----
@@ -131,8 +144,10 @@ J0eo1uDJhaNxqwEZRzFyGaa4k1+56oFzRfTc
 -----END CERTIFICATE-----
 ----
 
-Paste the private key generated in <<Generate a Certificate Signing Request>>.
-
+. Paste the private key generated in [[anchor2-step,Generate a Certificate Signing Request]].
++
+Example:
++
 ----
 Please enter Private Key: Press <Enter> [twice] when done
 -----BEGIN PRIVATE KEY-----
@@ -149,10 +164,12 @@ dJfFCshsPalMuAp2OuKIAnNa9l6fT9y5kf9tIbskT+t5Dth8bmV9pwe8UZaK5eC4
 Svxm19jHT5QqloDaZVUmMXFKyKoqPDdfvcDk2Eb5gMfIIb0a3TPC/jqqpDn9BzuH
 TO02fuRvRR/G/HUz2yRd+A==
 -----END PRIVATE KEY-----
-
-Enter certificates of certification authorities (CA) which form the certificate chain of the server certificate.
+----
+. Enter certificates of certification authorities (CA) which form the certificate chain of the server certificate.
++
 This starts with the issuing CA certificate of the server certificate and can range up to the root CA certificate.
-
++
+----
 Do you want to continue entering root and/or intermediate certificates {y|n}: n
 
 You should keep a copy of the private key and the CA-signed digital certificate for future reference.
@@ -162,10 +179,13 @@ CA: cache-164g-svm-root-ca
 serial: 187A256E0BF90CFA
 ----
 
-=== Get the public key for the SVM root CA
-
-NOTE: This is needed to configure the client to trust the certificates signed by the SVM root-ca. The public key will printed to the console. Copy and save somewhere. The values in this command are what you entered in <<Create an SVM root CA>>.
-
+. Get the public key for the SVM root CA
++
+[NOTE] 
+----
+This is needed to configure the client to trust the certificates signed by the SVM root-ca. The public key is printed to the console. Copy and save the public key. The values in this command are the same ones you entered in [[anchor1-step,Create an SVM root CA]].
+----
++
 ----
 security certificate show -vserver <svm> -common-name <root_ca_cn> -ca <root_ca_cn> -type root-ca -instance
 
@@ -182,69 +202,84 @@ n4aa5Rz0JFQopqQddAYnMuvcq10CyNn7S0vF/XLd3fJaprH8kQ==
 -----END CERTIFICATE-----
 ----
 
-== Configure S3 Server
+== Step 2: Configure the S3 server
 
-=== Enable S3 Protocol Access
-
-NOTE: S3 is allowed at the SVM level by default.
-
+. Enable S3 protocol access:
++
+[source,cli]
 ----
 vserver show -vserver <svm> -fields allowed-protocols
 ----
++
+NOTE: S3 is allowed at the SVM level by default.
 
-=== Clone an existing policy
-
+. Clone an existing policy
++
+[source,cli]
 ----
 network interface service-policy clone -vserver <svm> -policy default-data-files -target-vserver <svm> -target-policy <any_name>
 ----
 
-=== Add S3 to the cloned policy
-
+. Add S3 to the cloned policy
++
+[source,cli]
 ----
 network interface service-policy add-service -vserver <svm> -policy <any_name> -service data-s3-server
 ----
 
-=== Add the new policy to the data lif
-
-WARNING: Modifying the service policy an exisiting LIF can be disruptive. It requires the LIF to be taken down and brought back up with a listener for the new service. TCP *should* recover from this quickly, but be aware of potential impact.
-
+. Add the new policy to the data lif
++
+[source,cli]
 ----
 network interface modify -vserver <svm> -lif <data_lif> -service-policy duality
 ----
++
+[ATTENTION]
 
-=== Create the S3 object store server on the SVM
+Modifying the service policy an exisiting LIF can be disruptive. It requires the LIF to be taken down and brought back up with a listener for the new service. TCP *should* recover from this quickly, but be aware of potential impact.
 
+
+. Create the S3 object store server on the SVM
++
+[source,cli]
 ----
 vserver object-store-server create -vserver <svm> -object-store-server <dns_name_of_data_lif> -certificate-name flexcache-duality
 ----
 
-=== Enable S3 capability on FlexCache volume
-
-There is a `flexcache config` option added called `-is-s3-enabled`. This must be set to `true` before you can create a bucket. The option `-is-writeback-enabled` must also be set to false. In this example, I'm modifying an existing FlexCache:
-
+. Enable S3 capability on FlexCache volume
++
+The `flexcache config` option `-is-s3-enabled` must be set to `true` before you can create a bucket. You must also set the option `-is-writeback-enabled` to `false`. 
++
+The following command modifies an existing FlexCache:
++
+[source,cli]
 ----
 flexcache config modify -vserver <svm> -volume <fcache_vol> -is-writeback-enabled false -is-s3-enabled true
 ----
 
-=== Create an S3 bucket
-
+. Create an S3 bucket
++
+[source,cli]
 ----
 vserver object-store-server bucket create -vserver <svm> -bucket <bucket_name> -type nas -nas-path <flexcache_junction_path>
 ----
 
-=== Create a bucket policy
-
+. Create a bucket policy
++
+[source,cli]
 ----
 vserver object-store-server bucket policy add-statement -vserver <svm> -bucket <bucket_name> -effect allow
 ----
 
-=== Create S3 user
+. Create an S3 user
++
+[source,cli]
 ----
 vserver object-store-server user create -user <user> -comment ""
 ----
-
-Outputs...
-
++
+Example output:
++
 ----
     Vserver: <svm>>
        User: <user>>
@@ -253,14 +288,15 @@ Outputs...
     Warning: The secret key won't be displayed again. Save this key for future use.
 ----
 
-=== (re)Generate keys for the root user
-
+. Regenerate keys for the root user
++
+[source,cli]
 ----
 vserver object-store-server user regenerate-keys -vserver <svm> -user root
 ----
-
-Outputs...
-
++
+Example output:
++
 ----
     Vserver: <svm>>
        User: root
@@ -269,7 +305,7 @@ Outputs...
     Warning: The secret key won't be displayed again. Save this key for future use.
 ----
 
-== Setting up the client
+== Step 3: Set up the client
 
-There are many S3 clients out there. A good place to start is with the AWS CLI. For more information, see link:https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html[Installing the AWS CLI].
+There are many S3 clients available. A good place to start is with the AWS CLI. For more information, see link:https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html[Installing the AWS CLI].
 
