@@ -2,7 +2,7 @@
 permalink: s3-config/regenerate-access-keys.html
 sidebar: sidebar
 keywords: regenerate, s3, access keys, secret keys
-summary: "Keys for accessing S3 clients can be regenerated, and their validity changed."
+summary: "Keys for accessing S3 clients can be regenerated, and have their validity changed, or a second access key can be generated or removed. "
 ---
 
 = Regenerate ONTAP S3 keys and modify their retention period
@@ -11,10 +11,11 @@ summary: "Keys for accessing S3 clients can be regenerated, and their validity c
 :hardbreaks-option:
 
 [.lead]
-Access keys and secret keys are automatically generated during user creation for enabling S3 client access. You can regenerate keys for a user if a key is expired or compromised.
+Access keys and secret keys are automatically generated during user creation for enabling S3 client access. You can regenerate keys for a user if a key is expired or compromised. You can also generate or remove a second access key for a user so they can access S3 resources if their original access key expires.
 
 For information about generation of access keys, see link:../s3-config/create-s3-user-task.html[Create an S3 user].
 
+== Regenerate an access key
 [role="tabbed-block"]
 ====
 .System Manager
@@ -23,8 +24,9 @@ For information about generation of access keys, see link:../s3-config/create-s3
 . In the *Settings* tab, click image:icon_pencil.gif[Edit icon] in the *S3* tile.
 . In the *Users* tab, verify that there is no access key, or the key has expired for the user.
 . If you need to regenerate the key, click image:icon_kabob.gif[Menu options icon] next to the user, then click *Regenerate Key*.
-. By default, generated keys are valid for an indefinite amount of time. Beginning with 9.14.1, you can modify their retention period, after which the keys automatically expire. Enter the retention period in days, hours, minutes, or seconds.
-. Click *Save*. The key is regenerated. Any change in the key retention period takes effect immediately. 
+. By default, generated keys have a validity value of 0 and never expire. Beginning with 9.14.1, you can modify their retention period, after which the keys automatically expire. Enter the retention period in days, hours, minutes, or seconds.
+. Beginning with 9.19.1, users can have a second access key. If the user has a second access key, select the access key to regenerate. You can select both access keys for regeneration.
+. Click *Save*. The key is regenerated. Any changes in the key retention period takes effect immediately. 
 . Download or save the access key and secret key. They will be required for access from S3 clients.
 --
 
@@ -33,9 +35,16 @@ For information about generation of access keys, see link:../s3-config/create-s3
 . Regenerate access and secret keys for a user by running the `vserver object-store-server user regenerate-keys` command.
 . By default, generated keys are valid indefinitely. Beginning with 9.14.1, you can modify their retention period, after which the keys automatically expire. You can add the retention period in this format: `P[<integer>D]T[<integer>H][<integer>M][<integer>S] | P<integer>W`
 For example, if you want to enter a retention period of one day, two hours, three minutes, and four seconds, enter the value as `P1DT2H3M4S`.
+. Beginning with 9.19.1, if the user has more than one access key, you can choose which key to regenerate. You specify the key in this format: `[-key-id {1..2}]`
++
+* If the user has only one key, no key-id needs to be specified. 
+* To specify key 1 enter the value as `-key-id 1`. 
+* To specify key 2 enter the value as `-key-id 2`. 
+* To specify keys 1 and 2 enter the value as `-key-id 1 2`.
+For example, to regenerate key 1:
 +
 ----
-vserver object-store-server user regenerate-keys -vserver svm_name -user user -key-time-to-live 0
+vserver object-store-server user regenerate-keys -vserver svm_name -user user -key-id 1 -key-time-to-live 0
 ----
 +
 . Save the access and secret keys. They will be required for access from S3 clients.
@@ -44,5 +53,77 @@ vserver object-store-server user regenerate-keys -vserver svm_name -user user -k
 
 ====
 
+== Generate a second access key
+
+Beginning with 9.19.1, you can generate a second access key for a user.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Click *Storage > Storage VMs* and then select the storage VM.
+. In the *Settings* tab, click image:icon_pencil.gif[Edit icon] in the *S3* tile.
+. In the *Users* tab, click image:icon_kabob.gif[Menu options icon] next to the user, then click *Add another key*.
+. By default, generated keys have a validity value of 0 and never expire. Beginning with 9.14.1, you can modify their retention period, after which the keys automatically expire. Enter the retention period in days, hours, minutes, or seconds.
+. Click *Add*. The second key is generated. The specified key retention period takes effect immediately. 
+. Download or save the access key and secret key. They will be required for access from S3 clients.
+--
+
+.CLI
+--
+. Generate second access and secret keys for a user by running the `vserver object-store-server user regenerate-keys` command.
+. By default, generated keys are valid indefinitely. Beginning with 9.14.1, you can modify their retention period, after which the keys automatically expire. You can add the retention period in this format: `P[<integer>D]T[<integer>H][<integer>M][<integer>S] | P<integer>W`
+For example, if you want to enter a retention period of one day, two hours, three minutes, and four seconds, enter the value as `P1DT2H3M4S`.
+. Beginning with 9.19.1, you can generate a second access key in this format: `[-key-id 2]`
++
+For example:
++
+----
+vserver object-store-server user regenerate-keys -vserver svm_name -user user -key-id 2 -key-time-to-live 0
+----
++
+. Save the access and secret keys. They will be required for access from S3 clients.
+
+--
+
+====
+
+== Remove an access key
+
+Beginning with 9.19.1, you can remove one of the access keys for a user. To delete both keys for a user, the user should be deleted.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Click *Storage > Storage VMs* and then select the storage VM.
+. In the *Settings* tab, click image:icon_pencil.gif[Edit icon] in the *S3* tile.
+. In the *Users* tab, click image:icon_kabob.gif[Menu options icon] next to the user, then click *Add another key*.
+. Click *Remove key 2* or *Remove key 2*.
+. By default, generated keys are valid for an indefinite amount of time. Beginning with 9.14.1, you can modify their retention period, after which the keys automatically expire. Enter the retention period in days, hours, minutes, or seconds.
+. Click *Save*. The selected key is removed. 
+. Download or save the access key and secret key. They will be required for access from S3 clients.
+--
+
+.CLI
+--
+. Remove access and secret keys for a user by running the `vserver object-store-server user delete-keys` command.
+. You can choose which key to remove by specifying the key in this format: `[-key-id {1..2}]`
++
+* If the user has only one key, no key-id needs to be specified. 
+* To specify key 1 enter the value as `-key-id 1`. 
+* To specify key 2 enter the value as `-key-id 2`. 
+* If no key id is specified, the command defaults to delete key 2.
+* To delete both keys, delete the user.
+For example:
++
+----
+vserver object-store-server user delete-keys -vserver svm_name -user user -key-id 2
+----
+--
+
+====
+
+// 2026-2-9, ONTAPDOC-3685
 // 2024-12-19, ontapdoc-2606
 // 10-Oct-2023 ONTAPDOC-1158
