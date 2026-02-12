@@ -1,10 +1,10 @@
 ---
 sidebar: sidebar
-permalink: concepts/capacity-measurements-in-sm-concept.html
+permalink: concepts/capacity-measurements.html
 keywords: capacity, measurement, physical, logical, storage, used storage, local tier capacity, aggregate capacity, block, capacity concern, add capacity, volume, used capacity, available capacity, total capacity, inactive capacity, static insights, dynamic insights, snapshot copy, snapshot copies, inactive data, overprovision, overflows, snapshot copy policy, snapshot copy reserves, reserves, policy, top volumes
-summary: "System capacity can be measured as either physical space or logical space. Beginning with ONTAP 9.7, System Manager provides measurements of both physical and logical capacity."
+summary: "Your ONTAP storage capacity can be measured as either physical space or logical space.  How these measurements are reported varies depending upon your ONTAP version and if  you are using System Manager or the Command Line Interface (CLI). Understanding various terms related to capacity, the differences between physical and logical capacity and how capacity types are reported is important when you are monitoring your storage usage."
 ---
-= Capacity measurements in ONTAP System Manager
+= Learn about ONTAP Capacity reporting and measurements
 :toclevels: 1
 :hardbreaks:
 :nofooter:
@@ -13,21 +13,42 @@ summary: "System capacity can be measured as either physical space or logical sp
 :imagesdir: ../media/
 
 [.lead]
-System capacity can be measured as either physical space or logical space. Beginning with ONTAP 9.7, System Manager provides measurements of both physical and logical capacity.
-
-The differences between the two measurements are explained in the following descriptions:
+Your ONTAP storage capacity can be measured as either physical space and logical space.  How these measurements are reported varies depending upon your ONTAP version and if  you are using System Manager or the Command Line Interface (CLI). Understanding various terms related to capacity, the differences between physical and logical capacity and how capacity types are reported is important when you are monitoring your storage usage.
 
 * *Physical capacity*:  Physical space refers to the physical blocks of storage used in the volume or local tier. The value for physical used capacity is typically smaller than the value for logical used capacity due to the reduction of data from storage efficiency features (such as deduplication and compression).
 
 * *Logical capacity*: Logical space refers to the usable space (the logical blocks) in a volume or local tier. Logical space refers to how theoretical space can be used, without accounting for results of deduplication or compression.  The value for logical space used is derived from the amount of physical space used plus the savings from storage efficiency features (such as deduplication and compression) that have been configured.  This measurement often appears larger than the physical used capacity because it includes snapshots, clones, and other components, and it does not reflect the data compression and other reductions in the physical space. Thus, the total logical capacity could be higher than the provisioned space.
 
+== Capacity reporting in the CLI
+
+Physical used space is reported differently in the ONTAP CLI depending on your version of ONTAP.  In ONTAP 9.13.1 and earlier, the `physical used` parameter displayed in the `volume show` command output includes all storage efficiency savings applied to the volume. Beginning with ONTAP 9.14.1, the `physical used` parameter does not include aggregate-level storage efficiency savings such as temperature-sensitive storage (TSSE), inline compression, compaction, and cross-volume deduplication, so does not accurately reflect the volume's physical used space. In ONTAP 9.14.1 and later you should use the `vol show-footprint` command with the `effective_total_footprint` parameter to view the accurate physical used space of a volume.
+
+[cols="4", options="header"]
+|===
+| ONTAP Version | Command| Parameter | Description
+
+.3+| 9.14.1 and later 
+| `volume show-footprint` | `effective_total_footprint` | Reflects the actual disk space used, including savings from the aggregate.
+| `volume show-space` | `physical used` | Reflects volume-level storage efficiency savings, including savings from the aggregate.
+| `volume show` | `physical used` | Does not include aggregate-level storage efficiency savings, so does not accurately reflect the volume's physical used space for link:..volumes/enable-temperature-sensitive-efficiency-concept.html[TSSE enabled platforms].
+
+
+.3+| 9.13.1 and earlier 
+| `volume show-footprint` | `effective_total_footprint` | Reflects the actual disk space used, including savings from the aggregate.
+| `volume show-space` | `physical used` | Reflects only volume-level storage efficiency savings.
+| `volume show` | `total physical used` | Reflects only volume-level storage efficiency savings.
+|===
+
+.Related information
+
+* Learn more about the link:https://kb.netapp.com/on-prem/ontap/OHW/OHW-KBs/What_is_the_Change_in_Physical_Used_Space_Reporting_for_9.14.1_and_later[change in physical used space reporting for 9.14.1 and later^].
+* Learn more about link:../volumes/commands-display-space-usage-reference.html[commands for displaying space usage information].
+
+== Capacity reporting in System Manager
+
+Measurements of used capacity are displayed differently in System Manager depending on the version of ONTAP. Beginning with ONTAP 9.7, System Manager provides measurements of both physical and logical capacity. 
+
 NOTE: In System Manager, capacity representations do not account for root storage tier (aggregate) capacities. 
-
-[[measurements-used-cap]]
-
-== Measurements of used capacity
-
-Measurements of used capacity are displayed differently depending on the version of System Manager you are using, as explained in the following table:
 
 [cols="30,30,40"]
 |===
@@ -50,8 +71,6 @@ a| Used
 a| Physical space used
 
 |===
-
-[[cap-measurement-terms]]
 
 == Capacity measurement terms
 The following terms are used when describing capacity:
@@ -104,7 +123,7 @@ When a storage VM reaches its maximum capacity limit, certain operations cannot 
 
 [[cap-measurement-units]]
 
-== Capacity measurement units
+== Capacity measurement units in System Manager
 System Manager calculates storage capacity based on binary units of 1024 (2^10^) bytes. 
 
 * Beginning with ONTAP 9.10.1, storage capacity units are displayed in System Manager as KiB, MiB, GiB, TiB, and PiB.
@@ -153,6 +172,7 @@ link:../task_admin_monitor_capacity_in_sm.html[Monitor cluster, tier, and SVM ca
 
 link:../volumes/logical-space-reporting-enforcement-concept.html[Logical space reporting and enforcement for volumes]
 
+// 2025 Jan 15, ONTAPDOC-3176
 // 2025 June 13, ONTAPDOC-3078
 // 2021 Mar 31, JIRA IE-230
 // 2021 Jun 24, TN-0060
