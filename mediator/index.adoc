@@ -12,11 +12,12 @@ summary: To install ONTAP Mediator, you must ensure all prerequisites are met, g
 To install or upgrade ONTAP Mediator, you need to meet all prerequisites, download the installation package, and run the installer on the host.
 
 * Beginning with ONTAP 9.8, you can use any version of ONTAP Mediator to monitor an SnapMirror active sync relationship.
-* You can use any version of ONTAP Mediator to monitor a MetroCluster IP configuration.
+* When you configure the ONTAP Mediator with the iSCSI protocol, you can use any version of ONTAP Mediator to monitor a MetroCluster IP configuration. 
+* Beginning with ONTAP 9.19.1 and ONTAP Mediator 1.12, you can configure an HTTPS-based Mediator to monitor your MetroCluster IP configuration. 
 
 == Installation and upgrade considerations
 
-Review these points before upgrading or installing ONTAP Mediator. 
+Review the following information before upgrading or installing ONTAP Mediator. 
 
 NOTE: ONTAP Mediator 1.8 and earlier is not compatible with Red Hat Enterprise Linux (RHEL) FIPS mode and prevents it from installing successfully. You can check if FIPS mode is enabled using the `fips-mode-setup --check` command. You can disable FIPS mode using the `fips-modesetup --disable` command. Reboot after disabling FIPS mode to successfully install ONTAP Mediator 1.8 or earlier.
 
@@ -34,7 +35,7 @@ NOTE: ONTAP Mediator 1.8 and earlier is not compatible with Red Hat Enterprise L
 
 * Beginning with ONTAP Mediator 1.11, IPv6 is supported for MetroCluster IP configurations.
 
-=== Host requirements 
+== Host requirements 
 // BURT 1392725
 
 Follow these requirements when installing RHEL or Rocky Linux and configuring the associated repositories. 
@@ -54,8 +55,29 @@ If you modify the installation or configuration process, you might need to perfo
 See the Red Hat Subscription Manager documentation for further information.
 ====
 
-.Networking requirements
-Ensure that the following ports are available and unused for ONTAP Mediator:
+== Firewall and networking requirements
+
+ONTAP Mediator uses a number of ports to communicate with specific services.
+
+* If you are using a third-party firewall:
+
+** HTTPS access must be enabled.
+** It must be configured to allow access on ports 31784 and 3260.
++
+When using the default Red Hat or CentOS firewall, the firewall is automatically configured during Mediator installation.
+
+* For Linux hosts without internet access, make sure the required packages are available in a local repository.
++
+If you are using Link Aggregation Control Protocol (LACP) in a Linux environment, configure the kernel and set the `sysctl net.ipv4.conf.all.arp_ignore` to `2`.
+
+The following table lists the ports that you must allow in your firewall:
+
+[NOTE] 
+====
+* The iSCSI port is only required in a MetroCluster IP configuration.
+* The 22/tcp port is not required for normal operation but you can enable it temporarily for maintenance and disable it when the maintenance session has finished. 
+====
+
 
 |===
 
@@ -93,14 +115,10 @@ a|
 (Required for MetroCluster IP configurations) iSCSI data connection for mailboxes
 |===
  
-For SMBC customers, ONTAP doesn't require port 3260 to be enabled or connected.
+NOTE: For SnapMirror active sync customers, ONTAP doesn't require port 3260 to be enabled or connected.
 
-* If using a third-party firewall, see link:https://docs.netapp.com/us-en/ontap-metrocluster/install-ip/concept_mediator_requirements.html#firewall-requirements-for-ontap-mediator[Firewall requirements for ONTAP Mediator^].
-* For Linux hosts without internet access, make sure the required packages are available in a local repository.
-+
-If you are using Link Aggregation Control Protocol (LACP) in a Linux environment, configure the kernel and set the `sysctl net.ipv4.conf.all.arp_ignore` to `2`.
 
-.OS requirements
+== OS requirements
 
 Your OS must meet the following requirements:
 
