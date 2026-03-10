@@ -120,7 +120,6 @@ a| * FlexVol volumes with ONTAP 9.10.1 to 9.15.1
 | Active 
 a| 
 In active mode, if a file extension is flagged as abnormal, you should evaluate the alert. You can act on the alert to protect your data, or you can mark the alert as a false positive. Marking an alert as a false positive updates the alert profile. For example, if the alert is triggered by a new file extension and you mark the alert as a false positive, you will not receive an alert the next time that the file extension is observed.
-
 a| All supported ONTAP versions and FlexVol and FlexGroup volumes
 
 |===
@@ -167,9 +166,18 @@ You can view information about moderate threats in System Manager's *Events* sec
 
 ARP creates a snapshot when early signs of an attack are detected. A detailed analysis is then conducted to confirm or dismiss the potential attack. Because ARP snapshots are created proactively even before an attack is fully confirmed, they might also be generated at regular intervals for certain legitimate applications. The presence of these snapshots should not be regarded as an anomaly. If an attack is confirmed, the attack probability is escalated to `Moderate` and an attack notification is generated.
 
-Beginning with ONTAP 9.17.1, ARP snapshots are generated at regular intervals for both NAS and SAN volumes as well as in response to detected anomalies. ONTAP prepends a name to the ARP snapshot to make it easily identifiable.
+.ARP snapshot differences by version
 
-Beginning with ONTAP 9.11.1, you can modify the retention settings. For more information, see link:modify-automatic-shapshot-options-task.html[Modify options for snapshots].
+* *Modify retention settings*: Beginning with ONTAP 9.11.1, you can link:modify-automatic-snapshot-options-task.html[modify retention settings for snapshots].
+
+* *Intervals and anomaly response*: Beginning with ONTAP 9.17.1, ARP snapshots are generated at regular intervals for both NAS and SAN volumes as well as in response to detected anomalies, which has always been the standard response. ONTAP prepends a name to the ARP snapshot to make it easily identifiable.
+
+* *SnapMirror synchronous and active sync*: Beginning with ONTAP 9.19.1 RC, ARP snapshots created for volumes that participate in SnapMirror synchronous (SMS) or SnapMirror active sync (SMAS-SAN) relationships follow these additional rules:
+
+** ARP snapshots are created and retained on the primary volume.
+** ARP snapshots are not replicated to the secondary as part of SMS or SMAS. You need to link:enable-task.html[enable ARP again] on the recovery volume after failover.
+
+NOTE: Volume-level restore (`volume snapshot restore`) on SMS or SMAS-SAN volumes might require that you temporarily quiesce or break the SMS or SMAS relationship. In many cases, you can avoid breaking SMS or SMAS by using FlexClone or file-level restore operations from ARP or other snapshots on the primary volume.
 
 //Similar information repeated in respond-abnormal-task.adoc
 
@@ -330,7 +338,7 @@ a| * FlexVol: 9.16.1 and later
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
 
-
+// 2026-3-10, ontapdoc-3689
 // 2026-Feb-18, CONTAP-610375
 // 2026-Feb-3, GitHub issue #2879
 // 2026-Jan-7, ONTAPDOC-3232

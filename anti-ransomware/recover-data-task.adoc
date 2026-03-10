@@ -23,7 +23,18 @@ To restore from a snapshot other than the `Anti_ransomware` snapshot after a sys
 
 If no system attack is reported, you must first restore from the `Anti_ransomware` snapshot then complete a subsequent restoration of the volume from the snapshot you choose.
 
-NOTE: If the ARP-protected volume is part of a SnapMirror relationship, you'll need to manually update all mirror copies of the volume after restoring it from a snapshot. If you skip this step, the mirror copies might become unusable and need to be deleted and recreated.
+.More information about SnapMirror relationships and ARP snapshots
+[%collapsible]
+====
+If the ARP-protected volume is part of a SnapMirror relationship, you'll need to manually update all mirror copies of the volume after restoring it from a snapshot. If you skip this step, the mirror copies might become unusable and need to be deleted and recreated.
+
+If the ARP-protected volume is part of a SnapMirror synchronous (SMS) or SnapMirror active sync (SMAS) relationship in ONTAP 9.19.1 RC, additional recovery considerations apply:
+
+* ARP snapshots are created and retained only on the primary volume. They are not replicated to the secondary volume as part of SMS or SMAS.
+* The ARP enablement state is not replicated during failover. You need to link:enable-task.html[enable ARP again] on the recovery volume after failover.
+* Volume-level restore (`volume snapshot restore`) on SMS or SMAS-SAN volumes might require that you temporarily quiesce or break the SMS or SMAS relationship.
+* In many cases, you can avoid breaking SMS or SMAS by using FlexClone or file-level restore operations from ARP or other snapshots on the primary volume.
+====
 
 .Before you begin
 link:respond-abnormal-task.html[You must mark the attack as a potential ransomware attack] before restoring data from a snapshot.
@@ -47,6 +58,8 @@ You can use System Manager or the ONTAP CLI to restore your data.
 +
 Select *Storage > Volumes*, then select the volume and *Snapshot Copies*.
 . Select image:icon_kabob.gif[Menu options icon] next to the snapshot you want to restore then *Restore*.
++
+If the volume is part of an SMS or SMAS-SAN relationship in ONTAP 9.19.1 RC and you plan to perform a volume-level restore, follow SMS or SMAS documentation to quiesce or break the protection relationship before starting the restore, then reestablish protection after the restore is complete.
 
 .Restore if a system attack was not identified 
 . Display the snapshots in volumes:
@@ -76,6 +89,9 @@ Use one of the following parameters to identify the extensions:
 * `[-seq-no _integer_]`: Sequence number of the file in the suspect list.
 * `[-extension _text_, … ]`: File extensions
 * `[-start-time _date_time_ -end-time _date_time_]`: Starting and ending times for the range of files to be cleared, in the form "MM/DD/YYYY HH:MM:SS".
+
+. If the volume is part of an SMS or SMAS-SAN relationship in ONTAP 9.19.1 RC and you intend to perform a volume-level restore with `volume snapshot restore`, quiesce or break the SnapMirror relationship according to SMS or SMAS documentation before running the restore operation.
+
 include::../_include/restore-snapshots-cli.adoc[]
 
 
@@ -92,7 +108,7 @@ Learn more about `volume snapshot` in the link:https://docs.netapp.com/us-en/ont
 * link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/Ransomware_prevention_and_recovery_in_ONTAP[NetApp Knowledge Base: Ransomware prevention and recovery in ONTAP^]
 * link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
 
-
+// 2026-3-10, ontapdoc-3689
 // 2025 Aug 18, ONTAPDOC-1127
 // 2025 Mar 11, ONTAPDOC-2758
 // 2024-10-10, ontapdoc-2343
