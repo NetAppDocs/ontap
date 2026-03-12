@@ -4,20 +4,22 @@ sidebar: sidebar
 keywords: setting, throughput, floor, qos
 summary: "You can use the min-throughput field for a policy group to define a throughput floor for storage object workloads (QoS Min). You can apply the policy group when you create or modify the storage object. Beginning with ONTAP 9.8, you can specify the throughput floor in IOPS or MBps, or IOPS and MBps."
 ---
-= Set a throughput floor with QoS in ONTAP
+= Set a throughput floor with ONTAP QoS policy groups
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You can use the `min-throughput` field for a policy group to define a throughput floor for storage object workloads (QoS Min). You can apply the policy group when you create or modify the storage object. Beginning with ONTAP 9.8, you can specify the throughput floor in IOPS or MBps, or IOPS and MBps.
+A QoS minimum or throughput floor guarantees that throughput for a workload does not fall below a minimum number of IOPS or MBps, or IOPS and MBps regardless of competing workloads. Set a throughput floor to ensure critical workloads are prioritized and meet minimum performance requirements. You can apply the policy group when you create or modify the storage object. 
 
 .Before you begin
 
 * You must be a cluster administrator to create a policy group.
-* Beginning with ONTAP 9.13.1, you can enforce throughput floors at the SVM level using an xref:adaptive-policy-template-task.html[adaptive policy group template]. You cannot set an adaptive policy group template on an SVM with a QoS policy group. 
+
 
 .About this task
 
+* Beginning with ONTAP 9.13.1, you can enforce throughput floors at the SVM level using an xref:adaptive-policy-template-task.html[adaptive policy group template]. You cannot set an adaptive policy group template on an SVM with a QoS policy group. 
+* Beginning with ONTAP 9.8, you can specify the throughput floor in IOPS or MBps, or IOPS and MBps.
 * Beginning with ONTAP 9.4, you can use a _non-shared_ QoS policy group to specify that the defined throughput floor be applied to each member workload individually. This is the only condition in which a policy group for a throughput floor can be applied to multiple workloads.
 +
 Set `-is-shared=false` for the `qos policy-group create` command to specify a non-shared policy group.
@@ -32,49 +34,54 @@ Set `-is-shared=false` for the `qos policy-group create` command to specify a no
 . Check for adequate performance capacity on the node or aggregate, as described in link:identify-remaining-performance-capacity-task.html[Identifying remaining performance capacity].
 . Create a policy group:
 +
-`qos policy-group create -policy group _policy_group_ -vserver _SVM_ -min-throughput _qos_target_ -is-shared true|false`
+[source,cli]
+----
+qos policy-group create -policy-group <policy_group> -vserver <SVM> -min-throughput <qos_target> -is-shared <true|false>
+----
 +
 Learn more about `qos policy-group create` in the link:https://docs.netapp.com/us-en/ontap-cli/qos-policy-group-create.html[ONTAP command reference^].
-
-. You can use the `qos policy-group modify` command to adjust throughput floors.
 +
-The following command creates the shared policy group `pg-vs2` with a minimum throughput of 1,000 IOPS:
+The following example creates the shared policy group `pg-vs2` with a minimum throughput of 1,000 IOPS:
 +
 ----
 cluster1::> qos policy-group create -policy group pg-vs2 -vserver vs2 -min-throughput 1000iops -is-shared true
 ----
 +
-The following command creates the non-shared policy group `pg-vs4` without a throughput limit:
+The following example creates the non-shared policy group `pg-vs4` without a throughput limit:
 +
 ----
 cluster1::> qos policy-group create -policy group pg-vs4 -vserver vs4 -is-shared false
 ----
 +
-Learn more about `qos policy-group modify` in the link:https://docs.netapp.com/us-en/ontap-cli/qos-policy-group-modify.html[ONTAP command reference^].
+You can use the `qos policy-group modify` command to adjust throughput floors. Learn more about `qos policy-group modify` in the link:https://docs.netapp.com/us-en/ontap-cli/qos-policy-group-modify.html[ONTAP command reference^].
 
 . Apply a policy group to a volume or LUN:
 +
-`_storage_object_ create -vserver _SVM_ -qos-policy-group _policy_group_`
-You can use the `_storage_object_modify` command to apply a different policy group to the storage object.
+[source,cli]
+----
+vserver create -vserver <SVM> -qos-policy-group <policy_group>
+----
+You can use the `vserver modify` command to apply a different policy group to the storage object.
 +
-The following command applies policy group `pg-app2` to the volume `app2`:
+The following example applies policy group `pg-app2` to the volume `app2`:
 +
 ----
 cluster1::> volume create -vserver vs2 -volume app2 -aggregate aggr1 -qos-policy-group pg-app2
 ----
-+
-Learn more about the commands described in this procedure in the link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^].
 
 . Monitor policy group performance:
 +
-`qos statistics performance show`
+[source,cli]
+----
+qos statistics performance show
+----
 +
 [NOTE]
 ====
 Monitor performance from the cluster. Do not use a tool on the host to monitor performance.
 ====
 +
-The following command shows policy group performance:
+The following example shows policy group performance:
 +
 ----
 cluster1::> qos statistics performance show
@@ -90,14 +97,16 @@ Learn more about `qos statistics performance show` in the link:https://docs.neta
 
 . Monitor workload performance:
 +
-`qos statistics workload performance show`
+[source,cli]
++
+qos statistics workload performance show
 +
 [NOTE]
 ====
 Monitor performance from the cluster. Do not use a tool on the host to monitor performance.
 ====
 +
-The following command shows workload performance:
+The following example shows workload performance:
 +
 ----
 cluster1::> qos statistics workload performance show
@@ -111,12 +120,11 @@ _Scan_Backgro..   5688       20            0KB/s        0ms
 ----
 +
 Learn more about `qos statistics workload performance show` in the link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-performance-show.html[ONTAP command reference^].
-+
-[NOTE]
-====
+
+
 You can use the `qos statistics workload latency show` command to view detailed latency statistics for QoS workloads.
 Learn more about `qos statistics workload latency show` in the link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-latency-show.html[ONTAP command reference^].
-====
+
 
 
 // 2025 July 31, ONTAPDOC-2960
