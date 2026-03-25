@@ -14,7 +14,7 @@ summary: Autonomous Ransomware Protection uses workload analysis in NAS or SAN e
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.10.1, ONTAP administrators can enable Autonomous Ransomware Protection (ARP) to perform workload analysis in NAS (NFS and SMB) environments to proactively detect and warn about abnormal activity that might indicate a ransomware attack. Beginning with ONTAP 9.17.1, ARP also supports block-device volumes, including SAN volumes containing LUNs or NVMe namespaces, or NAS volumes containing virtual disks from hypervisors such as VMware. Beginning with ONTAP 9.17.1P5, Hyper-V, KVM, and OpenStack hypervisors are also supported. For more information, see <<Expanded ARP/AI attack evaluation and detection>>.
+Beginning with ONTAP 9.10.1, ONTAP administrators can enable Autonomous Ransomware Protection (ARP) to perform workload analysis in NAS (NFS and SMB) environments to proactively detect and warn about abnormal activity that might indicate a ransomware attack. Beginning with ONTAP 9.17.1, ARP also supports block-device volumes, including SAN volumes containing LUNs or NVMe namespaces, or NAS volumes containing virtual disks from hypervisors such as VMware. Beginning with ONTAP 9.17.1P5, Hyper-V, KVM, and OpenStack hypervisors are also supported.
 
 ARP is built directly into ONTAP, ensuring integrated control and coordination with ONTAP's other features. ARP operates in real-time, processing data as it's written to or read from the file system, and detecting and responding to potential ransomware attacks quickly. 
 
@@ -117,6 +117,9 @@ TIP: The command `security anti-ransomware volume workload-behavior show` shows 
 a| * FlexVol volumes with ONTAP 9.10.1 to 9.15.1
 * FlexGroup volumes with ONTAP 9.13.1 to ONTAP 9.17.1
 
+a| Evaluation
+2+a| Beginning with ONTAP 9.17.1P5, for NAS volumes that contain ONTAP-detected hypervisor virtual disks, a two- to four-week evaluation period is performed to determine baseline encryption behavior. Detection and alerts can occur while baseline thresholds are being established. You can determine if the evaluation period is complete by running the `security anti-ransomware volume show` command and checking `Block device detection status`. link:anti-ransomware/respond-san-entropy-eval-period.html[Learn about the ONTAP ARP/AI evaluation period for block-device workloads].
+
 | Active 
 a| 
 In active mode, if a file extension is flagged as abnormal, you should evaluate the alert. You can act on the alert to protect your data, or you can mark the alert as a false positive. Marking an alert as a false positive updates the alert profile. For example, if the alert is triggered by a new file extension and you mark the alert as a false positive, you will not receive an alert the next time that the file extension is observed.
@@ -145,22 +148,6 @@ a| After the evaluation period, you can determine if the ARP SAN protection is a
 a| * FlexVol volumes with ONTAP 9.17.1 and later
 
 |===
-
-== Expanded ARP/AI attack evaluation and detection
-
-Beginning with ONTAP 9.17.1, ARP/AI supports attack detection inside block-device volumes (SAN LUNs) or virtual disks in an NFS datastore. ARP/AI initially detected only VMware virtual disks. 
-Beginning with ONTAP 9.17.1 P5, ARP/AI detection for block-device volumes is expanded to hypervisor virtual disks like Hyper-V, KVM, and OpenStack. The block-device volume evaluation period applies in the following scenarios: 
-
-* SAN volumes 
-* NAS volumes when the volume contains virtual disks which ONTAP automatically detects
-** The evaluation period is applicable to the attack detected based on the entropy changes within the guest filesystem of the virtual disk (for example, the ransomware operating on files within the guest filesystem).
-** The evaluation period is not applicable to the attack detected based on the entropy and file-extension changes made directly to the virtual disks from ESXi host (for example, the ransomware operating directly on the vmdk files from the NFS datastore mount point).
-+
-Detection and alerts can occur during the evaluation period using a conservative threshold while baseline thresholds are being established automatically over the course of several days.
-
-== Threat assessment and ARP snapshots
-
-ARP assesses threat probability based on incoming data measured against learned analytics. When ARP detects an abnormality, a measurement is assigned. ARP might assign a snapshot at the time of detection or at regular intervals.
 
 === ARP thresholds
 
