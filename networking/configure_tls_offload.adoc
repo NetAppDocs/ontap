@@ -16,7 +16,9 @@ Beginning with ONTAP 9.19.1, you can configure TLS offload to improve TLS post-h
 * TLS offload is disabled by default.
 * Only AES-GCM cipher suites (TLSv1.2/TLSv1.3, 128/256-bit) are offloaded.
 * The TLS handshake phase is not offloaded. Only the post-handshake data phase is offloaded.
-* LIF migration to non-offload-capable ports causes an automatic software fallback.
+* Network logical interface (LIF) migration to non-offload-capable ports causes an automatic software fallback.
++
+For TLS-offloaded connections, TLS cryptographic operations typically by-pass software and are handled by an offload-capable NIC. If the LIF associated with this connection migrates to a network port without TLS offload capability, cryptographic operations fallback to software and are handled by the system kernel.
 * Management interfaces (HTTPS, REST API) are unaffected by this setting.
 * The TLS hardware offload setting is cluster-wide.
 
@@ -77,9 +79,18 @@ false      TLSv1.3,  false   TLS_RSA_WITH_AES_128_CCM,
 +
 [source,cli]
 ----
-security config modify -is-offload-enabled <true|false>
+security config modify -is-offload-enabled {true|false}
 ----
 This command enables or disables hardware offload for the TLS data phase on new connections. Existing connections created prior to enabling the TLS offload feature are not offloaded until those connections are removed and recreated.
++
+When enabling TLS offload, the interface must be specified:
++
+[source,cli]
+----
+security config modify -is-offload-enabled true -interface SSL{code}
+----
++
+Where _code_ is TBD.
 
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/security-config-show.html[security config show^]
