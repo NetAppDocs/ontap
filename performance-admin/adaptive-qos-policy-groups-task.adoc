@@ -13,7 +13,6 @@ You can use an _adaptive QoS_ policy group to automatically scale a throughput c
 
 .Before you begin
 
-* You must be running ONTAP 9.3 or later. 
 * You must be a cluster administrator to create a policy group.
 * The storage object want to add to the policy group must be a member of a non-adaptive policy group
 +
@@ -23,26 +22,43 @@ A storage object can be a member of an adaptive policy group or a non-adaptive p
 
 .About this task
 
-Adaptive QoS policy groups are always non-shared: the defined throughput ceiling or floor applies to each member workload individually.
+* Adaptive QoS policy groups are always non-shared: the defined throughput ceiling or floor applies to each member workload individually.
 
-The ratio of throughput limits to storage object size is determined by the interaction of the following fields:
-
-* `expected-iops` is the minimum expected IOPS per allocated TB/GB.
+* Adaptive and non-adaptive QoS policy groups are automatically enabled to temporarily increase a workload’s throughput ceiling by 50% for a duration of 1 second to respond to short-term demands for higher performance by default. Beginning with ONTAP 9.19.1, you can modify these default settings.  In ONTAP 9.18.1 and earlier these settings cannot be changed.
 +
-[NOTE]
-====
-`expected-iops` is guaranteed on AFF platforms only for volumes that are not in a SnapMirror synchronous relationship. `expected-iops` is guaranteed for FabricPool only if the tiering policy is set to "none" and no blocks are in the cloud. 
-====
+Use the following options to modify the default settings:
++
+[cols="3", options="header"]
+|====
+| Option
+| Description
+| Default setting
 
-* `peak-iops` is the maximum possible IOPS per allocated or used TB/GB.
-* `expected-iops-allocation` specifies whether allocated space (the default) or used space is used for expected-iops. `expected-iops-allocation is available beginning with ONTAP 9.5.`
 
-* `peak-iops-allocation` specifies whether allocated space or used space (the default) is used for `peak-iops`.
-* `absolute-min-iops` is the absolute minimum number of IOPS. You can use this field with very small storage objects. It overrides both `peak-iops` and/or `expected-iops` when `absolute-min-iops` is greater than the calculated `expected-iops`.
+a|`burst-percent` 
+| Throughput increase in percentage 
+| 50% 
+
+a| `burst duration`
+| Duration for the throughput increase in seconds
+| 1 second
+
+a| `burst-iops`
+| Maximum number of IOPs above the throughput ceiling for the specified burst duration
+| 0
+|====
+
+* The ratio of throughput limits to storage object size is determined by the interaction of the following fields:
+
+** `expected-iops` is the minimum expected IOPS per allocated TB/GB.
+** `peak-iops` is the maximum possible IOPS per allocated or used TB/GB.
+** `expected-iops-allocation` specifies whether allocated space (the default) or used space is used for expected-iops. 
+** `peak-iops-allocation` specifies whether allocated space or used space (the default) is used for `peak-iops`.
+** `absolute-min-iops` is the absolute minimum number of IOPS. You can use this field with very small storage objects. It overrides both `peak-iops` and/or `expected-iops` when `absolute-min-iops` is greater than the calculated `expected-iops`.
 +
 For example, if you set `expected-iops` to 1,000 IOPS/TB, and the volume size is less than 1 GB, the calculated `expected-iops` will be a fractional IOP. The calculated `peak-iops` will be an even smaller fraction. You can avoid this by setting `absolute-min-iops` to a realistic value.
 
-* `block-size` specifies the application I/O block size. The default is 32K. Valid values are 8K, 16K, 32K, 64K, ANY. ANY means that the block size is not enforced.
+** `block-size` specifies the application I/O block size. The default is 32K. Valid values are 8K, 16K, 32K, 64K, ANY. ANY means that the block size is not enforced.
 
 .Steps
 
@@ -50,7 +66,7 @@ For example, if you set `expected-iops` to 1,000 IOPS/TB, and the volume size is
 +
 [source,cli]
 ----
-qos adaptive-policy-group create -policy group _policy_group_ -vserver _SVM_ -expected-iops _number_of_iops_/TB|GB -peak-iops _number_of_iops_/TB|GB -expected-iops-allocation-space|used-space -peak-iops-allocation allocated-space|used-space -absolute-min-iops _number_of_iops_ -block-size 8K|16K|32K|64K|ANY
+qos adaptive-policy-group create -policy group <policy_group> -vserver <SVM> -expected-iops <number_of_iops>/TB|GB -peak-iops <number_of_iops>/TB|GB -expected-iops-allocation-space|used-space -peak-iops-allocation allocated-space|used-space -absolute-min-iops <number_of_iops> -block-size 8K|16K|32K|64K|ANY
 ----
 +
 Learn more about `qos adaptive-policy-group create` in the link:https://docs.netapp.com/us-en/ontap-cli/qos-adaptive-policy-group-create.html[ONTAP command reference^].
@@ -70,7 +86,7 @@ cluster1::> qos adaptive-policy-group create -policy group adpg-app1 -vserver vs
 +
 [source,cli]
 ----
-volume create -vserver SVM -volume _volume_ -aggregate _aggregate_ -size _number_of_ TB|GB -qos-adaptive-policy-group _policy_group_
+volume create -vserver SVM -volume <volume_name> -aggregate <aggregate> -size <number_of_ TB|GB> -qos-adaptive-policy-group<_policy_group>
 ----
 +
 Learn more about `volume create` in the link:https://docs.netapp.com/us-en/ontap-cli/volume-create.html[ONTAP command reference^].
@@ -126,6 +142,7 @@ a|
 75
 |===
 
+// 2026 May 07, ONTAPDOC 3675
 // 2025-Oct-7, ONTAPDOC-3271
 // 2024-Aug-30, ONTAPDOC-2346
 // 08 DEC 2021, BURT 1430515
