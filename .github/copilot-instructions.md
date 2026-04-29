@@ -19,7 +19,7 @@ ONTAP software provides data management, security, and protection across various
 - `disks-aggregates/`- Descriptions and explanations of the use of disks, local tiers, Flash Pool, RAID groups, and RAID types
 - `element-replication/`- Redirects to the element-replication repo
 - `encryption-at-rest/`- Configure and manage NetApp Volume Encryption (NVE), NetApp Aggregate Encryption (NAE), and NetApp hardware-based encryption
-- `error-messages/`- Configure ONTAP to send important event management system (EMS)event notifications 
+- `error-messages/`- Configure ONTAP to send important event management system (EMS) event notifications 
 - `fabricpool/`- Configure and manage FabricPool to tier data depending upon how frequently the data is accessed
 - `file-system-analytics/`- Collect and display data usage analytics and take corrective actions
 - `flexcache/`- Create and manage flexcache volumes
@@ -73,13 +73,13 @@ ONTAP software provides data management, security, and protection across various
 - **FAS:** Fabric-Attached Storage — NetApp hybrid or HDD-based storage systems, supporting a mix of flash and spinning disk.
 - **FlexPod:** A converged infrastructure solution combining NetApp storage, Cisco networking, and Cisco UCS compute.
 - **Node:** A single storage controller and its associated storage, network connectivity, and running ONTAP instance.
-- **HA Pair:** High Availability pair — two nodes configured to provide fault tolerance; if one fails, the partner takes over its storage.
+- **HA pair:** High Availability pair — two nodes configured to provide fault tolerance; if one fails, the partner takes over its storage.
 - **Cluster:** A group of HA-paired nodes (up to 12 for SAN, up to 24 for NAS) sharing a common namespace and management plane.
-- **Aggregate / Local Tier:** A collection of disks grouped into RAID groups, forming the physical storage container for volumes. Also called a "local tier" in current ONTAP terminology.
+- **Aggregate / Local Tier:** A collection of disks grouped into RAID groups, forming the physical storage container for volumes. In ONTAP 9.6 and earlier, System Manager uses the term aggregate to describe a local tier. In ONTAP 9.7 and later System Manager uses the term local tier  Regardless of your ONTAP version, the ONTAP CLI uses the term aggregate.
 - **SVM:** Storage Virtual Machine — a logical entity that serves data to clients and hosts; it has its own namespace, security, and administration. Formerly called a "vserver."
-- **LIF:** Logical Interface — a virtual network port associated with an SVM; can migrate between physical ports during failover.
+- **LIF:** Logical interface — a virtual network port associated with an SVM; can migrate between physical ports during failover.
 - **Volume / FlexVol:** A logical container for data within an aggregate, loosely coupled to allow flexible management, movement, and resizing.
-- **FlexGroup Volume:** A massively scalable volume supporting up to 400 billion files, composed of up to 200 constituent member volumes that balance load automatically.
+- **FlexGroup volume:** A massively scalable volume supporting up to 400 billion files, composed of up to 200 constituent member volumes that balance load automatically.
 - **FlexClone:** Technology that uses snapshot metadata to create instant, space-efficient, writable copies of volumes, files, or LUNs.
 - **Qtree:** A partition within a FlexVol volume used to subdivide it into more manageable units and apply quotas.
 - **LUN:** Logical Unit Number — a block storage object presented to SAN hosts as a virtual disk, stored inside an ONTAP volume.
