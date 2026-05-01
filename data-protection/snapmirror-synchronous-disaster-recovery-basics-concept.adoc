@@ -247,15 +247,42 @@ For SnapMirror synchronous relationships, the system automatically checks the re
 
 If the relationship status becomes `OutofSync` for a SnapMirror synchronous relationship in the StrictSync mode, all I/O operations to the primary volume are stopped. The `OutofSync` state for SnapMirror synchronous relationship in the Sync mode is not disruptive to the primary and I/O operations are allowed on the primary volume.
 
+== Scheduled snapshot replication
+
+Beginning with ONTAP 9.19.1, you can use the `-sync-snapshot-replication-mode` parameter in advanced privilege mode to replicate scheduled snapshots to the SnapMirror destination during `snapshot create`, `snapshot delete`, `snapshot rename`, and `snapshot modify` operations. Replicating scheduled snapshots provides symmetry between the primary and secondary volumes in a SnapsMirror synchronous relationship.
+
+.Prerequisites
+
+* You must be a cluster or SVM administrator
+* You must be in advanced privilege mode
+* You must configure a user-defined SnapMirror policy that includes the option `sched_created`.
+** System-defined policies cannot be modified. You must create a new policy and reestablish the relationship.
+** User-defined policy changes require a resync (quiesce followed by resume) to take effect on existing relationships.
+
+The parameter also accepts 'none' or a comma-separated list of types: `application_created`, `sched_created`, and `sm_created`. The parameter only takes effect once the relationship status is `InSync`. Snapshots that are not replicated according to the policy parameter are tagged internally as primary-only. 
+
+NOTE: Creating snapshots on SnapMirror synchronous volumes can increase user I/O latency. It is recommended that you use snapshot schedules with a frequency greater than 30 minutes.
+
+
+
 .Related information
 
 * https://www.netapp.com/pdf.html?item=/media/17174-tr4733pdf.pdf[NetApp Technical Report 4733: SnapMirror synchronous configuration and best practices^]
+
+* link:https://docs.netapp.com/us-en/ontap-cli//volume-snapshot-create.html[volume snapshot create^]
+
+* link:https://docs.netapp.com/us-en/ontap-cli/volume-snapshot-delete.html[volume snapshot delete^]
+
+* link:https://docs.netapp.com/us-en/ontap-cli/volume-snapshot-modify.html[volume snapshot modify^]
+
+* link:https://docs.netapp.com/us-en/ontap-cli/volume-snapshot-rename.html[volume snapshot rename^]
 
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-break.html[snapmirror break^]
 
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-quiesce.html[snapmirror quiesce^]
 
 
+// 2026-May-1, CONTAP-688240
 // 2026-Apr-29, ONTAPDOC-3870 & CONTAP-697860
 // 2025-Dec-3, GitHub issue# 1918
 // 2025 Sep 08, ONTAPDOC-1127
