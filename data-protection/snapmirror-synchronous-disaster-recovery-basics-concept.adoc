@@ -249,7 +249,7 @@ If the relationship status becomes `OutofSync` for a SnapMirror synchronous rela
 
 == Scheduled snapshot replication
 
-Beginning with ONTAP 9.19.1, you can use the `-sync-snapshot-replication-mode` parameter in advanced privilege mode to replicate scheduled snapshots to the SnapMirror destination during `snapshot create`, `snapshot delete`, `snapshot rename`, and `snapshot modify` operations. Replicating scheduled snapshots provides symmetry between the primary and secondary volumes in a SnapsMirror synchronous relationship.
+Beginning with ONTAP 9.19.1, you can use the SnapMirror policy parameter `-sync-snapshot-replication-mode` in advanced privilege mode to replicate scheduled snapshots to the SnapMirror destination during `snapshot create`, `snapshot delete`, `snapshot rename`, and `snapshot modify` operations. Replicating scheduled snapshots provides symmetry between the primary and secondary volumes in a SnapsMirror synchronous relationship.
 
 .Prerequisites
 
@@ -259,7 +259,15 @@ Beginning with ONTAP 9.19.1, you can use the `-sync-snapshot-replication-mode` p
 ** System-defined policies cannot be modified. You must create a new policy and reestablish the relationship.
 ** User-defined policy changes require a resync (quiesce followed by resume) to take effect on existing relationships.
 
-The parameter also accepts 'none' or a comma-separated list of types: `application_created`, `sched_created`, and `sm_created`. The parameter only takes effect once the relationship status is `InSync`. Snapshots that are not replicated according to the policy parameter are tagged internally as primary-only. 
+The parameter accepts these options:
+
+ * `none`- disables replication of non-SnapMirror synchronous snapshots
+ * `application_created`- replicates application-created snapshots
+ * `sched_created` - replicates scheduled snapshots
+ * `sm_created` - replicates SnapMirror asynchronous (fanout leg) created snapshots
+ * A comma-separated list of types: `application_created`, `sched_created`, and `sm_created`. 
+ 
+The parameter only takes effect once the relationship status is `InSync`. Snapshot types not listed are stored only on the primary volume. 
 
 NOTE: Creating snapshots on SnapMirror synchronous volumes can increase user I/O latency. It is recommended that you use snapshot schedules with a frequency greater than 30 minutes.
 
