@@ -12,17 +12,18 @@ summary: To install ONTAP Mediator, you must ensure all prerequisites are met, g
 To install or upgrade ONTAP Mediator, you need to meet all prerequisites, download the installation package, and run the installer on the host.
 
 * Beginning with ONTAP 9.8, you can use any version of ONTAP Mediator to monitor an SnapMirror active sync relationship.
-* You can use any version of ONTAP Mediator to monitor a MetroCluster IP configuration.
+* When you configure the ONTAP Mediator with the iSCSI protocol, you can use any version of ONTAP Mediator to monitor a MetroCluster IP configuration. 
+* Beginning with ONTAP 9.19.1 and ONTAP Mediator 1.12, you can configure an ONTAP Mediator that uses HTTPS for communication to monitor your MetroCluster IP configuration. 
 
 == Installation and upgrade considerations
 
-Review these points before upgrading or installing ONTAP Mediator. 
+Review the following information before upgrading or installing ONTAP Mediator. 
 
 NOTE: ONTAP Mediator 1.8 and earlier is not compatible with Red Hat Enterprise Linux (RHEL) FIPS mode and prevents it from installing successfully. You can check if FIPS mode is enabled using the `fips-mode-setup --check` command. You can disable FIPS mode using the `fips-modesetup --disable` command. Reboot after disabling FIPS mode to successfully install ONTAP Mediator 1.8 or earlier.
 
 * You should upgrade ONTAP Mediator to the latest version. Older versions still work with all ONTAP releases, but newer versions include security patches for third-party components.
 
-* When you upgrade to a new ONTAP Mediator version, the installer automatically upgrades to the recommended SCST version unless a higher version is available. For instructions on manually installing a higher SCST version, see link:manage-task.html[Manage ONTAP Mediator]. For supported versions, see the link:whats-new-concept.html#scst-support-matrix[SCST support matrix].
+* When you upgrade to a new ONTAP Mediator version that includes the SCST package, the installer automatically upgrades to the recommended SCST version unless a higher version is available. For instructions on manually installing a higher SCST version, see link:manage-task.html[Manage ONTAP Mediator]. For supported versions, see the link:whats-new-concept.html#scst-support-matrix[SCST support matrix].
 
 [NOTE]
 ====
@@ -34,7 +35,21 @@ NOTE: ONTAP Mediator 1.8 and earlier is not compatible with Red Hat Enterprise L
 
 * Beginning with ONTAP Mediator 1.11, IPv6 is supported for MetroCluster IP configurations.
 
-=== Host requirements 
+[[https-iscsi-installation]]
+=== HTTPS and iSCSI installation options for ONTAP Mediator
+
+* In ONTAP Mediator, the SCST package is used to provide iSCSI for communication in MetroCluster IP configurations. The SCST package is a kernel module that is compiled during installation. Beginning with ONTAP Mediator 1.12, you can configure an ONTAP Mediator that uses HTTPS instead of iSCSI to monitor a MetroCluster IP configuration.
+
+[CAUTION] 
+====
+* When ONTAP Mediator is configured with the HTTPS protocol in MetroCluster IP configurations, a single ONTAP Mediator instance can only monitor one MetroCluster IP configuration. Monitoring multiple MetroCluster IP configurations simultaneously is not supported. 
+* If you need ONTAP Mediator configured with HTTPS to monitor multiple MetroCluster IP configurations, you must configure separate ONTAP Mediator instances for each MetroCluster IP configuration. You must carefully evaluate the requirements for your MetroCluster IP environment before you choose to configure ONTAP Mediator with HTTPS for MetroCluster IP. 
+==== 
+
+include::../_include/https-only-mediator.adoc[]
+
+
+== Host requirements 
 // BURT 1392725
 
 Follow these requirements when installing RHEL or Rocky Linux and configuring the associated repositories. 
@@ -54,8 +69,29 @@ If you modify the installation or configuration process, you might need to perfo
 See the Red Hat Subscription Manager documentation for further information.
 ====
 
-.Networking requirements
-Ensure that the following ports are available and unused for ONTAP Mediator:
+== Firewall and networking requirements
+
+ONTAP Mediator uses a number of ports to communicate with specific services.
+
+* If you are using a third-party firewall:
+
+** HTTPS access must be enabled.
+** It must be configured to allow access on ports 31784 and 3260.
++
+When using the default Red Hat or CentOS firewall, the firewall is automatically configured during Mediator installation.
+
+* For Linux hosts without internet access, make sure the required packages are available in a local repository.
++
+If you are using Link Aggregation Control Protocol (LACP) in a Linux environment, configure the kernel and set the `sysctl net.ipv4.conf.all.arp_ignore` to `2`.
+
+The following table lists the ports that you must allow in your firewall:
+
+[NOTE] 
+====
+* The iSCSI port is only required in a MetroCluster IP configuration.
+* The 22/tcp port is not required for normal operation but you can enable it temporarily for maintenance and disable it when the maintenance session has finished. 
+====
+
 
 |===
 
@@ -93,14 +129,10 @@ a|
 (Required for MetroCluster IP configurations) iSCSI data connection for mailboxes
 |===
  
-For SMBC customers, ONTAP doesn't require port 3260 to be enabled or connected.
+NOTE: For a SnapMirror active sync or MetroCluster IP ONTAP Mediator that uses HTTPS for communication, ONTAP doesn't require port 3260 to be enabled or connected.
 
-* If using a third-party firewall, see link:https://docs.netapp.com/us-en/ontap-metrocluster/install-ip/concept_mediator_requirements.html#firewall-requirements-for-ontap-mediator[Firewall requirements for ONTAP Mediator^].
-* For Linux hosts without internet access, make sure the required packages are available in a local repository.
-+
-If you are using Link Aggregation Control Protocol (LACP) in a Linux environment, configure the kernel and set the `sysctl net.ipv4.conf.all.arp_ignore` to `2`.
 
-.OS requirements
+== OS requirements
 
 Your OS must meet the following requirements:
 
@@ -164,7 +196,12 @@ The Mediator installation package is a self-extracting compressed tar file that 
 
 A valid SSL certificate is recommended.
 
-=== OS upgrade considerations and kernel compatibility
+=== OS upgrade and kernel compatibility requirements
+
+The following requirements apply when the SCST package is installed with ONTAP Mediator. 
+
+NOTE: If you installed ONTAP Mediator 1.12 or later with support for HTTPS only, the SCST package is not installed so the kernel compatibility requirements do not apply. 
+
 * You can update all library packages except the kernel, but you might need to reboot to apply changes in ONTAP Mediator. Schedule downtime if you need to reboot.
 * You should keep the OS kernel up to date. Upgrade the kernel core to a supported version listed in the link:whats-new-concept.html#scst-support-matrix[ONTAP Mediator version matrix]. You must reboot the system, so plan a maintenance window for the outage.
 ** Uninstall the SCST kernel module before you reboot, and then reinstall it afterwards.
@@ -174,7 +211,7 @@ A valid SSL certificate is recommended.
 [NOTE] 
 ====
 * The kernel version must match the operating system version.
-* Do not upgrade the kernel past the supported OS version for your ONTAP Mediator release as the tested SCST module probably won't work.
+* Do not upgrade the kernel past the supported OS version for your ONTAP Mediator release as the tested SCST module might not work.
 ====
 
 == Install ONTAP Mediator when UEFI Secure Boot is enabled
@@ -183,7 +220,9 @@ ONTAP Mediator can be installed on a system with or without UEFI Secure Boot ena
 
 .About this task
 
-You can choose to disable UEFI Secure Boot before installing ONTAP Mediator if it is not needed or if you are troubleshooting ONTAP Mediator installation issues. Disable the UEFI Secure Boot option from your machine settings. 
+* You can choose to disable UEFI Secure Boot before installing ONTAP Mediator if it is not needed or if you are troubleshooting ONTAP Mediator installation issues. Disable the UEFI Secure Boot option from your machine settings. 
+
+* If you installed ONTAP Mediator 1.12 or later with support for HTTPS only, the SCST package is not installed and you can skip this task. 
 
 [NOTE] 
 ====
@@ -223,6 +262,7 @@ a| link:upgrade-host-os-mediator-task.html[Upgrade the host operating system and
 +
 `yum install mokutil`
 
+// 2026 Apr 3, ONTAPDOC-3478
 // 2026 Mar 02, GH 504 (ontap-metrocluster)
 // 2021 Apr 21, ONTAPEX-133437
 // 2021 May 05, review comment in IDR-67
