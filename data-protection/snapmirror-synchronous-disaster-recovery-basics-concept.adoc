@@ -188,6 +188,10 @@ You must release the synchronous relationship before performing an SVM disaster 
 
 * A SnapMirror synchronous destination cannot be an SVM disaster recovery source because SVM disaster recovery does not support replication of DP volumes.
 A flip resync of the synchronous source would result in the SVM disaster recovery excluding the DP volume in the destination cluster.
+ 
+| link:../snaplock/snapshot-lock-concept.html[Tamperproof snapshots^]
+| ONTAP 9.19.1
+| You can specify the expiry time only during snapshot creation. You cannot set or extend the expiry time on existing snapshots.
 
 | Tape-based restore to the source volume
 | ONTAP 9.13.1
@@ -217,7 +221,6 @@ LUNs and NVMe namespaces are not supported on the same volume or SVM.
 
 * SnapCenter
 * SnapLock volumes
-* Tamperproof snapshots
 * Tape backup or restore using dump and SMTape on the destination volume
 * Throughput floor (QoS Min) for source volumes
 * Volume SnapRestore
@@ -244,15 +247,51 @@ For SnapMirror synchronous relationships, the system automatically checks the re
 
 If the relationship status becomes `OutofSync` for a SnapMirror synchronous relationship in the StrictSync mode, all I/O operations to the primary volume are stopped. The `OutofSync` state for SnapMirror synchronous relationship in the Sync mode is not disruptive to the primary and I/O operations are allowed on the primary volume.
 
+== Scheduled snapshot replication
+
+Beginning with ONTAP 9.19.1, you can use the SnapMirror policy parameter `-sync-snapshot-replication-mode` in advanced privilege mode to replicate scheduled snapshots to the SnapMirror destination. Replicating scheduled snapshots provides symmetry between the primary and secondary volumes in a SnapsMirror synchronous relationship.
+
+.Prerequisites
+
+* You must be a cluster or SVM administrator
+* You must be in advanced privilege mode
+* You must configure a user-defined SnapMirror policy that uses the parameter `-sync-snapshot-replication-mode` and includes the option `sched_created`.
+** System-defined policies cannot be modified. You must create a new policy and reestablish the relationship.
+** User-defined policy changes require a resync (quiesce followed by resume) to take effect on existing relationships.
+
+The parameter accepts these options:
+
+ * `none`- disables replication of non-SnapMirror synchronous snapshots
+ * `application_created`- replicates application-created snapshots
+ * `sched_created` - replicates scheduled snapshots
+ * `sm_created` - replicates SnapMirror asynchronous (fanout leg) created snapshots
+ * A comma-separated list of types: `application_created`, `sched_created`, and `sm_created`. 
+ 
+The parameter only takes effect once the relationship status is `InSync`. Snapshot types not listed are stored only on the primary volume. 
+
+NOTE: Creating snapshots on SnapMirror synchronous volumes can increase user I/O latency. It is recommended that you use snapshot schedules with a frequency greater than 30 minutes.
+
+
+
 .Related information
 
 * https://www.netapp.com/pdf.html?item=/media/17174-tr4733pdf.pdf[NetApp Technical Report 4733: SnapMirror synchronous configuration and best practices^]
+
+* link:https://docs.netapp.com/us-en/ontap-cli//volume-snapshot-create.html[volume snapshot create^]
+
+* link:https://docs.netapp.com/us-en/ontap-cli/volume-snapshot-delete.html[volume snapshot delete^]
+
+* link:https://docs.netapp.com/us-en/ontap-cli/volume-snapshot-modify.html[volume snapshot modify^]
+
+* link:https://docs.netapp.com/us-en/ontap-cli/volume-snapshot-rename.html[volume snapshot rename^]
 
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-break.html[snapmirror break^]
 
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-quiesce.html[snapmirror quiesce^]
 
 
+// 2026-May-1, CONTAP-688240
+// 2026-Apr-29, ONTAPDOC-3870 & CONTAP-697860
 // 2025-Dec-3, GitHub issue# 1918
 // 2025 Sep 08, ONTAPDOC-1127
 // 2025-Aug-15, ONTAPDOC-3247
