@@ -233,7 +233,19 @@ In this task, node_A_1 and node_B_1 are upgraded.
 
 If you have upgraded the ONTAP software on the first DR group, and are now upgrading the second DR group in an eight-node MetroCluster configuration, in this task you would be updating node_A_3 and node_B_3.
 
-. If MetroCluster Tiebreaker software is enabled, disabled it.
+. Migrate all of the data LIFs away from the node: 
++
+[source,cli]
+----
+network interface migrate-all -node node_A_1
+----
++
+[source,cli]
+----
+network interface migrate-all -node node_B_1
+----
+
+. If MetroCluster Tiebreaker software is enabled, disable it.
 . For each node in the HA pair, disable automatic giveback: 
 +
 [source,cli]
@@ -288,7 +300,7 @@ storage failover show
 The following example shows that the takeover is successful. Node_A_1 is in the "Waiting for giveback" state and node_A_2 is in the "In takeover" state.
 +
 ----
- cluster1::> storage failover show
+ cluster_A::> storage failover show
                                Takeover
  Node           Partner        Possible State Description
  -------------- -------------- -------- -------------------------------------
@@ -323,7 +335,7 @@ storage failover show
 The following example shows that the takeover is successful. Node_B_1 is in the "Waiting for giveback" state and node_B_2 is in the "In takeover" state.
 +
 ----
- cluster1::> storage failover show
+ cluster_B::> storage failover show
                                Takeover
  Node           Partner        Possible State Description
  -------------- -------------- -------- -------------------------------------
@@ -393,7 +405,7 @@ The advanced prompt (`*>`) appears.
 system image show
 ----
 +
-The following example shows that System image2 should is the default and current version on node_A_1:
+The following example shows that the system image2 (target ONTAP image) is the default and current version on node_A_1:
 +
 ----
  cluster_A::*> system image show
@@ -418,10 +430,10 @@ The following example shows that System image2 should is the default and current
 system image show
 ----
 +
-The following example shows that System image2 (ONTAP 9.0.0) is the default and current version on node_A_1:
+The following example shows that the system image2 (target ONTAP image) is the default and current version on node_B_1:
 +
 ----
- cluster_A::*> system image show
+ cluster_B::*> system image show
                   Is      Is               Install
  Node     Image   Default Current Version  Date
  -------- ------- ------- ------- -------- -------------------
@@ -433,7 +445,7 @@ The following example shows that System image2 (ONTAP 9.0.0) is the default and 
           image2  true    false    Y.Y.Y   MM/DD/YYYY TIME
  4 entries were displayed.
 
- cluster_A::>
+ cluster_B::>
 ----
 
 == Updating the second DR pair in a MetroCluster DR group
@@ -450,8 +462,14 @@ If you have upgraded the ONTAP software on the first DR group, and are now updat
 +
 [source,cli]
 ----
-network interface migrate-all -node nodenameA
+network interface migrate-all -node node_A_2
 ----
++
+[source,cli]
+----
+network interface migrate-all -node node_B_2
+----
+
 
 . Initiate a takeover of the target node on cluster_A:
 +
@@ -481,7 +499,7 @@ storage failover show
 The following example shows that the takeover is successful. Node_A_2 is in the "Waiting for giveback" state and node_A_1 is in the "In takeover" state.
 +
 ----
-cluster1::> storage failover show
+cluster_A::> storage failover show
                               Takeover
 Node           Partner        Possible State Description
 -------------- -------------- -------- -------------------------------------
@@ -533,7 +551,7 @@ storage failover show
 The following example shows that the takeover is successful. Node_B_2 is in the "Waiting for giveback" state and node_B_1 is in the "In takeover" state.
 +
 ----
-cluster1::> storage failover show
+cluster_B::> storage failover show
                               Takeover
 Node           Partner        Possible State Description
 -------------- -------------- -------- -------------------------------------
@@ -604,10 +622,10 @@ The advanced prompt (`*>`) appears.
 system image show
 ----
 +
-The following example shows that System image2 (target ONTAP image) is the default and current version on node_A_2:
+The following example shows that the system image2 (target ONTAP image) is the default and current version on node_A_2:
 +
 ----
-cluster_B::*> system image show
+cluster_A::*> system image show
                  Is      Is                 Install
 Node     Image   Default Current Version    Date
 -------- ------- ------- ------- ---------- -------------------
@@ -629,7 +647,7 @@ cluster_A::>
 system image show
 ----
 +
-The following example shows that System image2 (target ONTAP image) is the default and current version on node_B_2:
+The following example shows that the system image2 (target ONTAP image) is the default and current version on node_B_2:
 +
 ----
 cluster_B::*> system image show
@@ -644,7 +662,7 @@ node_B_2
          image2  true    true     Y.Y.Y     MM/DD/YYYY TIME
 4 entries were displayed.
 
-cluster_A::>
+cluster_B::>
 ----
 
 . For each node in the HA pair, enable automatic giveback: 
@@ -680,7 +698,7 @@ node_x_2 true
 * link:https://docs.netapp.com/us-en/ontap-cli/storage-failover-show-giveback.html[storage failover show-giveback^]
 * link:https://docs.netapp.com/us-en/ontap-cli/storage-failover-takeover.html[storage failover takeover^]
 
-
+// 2026 Apr 17, ONTAPDOC-3509
 // 2025 Sep 08, ONTAPDOC-2960
 // 2024-7-9 ontapdoc-2192
 // 2023 Dec 13, Jira 1275
