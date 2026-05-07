@@ -1,0 +1,97 @@
+---
+sidebar: sidebar
+permalink: networking/configure-tls-offload.html
+keywords: TLS offload, TLS, performance
+summary: Configure TLS offload settings
+---
+
+= Configure ONTAP TLS hardware offload
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.19.1, you can configure TLS offload to improve TLS post-handshake performance by leveraging resources on supported Ethernet cards. This feature offloads encryption and decryption, reducing CPU overhead and improving performance.
+
+.About this task
+* TLS offload is disabled by default.
+* Only AES-GCM cipher suites (TLSv1.2/TLSv1.3, 128/256-bit) are offloaded.
+* The TLS handshake phase is not offloaded. Only the post-handshake data phase is offloaded.
+* Network logical interface (LIF) migration to non-offload-capable ports causes an automatic software fallback.
++
+For TLS-offloaded connections, TLS cryptographic operations typically by-pass software and are handled by an offload-capable NIC. If the LIF associated with this connection migrates to a network port without TLS offload capability, cryptographic operations fallback to software and are handled by the system kernel.
+* Management interfaces (HTTPS, REST API) are unaffected by this setting.
+* The TLS hardware offload setting is cluster-wide.
+
+TLS hardware offload requires a supported network card. The following network cards are supported:
+
+* 4-port CX7 10/25 GbE
+* 2-port CX6-Dx 40/100 GbE
+* 2-port CX7 40/100 GbE
+* 2-port CX7 40/100/200
+
+The 4-port CX7 10/25 GbE, 2-port CX6-Dx 40/100 GbE, and 2-port CX7 40/100 GbE cards are supported on the following AFF platforms:
+
+* AFF A20
+* AFF A30
+* AFF A50
+* AFF C30
+* AFF C60
+
+The 4-port 2-port CX6-Dx 40/100 GbE, 2-port CX7 40/100 GbE, and 2-port CX7 40/100/200 GbE cards are supported on the following AFF and FAS platforms:
+
+* AFF A70-90
+* AFF C80
+* FAS70
+* FAS90
+* AFF A1K
+
+.Before you begin
+* You must be an ONTAP administrator at the `admin` privilege level to perform the following tasks.
+* All nodes must be running ONTAP 9.19.1 or later.
+
+== Enable or disable TLS offload
+
+.Steps
+
+. View the current TLS offload status:
++
+[source,cli]
+----
+security config show
+----
+This command displays the cluster-wide TLS offload setting:
++
+----
+cluster1::*> security config show                        
+Cluster    Supported Offload                                                                                                       
+FIPS Mode  Protocols Enabled Supported Cipher Suites                                                                               
+---------- --------- ------- --------------------------------------------------
+false      TLSv1.3,  false   TLS_RSA_WITH_AES_128_CCM,        
+           TLSv1.2           TLS_RSA_WITH_AES_128_CCM_8,        
+                             TLS_RSA_WITH_AES_128_GCM_SHA256,                                                                      
+                             TLS_RSA_WITH_AES_128_CBC_SHA,                                                                         
+                             TLS_RSA_WITH_AES_128_CBC_SHA256,                                                                      
+                             TLS_RSA_WITH_AES_256_CCM,                                                                             
+[...]
+----
+
+. Enable or disable TLS offload:
++
+[source,cli]
+----
+security config modify -is-offload-enabled {true|false}
+----
+This command enables or disables hardware offload for the TLS data phase on new connections. Existing connections created prior to enabling the TLS offload feature are not offloaded until those connections are removed and recreated.
++
+When enabling TLS offload, the interface must be specified:
++
+[source,cli]
+----
+security config modify -is-offload-enabled true -interface SSL
+----
+
+.Related information
+* link:https://docs.netapp.com/us-en/ontap-cli/security-config-show.html[security config show^]
+* link:https://docs.netapp.com/us-en/ontap-cli/security-config-modify.html[security config modify^]
+
+// 2026-Feb-1, ONTAPDOC-3496 - New topic

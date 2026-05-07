@@ -12,10 +12,8 @@ summary: "Create an SVM to serve data to clients."
 :linkattrs:
 :imagesdir: ../media/
 
-
-
 [.lead]
-You must create an SVM to serve data to clients.
+A storage virtual machine (SVM) is a logical entity that abstracts physical resources.  An SVM serves data to clients and hosts from one or more volumes through one or more network logical interfaces (LIFs).  You must create an SVM to serve data to clients. 
 
 .Before you begin
 
@@ -23,6 +21,10 @@ You must create an SVM to serve data to clients.
 * You must know which security style the SVM root volume will have.
 +
 If you plan to implement a Hyper-V or SQL Server over SMB solution on this SVM, you should use NTFS security style for the root volume. Volumes that contain Hyper-V files or SQL database files must be set to NTFS security at the time they are created. By setting the root volume security style to NTFS, you ensure that you do not inadvertently create UNIX or mixed security-style data volumes.
+
+.About this task
+
+* Beginning with ONTAP 9.19.1, AFF systems support active-active multipathing with automatic LIF failover at the SVM level in SAN environments.  You must enable active-active multipathing on AFF systems when you first create the storage VM.
 
 include::../_include/svm-limits.adoc[]
 
@@ -34,149 +36,108 @@ You can use System Manager to create a storage VM.
 
 .Steps
 
-. Select *Storage VMs*.
+. In System Manager, select *Storage VMs*.
 
-. Click image:icon_add.gif[Add icon] to create a storage VM.
+. Select image:icon_add.gif[Add icon] to create a storage VM.
 
 . Name the storage VM.
 
-. Select the access protocol:
+. Select the access protocol you want to enable for the SVM and complete the required fields for configuration.
++
+The fields you need to complete vary based on the access protocol you select.
++
+[cols="1,1", options="header"]
+|===
+| Access Protocol | Configuration fields
 
-** SMB/CIFS, NFS
-** iSCSI
-** FC
-** NVMe
+| SMB/CIFS 
+a| 
+* Administrator Name
+* Password
+* Server Name
+* Active Directory Domain
+* Organizational Unit
++
+The default value for the organizational unit within the Active Directory domain associated with the SMB/CIFS server is  "CN=Computers".  This can be modified.
+* Encrypts data while accessing the shares in the storage VM
++
+Encrypts data using SMB 3.0 to prevent unauthorized file access on the shares in the SMB/CIFS storage VM.
+* Domains
+* Name Servers
+* Default Language
++
+Specifies the default language-encoding setting for the storage VM and its volumes. Use the CLI to change the settings for individual volumes within a storage VM.
 
-.. If you select *Enable SMB/CIFS*, complete the following configuration:
-[cols="30,70"]
+* Network Interface
++
+For each network interface you configure for the storage VM, select an existing subnet (if at least one exists) or specify *Without a subnet* and complete the *IP Address* and *Subnet Mask* fields.
+
+| NFS
+a| 
+* Allow NFS client access
++
+Select this option if you want all volumes created on the NFS storage VM to use the root volume path "/" to mount and traverse. 
++
+Add rules to the export policy "default" to allow uninterrupted mount traversal.
+
+* Rules
++
+Select image:icon_add.gif[Add icon] to create rules and specify the following information for each rule:
++
+** Client Specification
++
+Specify the host names, IP addresses, netgroups, or domains.
+** Access Protocols
++
+You can select one or more of the available options.
+
+* Access Details
++
+Specify the level of access as read-only, read/writer, or superuser for each user type.
+
+* Default Language
++ 
+Specifies the default language-encoding setting for the storage VM and its volumes. Use the CLI to change the settings for individual volumes within a storage VM.
+
+* Network Interface
++
+For each network interface you configure for the storage VM, select an existing subnet (if at least one exists) or specify *Without a subnet* and complete the *IP Address* and *Subnet Mask* fields.
+
+| iSCSI or NVMe/TCP
+a| 
+* Network Interface
++
+For each network interface you configure for the storage VM, select an existing subnet (if at least one exists) or specify *Without a subnet* and complete the *IP Address* and *Subnet Mask* fields.
+
+* Symmetric Active-Active Multipathing
++ 
+This option is available in ONTAP 9.19.1 and later on AFF and ASA systems.  It enables active-active multipathing for all SAN protocols.  If selected, this setting cannot be changed later.
++
+If you want network paths to automatically fail over to the HA partner in case of a node failure do the following:
+
+** For AFF systems, select *Enable Symmetric Active-Active Multipathing*.
+** For ASA systems, select *Enable for SCSI and NVMe protocols*.
+
+| FC or NVMe/FC
+a|
+* Configure FC Ports
 |===
 
-h|Field or check box h|Description
+. If you want to manage the storage VM administrator account, select *Manage administrator account* 
++
+When selected, specify the password for the *vsadmin* account and indicate if you want to add a network interface for storage VM management.
++
+Beginning with ONTAP 9.19.1, SVM administrators can manage and monitor their SVMs using the new SVM dashboard. Use the SVM management IP address and the *vsadmin* credentials to access the SVM dashboard.
++
+When this option is selected, you can specify the password for the *vsadmin* account and select the *Add a network interface for storage VM management* check box. 
++
+Specify the following for the SVM management network interface:
++
+* Node
+* IP address
+* Subnet mask
 
-a|Administrator Name
-a|Specify the administrator user name for the SMB/CIFS storage VM.
-a|Password
-a|Specify the administrator password for the SMB/CIFS storage VM.
-a|Server Name
-a|Specify the server name for the SMB/CIFS storage VM.
-a|Active Directory Domain
-a|Specify the active directory domain to provide user authentication for the SMB/CIFS storage VM.
-a|Organizational Unit
-a|Specify the organizational unit within the Active Directory domain associated with the SMB/CIFS server. "CN=Computers" is the default value, which can be modified.
-a|Encrypts data while accessing the shares in the storage VM
-a|Select this check box to encrypt data using SMB 3.0 to prevent unauthorized file access on the shares in the SMB/CIFS storage VM.
-a|Domains
-a|Add, remove, or reorder the domains listed for the SMB/CIFS storage VM.
-a|Name Servers
-a|Add, remove, or reorder the name servers for the SMB/CIFS storage VM.
-a|Default Language
-a|Specifies the default language-encoding setting for the storage VM and its volumes. Use the CLI to change the settings for individual volumes within a storage VM.
-a|Network Interface
-a|For each network interface you configure for the storage VM, select an existing subnet (if at least one exists) or specify *Without a subnet* and complete the *IP Address* and *Subnet Mask* fields.
-If useful, select the *Use the same subnet mask and gateway for all of the following interfaces* check box.
-You can allow the system to automatically select the home port, or manually select the one you want to use from the list.
-a|Manage administrator account
-a|Select this check box if you want to manage the storage VM administrator account. When selected, specify the user name, password, confirm the password, and indicate if you want to add a network interface for storage VM management.
-|===
-
-[start=2]
-.. If you select *Enable NFS*, complete the following configuration:
-[cols="30,70"]
-|===
-
-h|Field or check box h|Description
-
-a|Allow NFS client access check box
-a|Select this check box when all volumes created on the NFS storage VM should use the root volume path "/" to mount and traverse. Add rules to the export policy "default" to allow uninterrupted mount traversal.
-a|Rules
-a|Click image:icon_add.gif[Add icon] to create rules.
-
-* Client Specification: Specify the host names, IP addresses, netgroups, or domains.
-* Access Protocols: Select a combination of the following options:
-** SMB/CIFS
-** FlexCache
-** NFS
- *** NFSv3
- *** NFSv4
-* Access Details: For each type of user, specify the level of access, either read-only, read/writer, or superuser. User types include:
-** All
-** All (as anonymous user)
-** UNIX
-** Kerberos 5
-** Kerberos 5i
-** Kerberos 5p
-** NTLM
-
-Save the rule.
-a|Default Language
-a|Specifies the default language-encoding setting for the storage VM and its volumes. Use the CLI to change the settings for individual volumes within a storage VM.
-a|Network Interface
-a|For each network interface you configure for the storage VM, select an existing subnet (if at least one exists) or specify *Without a subnet* and complete the *IP Address* and *Subnet Mask* fields. 
-If useful, select the *Use the same subnet mask and gateway for all of the following interfaces* check box.
-You can allow the system to automatically select the home port, or manually select the one you want to use from the list.
-a|Manage administrator account
-a|Select this check box if you want to manage the storage VM administrator account. When selected, specify the user name, password, confirm the password, and indicate if you want to add a network interface for storage VM management.
-|===
-
-
-[start=3]
-.. If you select *Enable iSCSI*, complete the following configuration:
-[cols="30,70"]
-|===
-
-h|Field or check box h|Description
-
-a|Network Interface
-a|For each network interface you configure for the storage VM, select an existing subnet (if at least one exists) or specify *Without a subnet* and complete the *IP Address* and *Subnet Mask* fields. 
-If useful, select the *Use the same subnet mask and gateway for all of the following interfaces* check box.
-You can allow the system to automatically select the home port, or manually select the one you want to use from the list.
-a|Manage administrator account
-a|Select this check box if you want to manage the storage VM administrator account. When selected, specify the user name, password, confirm the password, and indicate if you want to add a network interface for storage VM management.
-|===
-
-[start=4]
-.. If you select *Enable FC*, complete the following configuration:
-[cols="30,70"]
-|===
-
-h|Field or check box h|Description
-
-a|Configure FC Ports
-a|Select the network interfaces on the nodes you want to include in the storage VM. Two network interfaces per node are recommended.
-a|Manage administrator account
-a|Select this check box if you want to manage the storage VM administrator account. When selected, specify the user name, password, confirm the password, and indicate if you want to add a network interface for storage VM management.
-|===
-
-[start=5]
-.. If you select *Enable NVMe/FC*, complete the following configuration:
-[cols="30,70"]
-|===
-
-h|Field or check box h|Description
-
-a|Configure FC Ports
-a|Select the network interfaces on the nodes you want to include in the storage VM. Two network interfaces per node are recommended.
-a|Manage administrator account
-a|Select this check box if you want to manage the storage VM administrator account. When selected, specify the user name, password, confirm the password, and indicate if you want to add a network interface for storage VM management.
-|===
-
-[start=6]
-.. If you select *Enable NVMe/TCP*, complete the following configuration:
-[cols="30,70"]
-|===
-
-h|Field or check box h|Description
-
-a|Network Interface
-a|For each network interface you configure for the storage VM, select an existing subnet (if at least one exists) or specify *Without a subnet* and complete the *IP Address* and *Subnet Mask* fields. 
-If useful, select the *Use the same subnet mask and gateway for all of the following interfaces* check box.
-You can allow the system to automatically select the home port, or manually select the one you want to use from the list.
-a|Manage administrator account
-a|Select this check box if you want to manage the storage VM administrator account. When selected, specify the user name, password, confirm the password, and indicate if you want to add a network interface for storage VM management.
-|===
-
-[start=5]
-. Save your changes.
+. Select *Save*.
 
 --
 
@@ -188,7 +149,10 @@ Use the ONTAP CLI to create a subnet.
 
 . Determine which aggregates are candidates for containing the SVM root volume.
 +
-`storage aggregate show -has-mroot false`
+[source,cli]
+----
+storage aggregate show -has-mroot false
+----
 +
 You must choose an aggregate that has at least 1 GB of free space to contain the root volume. If you intend to configure NAS auditing on the SVM, you must have a minimum of 3 GB of extra free space on the root aggregate, with the extra space being used to create the auditing staging volume when auditing is enabled.
 +
@@ -198,19 +162,31 @@ If NAS auditing is already enabled on an existing SVM, the aggregate's staging v
 . Record the name of the aggregate on which you want to create the SVM root volume.
 . If you plan on specifying a language when you create the SVM and do not know the value to use, identify and record the value of the language you want to specify:
 +
-`vserver create -language ?`
+[source,cli]
+----
+vserver create -language ?
+----
 
 . If you plan on specifying a snapshot policy when you create the SVM and do not know the name of the policy, list the available policies and identify and record the name of the snapshot policy you want to use:
 +
-`volume snapshot policy show -vserver _vserver_name_`
+[source,cli]
+----
+volume snapshot policy show -vserver _vserver_name_
+----
 
 . If you plan on specifying a quota policy when you create the SVM and do not know the name of the policy, list the available policies and identify and record the name of the quota policy you want to use:
 +
-`volume quota policy show -vserver _vserver_name_`
+[source,cli]
+----
+volume quota policy show -vserver _vserver_name_
+----
 
 . Create an SVM:
 +
-`vserver create -vserver _vserver_name_ -aggregate _aggregate_name_ ‑rootvolume _root_volume_name_ -rootvolume-security-style {unix|ntfs|mixed} [-ipspace _IPspace_name_] [-language <language>] [-snapshot-policy _snapshot_policy_name_] [-quota-policy _quota_policy_name_] [-comment _comment_]`
+[source,cli]
+----
+vserver create -vserver _vserver_name_ -aggregate _aggregate_name_ ‑rootvolume _root_volume_name_ -rootvolume-security-style {unix|ntfs|mixed} [-ipspace _IPspace_name_] [-language <language>] [-snapshot-policy _snapshot_policy_name_] [-quota-policy _quota_policy_name_] [-comment _comment_]
+----
 +
 ....
 vserver create -vserver vs1 -aggregate aggr3 -rootvolume vs1_root ‑rootvolume-security-style ntfs -ipspace ipspace1 -language en_US.UTF-8
@@ -220,8 +196,13 @@ vserver create -vserver vs1 -aggregate aggr3 -rootvolume vs1_root ‑rootvolume-
 
 . Verify that the SVM configuration is correct.
 +
-`vserver show -vserver vs1`
+[source,cli]
+----
+vserver show -vserver vs1
+----
 +
+
+In this example, the command creates the SVM named "vs1" in IPspace "ipspace1". The root volume is named "vs1_root" and is created on aggr3 with NTFS security style.
 ....
 Vserver: vs1
 Vserver Type: data
@@ -248,13 +229,13 @@ Config Lock: false
 IPspace Name: ipspace1
 Is Vserver Protected: false
 ....
-+
-In this example, the command creates the SVM named "vs1" in IPspace "ipspace1". The root volume is named "vs1_root" and is created on aggr3 with NTFS security style.
 --
 ====
 
 include::../_include/adaptive-qos-policy.adoc[]
 
+// 2026 April 20, ONTAPDOC-3605
+// 2026 May 7, ONTAPDOC-3573
 // 27-MAR-2025 ONTAPDOC-2909
 // 2022 OCT 25, IDR-175
 // 2022 OCT 6, Jira ONTAPDOC-573
