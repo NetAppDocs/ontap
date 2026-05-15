@@ -39,7 +39,7 @@ The identified file type or entropy spike is unexpected in your workload and sho
 
 Normal monitoring resumes after you update with your decision and clear the ARP notifications. ARP records your evaluation to the threat assessment profile, using your choice to monitor subsequent file activities. 
 
-In the case of a suspected attack, you must determine whether it is an attack, respond to it if it is, and restore protected data before clearing the notices. link:index.html#how-to-recover-data-in-ontap-after-a-ransomware-attack[Learn more about how to recover from a ransomware attack].
+In the case of a suspected attack, you must determine whether it is an attack, respond to it if it is, and then clear notices and restore data in the order required by your recovery method and ONTAP version. link:index.html#how-to-recover-data-in-ontap-after-a-ransomware-attack[Learn more about how to recover from a ransomware attack].
 
 [NOTE]
 If you restore an entire volume, there are no notices to clear.
@@ -126,7 +126,9 @@ security anti-ransomware volume entropy-stat show-encryption-percentage-histogra
 
 == Understand snapshot behavior and approvals when you clear a suspected event
 
-* If you intend to recover data using an ARP snapshot, link:recover-data-task.html[you should perform data recovery] _before_ running a `clear-suspect`operation. Clearing a suspected event deletes the ARP snapshot either immediately (ONTAP 9.15.1 and earlier) or after a short retention period (ONTAP 9.16.1 and later). Regardless of the ONTAP version, perform data recovery before clearing a suspected event as a best practice.
+* For `volume snapshot restore` in ONTAP 9.16.1 and later, clear the suspected event first and then perform the restore.
+* For `volume snapshot restore` in ONTAP 9.15.1 and earlier, perform the restore first and then clear the suspected event.
+* For recovery methods other than `volume snapshot restore` (for example, FlexClone or single-file SnapRestore), perform data recovery first and then clear the suspected event.
 * Beginning with ONTAP 9.13.1, if you use MAV to protect ARP settings, the `clear-suspect` operation can require additional approvals. link:../multi-admin-verify/request-operation-task.html[Approval must be received from all administrators] associated with the MAV approval group or the operation will fail.
 
 == Classify as false positive and resume monitoring
@@ -189,21 +191,47 @@ Use this flow when the identified file type or entropy spike is _unexpected_ for
 * For NAS file type warnings, mark selected files as *Potential ransomware attack*.
 * For entropy spikes (NAS and SAN), select *Mark as potential ransomware attack*.
 
-. Recover data by using link:recover-data-task.html[the most recent ARP snapshot or an earlier snapshot].
+. Before you recover data, you should consider your link:recover-data-task.html[recovery method options]. Then do one of the following:
 
-. [[arp-snapshot-decision-sm]]After data restoration is complete, finalize the categorization to resume normal ARP monitoring:
+** *If you plan to restore a volume*: Follow the release-specific sequence:
+
+... *ONTAP 9.16.1 and later*: Clear notices, then restore the volume:
+
+.... [[arp-snapshot-decision-sm-pre-restore]]Clear notices for the potential attack:
++
+* For NAS file type warnings, select *Update and Clear Suspected File Types*.
+* For entropy spikes (NAS and SAN), select *Save and dismiss*.
++
+NOTE: After you clear suspect files, the ARP snapshot is retained for 7 days (by default). If you need more time for data recovery, link:modify-automatic-snapshot-options-task.html[adjust ARP snapshot settings] to increase the expiry-time of the snapshot to the desired value. After all the data recovery is done, you can decrease the expiry-time.
+.... Recover data by using link:recover-data-task.html[the most recent ARP snapshot or an earlier snapshot].
+
+... *ONTAP 9.15.1 and earlier*: Restore the volume, then clear notices:
+
+.... Recover data by using link:recover-data-task.html[the most recent ARP snapshot or an earlier snapshot].
+
+.... [[arp-snapshot-decision-sm-post-restore]]Finalize the categorization after data restoration to resume normal ARP monitoring:
++
+* For NAS file type warnings, select *Update and Clear Suspected File Types*.
+* For entropy spikes (NAS and SAN), select *Save and dismiss*.
+
+** *If you plan to use another restore method*: Restore the data first, then clear notices:
+
+... link:recover-data-task.html[Recover data using FlexClone or Single File SnapRestore].
+
+... Finalize the categorization after data restoration to resume normal ARP monitoring:
 +
 * For NAS file type warnings, select *Update and Clear Suspected File Types*.
 * For entropy spikes (NAS and SAN), select *Save and dismiss*.
 +
 Recording your decision clears the attack report.
-+
-NOTE: There are no suspected file type notices to clear if you've restored an entire volume.
+
 --
 
 .CLI
 --
-. (Optional, NAS volumes only): Generate an attack report and specify where to save it.
+
+. (NAS volumes only) Create an attack report:
+.. Generate an attack report and specify where to save it.
 +
 [source,cli]
 ----
@@ -222,7 +250,7 @@ Sample output:
 Report "report_file_vs0_vol1_14-09-2021_01-21-08" available at path "vs0:vol1/"
 ....
 
-. (Optional, NAS volumes only): View the report on an admin client system. For example:
+.. View the report on an admin client system. For example:
 +
 ----
 cat report_file_vs0_vol1_14-09-2021_01-21-08
@@ -230,11 +258,15 @@ cat report_file_vs0_vol1_14-09-2021_01-21-08
 +
 NOTE: This command is *not supported* on volumes that contain LUNs or NVMe namespaces (SAN workloads).
 
-. Recover data by using link:recover-data-task.html[a recent ARP snapshot or an earlier snapshot].
+. Choose a link:recover-data-task.html[recovery method]. Then do one of the following:
 
-. [[arp-snapshot-decision-cli]]After the data is recovered, run one of the following commands to record your decision and resume normal ARP monitoring:
+** *If you plan to use `volume snapshot restore`*: Follow the release-specific sequence:
+
+*** *ONTAP 9.16.1 and later*: Clear the attack first, then run `volume snapshot restore`:
+
+.... [[arp-snapshot-decision-cli-pre-restore]]Run one of the following commands to clear the suspected files:
 +
-** For NAS file extensions:
+***** For NAS file extensions:
 +
 [source,cli]
 ----
@@ -243,7 +275,57 @@ anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_nam
 +
 Use the following optional parameter to identify only specific extensions as potential ransomware: `[-extension <text>, ... ]`
 +
-** For entropy spikes (NAS and SAN):
+***** For entropy spikes (NAS and SAN):
++
+[source,cli]
+----
+security anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> -start-time <MM/DD/YYYY HH:MM:SS> -end-time <MM/DD/YYYY HH:MM:SS> -false-positive false
+----
++
+For SAN volumes, use this command to confirm the attack before recovery. This updates the ARP threat assessment for the SAN workload.
+
+.... Recover data by using link:recover-data-task.html[a recent ARP snapshot or an earlier snapshot].
+
+*** *ONTAP 9.15.1 and earlier*: Run `volume snapshot restore` first, then clear the attack:
+
+.... Recover data by using link:recover-data-task.html[a recent ARP snapshot or an earlier snapshot].
+
+.... [[arp-snapshot-decision-cli-post-restore]][[arp-snapshot-decision-cli]]Run one of the following commands to clear the suspected files:
++
+***** For NAS file extensions:
++
+[source,cli]
+----
+anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> [<extension identifiers>] -false-positive false
+----
++
+Use the following optional parameter to identify only specific extensions as potential ransomware: `[-extension <text>, ... ]`
++
+***** For entropy spikes (NAS and SAN):
++
+[source,cli]
+----
+security anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> -start-time <MM/DD/YYYY HH:MM:SS> -end-time <MM/DD/YYYY HH:MM:SS> -false-positive false
+----
++
+For SAN volumes, use this command to confirm the attack after recovery. This updates the ARP threat assessment for the SAN workload.
+
+** *If you plan to use other recovery methods*: Restore the data first, then clear the attack:
+
+... Recover data by using link:recover-data-task.html[a recent ARP snapshot or an earlier snapshot].
+
+... Run one of the following commands to clear the suspected files:
++
+**** For NAS file extensions:
++
+[source,cli]
+----
+anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> [<extension identifiers>] -false-positive false
+----
++
+Use the following optional parameter to identify only specific extensions as potential ransomware: `[-extension <text>, ... ]`
++
+**** For entropy spikes (NAS and SAN):
 +
 [source,cli]
 ----
