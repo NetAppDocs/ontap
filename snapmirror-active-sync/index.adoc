@@ -14,13 +14,15 @@ summary: Use SnapMirror active sync to protect applications with LUNs, enabling 
 [.lead]
 SnapMirror active sync, also known as SnapMirror Business Continuity (SM-BC), allows business services to continue functioning in the event of a complete site failure. This technology enables applications to failover seamlessly to a secondary copy without manual intervention or custom scripting.
 
-NetApp SnapMirror active sync (SM-as) is designed to be a more granular, lower-cost, easier-to-use application-level protection with automatic failover. SnapMirror active sync enables mission-critical business services to keep operating, even during a complete site failure. With SnapMirror active sync, you can now synchronously replicate multiple volumes of an application (by adding them to a consistency group) between sites at geographically dispersed locations. You can automatically failover to the secondary copy in case of disruption of the primary, thus enabling business continuity for tier one applications.
+NetApp SnapMirror active sync (SM-as) is designed to be a more granular, lower-cost, easier-to-use application-level protection with automatic failover. SnapMirror active sync enables mission-critical business services to keep operating, even during a complete site failure. With SnapMirror active sync, you can now synchronously replicate multiple volumes of an application between sites at geographically dispersed locations. You can automatically failover to the secondary copy in case of disruption of the primary, thus enabling business continuity for tier one applications.
 
 Regulations for financial institutions in some countries require businesses to periodically be serviceable from their secondary data centers. SnapMirror active sync, with its high availability clusters, enables these data center switchovers for business continuity. 
 
 Available beginning with ONTAP 9.9.1, SnapMirror active sync is supported on AFF and All-Flash SAN Array (ASA) clusters. The primary and secondary clusters must be of the same type: either ASA, ASA r2, or AFF. SnapMirror active sync protects applications with iSCSI or FCP LUNs or NVMe namespaces.
 
-SnapMirror active sync supports both symmetric and asymmetric configurations. Support for symmetric active/active was introduced in ONTAP 9.15.1. Symmetric active/active configuration allows both copies of a protected LUN to perform read and write I/O operations with bidirectional synchronous replication, enabling each LUN copy to serve local I/O requests.
+SnapMirror active sync for SAN workloads supports both symmetric and asymmetric configuration. ONTAP 9.9.1 and later includes support for asymmetric configuration. Support for symmetric active/active was introduced in ONTAP 9.15.1. Symmetric active/active configuration allows both copies of a protected LUN to perform read and write I/O operations with bidirectional synchronous replication, enabling each LUN copy to serve local I/O requests.
+
+Beginning with ONTAP 9.19.1, SnapMirror active sync supports NAS workloads at the SVM level using NFS v3 and v4.x, or SMB 2.x and later, on AFF clusters (2-node only) or AFX clusters (4-node only) and read-write access only on the primary. The secondary SVM and the volumes it contains are not accessible using NAS protocols, but you can clone the secondary volumes into a different SVM to provide access to them. 
 
 
 [NOTE]
@@ -36,32 +38,38 @@ SnapMirror active sync provides the following benefits:
 * The ability to test failover for each application.
 * Instantaneous creation of mirror clones without impacting application availability.
 * The ability to deploy protected and non-protected workloads in the same ONTAP cluster.
-* LUN, NVMe namespace, NVMe subsystem, or storage unit identity remains the same, so the application sees them as a shared virtual device.
+* LUN, NVMe namespace, NVMe subsystem, or storage unit identity for SAN configurations and volume identity for NAS configurations, remains the same, so the application sees them as a shared virtual device.
 * The ability to reuse secondary clusters with flexibility to create instantaneous clones for application usage for dev-test, UAT or reporting purposes without impacting application performance or availability. 
 
-SnapMirror active sync allows you to protect your data LUNs or NVMe namespaces, which enables applications to fail over transparently for the purpose of business continuity in the event of a disaster. For more information, see link:use-cases-concept.html[Use cases].  
+SnapMirror active sync enables you to protect your data LUNs or NVMe namespaces in SAN configurations and volumes in NAS configurations, which enables applications to fail over transparently for the purpose of business continuity in the event of a disaster. For more information, see link:use-cases-concept.html[Use cases].  
 
 == Key concepts
 
-SnapMirror active sync uses consistency groups to ensure your data is replicated. SnapMirror active sync uses the ONTAP Mediator or, beginning with ONTAP 9.17.1, the Cloud Mediator for automated failover, ensuring the data is served in the event of a disaster scenario. When planning your SnapMirror active sync deployment, it is important to understand the essential concepts in SnapMirror active sync and its architecture. 
+SnapMirror active sync uses consistency groups in SAN configurations and SVMs in NAS configurations to ensure your data is replicated. SnapMirror active sync uses the ONTAP Mediator or, beginning with ONTAP 9.17.1, the Cloud Mediator for automated failover, ensuring the data is served in the event of a disaster scenario. When planning your SnapMirror active sync deployment, it is important to understand the essential concepts in SnapMirror active sync and its architecture. 
 
 .Asymmetry and symmetry 
 
-In symmetric active/active configurations, both sites can access local storage for active I/O.  Symmetric active/active is optimized for clustered applications including VMware vMSC, Windows Failover Cluster with SQL, and Oracle RAC. 
+In symmetric active/active SAN cluster configurations, both sites can access local storage for active I/O.  Symmetric active/active is optimized for clustered applications including VMware vMSC, Windows Failover Cluster with SQL, and Oracle RAC. 
 
-In asymmetric active/passive configurations data on the secondary site is proxied to a LUN, namespace or storage unit.  
+In asymmetric active/active SAN configurations, data on the secondary site is proxied to a LUN, namespace, or storage unit. 
 
 For more information, see xref:architecture-concept.html[SnapMirror active sync architecture].
 
-.Consistency group
+In NAS configurations there is no proxy and the secondary SVM is dormant, but you can clone the volumes to another SVM to provide access to them.
+
+.Consistency group (SAN-only)
 
 For AFF and ASA systems a link:../consistency-groups/index.html[consistency group] is a collection of FlexVol volumes that provide a consistency guarantee for the application workload that must be protected for business continuity. In ASA r2 systems, a consistency group is a collection of storage units.
 
-The purpose of a consistency group is to take simultaneous snapshot images of a collection of volumes or storage units, thus ensuring crash-consistent copies of the collection at a point in time. A consistency group ensures all volumes of a dataset are quiesced and then snapped at precisely the same point in time. This provides a data-consistent restore point across volumes or storage units supporting the dataset. A consistency group thereby maintains dependent write-order consistency. If you decide to protect applications for business continuity, the group of volumes or storage units corresponding to this application must be added to a consistency group so a data protection relationship is established between a source and a destination consistency group. The source and destination consistency must contain the same number and type of volumes.  
+The purpose of a consistency group is to take simultaneous coordinated snapshot images of a collection of volumes or storage units, thus ensuring crash-consistent copies of the collection at a point in time. A consistency group ensures all volumes of a dataset are quiesced and then snapped at precisely the same point in time. This provides a data-consistent restore point across volumes or storage units supporting the dataset. A consistency group thereby maintains dependent write-order consistency. If you decide to protect applications for business continuity, the group of volumes or storage units corresponding to this application must be added to a consistency group so a data protection relationship is established between a source and a destination consistency group. The source and destination consistency must contain the same number and type of volumes.  
+
+In ONTAP 9.19.1, SnapMirror active sync for NAS supports protection of SVMs that contain FlexVol volumes. Consistency groups or FlexGroup volumes within an SVM are not supported by SnapMirror active sync in NAS configurations. 
 
 .Constituent
 
-An individual volume, LUN, or NVMe namespace (beginning with ONTAP 9.17.1) that is part of the consistency group protected in the SnapMirror active sync relationship. 
+In a SAN configuration, a constituent is an individual volume, LUN, or NVMe namespace (beginning with ONTAP 9.17.1) that is part of the consistency group protected in the SnapMirror active sync relationship. 
+
+In a NAS configuration, a constituent is a volume, and the containing SVM is the entity that is protected in the SnapMirror active sync relationship.
 
 .ONTAP Mediator
 
@@ -69,7 +77,7 @@ The link:../mediator/index.html[ONTAP Mediator] receives health information abou
 
 * Peer ONTAP clusters
 * Peer ONTAP cluster nodes 
-* Consistency groups (which define the failover units in a SnapMirror active sync relationship); for each consistency group, the following information is provided: 
+* Consistency groups (which define the failover units in a SnapMirror active sync SAN relationship); for each consistency group, the following information is provided: 
 ** Replication state: Uninitialized, In Sync, or Out of Sync 
 ** Which cluster hosts the primary copy 
 ** Operation context (used for planned failover) 
@@ -97,7 +105,7 @@ SnapMirror active sync uses a primary-first principle that gives preference to t
 
 Primary-bias is a special quorum implementation that improves availability of a SnapMirror active sync protected dataset. If the primary copy is available, primary-bias comes into effect when the ONTAP Mediator is not reachable from both clusters. 
 
-Primary-first and primary bias are supported in SnapMirror active sync beginning with ONTAP 9.15.1. Primary copies are designated in System Manager and output with the REST API and CLI. 
+Primary-first and primary bias are supported in SnapMirror active sync SAN configurations beginning with ONTAP 9.15.1. Primary copies are designated in System Manager and output with the REST API and CLI. 
 
 .Out of Sync (OOS)
 
@@ -111,7 +119,7 @@ Beginning with ONTAP 9.15.1, SnapMirror active sync supports link:interoperabili
 
 .Uniform and non-uniform configuration 
 
-* **Uniform host access** means that hosts from both sites are connected to all paths to storage clusters on both sites. Cross-site paths are stretched across distances.
+* **Uniform host access** means that hosts from both sites are connected to all paths to storage clusters on both sites. Cross-site paths are stretched across distances. Uniform host access applies to SAN configurations only. 
 * **Non-uniform host access** means hosts in each site are connected only to the cluster in the same site. Cross-site paths and stretched paths aren't connected. 
 
 [NOTE]
@@ -126,6 +134,93 @@ RPO stands for recovery point objective, which is the amount of data loss deemed
 RTO stands for recovery time objective, which is the amount of time that is deemed acceptable for an application to return to normal operations non-disruptively following an outage, failure, or other data loss event. Zero RTO signifies that no amount of downtime is acceptable. 
 
 == SnapMirror active sync configuration support by ONTAP version 
+
+The type of clusters, protocols, and configurations supported by SnapMirror active sync varies depending on your version of ONTAP. The table indicates the ONTAP version in which updates were added and the configurations that support those updates.
+
+[cols=3*]
+|===
+h| ONTAP version h| Support added for h| Supported with
+
+| 9.19.1 and later	
+a|The following protocols:
+
+* NFS 
+* SMB	
+a| Cluster types:
+
+* AFF
+* AFX
+
+Configuration types:
+
+* Asymmetric active/passive
+
+
+| 9.17.1 and later 	
+a| The following protocol:
+
+ * NVMe for VMware host workloads
+a| Cluster types:
+
+* AFF
+* ASA (C-Series)
+* ASA r2
+
+Configuration types:
+
+* Symmetric active/active
+
+| 9.16.1 and later	
+a| The following cluster type:
+
+* ASA r2	
+a| Protocols:
+
+* iSCSI
+* FC
+Configuration types:
+
+* Asymmetric active/active
+* Symmetric active/active
++
+Symmetric active/active configurations support 4-node to 4-node clusters in ONTAP 9.16.1 and later. For ASA r2, only 2-node clusters are supported.
+
+| 9.15.1 and later 	
+a| The following configuration type:
+
+* Symmetric active/active
++
+Symmetric active/active configurations support 2-node clusters in ONTAP 9.15.1.	
+
+a| Cluster types:
+
+* AFF
+* ASA (C-Series only)
+Protocols:
+
+* iSCSI
+* FC	
+
+|9.9.1 and later 	
+
+a|
+* AFF
+* ASA (C-Series only)	
+a| Protocols:
+
+* iSCSI
+* FC
+Configuration types:
+
+* Asymmetric active/active
++
+Primary and secondary clusters must be of the same type: either ASA, ASA r2, or AFF.
+
+|===
+Primary and secondary clusters must be of the same type: either link:../san-admin/learn-about-asa.html[ASA], link:https://docs.netapp.com/us-en/asa-r2/get-started/learn-about.html[ASA r2^], or AFF. 
+
+
+**THIS IS THE OLD TABLE. TO BE REMOVED PRIOR TO PUBLICATION**
 
 Support for SnapMirror active sync varies depending on your version of ONTAP:
 
@@ -196,9 +291,9 @@ a| Asymmetric active/passive
 
 |===
 
-Primary and secondary clusters must be of the same type: either link:../san-admin/learn-about-asa.html[ASA], link:https://docs.netapp.com/us-en/asa-r2/get-started/learn-about.html[ASA r2^], or AFF. 
 
 
+// 2026-May-21, ONTAPDOC-3544
 // 2026-Apr-20, GitHub issue #2026
 // 2026-Mar-11, ONTAPDOC-3621
 // 2026-Feb-18, ONTAPDOC-3725
