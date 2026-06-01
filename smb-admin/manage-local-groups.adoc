@@ -11,7 +11,7 @@ summary: "You can modify existing local groups by changing the description for a
 [.lead]
 You can change a local group by updating its description or renaming it. You can also view all local groups on the cluster or on a specific storage virtual machine (SVM), and see who belongs to each group. This information can help you troubleshoot file access and user rights issues on the SVM.
 
-[options="header", cols="1,2"]
+[options="header", cols="2,4a"]
 |===
 | If you want to...| Use the command...
 
@@ -189,13 +189,11 @@ vs1       CIFS_SERVER\engineering
 ----
 ====
 
-== Manage local ONTAP SMB group membership
+== Add a member to a local ONTAP SMB group
 
-You can manage local group membership by adding and removing local or domain users, or adding and removing domain groups. This is useful if you want to control access to data based on access controls placed on the group or if you want users to have privileges associated with that group.
+You can manage local group membership by adding local users, domain users, or domain groups. This is useful if you want to control access to data based on access controls placed on the group or if you want users to have privileges associated with that group.
 
 .About this task
-
-Guidelines for adding members to a local group:
 
 * You cannot add users to the special _Everyone_ group.
 * The local group must exist before you can add a user to it.
@@ -203,22 +201,10 @@ Guidelines for adding members to a local group:
 * You cannot add a local group to another local group.
 * To add a domain user or group to a local group, Data ONTAP must be able to resolve the name to a SID.
 
-Guidelines for removing members from a local group:
-
-* You cannot remove members from the special _Everyone_ group.
-* The group from which you want to remove a member must exist.
-* ONTAP must be able to resolve the names of members that you want to remove from the group to a corresponding SID.
-
 .Step
 
-. Add or remove a member in a group.
+. Add a member in a group:
 +
-[options="header"]
-|===
-| If you want to...| Then use the command...
-a|
-Add a member to a group
-a|
 [source,cli]
 ----
 vserver cifs users-and-groups local-group add-members -vserver _vserver_name_ -group-name _group_name_ -member-names name[,...]
@@ -226,37 +212,51 @@ vserver cifs users-and-groups local-group add-members -vserver _vserver_name_ -g
 
 You can specify a comma-delimited list of local users, domain users, or domain groups to add to the specified local group.
 
-a|
-Remove a member from a group
-a|
+.Command Example
+[%collapsible]
+====
+
+The following example adds a local user "`SMB_SERVER\sue`" and a domain group "`AD_DOM\dom_eng`" to the local group "`SMB_SERVER\engineering`" on SVM vs1:
+
+----
+cluster1::> vserver cifs users-and-groups local-group add-members -vserver vs1 -group-name SMB_SERVER\engineering -member-names SMB_SERVER\sue,AD_DOMAIN\dom_eng
+----
+
+====
+
+
+== Remove a member from a local ONTAP SMB group
+
+You can manage local group membership by removing local users, domain users, or domain groups. This is useful if you want to control access to data based on access controls placed on the group or if you want users to have privileges associated with that group.
+
+.About this task
+
+* You cannot remove members from the special _Everyone_ group.
+* The group from which you want to remove a member must exist.
+* ONTAP must be able to resolve the names of members that you want to remove from the group to a corresponding SID.
+
+.Step
+
+. Remove a member from a group:
++
 [source,cli]
 ----
 vserver cifs users-and-groups local-group remove-members -vserver _vserver_name_ -group-name _group_name_ -member-names name[,...]
 ----
 
 You can specify a comma-delimited list of local users, domain users, or domain groups to remove from the specified local group.
-|===
 
-.Command Examples
+.Command Example
 [%collapsible]
 ====
 
-The following example adds a local user "`SMB_SERVER\sue`" and a domain group "`AD_DOM\dom_eng`" to the local group "`SMB_SERVER\engineering`" on SVM vs1:
-+
-----
-cluster1::> vserver cifs users-and-groups local-group add-members -vserver vs1 -group-name SMB_SERVER\engineering -member-names SMB_SERVER\sue,AD_DOMAIN\dom_eng
-----
-+
 The following example removes the local users "`SMB_SERVER\sue`" and "`SMB_SERVER\james`" from the local group "`SMB_SERVER\engineering`" on SVM vs1:
-+
+
 ----
 cluster1::> vserver cifs users-and-groups local-group remove-members -vserver vs1 -group-name SMB_SERVER\engineering -member-names SMB_SERVER\sue,SMB_SERVER\james
 ----
 ====
 
-.Related information
-
-xref:display-members-local-groups-task.adoc[Display information about members of local groups]
 
 == Update ONTAP SMB domain user and group names in local databases
 
@@ -268,44 +268,32 @@ You must specify the name of the storage virtual machine (SVM) on which you want
 
 .Steps
 
-. Set the privilege level to advanced: `set -privilege advanced`
-. Perform the appropriate action:
+. Set the privilege level to advanced: 
 +
-[options="header"]
-|===
-| If you want to update domain users and groups and...| Use this command...
-a|
-Display domain users and groups that successfully updated and that failed to update
-a|
+[source,cli]
+----
+set -privilege advanced
+----
+
+. Update the names of domain users and groups associated with storage virtual machine:
++
 [source,cli]
 ----
 vserver cifs users-and-groups update-names -vserver <SVM_name>
 ----
-
-a|
-Display domain users and groups that successfully updated
-a|
-[source,cli]
+. Display domain users and groups that successfully updated and that failed to update:
++
+[source,cli]   
 ----
-vserver cifs users-and-groups update-names -vserver <SVM_name> -display-failed-only false
+vserver cifs users-and-groups update-names -vserver <SVM_name> -display-failed-only false|true
 ----
 
-a|
-Display only the domain users and groups that fail to update
-a|
-[source,cli]
-----
-vserver cifs users-and-groups update-names -vserver <SVM_name> -display-failed-only true
-----
-
-a|
-Suppress all status information about updates
-a|
+. If you want to suppress all status information about updates, use the following command:
++
 [source,cli]
 ----
 vserver cifs users-and-groups update-names -vserver <SVM_name> -suppress-all-output true
 ----
-|===
 
 . Return to the admin privilege level: 
 +
@@ -363,6 +351,7 @@ cluster1::*> set -privilege admin
 
 Learn more about `vserver cifs` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=vserver+cifs[ONTAP command reference^].
 
+// 2026 June 01, ONTAPDOC-3910
 // 2025 June 18, ONTAPDOC-2981
 // 2025 May 21, ONTAPDOC-2981
 // 2025 Jan 16, ONTAPDOC-2569
