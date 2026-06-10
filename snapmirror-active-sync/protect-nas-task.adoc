@@ -46,6 +46,10 @@ The following table describes supported and unsupported ONTAP features with Snap
 
 | FabricPool
 | Partially
+| The `all` tiering policy is not allowed on SnapMirror active sync NAS volumes.
+
+| File System Analytics
+| Partially
 | On the secondary SVM, File System Analytics is set to `Off` by default, and you must manually set it to `On` after a failover.
 
 | FlexCache volume
@@ -92,10 +96,6 @@ The following table describes supported and unsupported ONTAP features with Snap
 | No
 |
 
-| Volume rehost
-| Yes
-| A volume rehost to the primary SVM adds it to SnapMirror active sync protection. Secondary volumes cannot be rehosted.
-
 |===
 
 .About this task
@@ -120,9 +120,6 @@ You can use System Manager or the ONTAP CLI to configure SnapMirror active sync 
 .. *Protect all volumes* – by default, all volumes are protected
 .. *Choose volumes to protect* - only the selected volumes are protected
 .. *Choose volumes to exclude* - the selected volumes are excluded from protection
-+
-[NOTE] 
-It is recommended that you rehost unprotected volumes to another SVM for easier management. 
 . Click *Initialize relationship*.
 . Click *Save*.
 . In the *Protect Storage VM* window, verify the SVM protection status in the *Protection* column.
@@ -160,7 +157,7 @@ source::> vserver peer accept -vserver vs_a -peer-vserver vs_b
 ----
 . Create the SnapMirror relationship:
 +
-`snapmirror create -source-path <source SVM name> -destination-path <destination SVM name> -policy AutomatedFailOver`
+`snapmirror create -source-path <source SVM name>: -destination-path <destination SVM name>: -policy AutomatedFailOver`
 +
 Example:
 +
@@ -184,7 +181,7 @@ Progress
 ----
 . On the destination SVM, initialize the relationship:
 +
-`snapmirror initialize -destination-path <SVM name>`
+`snapmirror initialize -destination-path <SVM name>:`
 +
 Example:
 +
@@ -211,21 +208,22 @@ Example:
 
 == Use the ONTAP CLI to create an unprotected volume in a SnapMirror active sync NAS configuration
 
-You might want to create volumes that are not protected by SnapMirror active sync in a NAS configuration if the volume type is not supported; for example, a FlexGroup or DP-type volume.
+You might want to create volumes that are not protected by SnapMirror active sync in a NAS configuration if the volume type is not supported; for example, a FlexGroup or DP-type volume. You can exclude new volumes from SnapMirror active sync if protection is not required; for example while creating a FlexClone volume for dev/test.
 
 .Step
 
 . From the source cluster, add an unprotected volume to an existing SnapMirror active sync configuration:
 +
+`volume clone create -vserver <SVM name> -flexclone <clone vol name> -parent-vserver <SVM name> -parent-volume <vol name> -parent-snapshot <snapshot name>`
 `volume add -vserver <SVM name> -volume <volume name> -smas-protection unprotected`
 
 == Use the ONTAP CLI to exclude a volume from a SnapMirror active sync NAS configuration
 
-You might want to exclude some volumes from a SnapMirror active sync NAS configuration if the volume type is not supported; for example, a FlexGroup or DP-type volume, or if you want to delete the volume, such as a test clone. It is recommended that you rehost unprotected volumes to another SVM for easier management. 
+You might want to exclude some volumes from a SnapMirror active sync NAS configuration if the volume type is not supported; for example, a FlexGroup or DP-type volume, or if you want to delete the volume, such as a test clone. 
 
-Marking a currently protected volume as unprotected initiates a shrink operation on the SnapMirror active sync relationship. The shrink operation deletes SnapMirror entries for the volume on both the source and destination. 
+NOTE: Marking a currently protected volume as unprotected initiates a shrink operation on the SnapMirror active sync relationship. The shrink operation deletes SnapMirror entries for the volume on both the source and destination. 
 
-Marking a volume as unprotected does not automatically delete the volume on the primary or secondary relationship. If you want to delete the volume, you can manually delete it on both the primary and secondary SVM. 
+NOTE: Marking a volume as unprotected does not automatically delete the volume on the primary or secondary relationship. If you want to delete the volume, you can manually delete it on both the primary and secondary SVM. 
 
 .Step
 
@@ -235,7 +233,7 @@ Marking a volume as unprotected does not automatically delete the volume on the 
 
 == 	Convert an SVM DR relationship to a SnapMirror active sync relationship
 
-You might want to convert an SVM DR relationship to a SnapMirror active sync relationship. To do so, you must delete the existing relationship, create a data protection destination SVM, create a new SnapMirror relationship using the `AutomatedFailover` policy, and initialize the relationship.
+In ONTAP 9.19.1, you cannot directly convert an SVM DR relationship into a SnapMirror active sync for NAS relationship. Instead, you must delete the SVM DR relationship, create a new destination SVM, establish a new SnapMirror active sync relationship, and initialize the relationship. 
 
 [NOTE] 
 The `snapmirror resync` command is not currently supported.
