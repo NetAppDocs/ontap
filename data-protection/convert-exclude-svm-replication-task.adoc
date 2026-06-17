@@ -1,0 +1,40 @@
+---
+permalink: data-protection/convert-exclude-svm-replication-task.html
+sidebar: sidebar
+keywords: exclude, network, name service, other settings, svm replication, disaster recovery, convert
+summary: "You can convert an SVM DR relationship that excludes SVM configuration information during replication to a relationship that replicates the configuration information by using the `-identity-preserve true` parameter."
+---
+= Convert an ONTAP SnapMirror SVM replication relationship to include SVM configuration information
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can convert an SVM DR relationship that excludes SVM configuration information during replication to a relationship that replicates the configuration information by using the `-identity-preserve true` parameter.
+
+.Before you begin
+
+If there are any SnapMirror transfers in progress, either wait for them to complete or abort them.
+
+.Steps
+
+. From the destination cluster, quiesce the relationship:
++
+`snapmirror quiesce <dr_svm>`:
+
+. When the relationship state is quiesced, from the destination cluster, delete the relationship:
++
+`snapmirror delete <dr_svm>`:
+
+. From the source cluster, release the relationship without deleting SnapMirror snapshot information:
++
+`snapmirror release <dr_svm>: -relationship-info-only true`
+
+. From the destination, recreate the replication relationship using `-identity-preserve true`:
++
+`snapmirror create -source-path <source_svm>: <dr_svm>:  -policy <policy> -schedule <schedule> -identity-preserve true`
+
+. From the destination cluster, resynchronize the SnapMirror relationship:
++
+`snapmirror resync -destination-path <dr_vserver>:`
+
+// 2026-June-17, ONTAPDOC-3946
