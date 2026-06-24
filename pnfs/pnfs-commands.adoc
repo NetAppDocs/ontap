@@ -1,0 +1,152 @@
+---
+permalink: pnfs/pnfs-commands.html
+sidebar: sidebar
+keywords: tr-4063, pnfs, commands, technical report
+summary: "Use these ONTAP CLI commands to configure, troubleshoot, and gather statistics for pNFS."
+---
+= pNFS commands, statistics and event logs
+
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+These ONTAP CLI commands pertain specifically to pNFS. You can use them to configure, troubleshoot, and gather statistics.
+
+== Enable NFSv4.1
+
+----
+nfs modify -vserver SVM -v4.1 enabled
+----
+
+== Enable pNFS
+
+----
+nfs modify -vserver SVM -v4.1-pnfs enabled
+----
+
+== Show pNFS devices (advanced privileges)
+
+----
+pnfs devices show -vserver SVM
+----
+
+----
+Vserver Name     Mapping ID      Volume MSID     Mapping Status  Generation
+---------------  --------------- --------------- --------------- -------------
+SVM              17              2157024470      notavailable    2
+SVM              18              2157024463      notavailable    2
+SVM              19              2157024469      available       3
+SVM              20              2157024465      available       4
+SVM              21              2157024467      available       3
+SVM              22              2157024462      available       1
+----
+
+== Show pNFS device mappings (advanced privileges)
+
+----
+pnfs devices mappings show -vserver SVM
+----
+
+----
+Vserver Name    Mapping ID      Dsid            LIF IP
+--------------  --------------- --------------- --------------------
+SVM             19              2449            10.x.x.x
+SVM             20              2512            10.x.x.y
+SVM             21              2447            10.x.x.x
+SVM             22              2442            10.x.x.y
+----
+
+== Capture pNFS-specific performance counters (advanced privileges)
+
+----
+statistics start -object nfsv4_1 -vserver SVM -sample-id [optional-name]
+----
+
+== View pNFS-specific performance counters (advanced privileges)
+
+----
+statistics show -object nfsv4_1 -vserver SVM
+----
+
+== View list of pNFS-specific counters (advanced privileges)
+
+----
+statistics catalog counter show -object nfsv4_1 -counter *layout*|*device*
+----
+
+----
+Object: nfsv4_1
+
+Counter                     Description
+--------------------------- ----------------------------------------------
+getdeviceinfo_avg_latency   Average latency of NFSv4.1 GETDEVICEINFO operations.
+getdeviceinfo_error         The number of failed NFSv4.1 GETDEVICEINFO operations.
+getdeviceinfo_percent       Percentage of NFSv4.1 GETDEVICEINFO operations.
+getdeviceinfo_success       The number of successful NFSv4.1 GETDEVICEINFO operations.
+getdeviceinfo_total         Total number of NFSv4.1 GETDEVICEINFO operations.
+getdevicelist_avg_latency   Average latency of NFSv4.1 GETDEVICELIST operations.
+getdevicelist_error         The number of failed NFSv4.1 GETDEVICELIST operations.
+getdevicelist_percent       Percentage of NFSv4.1 GETDEVICELIST operations.
+getdevicelist_success       The number of successful NFSv4.1 GETDEVICELIST operations.
+getdevicelist_total         Total number of NFSv4.1 GETDEVICELIST operations.
+layoutcommit_avg_latency    Average latency of NFSv4.1 LAYOUTCOMMIT operations.
+layoutcommit_error          The number of failed NFSv4.1 LAYOUTCOMMIT operations.
+layoutcommit_percent        Percentage of NFSv4.1 LAYOUTCOMMIT operations.
+layoutcommit_success        The number of successful NFSv4.1 LAYOUTCOMMIT operations.
+layoutcommit_total          Total number of NFSv4.1 LAYOUTCOMMIT operations.
+layoutget_avg_latency       Average latency of NFSv4.1 LAYOUTGET operations.
+layoutget_error             The number of failed NFSv4.1 LAYOUTGET operations.
+layoutget_percent           Percentage of NFSv4.1 LAYOUTGET operations.
+layoutget_success           The number of successful NFSv4.1 LAYOUTGET operations.
+layoutget_total             Total number of NFSv4.1 LAYOUTGET operations.
+layoutreturn_avg_latency    Average latency of NFSv4.1 LAYOUTRETURN operations.
+layoutreturn_error          The number of failed NFSv4.1 LAYOUTRETURN operations.
+layoutreturn_percent        Percentage of NFSv4.1 LAYOUTRETURN operations.
+layoutreturn_success        The number of successful NFSv4.1 LAYOUTRETURN operations.
+layoutreturn_total          Total number of NFSv4.1 LAYOUTRETURN operations.
+----
+
+== View active network connections for NFS
+
+You can verify if multiple TCP connections are being made to the SVM with the `network connections active show` command.
+
+For instance, if you want to see NFS session trunks, look for connections from the same clients across different interfaces per node:
+
+----
+cluster::*> network connections active show -node cluster-0* -vserver PNFS
+              Vserver   Interface         Remote
+      CID Ctx Name      Name:Local Port   Host:Port            Protocol/Service
+--------- --- --------- ----------------- -------------------- ----------------
+Node: node-01
+2304333128 14 PNFS      data1:2049        ubuntu22-224:740     TCP/nfs
+2304333144 10 PNFS      data3:2049        ubuntu22-224:864     TCP/nfs
+2304333151  5 PNFS      data1:2049        ubuntu22-226:848     TCP/nfs
+2304333167 15 PNFS      data3:2049        ubuntu22-226:684     TCP/nfs
+Node: node-02
+2497668321 12 PNFS      data2:2049        ubuntu22-224:963     TCP/nfs
+2497668337 18 PNFS      data4:2049        ubuntu22-224:859     TCP/nfs
+2497668344 14 PNFS      data2:2049        ubuntu22-226:675     TCP/nfs
+2497668360  7 PNFS      data4:2049        ubuntu22-226:903     TCP/nfs
+----
+
+== View NFS version information for connected clients
+
+You can also view NFS connections with the `nfs connected-clients show` command. Keep in mind that the list of clients shown are clients that have had active NFS traffic in the past 48 hours. Idle NFS clients (even if still mounted) might not show up until the mount is accessed. You can filter these to show only more recently accessed clients by specifying the `-idle-time` feature.
+
+For example, to see clients with activity in the past 10 minutes for the pNFS SVM:
+
+----
+cluster::*> nfs connected-clients show -vserver PNFS -idle-time <10m>
+
+ Node: node-01
+
+Vserver: PNFS Data-Ip: 10.x.x.x Local Remote Client-Ip Protocol Volume Policy Idle-Time Reqs Reqs Trunking
+
+10.x.x.a nfs4.2 PNFS_root default 9m 10s 0 149 false 10.x.x.a nfs4.2 FG_0001 default 9m 10s 135847 0 false 10.x.x.b nfs4.2 PNFS_root default 8m 12s 0 157 false 10.x.x.b nfs4.2 FG_0001 default 8m 12s 52111 0 false
+----
+
+.Related information
+
+* link:pnfs-overview.html[Learn about parallel NFS (pNFS) in ONTAP]
+
+// 2025-11-6, ONTAPDOC-2826

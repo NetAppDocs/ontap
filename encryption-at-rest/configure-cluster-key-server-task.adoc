@@ -12,17 +12,20 @@ summary: Enable additional support for external key management servers by creati
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.11.1, you can configure connectivity to clustered external key management servers on an SVM. With clustered key servers, you can designate primary and secondary key servers on a SVM. When registering keys, ONTAP will first attempt to access a primary key server before sequentially attempting to access secondary servers until the operation completes successfully, preventing duplication of keys. 
+Beginning with ONTAP 9.11.1, you can configure connectivity to clustered external key management servers on an SVM. With clustered key servers, you can designate primary and secondary key servers on an SVM. When registering or retrieving keys, ONTAP first attempts to access the primary key server before sequentially attempting to access secondary servers until the operation completes successfully. 
 
-External key servers can be used for NSE, NVE, NAE, and SED keys. An SVM can support up to four primary external KMIP servers. Each primary server can support up to three secondary key servers. 
+You can use external key servers for NetApp Storage Encryption (NSE), NetApp Volume Encryption (NVE), and NetApp Aggregate Encryption (NAE) keys. An SVM can support up to four primary external KMIP servers. Each primary server can support up to three secondary key servers. 
 
-== Before you begin
+.About this task
+
+* This process only supports key servers that use KMIP. For a list of supported key servers, check the link:http://mysupport.netapp.com/matrix/[NetApp Interoperability Matrix Tool^]. 
+
+.Before you begin
 
 * link:install-ssl-certificates-hardware-task.html[KMIP key management must be enabled for the SVM]. 
-* This process only supports key servers that use KMIP. For a list of supported key servers, check the link:http://mysupport.netapp.com/matrix/[NetApp Interoperability Matrix Tool^]. 
 * All nodes in the cluster must be running ONTAP 9.11.1 or later.
-* The order of servers list arguments in the `-secondary-key-servers` parameter reflects the access order of the external key management (KMIP) servers.
-* Learn more about the commands described in this procedure in the link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^].
+* The order of servers listed in the `-secondary-key-servers` parameter reflects the access order of the external key management (KMIP) servers.
+
 
 == Create a clustered key server
 
@@ -33,45 +36,113 @@ The configuration procedure depends on whether or not you have configured a prim
 
 .Add primary and secondary key servers to an SVM
 --
-. Confirm that no key management has been enabled for the cluster:
-`security key-manager external show -vserver _svm_name_`
+.Steps 
+
+. Confirm that no key management has been enabled for the cluster (admin SVM):
++
+`security key-manager external show -vserver <svm_name>`
++
 If the SVM already has the maximum of four primary key servers enabled, you must remove one of the existing primary key servers before adding a new one.  
 . Enable the primary key manager: 
-`security key-manager external enable -vserver _svm_name_ -key-servers _server_ip_ -client-cert _client_cert_name_ -server-ca-certs _server_ca_cert_names_`
-. Modify the primary key server to add secondary key servers. The `-secondary-key-servers` parameter accepts a comma-separated list of up to three key servers. 
-`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
---
++
+`security key-manager external enable -vserver <svm_name> -key-servers <primary_key_server_ip> -client-cert <client_cert_name> -server-ca-certs <server_ca_cert_names>`
++
+* If you don't specify a port in the `-key-servers` parameter, the default port 5696 is used.
++
+NOTE: If you are running the `security key-manager external enable` command for the admin SVM in a MetroCluster configuration, you must run the command on both clusters. If you are running the command for an individual data SVM, you don't need to run the command on both clusters. NetApp strongly recommends using the same key servers on both clusters.
 
+
+. Modify the primary key server to add secondary key servers. The `-secondary-key-servers` parameter accepts a comma-separated list of up to three key servers:
++
+`security key-manager external modify-server -vserver <svm_name> -key-servers <primary_key_server> -secondary-key-servers <list_of_key_servers>`
++
+* Do not include a port number for secondary key servers in the `-secondary-key-servers` parameter. It uses the same port number as the primary key server.
++
+NOTE: If you are running the `security key-manager external` command for the admin SVM in a MetroCluster configuration, you must run the command on both clusters. If you are running the command for an individual data SVM, you don't need to run the command on both clusters. NetApp strongly recommends using the same key servers on both clusters.
+
+-- 
 .Add secondary key servers to an existing primary key server
 --
-. Modify the primary key server to add secondary key servers. The `-secondary-key-servers` parameter accepts a comma-separated list of up to three key servers. 
-`security key-manager external modify-server -vserver _svm_name_ -key-servers _primary_key_server_ -secondary-key-servers _list_of_key_servers_`
+.Steps
+
+. Modify the primary key server to add secondary key servers. The `-secondary-key-servers` parameter accepts a comma-separated list of up to three key servers:
++
+`security key-manager external modify-server -vserver <svm_name> -key-servers <primary_key_server> -secondary-key-servers <list_of_key_servers>`
++
+* Do not include a port number for secondary key servers in the `-secondary-key-servers` parameter. It uses the same port number as the primary key servers.
++
+NOTE: If you are running the `security key-manager external modify-server` command for the admin SVM in a MetroCluster configuration, you must run the command on both clusters. If you are running the command for an individual data SVM, you don't need to run the command on both clusters. NetApp strongly recommends using the same key servers on both clusters.
+
 For more information about secondary key servers, see  <<mod-secondary>>.
+
 --
 ====
 
 == Modify clustered key servers
 
-You can modify external key servers clusters by changing the status (primary or secondary) of particular key servers, add and removing secondary key servers, or by changing the access order of secondary key servers.
-
-=== Convert primary and secondary key servers
-
-To convert a primary key server into a secondary key server, you must first remove it from the SVM with the `security key-manager external remove-servers` command. 
-
-To convert a secondary key server into a primary key server, you must first remove the secondary key server from its existing primary key server. See <<mod-secondary>>. If you convert a secondary key server to a primary server while removing an existing key, attempting to add a new server before completing the removal and conversion can result in the the duplication of keys. 
+You can modify clustered external key servers by adding and removing secondary key servers, changing the access order of secondary key servers, or by changing the designation (primary or secondary) of particular key servers. If you modify clustered external key servers in a MetroCluster configuration, NetApp strongly recommends using the same key servers on both clusters.
 
 === Modify secondary key servers [[mod-secondary]]
 
-Secondary key servers are managed with the `-secondary-key-servers` parameter of the `security key-manager external modify-server` command. The `-secondary-key-servers` parameter accepts a comma-separated list. The specified order of the secondary key servers in the list determines the access sequence for the secondary key servers. The access order can be modified by running the command `security key-manager external modify-server` with the secondary key servers entered in a different sequence. 
+Use the `-secondary-key-servers` parameter of the `security key-manager external modify-server` command to manage secondary key servers . The `-secondary-key-servers` parameter accepts a comma-separated list. The specified order of the secondary key servers in the list determines the access sequence for the secondary key servers. You can modify the access order by running the command `security key-manager external modify-server` with the secondary key servers entered in a different sequence.  Do not include a port number for secondary key servers. 
 
-To remove a secondary key server, the `-secondary-key-servers` arguments should include the key servers you want to keep while omitting the one to be removed. To remove all secondary key servers, use the argument `-`, signifying none. 
+NOTE: If you are running the `security key-manager external modify-server` command for the admin SVM in a MetroCluster configuration, you must run the command on both clusters. If you are running the command for an individual data SVM, you don't need to run the command on both clusters.
+
+To remove a secondary key server, include the key servers you want to keep in the `-secondary-key-servers` parameter and omit the one you want to remove. To remove all secondary key servers, use the argument `-`, signifying none. 
+
+=== Convert primary and secondary key servers
+
+You can use the following steps to change the designation (primary or secondary) of particular key servers. 
+
+[role="tabbed-block"]
+====
+
+.Convert a primary key server into a secondary key server
+--
+
+.Steps
+
+. Remove the primary key server from the SVM:
++
+`security key-manager external remove-servers` 
++
+NOTE: If you are running the `security key-manager external remove-servers` command for the admin SVM in a MetroCluster configuration, you must run the command on both clusters. If you are running the command for an individual data SVM, you don't need to run the command on both clusters.
+
+
+. Perform the <<Create a clustered key server>> procedure using the former primary key server as a secondary key server.
+
+--
+
+.Convert a secondary key server into a primary key server
+--
+
+.Steps
+
+. Remove the secondary key server from its existing primary key server:
++
+`security key-manager external modify-server -secondary-key-servers`  
++
+[NOTE] 
+=====
+* If you are running the `security key-manager external modify-server -secondary-key-servers` command for the admin SVM in a MetroCluster configuration, you must run the command on both clusters. If you are running the command for an individual data SVM, you don't need to run the command on both clusters.
+
+* If you convert a secondary key server to a primary key server while removing an existing key server, attempting to add a new key server before completing the removal and conversion can result in the the duplication of keys. 
+=====
+
+. Perform the <<Create a clustered key server>> procedure using the former secondary key server as the primary key server of the new clustered key server.
+
+Refer to <<mod-secondary>> for more information.
+--
+====
 
 .Related information
-* link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+key-manager+external[security key-manager external^]
 
+* Learn more about `security key-manager external` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+key-manager+external[ONTAP command reference^]
 
+// 2025 Dec 09, ONTAPDOC-3467
+// 2025 Nov 26, ONTAPDOC-3447
 // 2025 June 06, ONTAPDOC-2960
 // 2025 Jan 22, ONTAPDOC-1070
 // 2024 Dec 02, ONTAPDOC-2569
 // 2024 may 16, ontapdoc-1986
-//22 march 2022, IE-497
+// 22 march 2022, IE-497

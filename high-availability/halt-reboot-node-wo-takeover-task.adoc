@@ -29,7 +29,11 @@ You halt or reboot a node in a two-node cluster without initiating takeover when
 
 .Steps
 . Verify both nodes are healthy:
-`cluster show`
++
+[source,cli]
+----
+cluster show
+----
 +
 For both nodes, `true` appears in the `Health` column.
 +
@@ -43,16 +47,23 @@ node2        true     true
 +
 Learn more about `cluster show` in the link:https://docs.netapp.com/us-en/ontap-cli/cluster-show.html[ONTAP command reference^].
 
-
 . Migrate all LIFs from the node that you will halt or reboot to the partner node:
-`network interface migrate-all -node _node_name_`
++
+[source,cli]
+----
+network interface migrate-all -node <node_name>
+----
 +
 Learn more about `network interface migrate-all` in the link:https://docs.netapp.com/us-en/ontap-cli/network-interface-migrate-all.html[ONTAP command reference^].
 
-. If on the node you will halt or reboot there are aggregates you want to keep online when the node is down, relocate them to the partner node; otherwise, go to the next step.
+. If there are aggregates on the node that you will halt or reboot that you want to keep online when the node is down, relocate them to the partner node.
 
 .. Show the aggregates on the node you will halt or reboot:
-`storage aggregates show -node _node_name_`
++
+[source,cli]
+----
+storage aggregates show -node <node_name>
+----
 +
 For example, node1 is the node that will be halted or rebooted:
 +
@@ -74,68 +85,161 @@ test2_aggr  2.18TB    2.18TB    0% online       7 node1    raid_dp,
 ----
 
 .. Move the aggregates to the partner node:
-`storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
++
+[source,cli]
+----
+storage aggregate relocation start -node <node_name> -destination <node_name> -aggregate-list <aggregate_name>
+----
 +
 For example, aggregates aggr1, aggr2 and test2_aggr are being moved from node1 to node2:
 +
 `storage aggregate relocation start -node _node1_ -destination _node2_ -aggregate-list _aggr1_,_aggr2_,_test2_aggr_`
 
 . Disable cluster HA:
-`cluster ha modify -configured false`
 +
-The return output confirms HA is disabled: `Notice: HA is disabled`
+[source,cli]
+----
+cluster ha modify -configured false
+----
++
+When cluster HA is disabled, epsilon is automatically moved to node 1. The return output confirms HA is disabled: `Notice: HA is disabled`
 +
 NOTE: This operation does not disable storage failover.
 
-. Halt or reboot and inhibit takeover of the target node, by using the appropriate command:
+. If the node to be halted or rebooted is node 1, move epsilon to node 2:
+
+.. Set the privilege level to advanced: 
 +
-* `system node halt -node _node_name_ -inhibit-takeover true`
-* `system node reboot -node _node_name_ -inhibit-takeover true`
+[source,cli]
+----
+set -privilege advanced
+----
+
+.. Verify that node 2 is healthy and eligible for epsilon: 
++
+[source,cli]
+----
+cluster show
+----
+
+.. Remove epsilon from node 1:
++
+[source,cli]
+----
+cluster modify -node <node1_name> -epsilon false
+----
+
+.. Assign epsilon to node 2:
++
+[source,cli]
+----
+cluster modify -node <node2_name> -epsilon true
+----
+
+.. Verify that epsilon is on node 2:
++
+[source,cli]
+----
+cluster show
+----
+
+. Halt or reboot and inhibit takeover of the target node:
++
+[cols="1h,1h"]
+|===
+
+a|Halt the node without initiating takeover:
+a|
+
+[source,cli]
+----
+system node halt -node _node_name_ -inhibit-takeover true
+----
+
+a|Reboot the node without initiating takeover:
+
+a|
+
+[source,cli]
+----
+system node reboot -node _node_name_ -inhibit-takeover true
+----
+|===
 +
 NOTE: In the command output, you will see a warning asking you if you want to proceed, enter `y`.
 
 . Verify that the node that is still online is in a healthy state (while the partner is down):
-`cluster show`
++
+[source,cli]
+----
+cluster show
+----
 +
 For the online node, `true` appears in the `Health` column.
 +
-NOTE: In the command output, you will see a warning that cluster HA is not configured. You can ignore the warning at this time.
+NOTE: In the command output, you will see a warning that cluster HA is not configured. You can ignore the warning.
 
 . Perform the actions that required you to halt or reboot the node.
 . Boot the offlined node from the LOADER prompt:
-`boot_ontap`
++
+[source,cli]
+----
+boot_ontap
+----
+
 . Verify both nodes are healthy:
-`cluster show`
++
+[source,cli]
+----
+cluster show
+----
 +
 For both nodes, `true` appears in the `Health` column.
 +
 NOTE: In the command output, you will see a warning that cluster HA is not configured. You can ignore the warning at this time.
 
 . Reenable cluster HA:
-`cluster ha modify -configured true`
++
+[source,cli]
+----
+cluster ha modify -configured true
+----
 
-. If earlier in this procedure you relocated aggregates to the partner node, move them back to their home node; otherwise, go to the next step:
-`storage aggregate relocation start -node _node_name_ -destination _node_name_ -aggregate-list _aggregate_name_`
+. If earlier in this procedure you relocated aggregates to the partner node, move them back to their home node.
++
+[source,cli]
+----
+storage aggregate relocation start -node <node_name> -destination <node_name> -aggregate-list <aggregate_name>
+----
 +
 For example, aggregates aggr1, aggr2 and test2_aggr are being moved from node node2 to node node1:
 `storage aggregate relocation start -node _node2_ -destination _node1_ -aggregate-list _aggr1_,_aggr2_,_test2_aggr_`
 
 . Revert LIFs to their home ports:
+
 .. View LIFs that are not at home:
-`network interface show -is-home false`
++
+[source,cli]
+----
+network interface show -is-home false
+----
 +
 Learn more about `network interface show` in the link:https://docs.netapp.com/us-en/ontap-cli/network-interface-show.html[ONTAP command reference^].
 .. If there are non-home LIFs that were not migrated from the down node, verify it is safe to move them before reverting.
 .. If it is safe to do so, revert all LIFs home.
- `network interface revert *`
- +
++
+[source,cli]
+----
+ network interface revert *
+----
++
 Learn more about `network interface revert` in the link:https://docs.netapp.com/us-en/ontap-cli/network-interface-revert.html[ONTAP command reference^].
 
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/cluster-ha-modify.html[cluster ha modify^]
 * link:https://docs.netapp.com/us-en/ontap-cli/storage-aggregate-relocation-start.html[storage aggregate relocation start^]
 
-
+// 2026 Mar 16, Git Issue 1953
 // 2025 Aug 11, ONTAPDOC-2960
 // 2025 June 13, ONTAPDOC-3078
 // 23 aug 2022, KDA-591 graceful shutdown, merge KB content https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/How_to_halt_a_single_node_without_takeover_in_a_two-node__ONTAP_cluster
