@@ -48,6 +48,8 @@ ARP provides flexible enablement options at the cluster, SVM, and volume levels,
 
 Beginning with ONTAP 9.18.1, ARP is enabled by default automatically on all new volumes for AFF A series and AFF C series, ASA, and ASA r2 systems. This automatic default ARP enablement does not apply to link:use-cases-restrictions-concept.html#unsupported-configurations[unsupported volumes or configurations]. You must <<manual-default-enablement,enable ARP manually>> on existing volumes. For details on how default enablement takes effect when upgrading, see link:use-cases-restrictions-concept.html#arp-upgrade-considerations[ARP version-specific upgrade considerations].
 
+NOTE: Beginning with ONTAP 9.19.1, default ARP enablement applies to clusters that include SnapMirror synchronous and SnapMirror active sync SAN relationships. In ONTAP 9.18.1, default enablement was suppressed for these configurations. For cross-cluster SnapMirror synchronous relationships, default enablement activates once both the source and destination clusters are upgraded to ONTAP 9.19.1. ARP is not enabled by default on AFX systems, even with SnapMirror synchronous support.
+
 During the grace period, you can link:default-enable-change.html[opt out of default enablement for new volumes at the cluster level using System Manager or the ONTAP CLI]. If you do not opt out, ARP is automatically enabled for all new volumes created after the end of the grace period. If needs change after the grace period, you also have the flexibility to turn on or turn off default enablement at any time.
 
 .Manual default enablement on new volumes
@@ -178,10 +180,11 @@ ARP creates a snapshot when early signs of an attack are detected. A detailed an
 
 * *Intervals and anomaly response*: Beginning with ONTAP 9.17.1, ARP snapshots are generated at regular intervals for both NAS and SAN volumes as well as in response to detected anomalies, which has always been the standard response. ONTAP prepends a name to the ARP snapshot to make it easily identifiable.
 
-* *SnapMirror synchronous and active sync*: Beginning with ONTAP 9.19.1 RC, ARP snapshots created for volumes that participate in SnapMirror synchronous or SnapMirror active sync relationships follow these additional rules:
+* *SnapMirror synchronous and active sync*: Beginning with ONTAP 9.19.1, ARP snapshots created for volumes that participate in SnapMirror synchronous or SnapMirror active sync relationships follow these additional rules:
 
 ** ARP snapshots are created and retained on the primary volume.
-** ARP snapshots are not replicated to the secondary as part of SnapMirror synchronous or SnapMirror active sync. You need to link:enable-task.html[enable ARP again] on the recovery volume after failover.
+** ARP snapshots are not replicated to the secondary as part of SnapMirror synchronous or SnapMirror active sync.
+** ARP configuration state is automatically replicated to the secondary volume. Upon failover, ARP detection activates automatically on the new primary without requiring manual re-enablement.
 
 NOTE: Volume-level restore (`volume snapshot restore`) on SnapMirror synchronous or SnapMirror active sync SAN volumes might require that you temporarily quiesce or break the SnapMirror synchronous or SnapMirror active sync relationship. In many cases, you can avoid breaking SnapMirror synchronous or SnapMirror active sync by using FlexClone or file-level restore operations from ARP or other snapshots on the primary volume.
 
