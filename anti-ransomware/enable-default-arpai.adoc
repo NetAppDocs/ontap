@@ -1,0 +1,92 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/enable-default-arpai.html
+keywords: ARP/AI, enable by default, autonomous ransomware protection AI, default volume state, ONTAP 9.18.1, automatic enablement, SVM default, cluster default, machine learning ransomware
+summary: "Beginning with ONTAP 9.16.1, configure an SVM so that new volumes are enabled by default with ARP/AI. Beginning with ONTAP 9.18.1, cluster-level automatic enablement is available on supported systems."
+---
+
+= Enable ONTAP ARP/AI by default in new volumes
+:toclevels: 1
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.16.1, you can configure storage VMs (SVMs) so that new volumes are enabled by default with Autonomous Ransomware Protection with AI (ARP/AI). Beginning with ONTAP 9.18.1, ARP/AI is enabled automatically at the cluster level for link:support-arpai.html[supported systems] after a 12-hour grace period.
+
+NOTE: If you are running ONTAP 9.15.1 or earlier, see link:enable-default-arp.html[Enable ARP by default in new volumes].
+
+.About this task
+
+By default, new volumes are created with ARP functionality disabled. You must enable ARP/AI and configure it to be on by default for new volumes created in the SVM.
+
+Existing volumes without ARP/AI enabled will not change ARP enablement status automatically when you change the SVM default. The SVM setting described in this procedure only affects new volumes. Learn how to link:enable-arpai.html[enable ARP/AI for existing volumes].
+
+[[arp-enablement-default-behavior-table]]
+include::../_include/arp-enablement-default-behavior.adoc[]
+
+.Before you begin
+
+Before enabling ARP/AI by default, ensure your environment has the following:
+
+.NAS-specific requirements
+* A storage VM (SVM) with NFS or SMB (or both) protocol enabled.
+* An active link:../concepts/namespaces-junction-points-concept.html[junction path] for the volume.
+
+.SAN-specific requirements
+* A storage VM (SVM) with iSCSI, FC, or NVMe protocol enabled.
+
+.General requirements
+* The link:index.html#licenses-and-enablement[correct license] for your ONTAP version.
+* (Recommended) Multi-admin verification (MAV) enabled (ONTAP 9.13.1+). See link:../multi-admin-verify/enable-disable-task.html[Enable multi-admin verification].
+
+.Steps
+
+You can use System Manager or the ONTAP CLI to enable ARP/AI by default on new volumes.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Select *Storage* or *Cluster* (depending on your environment), select *Storage VMs*, and select the storage VM that will contain volumes you want to protect with ARP/AI.
+. Navigate to the *Settings* tab. Under *Security*, locate the *Anti-ransomware* tile then select image:icon_pencil.gif[Edit icon].
+. Check the box to enable anti-ransomware (ARP/AI). Check the additional box to enable ARP/AI on all eligible volumes in the storage VM.
++
+NOTE: ARP/AI enters active mode immediately; no learning period is required.
+--
+
+.CLI
+--
+
+.Modify an existing SVM to enable ARP/AI by default in new volumes
+
+[source, cli]
+----
+vserver modify -vserver <svm_name> -anti-ransomware-default-volume-state enabled
+----
+
+.Create a new SVM with ARP/AI enabled by default for new volumes
+
+[source, cli]
+----
+vserver create -vserver <svm_name> -anti-ransomware-default-volume-state enabled
+----
+
+.Verify the ARP/AI state
+
+[source, cli]
+----
+security anti-ransomware volume show
+----
+
+--
+====
+
+.Related information
+
+* link:default-enable-change-arpai.html[Opt out of ARP/AI automatic enablement]
+* link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-show.html[security anti-ransomware volume show^]
+
+// 2026-06-30, restructured from enable-default-task.adoc

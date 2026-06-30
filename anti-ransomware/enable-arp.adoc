@@ -1,0 +1,144 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/enable-arp.html
+keywords: ARP, enable, autonomous ransomware protection, ONTAP 9.10.1, NAS, FlexVol, FlexGroup, learning mode, dry-run, ransomware
+summary: "Beginning with ONTAP 9.10.1, enable ARP on existing or new NAS volumes to start ransomware detection in learning mode."
+---
+
+= Enable ONTAP ARP on a volume
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.10.1, you can enable Autonomous Ransomware Protection (ARP) on existing NAS volumes or create new volumes with ARP enabled.
+
+NOTE: If you are running ONTAP 9.16.1 or later, see link:enable-arpai.html[Enable ARP/AI on a volume].
+
+.About this task
+
+ARP for NAS workloads (ONTAP 9.10.1–9.15.1) starts in link:index.html#learn-about-arp-modes[learning mode] (`dry-run` state). The system analyzes the workload to characterize normal behavior before switching to active mode for threat detection. Beginning in active mode before the learning period completes can lead to excessive false positive reports.
+
+It is recommended that you let ARP run in learning mode for a minimum of 30 days. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning period interval and automates the switch, which might occur before 30 days.
+
+ARP is not supported on SAN volumes in ONTAP 9.10.1–9.15.1. See link:support-arp.html[ARP supported configurations].
+
+[NOTE]
+In existing volumes, learning and active modes only apply to newly written data, not to already existing data in the volume. The existing data is not scanned and analyzed, because the characteristics of earlier normal data traffic are assumed based on the new data after the volume is enabled for ARP.
+
+include::../_include/arp-enablement-default-behavior.adoc[]
+
+.Before you begin
+
+* A storage VM (SVM) with NFS or SMB (or both) protocol enabled.
+* NAS workload with clients configured.
+* An active link:../concepts/namespaces-junction-points-concept.html[junction path] for the volume.
+* The link:index.html#licenses-and-enablement[correct license] for your ONTAP version.
+* (Recommended) Multi-admin verification (MAV) enabled (ONTAP 9.13.1 and later). See link:../multi-admin-verify/enable-disable-task.html[Enable multi-admin verification].
+
+== Enable ARP on NAS FlexVol volumes
+
+You can enable ARP on NAS FlexVol volumes using System Manager or the ONTAP CLI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Select *Storage > Volumes*, then select the volume you want to protect.
+. In the *Security* tab of the *Volumes* overview, select *Status* to switch from Disabled to Enabled.
+. Select *Enabled in learning-mode* in the *Anti-ransomware* box.
++
+NOTE: You can link:enable-default-arp.html[disable automatic learning to active mode transitions on the associated storage VM] if you want to control the learning to active mode transition manually.
++
+[NOTE]
+In existing volumes, learning and active modes only apply to newly written data, not to already existing data in the volume. The existing data is not scanned and analyzed, because the characteristics of earlier normal data traffic are assumed based on the new data after the volume is enabled for ARP.
+
+. Verify the ARP state of the volume in the *Anti-ransomware* box.
++
+To display ARP status for all volumes: In the *Volumes* pane, select *Show/Hide* then ensure that *Anti-ransomware* status is checked.
+--
+
+.CLI
+--
+*Enable ARP on an existing volume (in learning mode):*
+
+[source, cli]
+----
+security anti-ransomware volume dry-run -volume <vol_name> -vserver <svm_name>
+----
+
+Learn more about `security anti-ransomware volume dry-run` in the link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-dry-run.html[ONTAP command reference^].
+
+*Create a new volume with ARP enabled (in learning mode):*
+
+[source, cli]
+----
+volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state dry-run -junction-path </path_name>
+----
+
+*Disable automatic switching from learning to active mode (optional):*
+
+If you are running ONTAP 9.13.1 through 9.15.1 and want to manually control the switch from learning to active mode for all volumes associated with an SVM:
+
+[source, cli]
+----
+vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false
+----
+
+*Verify the ARP state:*
+
+[source, cli]
+----
+security anti-ransomware volume show
+----
+--
+====
+
+== Enable ARP on NAS FlexGroup volumes
+
+ARP support for NAS FlexGroup volumes is available beginning with ONTAP 9.13.1.
+
+NOTE: FlexGroup volumes in ONTAP 9.13.1–9.17.1 use the original ARP model with learning mode, not ARP/AI. ARP/AI with immediate active mode for FlexGroup volumes requires ONTAP 9.18.1. See link:enable-arpai.html[Enable ARP/AI on a volume].
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Select *Storage > Volumes*, then select the FlexGroup volume you want to protect.
+. In the *Security* tab of the *Volumes* overview, select *Status* to switch from Disabled to Enabled.
+. Select *Enabled in learning-mode* in the *Anti-ransomware* box.
++
+NOTE: You can link:enable-default-arp.html[disable automatic learning to active mode transitions] if you want to control the learning to active mode transition manually.
+
+. Verify the ARP state of the volume in the *Anti-ransomware* box.
+--
+
+.CLI
+--
+*Enable ARP on an existing FlexGroup volume (in learning mode):*
+
+[source, cli]
+----
+security anti-ransomware volume dry-run -volume <vol_name> -vserver <svm_name>
+----
+
+*Create a new FlexGroup volume with ARP enabled (in learning mode):*
+
+[source, cli]
+----
+volume create -volume <vol_name> -vserver <svm_name> -aggr-list <aggregate name> -aggr-list-multiplier <integer> -size <nn> -anti-ransomware-state dry-run -junction-path </path_name>
+----
+
+*Verify the ARP state:*
+
+[source, cli]
+----
+security anti-ransomware volume show
+----
+--
+====
+
+.Related information
+* link:switch-learning-arp.html[Switch from learning to active mode]
+* link:enable-default-arp.html[Enable ARP by default in new volumes]
+
+// 2026-06-30, restructured from enable-task.adoc
