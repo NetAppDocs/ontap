@@ -20,5 +20,96 @@ The size of the quota does not guarantee any specific amount of available space.
 
 Learn more about `volume quota report` in the link:https://docs.netapp.com/us-en/ontap-cli/volume-quota-report.html[ONTAP command reference^].
 
+== Learn how ONTAP user and group quotas work with qtrees
+
+Tree quotas limit the overall size of the qtree. To prevent individual users or groups from consuming the entire qtree, you specify a user or group quota for that qtree.
+
+.Example user quota in a qtree
+[%collapsible]
+====
+Suppose you have the following quota rules:
+
+----
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol1
+
+Vserver: vs0               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   ""        ""      off          50MB        -       -        -       45MB
+user   jsmith    ""      off          80MB        -       -        -       75MB 
+----
+
+You notice that a certain user, kjones, is taking up too much space in a critical qtree, proj1, which resides in vol1. You can restrict this user's space by adding the following quota rule:
+
+----
+cluster1::> volume quota policy rule create -vserver vs0 -volume vol1 -policy-name default -type user -target "kjones" -qtree "proj1" -disk-limit 20m -threshold 15m
+
+cluster1::> volume quota policy rule show -vserver vs0 -volume vol1
+
+Vserver: vs0               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+user   ""        ""      off          50MB        -       -        -       45MB
+user   jsmith    ""      off          80MB        -       -        -       75MB
+user   kjones    proj1   off          20MB        -       -        -       15MB 
+----
+====
+
+== Learn how default tree quotas on an ONTAP FlexVol volume create derived tree quotas
+
+When you create a default tree quota on a FlexVol volume, corresponding derived tree quotas are automatically created for every qtree in that volume.
+
+These derived tree quotas have the same limits as the default tree quota. If no additional quotas exist, the limits have the following effects:
+
+* Users can use as much space in a qtree as they are allotted for the entire volume (provided they did not exceed the limit for the volume by using space in the root or another qtree).
+* Each of the qtrees can grow to consume the entire volume.
+
+The existence of a default tree quota on a volume continues to affect all new qtrees that are added to the volume. Each time a new qtree is created, a derived tree quota is also created.
+
+Like all derived quotas, derived tree quotas display the following behaviors:
+
+* Are created only if the target does not already have an explicit quota.
+* Appear in quota reports but do not appear when you show quota rules with the `volume quota policy rule show` command. Learn more about `volume quota policy rule show` in the link:https://docs.netapp.com/us-en/ontap-cli/volume-quota-policy-rule-show.html[ONTAP command reference^].
+
+.Example of derived tree quotas
+[%collapsible]
+====
+You have a volume with three qtrees (proj1, proj2, and proj3) and the only tree quota is an explicit quota on the proj1 qtree limiting its disk size to 10 GB. If you create a default tree quota on the volume and reinitialize quotas on the volume, the quota report now contains four tree quotas:
+
+----
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1     proj1     tree    1           0B   10GB       1       -   proj1
+vol1               tree    *           0B   20GB       0       -   *
+vol1     proj2     tree    2           0B   20GB       1       -   proj2
+vol1     proj3     tree    3           0B   20GB       1       -   proj3
+...
+----
+
+The first line shows the original explicit quota on the proj1 qtree. This quota remains unchanged.
+
+The second line shows the new default tree quota on the volume. The asterisk (*) Quota Specifier indicates it is a default quota. This quota is a result of the quota rule that you created.
+
+The last two lines show new derived tree quotas for the proj2 and proj3 qtrees. ONTAP automatically created these quotas as a result of the default tree quota on the volume. These derived tree quotas have the same 20-GB disk limit as the default tree quota on the volume. ONTAP did not create a derived tree quota for the proj1 qtree because the proj1 qtree already had an explicit quota.
+====
+
+== Learn how default user quotas on an ONTAP FlexVol volume affect quotas for qtrees
+
+If a default user quota is defined for a FlexVol volume, a default user quota is automatically created for every qtree contained by that volume for which an explicit or derived tree quota exists.
+
+If a default user quota on the qtree already exists, it remains unaffected when the default user quota on the volume is created.
+
+The automatically created default user quotas on the qtrees have the same limits as the default user quota you create for the volume.
+
+An explicit user quota for a qtree overrides (replaces the limits applied by) the automatically created default user quota, the same way as it overrides a default user quota on that qtree that was created by an administrator.
+
+// 2026 Jul 7, ONTAPDOC-4012
+// 2025 Mar 19, ONTAPDOC-2758
 // 2025 Mar 13, ONTAPDOC-2758
 // DP - August 5 2024 - ONTAP-2121
+// ONTAPDOC-2119/GH-1818 2024-6-26
