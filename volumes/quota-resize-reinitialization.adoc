@@ -1,17 +1,19 @@
 ---
-permalink: volumes/resizing-concept.html
+permalink: volumes/quota-resize-reinitialization.html
 sidebar: sidebar
 keywords: when to, use, resizing
 summary: "Quota resizing is faster than quota initialization, but it has restrictions."
 ---
-= Learn about ONTAP quota resizing
+= Learn about ONTAP quota resizing and reinitialization
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Quota resizing is a useful ONTAP feature. And because resizing is faster than quota initialization, you should use resizing whenever possible. However there are a few restrictions you need to be aware of.
+Resizing a quota is faster that reinitialization, however, if you make certain changes to your quotas, you must do a full quota reinitialization 
 
-Resizing only works for certain types of quota changes. You can resize quotas when making the following types of changes to the quota rules:
+== ONTAP quota resizing
+
+You can resize quotas when making the following types of changes to the quota rules:
 
 * Changing an existing quota.
 +
@@ -30,7 +32,7 @@ After you have made extensive quotas changes, you should perform a full reinitia
 If you attempt to resize and not all of your quota changes can be incorporated by using a resize operation, ONTAP issues a warning. You can determine from the quota report whether your storage system is tracking disk usage for a particular user, group, or qtree. If you see a quota in the quota report, it means that the storage system is tracking the disk space and the number of files owned by the quota target.
 ====
 
-.Example quotas changes that can be made effective by resizing
+.Example quota changes that can be made effective by resizing
 
 Some quota rule changes can be made effective by resizing. Consider the following quotas:
 
@@ -65,5 +67,27 @@ boris         user@/vol/vol2/  100M   75K
 ----
 
 Resizing activates all of these changes; a full quota reinitialization is not necessary.
+
+
+== ONTAP quota reinitialization
+
+Although resizing quotas is faster, you must do a full quota reinitialization if you make certain small or extensive changes to your quotas.
+
+A full quota reinitialization is necessary in the following circumstances:
+
+* You create a quota for a target that has not previously had a quota (neither an explicit quota nor one derived from a default quota).
+* You change the security style of a qtree from UNIX to either mixed or NTFS.
+* You change the security style of a qtree from mixed or NTFS to UNIX.
+* You remove users from a quota target with multiple users, or add users to a target that already has multiple users.
+* You make extensive changes to your quotas.
+
+.Example of quotas changes that require initialization
+
+Suppose you have a volume that contains three qtrees and the only quotas in the volume are three explicit tree quotas. You decide to make the following changes:
+
+* Add a new qtree and create a new tree quota for it.
+* Add a default user quota for the volume.
+
+Both of these changes require a full quota initialization. Resizing does not make the quotas effective.
 
 // DP - August 10 2024 - ONTAP-2121
