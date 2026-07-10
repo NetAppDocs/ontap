@@ -20,15 +20,15 @@ Beginning with ONTAP 9.16.1, Autonomous Ransomware Protection uses a pre-trained
 
 ARP/AI's machine-learning model is pre-trained on a large dataset of files both before and after a simulated ransomware attack. This resource-intensive training is done outside ONTAP using open-source forensic research datasets. Customer data is not used throughout the entire modelling pipeline. The pre-trained model is included on-box with ONTAP and is not accessible or modifiable through the ONTAP CLI or ONTAP API.
 
-.Immediate transition to active protection
+.Immediate protection on supported volumes
 
-ARP/AI is active immediately after installation or upgrade for the following supported volume types:
+ARP/AI provides immediate active protection on the following supported volume types:
 
 * NAS FlexVol volumes with ONTAP 9.16.1 and later
 * NAS FlexGroup volumes with ONTAP 9.18.1 and later
-* SAN volumes with ONTAP 9.17.1 and later (active immediately, even during the link:entropy-eval-period-arpai.html[evaluation period])
+* SAN FlexVol volumes with ONTAP 9.17.1 and later (active immediately, even during the link:entropy-eval-period-arpai.html[evaluation period])
 
-For existing and new volumes with ARP functionality already enabled, ARP/AI protection is active automatically after you upgrade your cluster to an ARP/AI supported ONTAP version. Volumes that are in learning mode when you upgrade to ONTAP 9.16.1 or later are automatically transitioned to active mode.
+NOTE: For upgrade-specific behavior, such as transitions from earlier ARP functionality, see link:support-arpai.html#arp-upgrade-considerations[Upgrade considerations for existing clusters].
 
 .Automatic security updates
 
@@ -47,17 +47,17 @@ ARP/AI detects the spread of most ransomware attacks after only a small number o
 [NOTE]
 No ransomware detection system can guarantee complete safety. ARP/AI provides an extra layer of defense if anti-virus software fails to detect an intrusion.
 
-== Enable ARP/AI
+== Enablement options for ARP/AI
 
 ARP/AI provides flexible enablement options at the cluster, SVM, and volume levels.
 
 .Automatic default enablement on new volumes
 
-Beginning with ONTAP 9.18.1, ARP/AI is enabled by default automatically on all new volumes for AFF A series and AFF C series, ASA, and ASA r2 systems. This automatic default enablement does not apply to link:support-arpai.html#unsupported-configurations[unsupported volumes or configurations]. You must enable ARP/AI manually on existing volumes. For details on how default enablement takes effect when upgrading, see link:support-arpai.html#arp-upgrade-considerations[ARP version-specific upgrade considerations].
+Beginning with ONTAP 9.18.1, ARP/AI is enabled by default on all new volumes for AFF A-series, AFF C-series, ASA, and ASA r2 systems. This automatic default enablement does not apply to link:support-arpai.html#unsupported-configurations[unsupported volumes or configurations]. You can link:enable-arpai.html[manually enable ARP/AI on existing volumes].
 
-NOTE: Beginning with ONTAP 9.19.1, default ARP enablement applies to clusters that include SnapMirror synchronous and SnapMirror active sync SAN relationships. In ONTAP 9.18.1, default enablement was suppressed for these configurations. For cross-cluster SnapMirror synchronous relationships, default enablement activates once both the source and destination clusters are upgraded to ONTAP 9.19.1. ARP is not enabled by default on AFX systems, even with SnapMirror synchronous support.
+You can link:default-enable-change-arpai.html[turn default enablement on or off] at any time after deployment.
 
-During the grace period, you can link:default-enable-change-arpai.html[opt out of default enablement for new volumes at the cluster level using System Manager or the ONTAP CLI]. If you do not opt out, ARP/AI is automatically enabled for all new volumes created after the end of the grace period. If needs change after the grace period, you also have the flexibility to turn on or turn off default enablement at any time.
+NOTE: For upgrade-specific enablement behavior, including grace period and SnapMirror version requirements, see link:support-arpai.html#arp-upgrade-considerations[Upgrade considerations for existing clusters].
 
 .Manual default enablement on new volumes
 
@@ -71,7 +71,7 @@ To enable ARP/AI on a specific volume, see link:enable-arpai.html[Enable ARP/AI 
 
 == ARP/AI protection modes
 
-ARP/AI protects volumes without a learning period. The following tables describe how protection behaves by volume type.
+ARP/AI protects volumes immediately without a learning period. The following tables describe how protection behaves by volume type.
 
 === NAS volumes
 
@@ -80,7 +80,7 @@ ARP/AI protects volumes without a learning period. The following tables describe
 | Mode | Description | Volume types and versions
 
 | Evaluation
-a| A two- to four-week evaluation period is performed to determine baseline encryption behavior for hypervisor workloads. Detection and alerts can occur while baseline thresholds are being established. You can determine if the evaluation period is complete by running the `security anti-ransomware volume show` command and checking `Block device detection status`.
+a| A two- to four-week evaluation period is performed to determine baseline encryption behavior while ARP/AI provides immediate active protection during the evaluation period. Detection and alerts can occur while baseline thresholds are being established. You can determine if the evaluation period is complete by running the `security anti-ransomware volume show` command and checking `Block device detection status`.
 
 link:entropy-eval-period-arpai.html[Learn about the ARP/AI evaluation period for block-device workloads].
 a| NAS FlexVol volumes containing ONTAP-detected hypervisor virtual disks with ONTAP 9.17.1P5 and later
@@ -120,7 +120,7 @@ For more information, see link:respond-arpai.html[Respond to abnormal activity].
 
 == ARP/AI snapshots
 
-ARP/AI creates a snapshot when early signs of an attack are detected. A detailed analysis is then conducted to confirm or dismiss the potential attack. Because ARP/AI also generates snapshots at regular 4-hour intervals, the presence of these snapshots should not be regarded as an anomaly. If an attack is confirmed, the attack probability is escalated to `Moderate` and an attack notification is generated.
+ARP/AI creates a snapshot when early signs of an attack are detected. An analysis is then conducted to confirm or dismiss the potential attack. Because ARP/AI also generates snapshots at regular 4-hour intervals, the presence of these snapshots should not be regarded as an anomaly. If an attack is confirmed, the attack probability is set to `Moderate` and an attack notification is generated.
 
 The following table summarizes ARP/AI snapshot behavior.
 
