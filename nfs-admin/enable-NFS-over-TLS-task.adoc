@@ -37,24 +37,27 @@ By default, a TLS-enabled LIF can also accept non-TLS NFS over TCP from clients 
 == Step 1: Prepare to enable NFS over TLS 
 Prepare your ONTAP system for NFS over TLS by verifying that the following requirements are met.
 
-.Before you begin
+.Steps
 
-* Confirm that NFS is configured on the SVM:
+. Confirm that NFS is configured on the SVM:
 +
 [source,cli]
 ----
 vserver nfs show -vserver <vserver_name>
 ----
-* Confirm that an NFS data LIF exists:
+. Confirm that an NFS data LIF exists:
 +
 [source,cli]
 ----
 network interface show -role data -instance -data-protocol nfs -vserver <vserver_name>
 ----
 
+== Step 2: Verify or install a valid X.509 server certificate for each TLS-enabled NFS data LIF
+Make sure that a valid X.509 server certificate is available for each TLS-enabled NFS data LIF. If you don’t have a valid certificate, generate and install a certificate.
+
 .Steps
 
-. Make sure that a valid X.509 server certificate is available for each TLS-enabled NFS data LIF. View installed server certificates:
+. View installed server certificates:
 +
 [source,cli]
 ----
@@ -71,7 +74,7 @@ Verify the certificate is associated with a TLS-enabled LIF:
 If you don’t have a valid certificate, follow the instructions to generate and install a certificate: link:../install-server-certificate-cluster-svm-ssl-server-task.html#install-a-ca-signed-server-certificate[Install a CA-signed server certificate].
 . Confirm that NFS clients support RPC-with-TLS over TCP and trust the certificate authority that signed the server certificate.
 
-== Step 2: Enable NFS over TLS
+== Step 3: Enable NFS over TLS
 Use ONTAP System Manager or the ONTAP CLI to enable NFS over TLS on your NFS SVM data LIFs.
 
 [role="tabbed-block"]
@@ -112,7 +115,6 @@ vserver nfs tls interface show -status enabled
 +
 This example shows how to enable TLS on the data LIF and associate the certificate:
 +
-[source,cli]
 ----
 vserver nfs tls interface enable -vserver vs1 -lif data1 -certificate-name tls_server_cert
 ----
@@ -138,7 +140,6 @@ vserver nfs tls interface modify
 +
 This example shows how to enforce client certificate validation during the TLS handshake on the desired LIF:
 +
-[source,cli]
 ----
 vserver nfs tls interface modify -vserver <vserver_name> -lif <lif_name> -enforce-host-auth true
 ----
@@ -160,7 +161,6 @@ This is only applicable to TCP connections. RDMA-based connections don’t enfor
 +
 This example shows how to enforce TLS-only access for matching clients:
 +
-[source,cli]
 ----
 vserver export-policy rule modify -vserver vs1 -policyname default -ruleindex 10 -allow-nfs-tls-only true
 vserver export-policy rule show -vserver vs1 -policyname default -fields clientmatch,allow-nfs-tls-only
@@ -168,7 +168,7 @@ vserver export-policy rule show -vserver vs1 -policyname default -fields clientm
 --
 ====
 
-== Step 3: Verify the configuration
+== Step 4: Verify the configuration
 
 After you configure NFS over TLS, verify the settings.
 
@@ -180,13 +180,13 @@ After you configure NFS over TLS, verify the settings.
 ----
 vserver nfs tls interface show -status enabled
 ----
-. Optional: Verify that mutual host authentication is enabled on the LIF: 
+. Optionally, verify that mutual host authentication is enabled on the LIF: 
 +
 [source,cli]
 ----
 vserver nfs tls interface show -vserver <vserver_name> -lif <lif_name> -instance
 ----
-. Optional: Verify export-policy TLS enforcement: 
+. Optionally, verify export-policy TLS enforcement: 
 +
 [source,cli]
 ----
@@ -196,7 +196,6 @@ vserver export-policy rule show -fields allow-nfs-tls-only,clientmatch
 Use the following examples to interpret the verification commands.
 
 Example: vserver nfs tls interface show
-[source,cli]
 ----
 cluster1::> vserver nfs tls interface show
 
@@ -210,7 +209,6 @@ vs1      data2      192.0.2.11   disabled    -                     false
 ----
 
 Example: vserver nfs tls interface show -instance
-[source,cli]
 ----
 cluster1::> vserver nfs tls interface show -vserver vs1 -lif data1 -instance
 Vserver: vs1
@@ -223,7 +221,6 @@ Enforce Host Authentication : true
 ----
 
 Example: vserver export-policy rule show -fields clientmatch,allow-nfs-tls-only
-[source,cli]
 ----
 cluster1::> vserver export-policy rule show -vserver vs1 -policyname default -fields clientmatch,allow-nfs-tls-only
 vserver policyname ruleindex clientmatch allow-nfs-tls-only
