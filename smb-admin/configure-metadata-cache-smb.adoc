@@ -1,0 +1,78 @@
+---
+permalink: smb-admin/configure-metadata-cache-smb.html
+sidebar: sidebar
+keywords: enable, smb, metadata, cache, store, path, file, attribute, data, performance, client, workload, how smb metadata caching works
+summary: "When enabled, the SMB metadata cache stores path and file attribute data for a limited amount of time. This can improve SMB performance for SMB 1.0 clients with common workloads."
+---
+= Configure the metadata cache for SMB shares
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Metadata caching enables file attribute caching on SMB 1.0 clients to provide faster access to file and folder attributes. You can enable or disable attribute caching on a per-share basis. You can also configure the time-to-live for cached entries if metadata caching is enabled. Configuring metadata caching is not necessary if clients are connecting to shares over SMB 2.x or SMB 3.0.
+
+When enabled, the SMB metadata cache stores path and file attribute data for a limited amount of time. This can improve SMB performance for SMB 1.0 clients with common workloads.
+
+For certain tasks, SMB creates a significant amount of traffic that can include multiple identical queries for path and file metadata. You can reduce the number of redundant queries and improve performance for SMB 1.0 clients by using SMB metadata caching to fetch information from the cache instead.
+
+[NOTE]
+====
+While unlikely, it is possible that the metadata cache might serve stale information to SMB 1.0 clients. If your environment cannot afford this risk, you should not enable this feature.
+====
+
+== Enable the ONTAP SMB metadata cache
+
+You can improve SMB performance for SMB 1.0 clients by enabling the SMB metadata cache. By default, SMB metadata caching is disabled.
+
+.Step
+
+. Enable SMB metadata caching on a new or existing share:
++
+* Enable SMB metadata caching when you create a new share:
++
+[source,cli]
+----
+vserver cifs share create -vserver <SVM_name> -share-name <share_name> -path <path> -share-properties attributecache
+----
+
+* Enable SMB metadata caching on an existing share:
++
+[source,cli]
+----
+vserver cifs share properties add -vserver <SVM_name> -share-name <share_name> -share-properties attributecache
+----
+
+
+== Configure the lifetime of ONTAP SMB metadata cache entries
+
+You can configure the lifetime of SMB metadata cache entries to optimize the SMB metadata cache performance in your environment. The default is 10 seconds.
+
+.Before you begin
+
+You must have enabled the SMB metadata cache feature. If SMB metadata caching is not enabled, the SMB cache TTL setting is not used.
+
+.Step
+
+. Configure the lifetime of SMB metadata cache entries on a new or existing share:
++
+* Configure the lifetime of SMB metadata cache entries when you create a new share:
++
+[source,cli]
+----
+vserver cifs share create -vserver <SVM_name> -share-name <share_name> -path <path> -attribute-cache-ttl [integerh][integerm][integers]
+----
+
+* Configure the lifetime of SMB metadata cache entries on an existing share:
++
+[source,cli]
+----
+vserver cifs share modify -vserver <SVM_name> -share-name <share_name> -attribute-cache-ttl [integerh][integerm][integers]
+----
+
+You can specify additional share configuration options and properties when you create or modify shares. 
+Learn more about `vserver cifs share` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=vserver+cifs+share[ONTAP command reference^].
+
+// 2026 May 26, ONTAPDOC-3910
+// 2025 June 18, ONTAPDOC-2981
+// 2025 May 29, ONTAPDOC-2981
+// 2025 Jan 16, ONTAPDOC-2569
