@@ -62,13 +62,28 @@ ARP (9.10.1 to 9.15.1) supports NAS workloads across NFS and SMB protocols on Fl
 [[snapmirror]]
 == SnapMirror and ARP interoperability
 
-For ONTAP 9.12.1 and later, ARP is supported on volumes protected with SnapMirror asynchronous replication. SnapMirror synchronous and SnapMirror active sync are supported only with ARP/AI beginning in ONTAP 9.19.1.
+Beginning with ONTAP 9.12.1, ARP is supported on SnapMirror asynchronous destination volumes. SnapMirror synchronous and SnapMirror active sync are supported only with ARP/AI beginning in ONTAP 9.19.1.
 
-If a SnapMirror source volume is ARP-enabled, the SnapMirror destination volume automatically acquires the ARP configuration state (enabled/disabled and mode) of the source volume. The destination does not need to be separately enabled for ARP.
+If a SnapMirror source volume is ARP-enabled, the SnapMirror destination volume automatically acquires the ARP configuration state (such as `dry-run` or `enabled`), ARP training data, and ARP-created snapshot of the source volume. The destination does not need to be separately enabled for ARP.
 
 While a destination volume consists of read-only (RO) snapshots, no ARP processing is done on its data. However, when a SnapMirror destination volume is converted to read-write (RW), ARP is automatically enabled on the RW-converted destination volume.
 
 NOTE: In ONTAP 9.10.1 and 9.11.1, SnapMirror does not transfer the ARP configuration state, training data, and snapshots from source to destination volumes. When the SnapMirror destination volume is converted to read-write, ARP on the destination volume must be explicitly enabled in learning mode after conversion.
+
+== Unsupported configurations
+
+ARP does not support the following volume configurations:
+
+* FlexCache volumes (ARP is supported on origin FlexVol volumes but not on cache volumes)
+* Offline volumes
+* SnapLock volumes
+* SnapMirror synchronous
+* SnapMirror active sync
+* SnapMirror asynchronous destination volumes in ONTAP 9.10.1 and 9.11.1 (supported beginning with ONTAP 9.12.1)
+* Restricted volumes
+* Root volumes of storage VMs
+* Volumes of stopped storage VMs
+* FlexVol to FlexGroup conversion (ARP must be disabled before conversion)
 
 == Performance and volume limits
 
@@ -95,7 +110,7 @@ NOTE: Enabling ARP by default on large numbers of new volumes might increase sys
 
 == [[multi-admin-verification]]Multi-admin verification with ARP-protected volumes
 
-Beginning with ONTAP 9.13.1, you can enable multi-admin verification (MAV) for additional security with ARP/AI. MAV ensures that at least two or more authenticated administrators are required to turn off ARP/AI, pause ARP/AI, or mark a suspected attack as a false positive on a protected volume. Learn how to link:../multi-admin-verify/enable-disable-task.html[enable MAV for ARP-protected volumes].
+Beginning with ONTAP 9.13.1, you can enable multi-admin verification (MAV) for additional security with ARP. MAV ensures that at least two or more authenticated administrators are required to turn off ARP, pause ARP, or mark a suspected attack as a false positive on a protected volume. Learn how to link:../multi-admin-verify/enable-disable-task.html[enable MAV for ARP-protected volumes].
 
 You need to define administrators for a MAV group and create MAV rules for the `security anti-ransomware volume disable`, `security anti-ransomware volume pause`, and `security anti-ransomware volume attack clear-suspect` commands you want to protect.
 
