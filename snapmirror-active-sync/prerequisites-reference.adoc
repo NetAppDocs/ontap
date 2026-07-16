@@ -17,6 +17,8 @@ When planning your SnapMirror active sync deployment, ensure you have met the va
 
 == Hardware
 
+.SAN support
+
 The following table outlines the supported NetApp cluster configurations. 
 
 [cols="25,25,25,25"]
@@ -26,27 +28,48 @@ h| Cluster type h| Supported models h| Supported features h| Maximum supported c
 
 a| AFF
 a| A-Series, C-Series
-a| Automated Failover Duplex (Symmetric Active/Active), Automated Failover (Asymmetric Active/Passive)
+a| Automated Failover Duplex (asymmetric active/active), Automated Failover (asymmetric active/passive)
 a| 
 * 2 (ONTAP 9.9.1 or later)  
-* 4 (ONTAP 9.16.1 with Symmetric Active/Active configurations)
+* 4 (ONTAP 9.16.1 with symmetric active/active configurations)
 
 a| ASA
 a| A-Series, C-Series
-a| Automated Failover Duplex (Symmetric Active/Active), Automated Failover (Asymmetric Active/Passive)
+a| Automated Failover Duplex (symmetric active/active), Automated Failover (asymmetric active/passive)
 a| 
 * 2 (ONTAP 9.9.1 or later 
-* 4 (ONTAP 9.16.1 with Symmetric Active/Active configurations)
+* 4 (ONTAP 9.16.1 with symmetric active/active configurations)
 
 a| ASA r2 
 a| All
-a| Automated Failover Duplex (Symmetric Active/Active)
+a| Automated Failover Duplex (symmetric active/active)
 a| 
 * 2 (ONTAP 9.17.1 or earlier)
 * 4 (ONTAP 9.18.1 or later)
 
 |===
 
+.NAS support
+
+The following table outlines the supported NetApp cluster configurations.
+
+[cols="25,25,25,25"]
+|===
+h| Cluster type h| Supported models h| Supported features h| Maximum supported cluster nodes
+
+a| AFF
+a| A-Series, C-Series
+a| Asymmetric active/passive (Automated Failover)
+a| 2 (ONTAP 9.19.1 or later)
+
+a| AFX
+a| All
+a| Asymmetric active/passive (Automated Failover)
+a| 4 (ONTAP 9.19.1 or later)
+
+|===
+
+.Cross-platform replication
 
 The table below outlines the capability for replication between cluster types.
 
@@ -58,6 +81,10 @@ h| Cluster type 1 h| Cluster type 2 h| Replication supported?
 a| AFF A-Series
 a| AFF C-Series
 a| Yes 
+
+a| AFF
+a| AFX
+a| No
 
 a| ASA r2 A-Series
 a| ASA r2 C-Series
@@ -71,10 +98,6 @@ a| No
 a| ASA 
 a| ASA r2
 a| No
-
-a| ASA r2
-a| ASA r2
-a| Yes
 
 |===
 
@@ -104,7 +127,7 @@ If your ONTAP storage systems were purchased before June 2019, see link:https://
 * Beginning with ONTAP 9.14.1, link:https://kb.netapp.com/onprem/ontap/da/SAN/What_are_SCSI_Reservations_and_SCSI_Persistent_Reservations[SCSI-3 persistent reservations^] are supported with SnapMirror active sync.
 
 == Supported protocols
-SnapMirror active sync supports SAN protocols. 
+SnapMirror active sync supports the following SAN protocols. 
 
 * The FC and iSCSI protocols are supported beginning with ONTAP 9.9.1.
 * The NVMe protocol is supported with VMware workloads beginning with ONTAP 9.17.1. 
@@ -119,13 +142,31 @@ SnapMirror active sync does not support the following with the NVMe protocol:
 You cannot expand or shrink a consistency group non-disruptively when using the NVMe protocol with SnapMirror active sync. Consistency group expansion and shrink operations are disruptive when using the NVMe protocol with SnapMirror active sync. 
 ** Coexistence of LUNs and namespaces in the same consistency group.
 
+Beginning with ONTAP 9.19.1, SnapMirror active sync supports the following NAS protocols. 
+
+* NFSv3 and later
++
+Non-disruptive failover is supported for NFSv3 and later.
+* SMB 
++
+** Non-disruptive failover is supported for SMB 3 CA shares.
+
+** Disruptive (but zero RPO maintained) failover is supported for SMB2 and SMB3 non-CA shares.
+
+** SMB1 is not supported.
+
+NAS clusters require the same IP address and protocol configuration on the primary and secondary cluster to enable non-disruptive failover. Because SVMs can be configured with the same IP address and protocols, SnapMirror active sync supports NAS configurations at the SVM level; however, the secondary SVM remains dormant (not running) because the LIFs must remain down until a failover occurs to prevent IP collision with the primary SVM.
+
+
 == IPspace
 
-The default IPspace is required by SnapMirror active sync for cluster peer relationships. Custom IPspaces are not supported.
+The default IPspace is required by SnapMirror active sync for cluster peer relationships. Custom IPspaces are not supported. 
+
+With SnapMirror active sync for NAS, primary and secondary SVMs can be in different IPspaces.
 
 == NTFS Security Style
 
-NTFS security style is *not* supported on SnapMirror active sync volumes.
+NTFS security style is *not* supported on SnapMirror active sync volumes for SAN. NTFS Security Style is supported with SnapMirror active sync for NAS.
 
 == ONTAP Mediator
 * ONTAP Mediator must be provisioned externally and attached to ONTAP for transparent application failover.
@@ -136,13 +177,14 @@ NTFS security style is *not* supported on SnapMirror active sync volumes.
 
 == Other prerequisites 
 
-* In releases earlier than ONTAP 9.15.1, SnapMirror active sync relationships are not supported on read-write destination volumes volumes (volumes converted to read-write from DP in an asymmetric active-passive). Before you can use a read-write volume, you must convert it to a DP volume by creating a volume-level SnapMirror relationship (either async or sync) and then deleting the relationship. For details, see link:convert-active-sync-task.html[Convert an existing SnapMirror relationships to SnapMirror active sync].
+* In releases earlier than ONTAP 9.15.1, SnapMirror active sync relationships are not supported on read-write destination volumes (volumes converted to read-write from DP in an asymmetric active-passive). Before you can use a read-write volume, you must convert it to a DP volume by creating a volume-level SnapMirror relationship (either async or sync) and then deleting the relationship. For details, see link:convert-active-sync-task.html[Convert an existing SnapMirror relationships to SnapMirror active sync].
 * Storage VMs using SnapMirror active sync cannot be joined to Active Directory as a client computer.  
 
 == Further information 
 * link:https://hwu.netapp.com/[Hardware Universe^]
 * link:../mediator/mediator-overview-concept.html[ONTAP Mediator overview]
 
+// 2026-May-24, ONTAPDOC-3544
 // 2026-Mar-11, ONTAPDOC-3621
 // 2026-Feb-3, GitHub issue #1963
 // 2025-Dec-17, ONTAPDOC-3566
