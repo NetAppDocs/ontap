@@ -1,14 +1,23 @@
 ---
-permalink: volumes/quota-report-quotas-effect-concept.html
+permalink: volumes/quota-reports.html
 sidebar: sidebar
 keywords: how, use, quota report, see, quotas in effect
 summary: "View the quota report to see which quotas are in effect beyond the ones you have explicitly created."
 ---
-= See what ONTAP quotas are in effect using the quota report
+= Learn about ONTAP quota reports
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
+You can use quota reports to view details such as the configuration of quota rules and policies, enforced and configured quotas, and errors that have occurred during quota resizing and reinitialization.
+
+Viewing quota information is useful in situations such as the following:
+
+* Configuring quotas, for example to configure quotas and verify the configurations
+* Responding to notifications that disk space or file limits will soon be reached or that they have been reached
+* Responding to requests for more space
+
+== See what ONTAP quotas are in effect using the quota report
 Because of the various ways that quotas interact, more quotas are in effect than just the ones you have explicitly created. To see what quotas are in effect, you can view the quota report.
 
 The following examples show quota reports for different types of quotas applied on a FlexVol volume vol1, and a qtree q1 contained in that volume:
@@ -123,3 +132,31 @@ No other default quotas or derived quotas were created for the following reasons
 * A derived user quota was not created for the jsmith user even though the user owns files on both the volume and the qtree because the user already has explicit quotas at both levels.
 * No derived user quotas were created for other users because no other users own files on either the volume or the qtree.
 * The default user quota on the volume did not create a default user quota on the qtree because the qtree already had a default user quota.
+
+== Use the ONTAP quota report to determine which quotas limit writes to a specific file
+
+You can use the volume quota report command with a specific file path to determine which quota limits affect write operations to a file. This can help you understand which quota is preventing a write operation.
+
+.Step
+
+. Use the volume quota report command with the -path parameter.
+
+.Example of showing quotas affecting a specific file
+
+The following example shows the command and output to determine what quotas are in effect for writes to the file file1, which resides in the qtree q1 in the FlexVol volume vol2:
+
+----
+cluster1:> volume quota report -vserver vs0 -volume vol2 -path /vol/vol2/q1/file1
+Virtual Server: vs0
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol2     q1        tree    jsmith     1MB  100MB       2   10000   q1
+vol2     q1        group   eng        1MB  700MB       2   70000
+vol2               group   eng        1MB  700MB       6   70000   *
+vol2               user    corp\jsmith
+                                      1MB   50MB       1       -   *
+vol2     q1        user    corp\jsmith
+                                      1MB   50MB       1       -
+5 entries were displayed.
+----
