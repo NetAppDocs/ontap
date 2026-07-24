@@ -1,0 +1,162 @@
+---
+permalink: volumes/quota-reports.html
+sidebar: sidebar
+keywords: how, use, quota report, see, quotas in effect
+summary: "View the quota report to see which quotas are in effect beyond the ones you have explicitly created."
+---
+= Learn about ONTAP quota reports
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+You can use quota reports to view details such as the configuration of quota rules and policies, enforced and configured quotas, and errors that have occurred during quota resizing and reinitialization.
+
+Viewing quota information is useful in situations such as the following:
+
+* Configuring quotas, for example to configure quotas and verify the configurations
+* Responding to notifications that disk space or file limits will soon be reached or that they have been reached
+* Responding to requests for more space
+
+== See what ONTAP quotas are in effect using the quota report
+Because of the various ways that quotas interact, more quotas are in effect than just the ones you have explicitly created. To see what quotas are in effect, you can view the quota report.
+
+The following examples show quota reports for different types of quotas applied on a FlexVol volume vol1, and a qtree q1 contained in that volume:
+
+.Example with no user quotas specified for the qtree
+
+In this example, there is one qtree, q1, which is contained by the volume vol1. The administrator has created three quotas:
+
+* A default tree quota limit on vol1 of 400MB
+* A default user quota limit on vol1 of 100MB
+* An explicit user quota limit on vol1 of 200MB for the user jsmith
+
+The quota rules for these quotas look similar to the following example:
+
+----
+cluster1::*> volume quota policy rule show -vserver vs1 -volume vol1
+
+Vserver: vs1               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+tree   ""        ""      -           400MB        -       -        -          -
+user   ""        ""      off         100MB        -       -        -          -
+user   jsmith    ""      off         200MB        -       -        -          -
+----
+
+The quota report for these quotas looks similar to the following example:
+
+----
+cluster1::> volume quota report
+Vserver: vs1
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1     -          tree   *           0B  400MB       0       -   *
+vol1     -          user   *           0B  100MB       0       -   *
+vol1     -          user   jsmith    150B  200MB       7       -   jsmith                                     
+vol1     q1         tree   1           0B  400MB       6       -   q1
+vol1     q1         user   *           0B  100MB       0       -
+vol1     q1         user   jsmith      0B  100MB       5       -
+vol1     -          user   root        0B    0MB       1       -
+vol1     q1         user   root        0B    0MB       8       -
+----
+
+The first three lines of the quota report display the three quotas specified by the administrator. Since two of these quotas are default quotas, ONTAP automatically creates derived quotas.
+
+The fourth line displays the tree quota that is derived from the default tree quota for every qtree in vol1 (in this example, only q1).
+
+The fifth line displays the default user quota that is created for the qtree as a result of the existence of the default user quota on the volume and the qtree quota.
+
+The sixth line displays the derived user quota that is created for jsmith on the qtree because there is a default user quota for the qtree (line 5) and the user jsmith owns files on that qtree. Note that the limit applied to the user jsmith in the qtree q1 is not determined by the explicit user quota limit (200MB). This is because the explicit user quota limit is on the volume, so it does not affect limits for the qtree. Instead, the derived user quota limit for the qtree is determined by the default user quota for the qtree (100MB).
+
+The last two lines display more user quotas that are derived from the default user quotas on the volume and on the qtree. A derived user quota was created for the root user on both the volume and the qtree because the root user owned files on both the volume and the qtree. Since the root user gets special treatment in terms of quotas, its derived quotas are tracking quotas only.
+
+.Example with user quotas specified for the qtree
+
+This example is similar to the previous one, except that the administrator has added two quotas on the qtree.
+
+There is still one volume, vol1, and one qtree, q1. The administrator has created the following quotas:
+
+* A default tree quota limit on vol1 of 400MB
+* A default user quota limit on vol1 of 100MB
+* An explicit user quota limit on vol1 for the user jsmith of 200MB
+* A default user quota limit on qtree q1 of 50MB
+* An explicit user quota limit on qtree q1 for the user jsmith of 75MB
+
+The quota rules for these quotas look like this:
+
+----
+cluster1::> volume quota policy rule show -vserver vs1 -volume vol1
+
+Vserver: vs1               Policy: default           Volume: vol1
+                                               Soft             Soft
+                         User         Disk     Disk   Files    Files
+Type   Target    Qtree   Mapping     Limit    Limit   Limit    Limit  Threshold
+-----  --------  ------- -------  --------  -------  ------  -------  ---------
+tree   ""        ""      -           400MB        -       -        -          -
+user   ""        ""      off         100MB        -       -        -          -
+user   ""        q1      off          50MB        -       -        -          -
+user   jsmith    ""      off         200MB        -       -        -          -
+user   jsmith    q1      off          75MB        -       -        -          -
+----
+
+The quota report for these quotas looks like this:
+
+----
+
+cluster1::> volume quota report
+Vserver: vs1
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol1     -          tree   *           0B  400MB       0       -   *
+vol1     -          user   *           0B  100MB       0       -   *
+vol1     -          user   jsmith   2000B  200MB       7       -   jsmith
+vol1     q1         user   *           0B   50MB       0       -   *
+vol1     q1         user   jsmith      0B   75MB       5       -   jsmith
+vol1     q1         tree   1           0B  400MB       6       -   q1
+vol1     -          user   root        0B    0MB       2       -
+vol1     q1         user   root        0B    0MB       1       -
+----
+
+The first five lines of the quota report display the five quotas created by the administrator. Since some of these quotas are default quotas, ONTAP automatically creates derived quotas.
+
+The sixth line displays the tree quota that is derived from the default tree quota for every qtree in vol1 (in this example, only q1).
+
+The last two lines display the user quotas that are derived from the default user quotas on the volume and on the qtree. A derived user quota was created for the root user on both the volume and the qtree because the root user owned files on both the volume and the qtree. Since the root user gets special treatment in terms of quotas, its derived quotas are tracking quotas only.
+
+No other default quotas or derived quotas were created for the following reasons:
+
+* A derived user quota was not created for the jsmith user even though the user owns files on both the volume and the qtree because the user already has explicit quotas at both levels.
+* No derived user quotas were created for other users because no other users own files on either the volume or the qtree.
+* The default user quota on the volume did not create a default user quota on the qtree because the qtree already had a default user quota.
+
+== Use the ONTAP quota report to determine which quotas limit writes to a specific file
+
+You can use the volume quota report command with a specific file path to determine which quota limits affect write operations to a file. This can help you understand which quota is preventing a write operation.
+
+.Step
+
+. Use the volume quota report command with the -path parameter.
+
+.Example of showing quotas affecting a specific file
+
+The following example shows the command and output to determine what quotas are in effect for writes to the file file1, which resides in the qtree q1 in the FlexVol volume vol2:
+
+----
+cluster1:> volume quota report -vserver vs0 -volume vol2 -path /vol/vol2/q1/file1
+Virtual Server: vs0
+                                    ----Disk----  ----Files-----   Quota
+Volume   Tree      Type    ID        Used  Limit    Used   Limit   Specifier
+-------  --------  ------  -------  -----  -----  ------  ------   ---------
+vol2     q1        tree    jsmith     1MB  100MB       2   10000   q1
+vol2     q1        group   eng        1MB  700MB       2   70000
+vol2               group   eng        1MB  700MB       6   70000   *
+vol2               user    corp\jsmith
+                                      1MB   50MB       1       -   *
+vol2     q1        user    corp\jsmith
+                                      1MB   50MB       1       -
+5 entries were displayed.
+----

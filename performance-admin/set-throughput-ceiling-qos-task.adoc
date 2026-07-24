@@ -11,15 +11,41 @@ summary: "A QoS maxmimum or throughput ceiling guarantees that throughput for a 
 [.lead]
 A QoS maximum or throughput ceiling guarantees that throughput for a workload does not exceed a maximum number of IOPS or MBps, or IOPS and MBps regardless of competing workloads. Set a throughput ceiling to prevent less critical workloads from consuming excessive performance resources and degrading the performance of more critical workloads.
 
-You can use the `max-throughput` field for a policy group to define a throughput ceiling for storage object workloads (QoS Max). You can apply the policy group when you create or modify the storage object.
+You can specify the throughput ceiling when you create a QoS policy group or you can wait until you monitor your workloads to specify it.
+
+link:guarantee-throughput-qos-task.html[Learn more about throughput ceilings].
 
 .Before you begin
 
-* You must be a cluster administrator to create a policy group and to apply a policy group to an SVM.
+* You must be a cluster administrator to create a policy group and to apply it to an SVM.
 
 .About this task
 
-* Beginning with ONTAP 9.4, you can use a _non-shared_ QoS policy group to specify that the defined throughput ceiling applies to each member workload individually. Otherwise, the policy group is _shared:_ the total throughput for the workloads assigned to the policy group cannot exceed the specified ceiling.
+* Adaptive and non-adaptive QoS policy groups are automatically enabled to temporarily increase a workload’s throughput ceiling by 50% for a duration of 1 second to respond to short-term demands for higher performance by default. Beginning with ONTAP 9.19.1, you can modify these default settings.  In ONTAP 9.18.1 and earlier these settings cannot be changed.
++
+Use the following options to modify the default settings:
++
+[cols="3", options="header"]
+|====
+| Option
+| Description
+| Default setting
+
+
+a|`burst-percent` 
+| Throughput increase in percentage 
+| 50% 
+
+a| `burst duration`
+| Duration for the throughput increase in seconds
+| 1 second
+
+a| `burst-iops`
+| Maximum number of IOPs above the throughput ceiling for the specified burst duration
+| 0
+|====
+
+* You can use a _non-shared_ QoS policy group to specify that the defined throughput ceiling applies to each member workload individually. Otherwise, the policy group is _shared:_ the total throughput for the workloads assigned to the policy group cannot exceed the specified ceiling.
 +
 Set `-is-shared=false` for the `qos policy-group create` command to specify a non-shared policy group.
 
@@ -73,8 +99,6 @@ Learn more about `qos policy-group modify` in the link:https://docs.netapp.com/u
 ----
 vserver create -vserver <SVM> -qos-policy-group <policy_group>
 ----
-+
-You can use the `vserver modify` command to apply a different policy group to the storage object.
 +
 The following example applies policy group `pg-vs1` to SVM `vs1`:
 +
@@ -143,12 +167,39 @@ _USERSPACE_APPS     14       55        10.92KB/s   236.00us
 _Scan_Backgro..   5688       20            0KB/s        0ms
 ----
 +
+The following is an example of output for a workload with max-throughput set to 2000 IOPS and burst-percent set to 25 for a 5 second burst duration.
++
+----
+cluster1::> qos statistics workload performance show -workload test_vol_nfs_pct25-wid54260
+
+Workload	                ID	    IOPS
+--------------------------- -----   ----
+test_vol_nfs_pct25-wid54260	54260	2564
+-total-	-	                        3704
+test_vol_nfs_pct25-wid54260	54260	2527
+-total-	-	                        3105
+test_vol_nfs_pct25-wid54260	54260	2550
+-total-	-	                        3445
+test_vol_nfs_pct25-wid54260	54260	2476
+-total-	-	                        3460
+test_vol_nfs_pct25-wid54260	54260	2479
+-total-	-	                        3511
+test_vol_nfs_pct25-wid54260	54260	1996
+-total-	-	                        2197
+test_vol_nfs_pct25-wid54260	54260	2068
+-total-	-	                        2057
+test_vol_nfs_pct25-wid54260	54260	2087
+-total-	-	                        3119
+
+----
++
 Learn more about `qos statistics workload performance show` in the link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-performance-show.html[ONTAP command reference^].
 +
-
 You can use the `qos statistics workload latency show` command to view detailed latency statistics for QoS workloads.
++
 Learn more about `qos statistics workload latency show` in the link:https://docs.netapp.com/us-en/ontap-cli/qos-statistics-workload-latency-show.html[ONTAP command reference^].
 
+// 2026 May 07, ONTAPDOC 3675
 // 2025 August 7, spelling fix
 // 2025 July 31, ONTAPDOC-2960
 // 2025 May 27, ONTAPDOC-2960

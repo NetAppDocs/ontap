@@ -15,9 +15,9 @@ summary: You can remove zero RTO SnapMirror synchronous protection and delete th
 [.lead]
 If you no longer require zero RTO SnapMirror synchronous protection, you can delete your SnapMirror active sync relationship. 
 
-== Remove an asymmetric configuration 
+== Remove an asymmetric SAN configuration 
 
-* Before you delete the SnapMirror active sync relationship, all LUNs in the destination cluster must be unmapped.
+* Before you delete the SnapMirror active sync SAN relationship, all LUNs in the destination cluster must be unmapped.
 * After the LUNs are unmapped and the host is rescanned, the SCSI target notifies the hosts that the LUN inventory has changed. The existing LUNs on the zero RTO secondary volumes change to reflect a new identity after the zero RTO relationship is deleted. Hosts discover the secondary volume LUNs as new LUNs that have no relationship to the source volume LUNs.
 * The secondary volumes remain DP volumes after the relationship is deleted. You can issue the `snapmirror break` command to convert them to read/write.
 * Deleting the relationship is not allowed in the failed-over state when the relationship is not reversed.
@@ -119,6 +119,7 @@ SiteB::> igroup delete -vserver <svm_name> -igroup <igroup_name>`
 .Steps
 . On the source cluster, navigate to *Protection > Replication*. 
 . Locate the relationship you want to remove, select image:icon_kabob.gif[Menu options icon] and choose *Delete*. 
+. In the *Delete replication configuration* window, check *Release the source volume base snapshots.* and select *Delete*.
 
 --
 
@@ -149,6 +150,45 @@ SRC::> snapmirror release -destination-path vs1:/cg/cg_dst_1
 --
 ====
 
+== Remove a NAS configuration 
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+.Steps
+. On the source cluster, navigate to *Protection > Replication*. 
+. Locate the relationship you want to remove, select image:icon_kabob.gif[Menu options icon] and choose *Delete*. 
+. In the *Delete replication configuration* window, check *Release the source storage VM base snapshots.* and select *Delete*.
+
+--
+
+.CLI
+--
+. From the destination cluster, delete the SnapMirror active sync relationship.
++
+`snapmirror delete -destination-path <destination_path>`
++
+Example:
++
+----
+DST::> snapmirror delete -destination-path vs_b: 
+----
++
+The SVM and its volumes are removed from the secondary cluster.
+. From the source cluster, release the SnapMirror active sync relationship from primary site.
++
+`snapmirror release -destination-path <destination_path>`
++
+Example:
++
+----
+SRC::> snapmirror release -destination-path vs_b:
+----
+. Rediscover the paths to verify that only the local path is available to the host.
+
+--
+====
 
 
 .Related information
@@ -156,6 +196,7 @@ SRC::> snapmirror release -destination-path vs1:/cg/cg_dst_1
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-delete.html[snapmirror delete^]
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-release.html[snapmirror release^]
 
+// 2026-May-25, ONTAPDOC-3544
 // 2025-Aug-19, ONTAPDOC-2803
 // 2025-July-17, ONTAPDOC-2726
 // 2025 July 10, ONTAPDOC-2960

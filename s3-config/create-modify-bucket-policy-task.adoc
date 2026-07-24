@@ -23,6 +23,8 @@ You can add new statements for new users and groups, or you can modify the attri
 
 User and group permissions can be granted when the bucket is created or as needed later. You can also modify the bucket capacity and QoS policy group assignment.
 
+Beginning with ONTAP 9.19.1, you can use conditions to enforce conditional writes for object uploads and conditional deletes for object deletes. Conditional writes and deletes provide a way to prevent overwrites or unintended deletes of objects. 
+
 include::../_include/s3-aws-condition.adoc[]
 
 The procedure you follow depends on the interface that you use--System Manager or the CLI:
@@ -98,6 +100,12 @@ The following example creates an object store server bucket policy statement for
 cluster1::> vserver object-store-server bucket policy statement create -vserver svm1.example.com -bucket bucket1 -effect allow -action GetObject,PutObject,DeleteObject,ListBucket -principal group/group1 -resource bucket1/* -sid "fullAccessForGroup1"
 ----
 
+Beginning with ONTAP 9.19.1, you can use conditions to enforce conditional writes for object uploads and conditional deletes for object deletes. The following example creates a bucket policy statement condition to enforce conditional writes for bucket1: 
+
+----
+cluster::> vserver object-store-server bucket policy-statement-condition create -vserver vs0 -bucket buck1 -index 1 -operator Null -s3-if-match true 
+----
+
 Beginning with ONTAP 9.14.1, you can specify variables for a bucket policy. The following example creates a server bucket policy statement for the storage VM `svm1` and `bucket1`, and specifies `${aws:username}` as a variable for a policy resource. When the policy is evaluated, the policy variable is replaced with the request context username, and the policy action can be performed as configured for that user. For example, when the following policy statement is evaluated, `${aws:username}` is replaced with the user performing the S3 operation. If a user `user1` performs the operation, that user is granted access to `bucket1` as `bucket1/user1/*`.
 
 ----
@@ -107,6 +115,7 @@ cluster1::> object-store-server bucket policy statement create -vserver svm1 -bu
 --
 ====
 
+// 2025-Apr-16, ONTAPDOC-3666
 // 2025 Feb 17, ONTAPDOC-2758
 // 2024-12-20, ontapdoc-2606
 // 2021-04-14, Jira IE-289

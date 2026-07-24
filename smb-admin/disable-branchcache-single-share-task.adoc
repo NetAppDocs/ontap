@@ -4,16 +4,29 @@ sidebar: sidebar
 keywords: offer, caching, service, certain, share, offer, cache, disable, branchcache, exist, smb, disable branchcache on a single smb share
 summary: "If you do not want to offer caching services on certain shares that previously offered cached content, you can disable BranchCache on an existing SMB share."
 ---
-= Disable BranchCache on a single ONTAP SMB share
+= Disable BranchCache on SMB shares
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
+If you do not want to provide BranchCache caching services on certain SMB shares but you might want to provide caching services on those shares later, you can disable BranchCache on a share-by-share basis. If you have BranchCache configured to offer caching on all shares but you want to temporarily disable all caching services, you can modify the BranchCache configuration to stop automatic caching on all shares.
+
+If BranchCache on an SMB share is subsequently disabled after first being enabled, ONTAP stops sending metadata to the requesting client. A client that needs data retrieves it directly from the content server (CIFS server on the storage virtual machine (SVM)).
+
+
+
+== Disable BranchCache on a single ONTAP SMB share
+
 If you do not want to offer caching services on certain shares that previously offered cached content, you can disable BranchCache on an existing SMB share.
 
 .Step
 
-. Enter the following command: `vserver cifs share properties remove -vserver vserver_name -share-name share_name -share-properties branchcache`
+. Enter the following command: 
++
+[source,cli]
+----
+vserver cifs share properties remove -vserver <SVM_name> -share-name <share_name> -share-properties branchcache
+----
 +
 The BranchCache share property is removed. Other applied share properties remain in effect.
 
@@ -66,5 +79,51 @@ File Attribute Cache Lifetime: 10s
 Vscan File-Operations Profile: standard
 ----
 
+== Stop automatic caching on all ONTAP SMB shares
 
+If your BranchCache configuration automatically enables caching on all SMB shares on each storage virtual machine (SVM), you can modify the BranchCache configuration to stop automatically caching content for all SMB shares.
+
+.About this task
+
+To stop automatic caching on all SMB shares, you change the BranchCache operating mode to per-share caching.
+
+.Steps
+
+. Configure BranchCache to stop automatic caching on all SMB shares: 
++
+[source,cli]
+----
+vserver cifs branchcache modify -vserver <SVM_name> -operating-mode per-share
+----
+
+. Verify that the BranchCache configuration is correct: 
++
+[source,cli]
+----
+vserver cifs branchcache show -vserver <SVM_name>
+----
+
+.Example
+
+The following command changes the BranchCache configuration on storage virtual machine (SVM, formerly known as Vserver) vs1 to stop automatic caching on all SMB shares:
+
+----
+cluster1::> vserver cifs branchcache modify -vserver vs1 -operating-mode per-share
+
+cluster1::> vserver cifs branchcache show -vserver vs1
+
+                                 Vserver: vs1
+          Supported BranchCache Versions: enable_all
+                      Path to Hash Store: /hash_data
+          Maximum Size of the Hash Store: 20GB
+Encryption Key Used to Secure the Hashes: -
+        CIFS BranchCache Operating Modes: per_share
+----
+
+.Related information
+
+xref:configure-branchcache-enabled-shares-concept.adoc[Learn about configuring BranchCache-enabled shares]
+
+// 2026 May 26, ONTAPDOC-3910
+// 2025 June 10, ONTAPDOC-2981
 // 2025 June 10, ONTAPDOC-2981
