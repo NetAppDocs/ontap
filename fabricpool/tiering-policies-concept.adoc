@@ -153,15 +153,15 @@ When you clone volumes, keep the following best practices in mind:
 * The `-tiering-policy` option and `tiering-minimum-cooling-days` option of the clone only controls the tiering behavior of blocks unique to the clone. Therefore, we recommend using tiering settings on the parent FlexVol that are either move the same amount of data or move less data than any of the clones
 * The cloud retrieval policy on the parent FlexVol should either move the same amount of data or should move more data than the retrieval policy of any of the clones
 
-== How tiering policies work with cloud migration
+== How cloud retrieval policies work with tiering policies
 
-FabricPool cloud data retrieval is controlled by tiering policies that determine data retrieval from the cloud tier to performance tier based on the read pattern. Read patterns can be either sequential or random.
+FabricPool cloud data retrieval is controlled by retrieval policies that determine when data is written back to the local tier. Read patterns can be either sequential or random.
 
-The following table lists the tiering policies and the cloud data retrieval rules for each policy.
+The following table lists volume tiering policies and the default retrieval behavior for each policy.
 
 |===
 
-h| Tiering policy h| Retrieval behavior
+h| Tiering policy h| Default retrieval behavior
 
 a|
 none
@@ -192,27 +192,42 @@ h| Cloud retrieval policy h| Retrieval behavior
 a|
 default
 a|
-Tiering policy decides what data should be pulled back, so there is no change to cloud data retrieval with "`default,`" `cloud-retrieval-policy`. This policy is the default value for any volume regardless of the hosted aggregate type.
+When cold blocks in a volume are read, they use the default behavior of their volume tiering policy. This policy is the default value for any volume regardless of the hosted aggregate type.
 
 a|
 on-read
 a|
-All client-driven data read is pulled from cloud tier to performance tier.
+When cold blocks in a volume with a cloud retrieval policy set to "`On-Read`" are read, randomly or sequentially, they are made hot and written to the local tier.
+
+Applications that use sequential reads triggers write-backs to the local tier by setting the volume cloud retrieval policy to "`On-Read`". This can be beneficial for applications that need local-tier performance from previously cold data that is now being read by active workloads
 a|
 never
 a|
-No client-driven data is pulled from cloud tier to performance tier
+When cold blocks in a volume with a cloud retrieval policy set to "`Never"` are read, they remain cold and stay on the cloud tier. They are not written back to the local tier.
+
+Setting the cloud retrieval policy to "`Never"` is similar to the All tiering policy in that data is not allowed to return to the local tier but differs from the All tiering policy in that it continues to use the volume’s tiering-minimum-cooling-days setting rather than being tiered as soon as possible.
+
+For example, a volume using the Auto tiering policy's default setting would not mark data as cold until after 31-days of inactivity. After 31-days, the inactive data would be tiered to object storage and would not come back when read because the volume's cloud retrieval policy had been set to "`Never"`.
 a|
 promote
 a|
 
-* For tiering policy "`none,`" all cloud data is pulled from the cloud tier to the performance tier
-* For tiering policy "`snapshot-only,`" AFS data is pulled.
+* For tiering policy "`none,`" all tiered data is written back to the local tier.
+* For tiering policy "`snapshot-only,`" tiered, non-snapshot, data is written back to the local tier. 
 
 |===
 
-Learn more about the commands described in this procedure in the link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^].
+.Example of modifying the cloud retrieval policy
 
+The following example changes the volume's tiering policy to `none` and the retrieval policy to `promote`:
+
+----
+set -privilege advanced
+
+volume modify -vserver vs1 -volume myvol -tiering-policy none -cloud-retrieval-policy promote
+----
+
+// 2026-July-03, Rewrite of cloud retrieval section
 // 2026-June-26, Rewrite that updated default tiering policy information
 // 2025-Mar-12, SVMDR + FabricPool
 // 2024 Dec 19, ONTAPDOC-2569
