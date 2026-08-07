@@ -1,0 +1,93 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/enable-default-arp.html
+keywords: ARP, enable by default, autonomous ransomware protection, new volumes, SVM default, dry-run, learning mode, ONTAP 9.10.1, NAS, legacy ARP default enablement, ONTAP 9.15.1 or earlier
+summary: "Configure an SVM so that new NAS volumes are enabled by default for ARP in learning mode (ONTAP 9.10.1 through 9.15.1)."
+---
+
+= Enable ONTAP ARP by default in new volumes
+:toclevels: 1
+:hardbreaks:
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.10.1, you can configure storage VMs (SVMs) so that new NAS volumes are enabled by default with Autonomous Ransomware Protection (ARP) in learning mode. You can modify this setting using System Manager or the ONTAP CLI.
+
+NOTE: If you are running ONTAP 9.16.1 or later, see link:enable-default-arpai.html[Enable ARP/AI by default in new volumes].
+
+NOTE: For ONTAP 9.13.1 to 9.17.1, FlexGroup volumes use the earlier ARP model and require a learning period. Use this procedure for FlexGroup volumes running ONTAP 9.17.1 and earlier.
+
+.About this task
+
+By default, new volumes are created with ARP disabled. When you enable ARP by default on an SVM, new volumes created in that SVM automatically start in ARP learning mode (`dry-run` state). Existing volumes without ARP enabled will not change ARP enablement status when you change the SVM default.
+
+Beginning with ONTAP 9.13.1, adaptive learning is enabled by default, which means ARP automatically switches from learning mode to active mode after determining that the learning period is sufficient. You can disable this automatic switch to manually control the transition.
+
+[[arp-enablement-default-behavior-table]]
+include::../_include/arp-enablement-default-behavior.adoc[]
+
+.Before you begin
+
+* A storage VM (SVM) with NFS or SMB (or both) protocol enabled.
+* An active link:../concepts/namespaces-junction-points-concept.html[junction path] for the volume.
+* The link:index.html#licenses-for-autonomous-ransomware-protection[correct license] for your ONTAP version.
+* (Recommended) Multi-admin verification (MAV) enabled (ONTAP 9.13.1 and later). See link:../multi-admin-verify/enable-disable-task.html[Enable multi-admin verification].
+
+.Steps
+
+You can use System Manager or the ONTAP CLI to enable ARP by default for new volumes at the SVM level.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Select *Storage VMs*, then select the storage VM that will contain volumes you want to protect with ARP.
+. Navigate to the *Settings* tab. Under *Security*, locate the *Anti-ransomware* tile then select image:icon_pencil.gif[Edit icon].
+. Check the box to enable anti-ransomware (ARP). Check the additional box to enable ARP on all eligible volumes in the storage VM.
+. Select *Switch automatically from learning to active mode after sufficient learning* to allow ARP to determine the optimal learning period and automate the switch to active mode (ONTAP 9.13.1 and later).
+--
+
+.CLI
+--
+
+*Modify an existing SVM to enable ARP by default in learning mode for new volumes:*
+
+[source, cli]
+----
+vserver modify -vserver <svm_name> -anti-ransomware-default-volume-state dry-run
+----
+
+*Create a new SVM with ARP enabled by default (in learning mode) for new volumes:*
+
+[source, cli]
+----
+vserver create -vserver <svm_name> -anti-ransomware-default-volume-state dry-run
+----
+
+*Disable automatic learning to active mode transition (optional):*
+
+If you are running ONTAP 9.13.1 through 9.15.1 and want to manually control the switch from learning to active mode for all volumes associated with the SVM:
+
+[source, cli]
+----
+vserver modify -vserver <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false
+----
+
+*Verify the ARP state:*
+
+[source, cli]
+----
+security anti-ransomware volume show
+----
+--
+====
+
+.Related information
+
+* link:switch-learning-arp.html[Switch from learning to active mode]
+* link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-show.html[security anti-ransomware volume show^]
+
+// 2026-06-30, restructured from enable-default-task.adoc

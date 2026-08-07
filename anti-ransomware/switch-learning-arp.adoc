@@ -1,34 +1,29 @@
 ---
 sidebar: sidebar
-permalink: anti-ransomware/switch-learning-to-active-mode.html
-keywords: ransomware, arp, mode, switch, active, learning, autonomous ransomware protection
-summary: "For ARP 9.15.1 and earlier in NAS environments, manually or automatically switch an ARP-enabled volume from learning mode to active mode."
+permalink: anti-ransomware/switch-learning-arp.html
+keywords: ARP, learning mode, active mode, switch, autonomous ransomware protection, ONTAP 9.10.1, dry-run, NAS, FlexGroup, legacy ARP learning mode, ONTAP 9.15.1 or earlier
+summary: "After a minimum of 30 days in learning mode, manually or automatically switch ARP from learning mode to active mode for ONTAP 9.10.1 through 9.15.1 NAS volumes."
 ---
 
 = Switch to active mode in ONTAP ARP after a learning period
-
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-For NAS environments, manually or automatically switch an ARP-enabled volume from learning mode to active mode. You'll need to switch modes if you are using ARP with ONTAP 9.15.1 and earlier or if ARP is running on FlexGroup volumes with ONTAP 9.17.1 and earlier.
+For NAS environments, manually or automatically switch an ARP-enabled volume from learning mode to active mode. You need to switch modes if you are using ARP with ONTAP 9.10.1 to 9.15.1 or if ARP is running on FlexGroup volumes in ONTAP 9.13.1 to 9.17.1.
 
-After ARP has completed a learning mode run of a recommended minimum of 30 days you can manually switch to active mode. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning period interval and automates the switch, which might occur before 30 days.
+NOTE: ARP/AI (ONTAP 9.16.1 and later) does not require a learning period. ARP/AI protection becomes active immediately on FlexVol volumes. For FlexGroup volumes, ARP/AI requires ONTAP 9.18.1. There is no equivalent switch-mode procedure for ARP/AI. If you are running ONTAP 9.16.1 or later, see link:index.html[Learn about Autonomous Ransomware Protection].
 
-If you are using ARP with ARP/AI protection, ARP becomes active automatically. No learning period is required.
+After ARP has completed a learning mode run of a recommended minimum of 30 days, you can manually switch to active mode. Beginning with ONTAP 9.13.1, ARP automatically determines the optimal learning period interval and automates the switch, which might occur before 30 days.
 
 [NOTE]
 In existing volumes, learning and active modes only apply to newly written data, not to already existing data in the volume. The existing data is not scanned and analyzed, because the characteristics of earlier normal data traffic are assumed based on the new data after the volume is enabled for ARP.
 
-== Manually switch to active mode after learning period
+== Manually switch to active mode after a learning period
 
-For ONTAP 9.10.1 to 9.15.1 (ONTAP 9.17.1 and earlier with FlexGroup volumes), you can manually transition from ARP learning mode to active mode using System Manager or the ONTAP CLI after the learning period is complete.
-
-.About this task
-The manual transition to active mode after a learning period described in this procedure is specific to NAS environments.
+For ONTAP 9.10.1 to 9.15.1 (and FlexGroup volumes in ONTAP 9.13.1 to 9.17.1), you can manually transition from ARP learning mode to active mode using System Manager or the ONTAP CLI after the learning period is complete.
 
 .Steps
-You can use System Manager or the ONTAP CLI to switch from learning mode to active mode.
 
 [role="tabbed-block"]
 ====
@@ -36,35 +31,32 @@ You can use System Manager or the ONTAP CLI to switch from learning mode to acti
 --
 . Select *Storage > Volumes* and then select the volume that is ready for active mode.
 . In the *Security* tab of the *Volumes* overview, select *Switch to active mode* in the Anti-ransomware box.
-. You can verify the ARP state of the volume in the *Anti-ransomware* box.
-
+. Verify the ARP state of the volume in the *Anti-ransomware* box.
 --
 
 .CLI
 --
-. Modify the protected volume to switch to active mode if not already done automatically:
+. Switch the protected volume to active mode:
 +
 [source,cli]
 ----
 security anti-ransomware volume enable -volume <vol_name> -vserver <svm_name>
 ----
 +
-You can also switch to active mode with the modify volume command:
+You can also switch to active mode with the `volume modify` command:
 +
 [source,cli]
 ----
 volume modify -volume <vol_name> -vserver <svm_name> -anti-ransomware-state enabled
 ----
 
-. Verify the ARP state of the volume.
+. Verify the ARP state of the volume:
 +
 [source,cli]
 ----
 security anti-ransomware volume show
 ----
-
 --
-
 ====
 
 == Automatic switching from learning mode to active mode
@@ -81,13 +73,16 @@ Beginning with ONTAP 9.13.1, adaptive learning has been added to ARP analytics a
 
 If auto-switch is enabled, the volume will switch to active mode automatically after a maximum of 30 days, even if all conditions are not met. This 30-day limit is fixed and cannot be changed.
 
+You can disable the automatic switch from learning to active mode for all volumes in an SVM if you prefer to control the transition manually:
+
+[source, cli]
+----
+vserver modify <svm_name> -anti-ransomware-auto-switch-from-learning-to-enabled false
+----
+
 For more information on ARP configuration options, including default values, see the link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-auto-switch-to-enable-mode-show.html[ONTAP command reference^].
 
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+anti-ransomware+volume[security anti-ransomware volume^]
 
-// 2025 Oct 6, ONTAPDOC-3376
-// 2025 May 28, ONTAPDOC-2960
-// 2025 Jan 22, ONTAPDOC-1070
-// 2025-1-16, ontapdoc-2645
-// 2024-9-17, ontapdoc-2204
+// 2026-06-30, restructured from switch-learning-to-active-mode.adoc
