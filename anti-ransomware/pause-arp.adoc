@@ -1,0 +1,92 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/pause-arp.html
+keywords: ARP, arpai, ARP AI, pause, resume, autonomous ransomware protection, workload event, MAV, multi-admin verification
+summary: "Temporarily suspend and resume ARP or ARP/AI analysis during expected unusual workload events."
+---
+
+= Pause ONTAP ARP or ARP/AI protection to exclude workload events from analysis
+:hardbreaks:
+:toclevels: 1
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+If you are expecting unusual workload events, you can temporarily suspend and resume Autonomous Ransomware Protection (ARP and ARP/AI) analysis at any time.
+
+Beginning with ONTAP 9.13.1, you can enable multi-admin verification (MAV) so that two or more authenticated user admins are required to pause ARP or ARP/AI.
+
+link:../multi-admin-verify/enable-disable-task.html[Learn more about MAV].
+
+.About this task
+
+During an ARP or ARP/AI pause, ONTAP does not log events or actions for new writes; however, analytics continue for earlier logs in the background.
+
+[NOTE]
+Do not use the ARP or ARP/AI disable function to pause analytics. Doing so disables protection on the volume and all existing information around learned workload behavior is lost. For ARP (ONTAP 9.10.1 to 9.15.1), a restart of the learning period would be required. For ARP/AI (ONTAP 9.16.1 and later), all accumulated workload behavior data is lost. For SAN volumes, the evaluation period restarts from the beginning.
+
+.Steps
+
+You can use System Manager or the ONTAP CLI to pause ARP or ARP/AI.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Select *Storage > Volumes* and then select the volume where you want to pause ARP or ARP/AI.
+. In the *Security* tab of the Volumes overview, select *Pause anti-ransomware* in the *Anti-ransomware* box.
++
+NOTE: Beginning with ONTAP 9.13.1, if you are using MAV to protect ARP or ARP/AI settings, the pause operation prompts you to obtain the approval of one or more additional administrators. link:../multi-admin-verify/request-operation-task.html[Approval must be received from all administrators] associated with the MAV approval group or the operation will fail.
+. To resume monitoring, select *Resume anti-ransomware*.
+--
+
+.CLI
+--
+. Pause ARP or ARP/AI on a volume:
++
+[source,cli]
+----
+security anti-ransomware volume pause -vserver <svm_name> -volume <vol_name>
+----
+
+. To resume processing, use the `resume` command:
++
+[source,cli]
+----
+security anti-ransomware volume resume -vserver <svm_name> -volume <vol_name>
+----
++
+Learn more about `security anti-ransomware volume` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+anti-ransomware+volume+[ONTAP command reference^].
++
+. If you are using MAV to protect ARP or ARP/AI settings, the pause operation prompts you to obtain the approval of one or more additional administrators. Approval must be received from all administrators associated with the MAV approval group or the operation will fail.
++
+If you are using MAV and an expected pause operation needs additional approvals, each MAV group approver does the following:
++
+.. Show the request:
++
+[source,cli]
+----
+security multi-admin-verify request show
+----
++
+.. Approve the request:
++
+[source,cli]
+----
+security multi-admin-verify request approve -index[<number returned from show request>]
+----
++
+If you are using MAV and you are a MAV group approver, you can reject a pause operation request:
++
+[source,cli]
+----
+security multi-admin-verify request veto -index[<number returned from show request>]
+----
++
+Learn more about `security multi-admin-verify request` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+multi-admin-verify+request[ONTAP command reference^].
+--
+====
+
+// 2026-06-30, restructured from pause-task.adoc
