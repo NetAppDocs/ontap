@@ -25,7 +25,8 @@ Unless noted for a specific operation, the following common request headers are 
 * `Expect` 
 * `Host` 
 * `x-amz-date`
-
+* `x-amz-checksum-algorithm` (beginning with ONTAP 9.20.1, S3 NAS buckets only)
+// Deena
 == Bucket operations
 
 
@@ -168,6 +169,8 @@ a| If-Match
 
 |===
 
+Beginning with ONTAP 9.20.1, ONTAP S3 supports flexible checksums using the CRC-64NVME algorithm for S3 NAS buckets. ONTAP validates, stores, and returns checksums when clients include checksum headers in requests. Only the CRC-64NVME algorithm and the FULL_OBJECT checksum type are supported. Flexible checksum support applies only to S3 NAS buckets (S3 in multiprotocol NAS volumes).
+//deena
 
 Beginning with ONTAP 9.9.1, ONTAP S3 supports object metadata and tagging.
 
@@ -204,6 +207,12 @@ a| CompleteMultipartUpload
 
 ONTAP S3 supports all common parameters and headers for this request, plus this additional URI query parameter:
 `uploadId`
+
+Plus these additional headers (beginning with ONTAP 9.20.1):
+
+* `x-amz-checksum-crc64nvme`
+* `x-amz-checksum-type`
+// Deena
 a|ONTAP 9.8
 
 a| CopyObject 
@@ -221,6 +230,8 @@ ONTAP S3 supports all common parameters and headers for this request, plus these
 * `x-amz-tagging`
 * `x-amz-tagging-directive`
 * `x-amz-meta-<metadata-name>`
+* `x-amz-checksum-algorithm` (beginning with ONTAP 9.20.1)
+// deena
 | ONTAP 9.12.1
 
 a| CreateMultipartUpload 
@@ -236,6 +247,9 @@ ONTAP S3 supports all common parameters and headers for this request, plus these
 * `x-amz-object-lock-mode`
 * `x-amz-object-lock-retain-until-date`
 * `x-amz-meta-<metadata-name>`
+* `x-amz-checksum-algorithm` (beginning with ONTAP 9.20.1)
+* `x-amz-checksum-type` (beginning with ONTAP 9.20.1)
+// deena
 | ONTAP 9.8
 
 a| DeleteObject 
@@ -269,9 +283,11 @@ ONTAP S3 supports all common parameters and headers for this request, plus these
 * `response-content-type`
 * `response-expires`
 
-And this additional request header:
-
+And these additional request headers:
+// Deena
 * Range
+* `x-amz-checksum-mode` (beginning with ONTAP 9.20.1)
+// Deena
 | ONTAP 9.8
 
 | GetObjectAcl 
@@ -298,7 +314,10 @@ ONTAP S3 supports all common parameters and headers for this request.
 
 | HeadObject 
 
-ONTAP S3 supports all common parameters and headers for this request.
+ONTAP S3 supports all common parameters and headers for this request, plus this additional header:
+
+* `x-amz-checksum-mode` (beginning with ONTAP 9.20.1)
+// Deena
 | ONTAP 9.8
 
 a| ListMultipartUpload 
@@ -334,6 +353,9 @@ ONTAP S3 supports all common parameters and headers for this request, plus these
 * `max-keys`
 * `prefix`
 * `start-after`
+
+Response includes `x-amz-checksum-algorithm` for objects stored with a checksum (beginning with ONTAP 9.20.1).
+// Deena
 | ONTAP 9.8
 
 a| ListObjectVersions 
@@ -355,6 +377,9 @@ ONTAP S3 supports all common parameters and headers for this request, plus these
 * `max-parts`
 * `part-number-marker`
 * `uploadId`
+
+Response includes per-part checksum values for multipart uploads stored with a checksum (beginning with ONTAP 9.20.1).
+// Deena
 | ONTAP 9.8
 
 a| PutObject 
@@ -369,7 +394,11 @@ ONTAP S3 supports all common parameters and headers for this request, plus these
 * `x-amz-tagging`
 * `x-amz-object-lock-mode`
 * `x-amz-object-lock-retain-until-date`
-* `x-amz-meta-<metadata-name>` 
+* `x-amz-meta-<metadata-name>`
+* `x-amz-checksum-algorithm` (beginning with ONTAP 9.20.1)
+* `x-amz-checksum-crc64nvme` (beginning with ONTAP 9.20.1)
+* `x-amz-checksum-type` (beginning with ONTAP 9.20.1)
+// Deena
 | ONTAP 9.8
 
 | PutObjectLockConfiguration 
@@ -390,6 +419,11 @@ ONTAP S3 supports all common parameters and headers for this request.
 | ONTAP 9.9.1
 
 | UploadPart 
+
+ONTAP S3 supports all common parameters and headers for this request, plus this additional header (beginning with ONTAP 9.20.1):
+
+* `x-amz-checksum-crc64nvme`
+// Deena
 | ONTAP 9.8
 
 a| UploadPartCopy 
@@ -407,12 +441,13 @@ And these additional request headers:
 * `x-amz-copy-source-if-none-match`
 * `x-amz-copy-source-if-unmodified-since`
 * `x-amz-copy-source-range`
+* `x-amz-checksum-algorithm` (beginning with ONTAP 9.20.1)
+// Deena
 | ONTAP 9.12.1
 
 
 
 |===
-
 
 == Group policies
 
@@ -431,6 +466,26 @@ These operations are not specific to S3 and are generally associated with IAM pr
 * DeleteGroup
 
 == S3 actions by release
+
+.ONTAP 9.20.1
+
+ONTAP 9.20.1 adds support for flexible checksums using the CRC-64NVME algorithm for S3 NAS buckets.
+
+ONTAP validates, stores, and returns checksums when clients include checksum headers in requests. The following operations support flexible checksum headers:
+
+* PutObject
+* CreateMultipartUpload
+* UploadPart
+* CompleteMultipartUpload
+* CopyObject
+* UploadPartCopy
+* GetObject
+* HeadObject
+* ListObjectsV2
+* ListParts
+
+Only the CRC-64NVME algorithm and the FULL_OBJECT checksum type are supported. Flexible checksum support applies only to S3 NAS buckets (S3 in multiprotocol NAS volumes).
+// Deena
 
 .ONTAP 9.14.1
 
