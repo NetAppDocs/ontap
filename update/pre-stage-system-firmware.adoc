@@ -1,0 +1,69 @@
+---
+permalink: 
+sidebar: sidebar
+keywords:  ontap, upgrade, andu, bios, loader, firmware, pre-stage, single reboot, slipstream, system firmware, boot media, cluster image update
+summary: Beginning with ONTAP 9.17.1, you can pre-stage newer BIOS or LOADER firmware on your nodes before an ONTAP upgrade so that both updates complete in a single reboot cycle.
+---
+= Pre-stage system firmware before an ONTAP software upgrade
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.17.1, if newer BIOS or LOADER firmware is already present on a node's boot device before you perform an automated nondisruptive upgrade (ANDU), the upgrade process preserves the newer firmware rather than overwriting it with the version bundled in the ONTAP image. This allows both the ONTAP software upgrade and the firmware update to complete in a single reboot cycle.
+
+In ONTAP 9.16.1 and earlier, an ANDU always installs the BIOS and LOADER firmware bundled in the target ONTAP image, regardless of what firmware version is already on the boot device. If a newer BIOS or LOADER service image has been downloaded independently, a separate takeover and giveback cycle is required after the ONTAP upgrade to activate the newer firmware.  
+
+Beginning with ONTAP 9.17.1, ONTAP compares the BIOS and LOADER firmware versions on each node's boot device against the versions bundled in the target ONTAP image. If the boot device already contains a newer version than what is bundled, the bundled firmware is not installed. The existing newer firmware is preserved.
+If the bundled version is equal to or newer than what is on the boot device, the bundled firmware is installed.
+
+After the node reboots as part of the normal ANDU workflow, the firmware on the boot device is activated so that both the ONTAP upgrade and the firmware update complete in a single reboot.
+
+.Before you begin
+
+* All nodes in the cluster must be running ONTAP 9.17.1 or later. 
+
+* You must have downloaded the newer BIOS or LOADER service image from the link:https://mysupport.netapp.com/site/downloads/firmware/system-firmware-diagnostics[NetApp Support Site^].
++
+You need advanced privilege level to download firmware to a node's boot device.
+
+.Steps
+
+. Set the privilege level to advanced:
++
+[source,cli]
+----
+set -privilege advanced
+----
+
+. Download the newer service image to each node's boot device:
++
+[source,cli]
+----
+system node firmware download -node <node_name> -package
+----
++
+Repeat this step for each node in the cluster that should receive the newer firmware.
+
+. Return to admin privilege:
++
+[source,cli]
+----
+set -privilege admin
+----
+
+. Verify the firmware version currently on each node's boot device:
++
+[source,cli]
+----
+system node firmware bootmedia show
+----
++
+The pre-staged firmware version should be higher than the version bundled in your target ONTAP image.
+
+.What's next?
+
+* After you have pre-staged your firmware, you are ready to link:automated-upgrade-task.html[perform an automated ONTAP upgrade].
++
+During the upgrade, ONTAP detects that the boot device already contains newer BIOS and LOADER firmware and preserves it. The bundled firmware is not installed on nodes with a higher version already present.
+
+// 2026 Aug 18, Git Issue 2097

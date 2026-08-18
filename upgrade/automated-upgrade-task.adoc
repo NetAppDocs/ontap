@@ -14,15 +14,15 @@ summary: You can nondisruptively update the version of ONTAP on your cluster.
 :imagesdir: ../media/
 
 [.lead]
-When you perform an automated upgrade, ONTAP automatically installs the target ONTAP image on each node, validates that the cluster can be upgraded successfully, and then executes either a xref:concept_upgrade_methods.html[batch or rolling upgrade] in the background based on the number of nodes in the cluster. 
+When you perform an automated nondisruptive upgrade (ANDU), ONTAP automatically installs the target ONTAP image on each node, validates that the cluster can be upgraded successfully, and then executes either a xref:concept_upgrade_methods.html[batch or rolling upgrade] in the background based on the number of nodes in the cluster. 
 
 If it is supported by your configuration, you should use System Manager to perform an automated upgrade.  If your configuration does not support automated upgrade using System Manager, you can use the ONTAP command line interface (CLI) to perform an automated upgrade.
 
 [NOTE]
-If you are upgrading to ONTAP 9.15.1 or later through the NetApp, follow the link:https://docs.netapp.com/us-en/console-software-updates/get-started/software-updates.html[upgrade procedure in the NetApp Console documentation^].
+If you are upgrading to ONTAP 9.15.1 or later through the NetApp Console, follow the link:https://docs.netapp.com/us-en/console-software-updates/get-started/software-updates.html[upgrade procedure in the NetApp Console documentation^].
 
 [IMPORTANT]
-Modifying the setting of the `storage failover modify-auto-giveback` command option before the start of an automatic nondisruptive upgrade (ANDU) has no impact on the upgrade process. The ANDU process ignores any preset value to this option during the takeover/giveback required for the update. For example, setting `-autogiveback` to false prior to beginning ANDU does not interrupt the automatic upgrade before giveback. Learn more about `storage failover modify-auto-giveback` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=storage+failover+modify-auto-giveback[ONTAP command reference^].
+Modifying the setting of the `storage failover modify-auto-giveback` command option before the start of an ANDU has no impact on the upgrade process. The ANDU process ignores any preset value to this option during the takeover/giveback required for the update. For example, setting `-autogiveback` to false prior to beginning ANDU does not interrupt the automatic upgrade before giveback. Learn more about `storage failover modify-auto-giveback` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=storage+failover+modify-auto-giveback[ONTAP command reference^].
 
 .Before you begin
 
@@ -31,6 +31,10 @@ Modifying the setting of the `storage failover modify-auto-giveback` command opt
 * You should link:download-software-image.html[download the ONTAP software image] for your target ONTAP release.
 +
 If you are performing a link:../upgrade/concept_upgrade_paths.html#types-of-upgrade-paths[direct multi-hop upgrade], you need to download both of the ONTAP images required for your specific link:../upgrade/concept_upgrade_paths.html#supported-upgrade-paths[upgrade path].
+
+* Optionally, link:update/pre-stage-system-firmware.html[pre-stage system firmware for a single-reboot upgrade]. 
++
+Beginning with ONTAP 9.17.1, if newer BIOS or LOADER firmware is already present on a node's boot device before you perform an ANDU, the upgrade process preserves the newer firmware rather than overwriting it with the version bundled in the ONTAP image. This allows both the ONTAP software upgrade and the firmware update to complete in a single reboot cycle.
 
 * For each HA pair, each node should have one or more ports on the same broadcast domain.
 +
@@ -363,6 +367,10 @@ metrocluster show
 
 // end tabbed area
 
+.What's next?
+
+If you pre-staged your firmware, use the `system node firmware bootmedia show` command to verify that the intended firmware version is active on each node.
+
 == Resume ONTAP software upgrade after an error in the automated upgrade process
 
 If an automated ONTAP software upgrade pauses because of an error, you should resolve the error and then continue the upgrade.  After the error is resolved, you can choose to continue the automated upgrade process or complete the upgrade process manually. If you choose to continue the automated upgrade, don't perform any of the upgrade steps manually.
@@ -474,7 +482,7 @@ video::xwwX8vrrmIk[youtube, width=848, height=480]
 * link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=autosupport+invoke[autosupport invoke^]
 * link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=metrocluster[metrocluster^]
 
-
+// 2026 Aug 18, Git Issue 2097
 // 2026 May 07, ONTAPDOC-3598
 // 2025-Sept-10, BLUEXPDOC-87
 // 2025 Mar 19, ONTAPDOC-2758
