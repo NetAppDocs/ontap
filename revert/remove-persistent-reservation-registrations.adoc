@@ -9,7 +9,29 @@ summary: "If any LUN has historically exceeded 182 SCSI-3 persistent reservation
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.20.1, ONTAP supports up to 256 SCSI-3 persistent reservation registrations per LUN, increased from 182. If any LUN has historically exceeded 182 registrations, ONTAP blocks reversion to earlier ONTAP versions, regardless of the current registration count. Before you revert, check all LUNs and remove any persistent reservation registrations.
+ONTAP versions earlier than 9.20.1 support a maximum of 182 SCSI-3 persistent reservation registrations per LUN. Beginning with ONTAP 9.20.1, this limit increases to 256. If any LUN has historically exceeded 182 registrations, ONTAP blocks reversion regardless of the current registration count. Before reverting, identify and remove persistent reservation registrations on affected LUNs.
 
-// ONTAPDOC-4110 - Contact engineering to confirm CLI steps before publishing
+.Steps
+
+. Check whether any LUNs have historically exceeded 182 persistent reservation registrations:
++
+[source,cli]
+----
+lun show -field persistent-reservation-scale-tier
+----
++
+A value of `256` in the `persistent-reservation-scale-tier` field indicates the LUN has historically exceeded 182 registrations and will block reversion.
+
+. For each affected LUN, display the current active registration count:
++
+[source,cli]
+----
+lun persistent-reservation show -vserver <vserver_name> -path <lun_path>
+----
+
+. Remove persistent reservation registrations on all affected LUNs.
++
+Run the revert precheck. If this condition is detected, the precheck output includes the specific cleanup commands required.
+
+// ONTAPDOC-4110
 // Deena
