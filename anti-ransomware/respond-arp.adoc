@@ -1,0 +1,184 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/respond-arp.html
+keywords: ARP, respond, abnormal activity, false positive, ransomware attack, NAS, suspected file types, clear suspect, ONTAP 9.10.1, restore first, learning mode, autonomous ransomware protection, legacy ARP response, ONTAP 9.15.1 or earlier
+summary: "When legacy ARP in ONTAP 9.10.1 through 9.15.1 detects abnormal activity in a protected NAS volume, evaluate whether it is a false positive or a real ransomware attack and respond accordingly."
+---
+
+= Respond to abnormal activity detected by ONTAP ARP
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+When Autonomous Ransomware Protection (ARP) detects abnormal activity in a protected NAS volume, it issues a warning. You should evaluate the notification to determine whether the activity is acceptable (false positive) or whether an attack seems malicious. After you categorize the attack, you can clear the warning and resume normal monitoring.
+
+NOTE: If you are running ONTAP 9.16.1 or later, see link:respond-arpai.html[Respond to abnormal activity detected by ARP/AI].
+
+When you categorize an attack, ARP snapshots are deleted immediately when you clear the suspected event in ONTAP 9.15.1 and earlier. If you are using `volume snapshot restore` to restore data, you must restore *before* clearing the suspected event.
+
+NOTE: Beginning with ONTAP 9.11.1, you can modify the link:modify-snapshot-options-arp.html[retention settings] for ARP snapshots.
+
+.About this task
+
+For NAS volumes, ARP displays a list of suspected files when it detects any combination of high data entropy, abnormal volume activity with data encryption, and unusual file extensions. ARP (9.10.1 to 9.15.1) does not support SAN volumes.
+
+include::../_include/arp-requires-manual-investigation-of-files.adoc[]
+
+link:determine-ransomware-tips.html[Determine whether a file or event is truly malicious].
+
+When an ARP warning notification is issued, respond by designating the activity in one of two ways:
+
+* *False positive*: The identified file type is expected in your workload and can be ignored.
+* *Potential ransomware attack*: The identified file type is unexpected in your workload and should be treated as a potential attack.
+
+Normal monitoring resumes after you update with your decision and clear the ARP notifications. ARP records your evaluation to the threat assessment profile, using your choice to monitor subsequent file activities.
+
+In the case of a suspected attack, you must determine whether it is an attack, respond to it if it is, and then clear notices and restore data. link:recover-arp.html[Learn more about how to recover from a ransomware attack].
+
+.Before you begin
+
+ARP must be actively protecting a volume (not in learning mode or paused).
+
+.Steps
+
+Follow these steps when you need to classify abnormal activity:
+
+. <<Review abnormal activity details,Review abnormal activity details>>
+. <<Understand snapshot behavior when clearing a suspected event,Understand snapshot behavior when clearing a suspected event>>
+. Do one of the following:
+* <<Classify as false positive and resume monitoring,Classify as false positive and resume monitoring>>
+* <<Classify as potential ransomware attack and recover data,Classify as potential ransomware attack, recover data, and finalize>>
+
+If you need to restore data, follow the steps in link:recover-arp.html[Recover data after a ransomware attack with ARP].
+
+== Review abnormal activity details
+
+You can use System Manager or the ONTAP CLI to review ARP warning details before choosing a response flow.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. When you receive an "abnormal activity" notification, follow the link. Alternatively, navigate to *Storage > Volumes*, find an affected volume, and select the *Security* tab.
++
+Warnings are displayed in the System Manager dashboard *Overview* pane of the *Events* menu.
+
+. In the *Security* tab, review the *Suspected file types* report. A *Suspected File Types* dialog box shows the file extensions and file counts that ARP has identified.
+--
+
+.CLI
+--
+. When you receive a notification of a suspected ransomware attack, verify the time and severity of the attack:
++
+[source,cli]
+----
+security anti-ransomware volume show -vserver <svm_name> -volume <vol_name>
+----
++
+Sample output:
++
+....
+Vserver Name: vs0
+Volume Name: vol1
+State: enabled
+Attack Probability: moderate
+Attack Timeline: 9/14/2021 01:03:23
+Number of Attacks: 1
+....
++
+You can also check EMS messages:
++
+[source,cli]
+----
+event log show -message-name callhome.arw.activity.seen
+----
+--
+====
+
+== Understand snapshot behavior when clearing a suspected event
+
+For ONTAP 9.15.1 and earlier, ARP snapshots are *deleted immediately* when you clear the suspected event. This means you must *restore data before clearing* if you plan to use `volume snapshot restore`. After clearing, the snapshot is gone and cannot be used for restore.
+
+If you use other recovery methods (FlexClone, single-file SnapRestore, data copy), you can perform recovery either before or after clearing the suspected event; these methods do not delete the snapshot.
+
+Beginning with ONTAP 9.13.1, if you use MAV to protect ARP settings, the `clear-suspect` operation can require additional approvals. link:../multi-admin-verify/request-operation-task.html[Approval must be received from all administrators] associated with the MAV approval group or the operation will fail.
+
+== Classify as false positive and resume monitoring
+
+Use this flow when the identified file type is _expected_ for the workload.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Choose the affected files, select *Mark as false positive*, and then choose *Update and Clear Suspected File Types*.
+
+This action clears the warning notice. ARP then resumes normal monitoring of the volume.
+--
+
+.CLI
+--
+. Run the following command to record your decision and resume normal ARP monitoring:
++
+[source,cli]
+----
+security anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> [<extension_identifiers>] -false-positive true
+----
++
+Use the following optional parameter to identify only specific extensions as false positives: `[-extension <text>, ... ]`
+--
+====
+
+== Classify as potential ransomware attack and recover data
+
+Use this flow when the identified file type is _unexpected_ for the workload.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Mark selected files as *Potential ransomware attack*.
+
+. Before you recover data, consider your link:recover-arp.html#choose-a-recovery-method[recovery method options]. Then do one of the following:
+
+** *If you plan to restore a volume*: Complete data recovery *before* clearing notices:
++
+... link:recover-arp.html[Recover data from the most recent ARP snapshot or an earlier snapshot].
+... After data recovery is complete, finalize by clearing the suspected event:
++
+* For NAS file type warnings, select *Update and Clear Suspected File Types*.
++
+NOTE: Recording your decision clears the attack report and deletes the ARP snapshot. Be sure to complete data recovery before this step.
+
+** *If you plan to use another restore method (FlexClone or single-file SnapRestore)*: Restore the data first, then clear notices:
++
+... link:recover-arp.html[Recover data using FlexClone or single-file SnapRestore].
+... After data recovery is complete, finalize the categorization:
++
+* Select *Update and Clear Suspected File Types*.
+--
+
+.CLI
+--
+. (Optional) Generate an attack report and specify where to save it:
++
+[source,cli]
+----
+security anti-ransomware volume attack generate-report -vserver <svm_name> -volume <vol_name> -dest-path <[svm_name]:[junction_path/sub_dir_name]>
+----
+
+. For ONTAP 9.15.1 and earlier with `volume snapshot restore`: Restore data *before* clearing the suspected event. See link:recover-arp.html[Recover data after an attack with ARP].
+
+. After you have restored data (or if you are using an alternate recovery method), clear the suspected event and mark the attack as potential ransomware (`-false-positive false`):
++
+[source,cli]
+----
+security anti-ransomware volume attack clear-suspect -vserver <svm_name> -volume <vol_name> [<extension_identifiers>] -false-positive false
+----
++
+[IMPORTANT]
+In ONTAP 9.15.1 and earlier, running `clear-suspect` *immediately deletes* ARP snapshots. Do not run this command until you have completed data recovery.
+--
+====
+
+// 2026-06-30, restructured from respond-abnormal-task.adoc

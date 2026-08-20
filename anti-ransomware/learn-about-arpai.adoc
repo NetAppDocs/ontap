@@ -1,0 +1,201 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/learn-about-arpai.html
+keywords: ransomware, arpai, arp ai, autonomous protection, ai, machine learning, security, detect, detection, threat, attack, anti-ransomware, entropy, snapshot, NAS, SAN, automatic updates, evaluation period
+summary: Beginning with ONTAP 9.16.1, ARP/AI uses a pre-trained machine-learning model to provide immediate active ransomware protection for NAS and SAN environments with no learning period required.
+---
+
+= Learn about ONTAP ARP/AI (ONTAP 9.16.1 and later)
+:hardbreaks:
+:toclevels: 1
+:nofooter:
+:icons: font
+:linkattrs:
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.16.1, Autonomous Ransomware Protection uses a pre-trained machine-learning model (ARP/AI) to detect constantly evolving forms of ransomware in NAS and SAN environments. ARP/AI provides immediate active protection with no learning period and supports automatic security updates independent of ONTAP releases.
+
+ARP/AI is distinct from the earlier ARP model used in ONTAP 9.10.1 through 9.15.1, which required a learning period before active protection. For a side-by-side feature comparison, see link:index.html#autonomous-ransomware-protection-with-ai-arp-ai-and-legacy-arp-feature-comparison[the ARP/AI and legacy ARP feature comparison].
+
+== How ARP/AI works
+
+ARP/AI's machine-learning model is pre-trained on a large dataset of files both before and after a simulated ransomware attack. This resource-intensive training is done outside ONTAP using open-source forensic research datasets. Customer data is not used throughout the entire modelling pipeline. The pre-trained model is included on-box with ONTAP and is not accessible or modifiable through the ONTAP CLI or ONTAP API.
+
+.Immediate protection on supported volumes
+
+ARP/AI provides immediate active protection on the following supported volume types:
+
+* NAS FlexVol volumes with ONTAP 9.16.1 and later
+* NAS FlexGroup volumes with ONTAP 9.18.1 and later
+* SAN FlexVol volumes with ONTAP 9.17.1 and later (active immediately, even during the link:entropy-eval-period-arpai.html[evaluation period])
+
+NOTE: For upgrade-specific behavior, such as transitions from earlier ARP functionality, see link:support-arpai.html#arp-upgrade-considerations[Upgrade considerations for existing clusters].
+
+.Automatic security updates
+
+To keep up-to-date protection against the latest ransomware threats, ARP/AI offers frequent automatic updates that occur outside of regular ONTAP upgrade and release cadences. If you have link:../update/enable-automatic-updates-task.html[enabled automatic updates], you can also receive automatic security updates to ARP/AI after you select automatic updates for security files. You can also link:update-arpai.html#manually-update-arpai-with-the-latest-security-package[make these updates manually] and control when they occur.
+
+Beginning with ONTAP 9.16.1, security updates for ARP/AI are available using System Manager in addition to system and firmware updates.
+
+link:update-arpai.html[Learn more about ARP/AI updates]
+
+== What ARP/AI detects
+
+ARP/AI identifies incoming data as either encrypted or plain text and uses a pre-trained machine-learning model that evaluates multiple entropy-based signals and file behavioral patterns simultaneously to detect ransomware activity in real time.
+
+ARP/AI detects the spread of most ransomware attacks after only a small number of files are encrypted, responds automatically to protect data, and alerts you that a suspected attack is happening.
+
+[NOTE]
+No ransomware detection system can guarantee complete safety. ARP/AI provides an extra layer of defense if anti-virus software fails to detect an intrusion.
+
+== Enablement options for ARP/AI
+
+ARP/AI provides flexible enablement options at the cluster, SVM, and volume levels.
+
+.Automatic default enablement on new volumes
+
+Beginning with ONTAP 9.18.1, ARP/AI is enabled by default on all new volumes for AFF A-series, AFF C-series, ASA, and ASA r2 systems. This automatic default enablement does not apply to link:support-arpai.html#unsupported-configurations[unsupported volumes or configurations]. You can link:enable-arpai.html[manually enable ARP/AI on existing volumes].
+
+You can link:default-enable-change-arpai.html[turn default enablement on or off] at any time after deployment.
+
+NOTE: For upgrade-specific enablement behavior, including grace period and SnapMirror version requirements, see link:support-arpai.html#arp-upgrade-considerations[Upgrade considerations for existing clusters].
+
+.Manual default enablement on new volumes
+
+If you disabled automatic default enablement at the cluster level, you can also choose to link:enable-default-arpai.html[manually enable ARP/AI by default on all new volumes] at the SVM level. For ONTAP 9.17.1 and earlier, this is the only way to configure ARP/AI to be enabled by default on new volumes.
+
+.Enablement on all or specific existing volumes
+
+Beginning with ONTAP 9.18.1, you can manually enable ARP/AI on all existing volumes from the cluster level (select *Cluster > Security* and image:icon_kabob.gif[Menu options icon] in the *Anti-ransomware* section then select *Enable on all existing volumes*).
+
+To enable ARP/AI on a specific volume, see link:enable-arpai.html[Enable ARP/AI on a volume].
+
+== ARP/AI protection modes
+
+ARP/AI protects volumes immediately without a learning period. The following tables describe how protection behaves by volume type.
+
+=== NAS volumes
+
+[cols="1,5,1", options="header"]
+|===
+| Mode | Description | Volume types and versions
+
+| Evaluation
+a| A two- to four-week evaluation period is performed to determine baseline encryption behavior while ARP/AI provides immediate active protection during the evaluation period. Detection and alerts can occur while baseline thresholds are being established. You can determine if the evaluation period is complete by running the `security anti-ransomware volume show` command and checking `Block device detection status`.
+
+link:entropy-eval-period-arpai.html[Learn about the ARP/AI evaluation period for block-device workloads].
+a| NAS FlexVol volumes containing ONTAP-detected hypervisor virtual disks with ONTAP 9.17.1P5 and later
+
+| Active
+a| ARP/AI monitors workload activity and responds automatically if it detects abnormal behavior indicating a ransomware attack. You can act on an alert to protect your data, or you can mark the alert as a false positive. Marking an alert as a false positive updates the detection model. If the alert is triggered by abnormal file behavior and you mark it as a false positive, you will not receive an alert the next time that pattern is observed.
+a| * NAS FlexVol volumes with ONTAP 9.16.1 and later
+* NAS FlexGroup volumes with ONTAP 9.18.1 and later
+
+|===
+
+=== SAN volumes
+
+[cols="1,5,1", options="header"]
+|===
+| Mode | Description | Volume types and versions
+
+| Evaluation
+a| A two- to four-week evaluation period is performed to determine baseline encryption behavior while ARP/AI provides immediate active protection for SAN volumes during the evaluation period. Detection and alerts can occur while baseline thresholds are being established. You can determine if the evaluation period is complete by running the `security anti-ransomware volume show` command and checking `Block device detection status`.
+
+link:entropy-eval-period-arpai.html[Learn about the ARP/AI evaluation period for block-device workloads].
+a| SAN FlexVol volumes with ONTAP 9.17.1 and later
+
+| Active
+a| After the evaluation period, you can determine if the ARP/AI SAN protection is active by running the `security anti-ransomware volume show` command and checking `Block device detection status`. A status of `Active_suitable_workload` indicates that the evaluated amount of entropy can be successfully monitored. ARP/AI automatically adjusts the adaptive threshold according to data reviewed during the evaluation.
+a| SAN FlexVol volumes with ONTAP 9.17.1 and later
+
+|===
+
+== Threat assessment
+
+ARP/AI assesses threat probability continuously as data is written to storage. When the machine-learning model determines that activity matches a ransomware profile, ONTAP generates an EMS notification at the *moderate* threat level, prompting you to assess the threat. ARP/AI does not use a low threat level; all detections are reported at the moderate level.
+
+You can view information about moderate threats in System Manager's *Events* section or with the `security anti-ransomware volume show` command. Learn more about `security anti-ransomware volume show` in the link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-show.html[ONTAP command reference^].
+
+For more information, see link:respond-arpai.html[Respond to abnormal activity].
+
+== ARP/AI snapshots
+
+ARP/AI creates a snapshot when early signs of an attack are detected. An analysis is then conducted to confirm or dismiss the potential attack. Because ARP/AI also generates snapshots at regular 4-hour intervals, the presence of these snapshots should not be regarded as an anomaly. If an attack is confirmed, the attack probability is set to `Moderate` and an attack notification is generated.
+
+The following table summarizes ARP/AI snapshot behavior.
+
+[cols="1,3", options="header"]
+|===
+| Feature | ARP/AI model (ONTAP 9.16.1 and later)
+
+| Creation trigger
+a| * Snapshots are created at fixed 4-hour intervals, regardless of any specific trigger
+* Confirmation of an attack
+
+A "periodic" or "attack" snapshot is created based on trigger type.
+
+| Prepended name convention
+| "Anti_ransomware_periodic_backup"
+"Anti_ransomware_attack_backup"
+
+| Deletion behavior
+| ARP/AI snapshot is locked and cannot be deleted by the administrator
+
+| Maximum snapshot count
+| link:modify-snapshot-options-arpai.html[Six snapshot configurable limit]
+
+| Retention period
+a| Snapshots are normally retained for 12 hours.
+
+* NAS volumes: If an attack is confirmed by file-analysis, snapshots created before the attack are retained until the administrator marks the attack as true or a false positive (clear-suspect).
+
+* SAN volume or VM datastores: If an attack is confirmed by block-entropy analysis, snapshots created before the attack are retained for 10 days (configurable).
+
+| Clear-suspect action
+a| Administrators can perform a clear-suspect action which sets retention based on confirmation:
+
+* 24 hours for false-positive retention
+* 7 days for true-positive retention
+
+| Expiration time
+| An expiration time is set for all snapshots
+
+|===
+
+=== SnapMirror synchronous and active sync
+
+Beginning with ONTAP 9.19.1, ARP/AI snapshots created for volumes that participate in SnapMirror synchronous or SnapMirror active sync relationships follow these additional rules:
+
+* ARP/AI snapshots are created and retained on the primary volume.
+* ARP/AI snapshots are not replicated to the secondary as part of SnapMirror synchronous or SnapMirror active sync. You need to link:enable-arpai.html[enable ARP/AI again] on the recovery volume after failover.
+
+NOTE: Volume-level restore (`volume snapshot restore`) on SnapMirror synchronous or SnapMirror active sync SAN volumes might require that you temporarily quiesce or break the SnapMirror synchronous or SnapMirror active sync relationship. In many cases, you can avoid breaking SnapMirror synchronous or SnapMirror active sync by using FlexClone or file-level restore operations from ARP/AI or other snapshots on the primary volume.
+
+link:support-arpai.html#snapmirror[Learn more about support for SnapMirror synchronous and SnapMirror active sync].
+
+== Respond to and assess an attack
+
+ARP/AI creates locked snapshots when early signs of an attack are detected. You'll need to confirm whether the attack is real or a false positive. Locked snapshots cannot be deleted by normal means. However, if you decide later to mark the attack as a false positive, ONTAP deletes the locked copy.
+
+* link:respond-arpai.html[Respond to abnormal activity: ARP/AI]
+* link:determine-ransomware-tips.html[Determine if a ransomware attack is real]
+
+== Recover data after an attack
+
+If you confirm the attack, the volume can be restored using the ARP/AI snapshot. You can recover affected files from select snapshots instead of reverting the entire volume.
+
+* link:recover-arpai.html[Recover data from ARP/AI snapshots]
+* link:../data-protection/restore-contents-volume-snapshot-task.html[Recover from ONTAP snapshots]
+* link:https://www.netapp.com/blog/smart-ransomware-recovery[Smart ransomware recovery^]
+
+== Multi-admin verification
+
+Beginning with ONTAP 9.13.1, it's recommended that you enable multi-admin verification (MAV) so that two or more authenticated user admins are required for ARP/AI configuration. For more information, see link:../multi-admin-verify/enable-disable-task.html[Enable multi-admin verification].
+
+.Related information
+* link:support-arpai.html[ARP/AI supported configurations]
+* link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
+
+// 2026-6-30, ontapdoc-restructure

@@ -1,0 +1,178 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/enable-arpai.html
+keywords: ARP AI, arpai, enable, autonomous ransomware protection AI, ONTAP 9.16.1, NAS, SAN, FlexVol, FlexGroup, machine learning ransomware, active mode, enable ransomware protection ONTAP 9.16.1, enable ARP AI SAN volumes, no learning period ARP AI enablement
+summary: "Beginning with ONTAP 9.16.1, enable ARP/AI on supported volumes for immediate active protection with no learning period. SAN and FlexGroup support is available in later releases."
+---
+
+= Enable ONTAP ARP/AI on a volume
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.16.1, you can enable Autonomous Ransomware Protection with AI (ARP/AI) on an existing volume or create a new volume with ARP/AI enabled. ARP/AI is immediately active with no learning period required.
+
+NOTE: If you are running ONTAP 9.15.1 or earlier, see link:enable-arp.html[Enable ARP on a volume].
+
+.About this task
+
+ARP/AI is the current ransomware protection model for ONTAP 9.16.1 and later. To enable ARP/AI, follow the procedure that matches your environment after you ensure that your environment meets the requirements:
+
+* <<enable-nas-flexvol,NAS with FlexVol volumes>> (ONTAP 9.16.1 and later)
+* <<enable-nas-flexgroup,NAS with FlexGroup volumes>> (ONTAP 9.18.1 and later)
+* <<enable-san,SAN volumes>> (ONTAP 9.17.1 and later)
+
+include::../_include/arp-enablement-default-behavior.adoc[]
+
+.Before you begin
+
+Before enabling ARP/AI, ensure your environment has the following:
+
+.NAS-specific requirements
+* A storage VM (SVM) with NFS or SMB (or both) protocol enabled.
+* NAS workload with clients configured.
+* An active link:../concepts/namespaces-junction-points-concept.html[junction path] for the volume.
+
+.SAN-specific requirements
+* A storage VM (SVM) with iSCSI, FC, or NVMe protocol enabled.
+* SAN workload with clients configured.
+
+.General requirements
+* The link:index.html#licenses-for-autonomous-ransomware-protection[correct license] for your ONTAP version.
+* (Recommended) Multi-admin verification (MAV) enabled (ONTAP 9.13.1 and later). See link:../multi-admin-verify/enable-disable-task.html[Enable multi-admin verification].
+
+[[enable-nas-flexvol]]
+== Enable ARP/AI on NAS FlexVol volumes
+
+Beginning with ONTAP 9.16.1, ARP/AI is active immediately after enablement for NAS FlexVol volumes.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Select *Storage > Volumes*, then select the volume you want to protect.
+. In the *Security* tab of the *Volumes* overview, select *Status* to switch from Disabled to Enabled.
+. Verify the ARP/AI state of the volume in the *Anti-ransomware* box.
++
+To display ARP/AI status for all volumes: In the *Volumes* pane, select *Show/Hide* then ensure that *Anti-ransomware* status is checked.
+--
+
+.CLI
+--
+*Enable ARP/AI on an existing volume:*
+
+[source, cli]
+----
+security anti-ransomware volume enable -volume <vol_name> -vserver <svm_name>
+----
+
+*Create a new volume with ARP/AI enabled:*
+
+[source, cli]
+----
+volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state enabled -junction-path </path_name>
+----
+
+*Verify the ARP/AI state:*
+
+[source, cli]
+----
+security anti-ransomware volume show
+----
+
+Learn more about `security anti-ransomware volume show` in the link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-show.html[ONTAP command reference^].
+--
+====
+
+[[enable-nas-flexgroup]]
+== Enable ARP/AI on NAS FlexGroup volumes
+
+Beginning with ONTAP 9.18.1, ARP/AI is active immediately after enablement for FlexGroup volumes.
+
+NOTE: For ONTAP 9.13.1 to 9.17.1, FlexGroup volumes use the earlier ARP model and require a learning period. See link:enable-arp.html#enable-arp-on-nas-flexgroup-volumes[Enable ARP on NAS FlexGroup volumes].
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Select *Storage > Volumes*, then select the FlexGroup volume you want to protect.
+. In the *Security* tab of the *Volumes* overview, select *Status* to switch from Disabled to Enabled.
+. Verify the ARP/AI state of the volume in the *Anti-ransomware* box.
++
+To display ARP/AI status for all volumes: In the *Volumes* pane, select *Show/Hide* then ensure that *Anti-ransomware* status is checked.
+--
+
+.CLI
+--
+*Enable ARP/AI on an existing FlexGroup volume:*
+
+[source, cli]
+----
+security anti-ransomware volume enable -volume <vol_name> -vserver <svm_name>
+----
+
+*Create a new FlexGroup volume with ARP/AI enabled:*
+
+[source, cli]
+----
+volume create -volume <vol_name> -vserver <svm_name> -aggr-list <aggregate name> -aggr-list-multiplier <integer> -size <nn> -anti-ransomware-state enabled -junction-path </path_name>
+----
+
+*Verify the ARP/AI state:*
+
+[source, cli]
+----
+security anti-ransomware volume show
+----
+--
+====
+
+[[enable-san]]
+== Enable ARP/AI on SAN volumes
+
+Beginning with ONTAP 9.17.1, you can enable ARP/AI on SAN volumes. ARP/AI is automatically active immediately after enablement and begins monitoring and protecting SAN volumes during the link:entropy-eval-period-arpai.html[entropy evaluation period] while simultaneously determining if workloads are suitable for ARP/AI and setting an optimal encryption threshold for detection.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+. Select *Storage > Volumes*, then select the SAN volume you want to protect.
+. In the *Security* tab of the *Volumes* overview, select *Status* to switch from Disabled to Enabled.
+. ARP/AI automatically enters the evaluation period.
+. Verify the ARP/AI state and evaluation status in the *Anti-ransomware* box.
++
+To display ARP/AI status for all volumes: In the *Volumes* pane, select *Show/Hide* then ensure that *Anti-ransomware* status is checked.
+--
+
+.CLI
+--
+*Enable ARP/AI on an existing SAN volume:*
+
+[source, cli]
+----
+security anti-ransomware volume enable -volume <vol_name> -vserver <svm_name>
+----
+
+*Create a new SAN volume with ARP/AI enabled:*
+
+[source, cli]
+----
+volume create -volume <vol_name> -vserver <svm_name> -aggregate <aggr_name> -size <nn> -anti-ransomware-state enabled
+----
+
+*Verify the ARP/AI state and evaluation status:*
+
+[source, cli]
+----
+security anti-ransomware volume show
+----
+
+Check the `Block device detection status` field to monitor the evaluation period progress. Learn more about `security anti-ransomware volume show` in the link:https://docs.netapp.com/us-en/ontap-cli/security-anti-ransomware-volume-show.html[ONTAP command reference^].
+--
+====
+
+== Related information
+
+* link:entropy-eval-period-arpai.html[ARP/AI entropy evaluation period for SAN volumes]
+
+// 2026-06-30, restructured from enable-task.adoc
