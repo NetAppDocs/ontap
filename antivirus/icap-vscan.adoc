@@ -1,0 +1,71 @@
+---
+permalink: antivirus/icap-vscan.html
+sidebar: sidebar
+keywords: 
+summary: ""
+---
+= Configure ICAP-based Vscan for on-access scanning
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.20.1, you can configure ICAP-based Vscan to send on-access antivirus scan requests directly to ICAP-capable scan engines without installing the ONTAP Antivirus Connector. ICAP-based Vscan uses the existing FPolicy shared-memory notification infrastructure to manage connections and deliver scan requests.
+
+ICAP-based Vscan uses a proprietary ICAP extension called FILEMOD (Request Modification for files) rather than the standard ICAP REQMOD or RESPMOD methods:
+
+* *Path-based scanning*: ONTAP sends only the file path and metadata in the ICAP request headers. It does not stream the file content over the network to the scan engine.
+* *Direct file access*: The scan engine mounts the relevant ONTAP share and reads the file data directly over the SMB protocol using a configured privileged user account.
+* *Benefits*: This approach avoids the CPU and memory overhead of streaming large files, reduces network traffic, and maintains the efficient read path used by the Antivirus Connector.
+
+== Supported scan engines
+The following ICAP-capable scan engines are supported:
+
+* Symantec Protection Engine (SPE)
+* OPSWAT MetaDefender
+
+== Configuration considerations
+Keep the following in mind when you configure ICAP-based Vscan:
+
+* Each SVM must use either the ICAP-based Vscan configuration or Antivirus Connector scanner pools, you cannot configure both on the same SVM. To switch between them, you must remove the existing configuration first.
+* ICAP-based Vscan supports on-access scanning for SMB only. On-demand scanning and NFS on-access scanning are not supported.
+* Remove any ICAP-based Vscan configurations before reverting from ONTAP 9.20.1 to an earlier release.
+
+.Before you begin
+
+* The cluster must be running ONTAP 9.20.1 or later.
+* The SVM must have SMB configured and enabled.
+* An ICAP-capable antivirus scan engine (such as Symantec Protection Engine or OPSWAT) must be installed and running on a server accessible from the cluster network.
+* The SVM must not have an existing Antivirus Connector configuration. Each SVM supports either ICAP-based Vscan or Antivirus Connector, not both.
+* If TLS encryption is required for the ICAP connection, install the appropriate server CA certificates on the cluster.
+
+.Steps
+
+. 1.	Create an ICAP configuration for the SVM. Only one ICAP configuration is supported per SVM:
++
+`vserver vscan icap-config create -vserver <svm_name> -server-ip <icap_server_ip> -port <port> -max-connections <max_conn> -service-path <service_path> -ssl-enabled {true|false} -skip-cert-validation {true|false}`
++
+.Example:
++
+`cluster1::> vserver vscan icap-config create -vserver vs1 -server-ip 10.10.10.1 -port 1344 -max-connections 10 -service-path SYMCSCANRESPEX-AV -ssl-enabled false -skip-cert-validation false`
++
+[cols="25,20,15,40"]
+|===
+h| Parameter h| Default h| Range h| Description
+a|`-port` | 1344 | 1–65535 | TCP port of the ICAP scan engine
+a| `-max-connections` | 10 | 1–256 | Maximum concurrent connections to the ICAP server
+a| `-service-path` | SYMCSCANRESPEX-AV | N/A | ICAP service path exposed by the scan engine
+a| `-ssl-enabled` | false | N/A | Enable TLS encryption for the ICAP connection
+a| `-skip-cert-validation` | false | N/A | Skip server certificate validation 
+|===
+. Create an on-access policy, if one does not already exist.
++
+`vserver vscan on-access-policy create -vserver <svm_name> -policy-name <policy_name> -protocol CIFS -max-file-size <size> -filters <filter_list> -file-ext-to-exclude <extensions> -paths-to-exclude <paths>`
++
+NOTE: If an on-access policy already exists from a previous Vscan configuration and is appropriate for your workload, you can reuse it with the ICAP path.
+. Enable Vscan to begin intercepting file operations and routing scan requests to the ICAP server.
++
+`vserver vscan enable -vserver <svm_name>`
+. Verify the ICAP connection status.
+`vserver vscan icap-connection-status show -vserver <svm_name>`
+
+// 26-AUG-2026 ONTAPDOC-4090
