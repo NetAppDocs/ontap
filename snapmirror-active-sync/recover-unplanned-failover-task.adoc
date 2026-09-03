@@ -2,7 +2,7 @@
 sidebar: sidebar
 permalink: snapmirror-active-sync/recover-unplanned-failover-task.html
 keywords: fan-out, snapmirror active sync, unplanned failover
-summary: An automatic unplanned failover (AUFO) operation occurs when the primary cluster is down or isolated.  When this occurs, the secondary cluster is converted to the primary and begins serving clients.
+summary: An automatic unplanned failover (AUFO) operation occurs when the primary cluster is down or isolated.  SnapMirror active sync such faults and initiates an automatic unplanned failover to the secondary cluster. The secondary cluster is converted to the primary and begins serving clients.
 ---
 
 = Recover from automatic unplanned ONTAP cluster failover operations
@@ -13,14 +13,14 @@ summary: An automatic unplanned failover (AUFO) operation occurs when the primar
 :imagesdir: ../media/
 
 [.lead]
-An automatic unplanned failover (AUFO) operation occurs when the primary cluster is down or isolated. The ONTAP Mediator detects when a failover occurs and executes an automatic unplanned failover to the the secondary cluster. The secondary cluster is converted to the primary and begins serving clients. This operation is performed only with assistance from the ONTAP Mediator.
+An automatic unplanned failover (AUFO) operation occurs when the primary cluster is down or isolated. SnapMirror active sync detects such faults and initiates an automatic unplanned failover to the the secondary cluster. The secondary cluster is converted to the primary (the preferred cluster), and begins serving clients. Note that the failure detection and failover processing can only be performed with assistance from the ONTAP Mediator.
 
 [NOTE]
 After the automatic unplanned failover, it is important to rescan the host paths so that there is no loss of I/O paths.
 
 == Reestablish the protection relationship after an unplanned failover
 
-You can reestablish the protection relationship using System Manager or the ONTAP CLI. 
+Once the original primary cluster, for instance Cluster A, recovers, SnapMirror active sync automatically establishes protection in the reverse direction. If you want to restore the original state, making Cluster A the primary, preferred cluster, you can perform a manual failback by initiating a planned failover operation using System Manager or the ONTAP CLI.
 
 [role="tabbed-block"]
 ====
@@ -32,7 +32,7 @@ You can reestablish the protection relationship using System Manager or the ONTA
 include::../_include/snapmirror-active-sync-name.adoc[]
 
 . Navigate to *Protection > Relationships* and wait for the relationship state to show "InSync".
-. To resume operations on the original source cluster, click image:icon_kabob.gif[Menu options icon] and select *Failover*.
+. To perform a failback and resume operations on the original source cluster, click image:icon_kabob.gif[Menu options icon] and select *Failover*.
 --
 
 .CLI
@@ -53,6 +53,26 @@ Primary Data Cluster: cluster-2
 Last Progress Update: -
        Failover Type: unplanned
   Error Reason codes: -
+....
+
+You can monitor the status of the reverse protection relationship using the  `snapmirror show` command on the original primary cluster.
+
+For example:
+
+....
+ClusterA::> snapmirror show
+                                                                               Progress
+Source             Destination  Mirror        Relationship   Total             Last	
+Path         Type  Path         State         Status         Progress  Healthy Updated
+-----------  ----  ------------ -------       -------------- --------- ------- --------
+vs3:/cg/dcg3 XDP   vs1:/cg/scg3 Snapmirrored  InSync          -         true    -
+....
+
+You can perform a failback to the original primary cluster using the the `snapmirror failover start` command.
+
+For example:
+....
+ClusterA::> snapmirror failover start -destination-path vs1:/cg/scg3
 ....
 
 Refer to the link:https://docs.netapp.com/us-en/ontap-ems-9131/smbc-aufo-events.html[EMS reference^] to learn about event messages and about corrective actions. 
@@ -87,6 +107,7 @@ If you're using ONTAP 9.14.1 or earlier and you experience a failover on the sec
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-show.html[snapmirror show^]
 
 
+// 2026-Sept-2, GitHub issue #2119
 // 2026-May-24, ONTAPDOC-3544
 // 2025-Aug-19, ONTAPDOC-2803
 // 2025 July 17, ONTAPDOC-2960
