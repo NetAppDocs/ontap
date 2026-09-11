@@ -21,6 +21,12 @@ You can configure MAV to alert MAV administrators that approval requests are pen
 
 Beginning with ONTAP 9.15.1, you can configure Active Directory (AD) users as MAV administrators. The AD user must be link:../authentication/grant-access-active-directory-users-groups-task.html[configured as an ONTAP administrator].
 
+Beginning with ONTAP 9.20.1, approval groups can also include identity provider (IdP) or Active Directory (AD) groups. Supported group types include Entra ID (formerly Azure AD), ADFS, and AD domain groups.
+
+Group membership is evaluated dynamically when an administrator attempts to approve or veto a request. If a user's group membership changes in the IdP or AD domain, the change is reflected immediately without reconfiguring MAV.
+
+NOTE: Before you can add an IdP or AD group to a MAV approval group, the group must already exist in the security login group table.
+
 == System Manager procedure
 
 If you want to create a MAV approval group for the first time, see the System Manager procedure to link:enable-disable-task.html#system-manager-procedure[enable multi-admin verification.]
@@ -41,7 +47,8 @@ For more information, see link:../task_security_administrator_access.html[Contro
 (You will see the image:icon_gear.gif[Actions icon] icon if MAV is not yet configured.)
 
 * Name: enter a group name.
-* Approvers: select approvers from a list of users.
+* Approvers: select individual approvers from a list of users.
+* Groups: enter one or more IdP or AD group names.
 * Email address: enter email address(es).
 * Default group: select a group.
 
@@ -86,20 +93,21 @@ Learn more about `security login show`, `security login modify`, and `security l
 
 .	Create the MAV approval group: 
 +
-`security multi-admin-verify approval-group create [ -vserver _svm_name_] -name _group_name_ -approvers _approver1_[,_approver2_…] [[-email _address1_], _address1_...]`
+`security multi-admin-verify approval-group create [ -vserver _svm_name_] -name _group_name_ [-approvers _approver1_[,_approver2_…]] [-groups _group1_[,_group2_…]] [[-email _address1_], _address1_...]`
 +
 * `-vserver` - Only the admin SVM is supported in this release.
 * `-name` - The MAV group name, up to 64 characters.
-* `-approvers` - The list of one or more approvers. For AD users, use the format `domain\user`. For example, `mydomain\pavan`.
+* `-approvers` - The list of one or more individual approvers. For AD users, use the format `domain\user`. For example, `mydomain\pavan`.
+* `-groups` - The list of one or more IdP or AD groups to include in the approval group. The group must already exist in the `security login group` table.
 * `-email` - One or more email addresses that are notified when a request is created, approved, vetoed, or executed.
 +
-*Example:* The following command creates a MAV group with two members and associated email addresses.
+*Example:* The following command creates a MAV group with two individual approvers and one Entra ID group.
 +
 ----
-cluster-1::> security multi-admin-verify approval-group create -name mav-grp1 -approvers pavan,julia -email pavan@myfirm.com,julia@myfirm.com
+cluster-1::> security multi-admin-verify approval-group create -name mav-grp1 -approvers pavan,julia -groups entra-group-mav-approvers -email pavan@myfirm.com,julia@myfirm.com
 ----
 
-.	Verify group creation and membership:
+. Verify group creation and membership:
 +
 `security multi-admin-verify approval-group show`
 +
@@ -107,9 +115,9 @@ cluster-1::> security multi-admin-verify approval-group create -name mav-grp1 -a
 +
 ----
 cluster-1::> security multi-admin-verify approval-group show
-Vserver  Name        Approvers        Email
--------  ---------------- ------------------  ------------------------------------------------------------
-svm-1    mav-grp1   pavan,julia      email pavan@myfirm.com,julia@myfirm.com
+Vserver  Name        Approvers        Groups                           Email
+-------  ---------------- ------------------  ------------------------------- ------------------------------------------------------------
+svm-1    mav-grp1   pavan,julia      entra-group-mav-approvers        pavan@myfirm.com,julia@myfirm.com
 ----
 
 Use these commands to modify your initial MAV group configuration.
@@ -121,7 +129,7 @@ Use these commands to modify your initial MAV group configuration.
 
 | If you want to…
 | Enter this command
-| Modify the group characteristics or modify existing member information a| `security multi-admin-verify approval-group modify [_parameters_]`
+| Modify the group characteristics or modify existing member information a| `security multi-admin-verify approval-group modify [-vserver _svm_name_] -name _group_name_ [-approvers _approver1_[,_approver2_…]] [-groups _group1_[,_group2_…]] [[-email _address1_], _address1_...]`
 | Add or remove members a| `security multi-admin-verify approval-group replace [-vserver _svm_name_] -name _group_name_ [-approvers-to-add _approver1_[,_approver2_…]][-approvers-to-remove _approver1_[,_approver2_…]]`
 | Delete a group a| `security multi-admin-verify approval-group delete [-vserver _svm_name_] -name _group_name_`
 
