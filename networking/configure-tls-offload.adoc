@@ -10,7 +10,9 @@ summary: Configure TLS offload settings
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.19.1, you can configure TLS offload to improve TLS post-handshake performance by leveraging resources on supported Ethernet cards. This feature offloads encryption and decryption, reducing CPU overhead and improving performance.
+Beginning with ONTAP 9.19.1, you can configure TLS offload to improve TLS post-handshake performance by using resources on supported Ethernet cards. This feature offloads encryption and decryption, reducing CPU overhead and improving performance.
+
+You can enable TLS offload only for traffic that uses KTLS. This setting does not apply to all TLS-enabled traffic. Management traffic such as HTTPS and REST API traffic is unaffected by this setting. HA traffic is not supported.
 
 .About this task
 * TLS offload is disabled by default.
@@ -20,7 +22,8 @@ Beginning with ONTAP 9.19.1, you can configure TLS offload to improve TLS post-h
 +
 For TLS-offloaded connections, TLS cryptographic operations typically bypass software and are handled by an offload-capable NIC. If the LIF associated with this connection migrates to a network port without TLS offload capability, cryptographic operations fall back to software and are handled by the system kernel.
 * Management interfaces (HTTPS, REST API) are unaffected by this setting.
-* The TLS hardware offload setting is cluster-wide.
+* TLS hardware offload is a cluster-wide setting.
+* HA traffic is not supported for TLS hardware offload.
 
 .Supported network cards and platforms
 TLS hardware offload requires a supported network card. The following table lists supported network cards by platform.
@@ -72,17 +75,27 @@ TLS hardware offload requires a supported network card. The following table list
 |===
 
 .Supported traffic types
-TLS hardware offload supports the following traffic types:
+The following table shows whether TLS hardware offload is supported for each traffic type.
 
-* NVMe/TCP
-* Cluster peering encryption
-* FabricPool
-* S3
-* NFS 
+[cols="1,1,2", options="header"]
+|===
+| Traffic type | Supported | Notes
+
+| NVMe/TCP | Yes | Supported on platforms and network cards that support TLS offload.
+| Cluster peering encryption | Yes | Supported for cluster network traffic. This does not include HA traffic.
+| FabricPool | Yes | Supported on platforms and network cards that support TLS offload.
+| S3 | Yes | Supported on platforms and network cards that support TLS offload.
+| NFS over TLS | Yes, starting with ONTAP 9.19.1 | Supported for ONTAP NFS over TLS traffic where KTLS is used.
+| KMIP | No | Not supported.
+| System Manager | No | Management interfaces are unaffected by this setting.
+| REST API | No | Management interfaces are unaffected by this setting.
+| HA traffic | No | TLS hardware offload does not apply to HA traffic.
+
+|===
 
 NOTE: On ASA systems, TLS hardware offload applies to NVMe/TCP traffic only. NFS over TLS, FabricPool, and S3 are not supported on ASA platforms.
 
-NOTE: On AFX platforms, TLS hardware offload supports NFS and S3 front-end traffic types. NVMe/TCP is not supported on AFX platforms because AFX does not support SAN/block protocols.
+NOTE: On AFX platforms, TLS hardware offload supports NFS over TLS and S3 front-end traffic types. NVMe/TCP is not supported on AFX platforms because AFX does not support SAN/block protocols.
 
 .Before you begin
 * You must be an ONTAP administrator at the `admin` privilege level to perform the following tasks.
