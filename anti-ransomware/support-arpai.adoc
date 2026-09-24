@@ -1,0 +1,187 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/support-arpai.html
+keywords: ARP AI, arpai, autonomous ransomware protection AI, ONTAP 9.16.1, supported configurations, SAN ransomware, NAS ransomware, machine learning ransomware, hypervisor ransomware, SnapMirror ARP AI, AFF ransomware protection, ASA ransomware, FlexVol ARP AI, FlexGroup ARP AI, current ARP AI model ONTAP, ARP AI requirements ONTAP, SAN ransomware support ONTAP
+summary: "ARP/AI (ONTAP 9.16.1 and later) is the current ransomware protection model and supports NAS and SAN workloads across FlexVol and FlexGroup volumes on AFF, ASA, FAS, and ASA r2 systems."
+---
+
+= Supported configurations for ONTAP Autonomous Ransomware Protection with AI
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Autonomous Ransomware Protection with AI (ARP/AI) is available for NAS (beginning with ONTAP 9.16.1) and SAN (beginning with ONTAP 9.17.1) workloads. Before deploying ARP/AI, review the supported configurations and use cases, and confirm your environment meets the requirements.
+
+NOTE: If you are running ONTAP 9.15.1 or earlier, see link:support-arp.html[Supported configurations for ARP].
+
+== Suitable workloads
+
+ARP/AI is suited for these types of workloads:
+
+* Databases on NFS or SAN storage
+* Windows or Linux home directories
+* Images and video (for example, healthcare records and Electronic Design Automation (EDA) data)
+* SAN workloads on volumes containing LUNs or NVMe namespaces (ONTAP 9.17.1 and later)
+* Virtual machine workloads on VMware, Hyper-V, KVM, and OpenStack (ONTAP 9.17.1 and later)
+
+== Unsuitable workloads
+
+ARP/AI is not suited for these types of workloads:
+
+* Workloads with a high frequency of file create or delete operations (hundreds of thousands of files in a few seconds; for example, test/development workloads).
++
+ARP/AI's threat detection depends on its ability to recognize an unusual surge in file create, rename, or delete operations. If the application itself is the source of the file activity, it cannot be effectively distinguished from ransomware activity.
+* Workloads where the application or the host encrypts data.
++
+ARP/AI depends on distinguishing incoming data as encrypted or unencrypted. If the application itself is encrypting the data, the effectiveness of the feature is reduced. However, ARP/AI can still work based on file activity (delete, overwrite, or create, or a create or rename with a new file extension) and file type.
+* Workloads inside VMs that involve a large number of highly compressed or encrypted files (such as 7z, ZIP, or password-protected PDF or DOC files).
+
+== Supported configurations
+
+ARP/AI supports NAS and SAN workloads across multiple ONTAP versions and environments. Review supported capabilities to confirm your environment is supported before deploying ARP/AI.
+
+=== Baseline support
+
+ARP/AI support starts in ONTAP 9.16.1 and includes NAS workloads (NFS and SMB) on FlexVol volumes and MetroCluster configurations with no learning period required.
+
+=== Protocol and hypervisor support by ONTAP version
+
+* ONTAP 9.17.1 and later: SAN block-device workloads (volumes containing LUNs or NVMe namespaces) and NAS volumes containing VMware virtual disks.
+* ONTAP 9.17.1P5 and later: NAS volumes containing Hyper-V, KVM, and OpenStack hypervisors.
+
+=== Feature and configuration support matrix
+
+Support for additional configurations and volume types is available in the following ONTAP versions:
+
+[options="header"]
+|===
+| | ONTAP 9.19.1 | ONTAP 9.18.1 | ONTAP 9.17.1 | ONTAP 9.16.1
+| Volumes protected with SnapMirror asynchronous | ✓ | ✓ | ✓ | ✓
+| Volumes protected with SnapMirror synchronous ^1^ | ✓ | | |
+| Volumes protected with SnapMirror active sync ^1^ | ✓ | | |
+| SVMs protected with SnapMirror asynchronous (SVM disaster recovery) | ✓ | ✓ | ✓ | ✓
+| SVM data mobility (`vserver migrate`) | ✓ | ✓ | ✓ | ✓
+| FlexGroup volumes | ✓ | ✓ | ✓ ^2^ | ✓ ^2^
+| Multi-admin verification | ✓ | ✓ | ✓ | ✓
+| ARP/AI default enablement | ✓ | ✓ | |
+|===
+
+^1^ Beginning with ONTAP 9.19.1, ARP/AI supports primary volumes in SnapMirror synchronous relationships for NAS and SAN on FAS, AFF A-series, AFF C-series, and AFX systems, and primary volumes in SnapMirror active sync SAN relationships on AFF A-series, AFF C-series, and ASA r2 systems. For more information, see <<snapmirror>>.
+
+^2^ ONTAP 9.16.1 and 9.17.1 FlexGroup volumes use the ARP model prior to ARP/AI; full ARP/AI support for FlexGroup volumes begins in ONTAP 9.18.1.
+
+[[snapmirror]]
+== SnapMirror and ARP/AI interoperability
+
+Beginning with ONTAP 9.12.1, ARP is supported on SnapMirror asynchronous destination volumes.
+
+Beginning with ONTAP 9.19.1, ARP/AI supports primary volumes that participate in SnapMirror synchronous and SnapMirror active sync SAN relationships, with the following behavior:
+
+* ARP/AI is supported on _primary_ volumes in SnapMirror synchronous relationships for NAS and SAN on FAS, AFF A-series, AFF C-series, and AFX systems.
+* ARP/AI is supported on _primary_ volumes in SnapMirror active sync SAN relationships on AFF A-series, AFF C-series, and ASA r2 systems.
+* ARP/AI analytics run only on the active, read-write primary volume in SnapMirror synchronous and SnapMirror active sync SAN relationships.
+* ARP/AI snapshots are not replicated to the secondary volume in SnapMirror synchronous or SnapMirror active sync relationships. You need to link:enable-arpai.html[enable ARP/AI again] on the recovery volume after failover.
+
+NOTE: Because every write operation is committed to both volumes in a synchronous mirror relationship, enabling ARP/AI on the primary volume only is sufficient to detect anomalies. Internal metadata generated by ARP/AI analytics on the primary volume is replicated to the secondary. Because of this, if ARP/AI is enabled on the secondary volume after a failover, the required metadata will already exist.
+
+If a SnapMirror _asynchronous_ source volume is ARP/AI-enabled, the SnapMirror destination volume automatically acquires the ARP/AI configuration state (such as `enabled`), ARP/AI security data, and ARP/AI-created snapshots of the source volume. No explicit enablement is required.
+
+Although the asynchronous destination volume consists of read-only (RO) snapshots, no ARP/AI processing is done on its data. However, when the SnapMirror asynchronous destination volume is converted to read-write (RW), ARP/AI is automatically enabled on the RW-converted destination volume.
+
+== ARP/AI and virtual machines
+
+ARP/AI supports virtual machines (VMs) on VMware, Hyper-V, KVM, and OpenStack. VMware support begins with ONTAP 9.17.1; Hyper-V, KVM, and OpenStack support begins with ONTAP 9.17.1P5. ARP/AI detection behaves differently for changes inside and outside the VM. ARP/AI is not recommended for workloads that involve a large number of highly compressed files (such as 7z and ZIP) or encrypted files (such as password-protected PDF, DOC, or ZIP) within the VM.
+
+.Changes outside the VM
+ARP/AI can detect file extension changes on an NFS volume outside of the VM if a new extension enters the volume in an encrypted state or if a file extension changes.
+
+.Changes inside the VM
+If a ransomware attack changes files inside the VM without making changes outside the VM, ARP/AI detects the threat if the default entropy of the VM is low (for example, .txt, .docx, or .mp4 files). Beginning with SAN support in ONTAP 9.17.1, ARP/AI generates a threat alert additionally if it detects an entropy anomaly inside the VM.
+
+If, by default, the files are high entropy (for example, .gzip or password-protected files), ARP/AI's detection capabilities are limited. ARP/AI can still take proactive snapshots in this instance; however, no alerts are triggered if the file extensions have not been tampered with externally.
+
+NOTE: Detection of attacks occurring within a VM is available only for FlexVol volumes and is not available if the VM datastore is configured on a FlexGroup volume in ONTAP 9.18.1 and later.
+
+== Unsupported configurations
+
+ARP/AI is not supported in ONTAP S3 environments.
+
+[[unsupported-configurations]]
+ARP/AI does not support the following volume configurations:
+
+* FlexGroup volumes with ONTAP 9.16.1 and 9.17.1 (FlexGroup volumes use the older ARP model in these versions; ARP/AI support for FlexGroup volumes begins in ONTAP 9.18.1)
+* FlexCache volumes (ARP/AI is supported on origin FlexVol volumes but not on cache volumes)
+* Offline volumes
+* SnapLock volumes
+* SnapMirror active sync in ONTAP 9.18.1 and earlier
+* SnapMirror synchronous in ONTAP 9.18.1 and earlier
+* Cascade configurations from a SnapMirror synchronous destination volume
+* Restricted volumes
+* Root volumes of storage VMs
+* Volumes of stopped storage VMs
+* FlexVol to FlexGroup conversion (ARP/AI must be disabled before conversion)
+
+== ARP/AI performance and frequency considerations
+
+ARP/AI can have a minimal impact on system performance as measured in throughput and peak IOPS. The impact depends on the specific volume workload. For common workloads, the following configuration limits are recommended:
+
+[cols="30,20,30",options="header"]
+|===
+| Workload characteristics
+| Recommended volume limit per node
+| Performance degradation when per-node volume limit is exceeded ^1^
+
+| Read-intensive or the data can be compressed
+| 150
+| 4% of maximum IOPS
+
+| Write-intensive and the data cannot be compressed
+| 60
+a| * NAS: 4% of maximum IOPS for ONTAP 9.16.1 and later
+* SAN: 5% of maximum IOPS for ONTAP 9.17.1 and later
+|===
+
+^1^ System performance is not degraded beyond these percentages regardless of the number of volumes added in excess of the recommended limits.
+
+[NOTE]
+====
+Enabling ARP/AI by default on large numbers of new volumes might increase system resource usage. Consider space demands for competing processes like snapshots when enabling ARP/AI on volumes.
+====
+
+Beginning with ONTAP 9.18.1, ARP/AI supports increased volume limits based on platform type and CPU core count:
+
+[cols="40,30",options="header"]
+|===
+| Platform type
+| Maximum ARP/AI-enabled volumes per node
+
+| Low-end (systems with up to 20 CPU cores)
+| 250
+
+| Medium (systems with up to 64 CPU cores)
+| 750
+
+| High-end (systems with more than 64 CPU cores)
+| 1000
+|===
+
+NOTE: The CPU core count applies to each individual node in a 2-node HA pair.
+
+[[arp-upgrade-considerations]]
+== Upgrade considerations for existing clusters
+
+NOTE: If you are deploying a new ONTAP 9.18.1 or later cluster, ARP/AI is enabled by default on new volumes automatically. See link:learn-about-arpai.html[Learn about ARP/AI].
+
+When upgrading to ONTAP 9.18.1 or later on AFF A-series, AFF C-series, ASA, or ASA r2 systems, ARP/AI is automatically enabled by default for new volumes after a 12-hour grace period. During the grace period, you can link:default-enable-change-arpai.html[opt out of automatic enablement]. Existing volumes are not changed; you must link:enable-arpai.html[manually enable ARP/AI] on existing volumes.
+
+For FlexGroup volumes upgraded from ONTAP 9.17.1 or earlier to ONTAP 9.18.1, ARP/AI becomes available automatically and volumes in learning mode are transitioned to active mode.
+
+== Multi-admin verification with ARP/AI-protected volumes
+
+Beginning with ONTAP 9.13.1, you can enable multi-admin verification (MAV) for additional security with ARP/AI. MAV ensures that at least two or more authenticated administrators are required to turn off ARP/AI, pause ARP/AI, or mark a suspected attack as a false positive on a protected volume. Learn how to link:../multi-admin-verify/enable-disable-task.html[enable MAV for ARP/AI-protected volumes].
+
+You need to define administrators for a MAV group and create MAV rules for the `security anti-ransomware volume disable`, `security anti-ransomware volume pause`, and `security anti-ransomware volume attack clear-suspect` commands you want to protect.
+
+Learn more about `security anti-ransomware volume disable`, `security anti-ransomware volume pause`, and `security anti-ransomware volume attack clear-suspect` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+anti-ransomware+volume[ONTAP command reference^].
+
+// 2026-06-30, restructured from use-cases-restrictions-concept.adoc
