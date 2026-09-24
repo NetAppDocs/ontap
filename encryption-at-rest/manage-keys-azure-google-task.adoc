@@ -15,6 +15,13 @@ Beginning with ONTAP 9.10.1, you can use link:https://docs.microsoft.com/en-us/a
 
 AWS KMS, AKV and Cloud KMS can be used to protect link:configure-netapp-volume-encryption-concept.html[NetApp Volume Encryption (NVE) keys] only for data SVMs. 
 
+[NOTE]
+====
+Beginning with ONTAP 9.20.1, when you enable a cloud key manager on a data SVM that already manages encrypted volumes through the admin-scope key manager, ONTAP automatically migrates those NVE keys to the new data-SVM key manager. In this workflow, you do not need to run a separate `security key-manager key migrate` command.
+
+This automatic migration applies to data SVMs. If you are transitioning the admin SVM from onboard key management or cluster-scope external key management to a data-SVM cloud key manager, complete the appropriate admin-scope transition tasks first.
+====
+
 .About this task
 Key management with a cloud provider can be enabled with the CLI or the ONTAP REST API. 
 
@@ -31,7 +38,7 @@ When utilizing a cloud provider key management service, you should be aware of t
 * The ONTAP cluster's nodes must support NVE.
 * link:../encryption-at-rest/install-license-task.html[You must have installed the Volume Encryption (VE) and multi-tenant Encryption Key Management (MTEKM) licenses]. These licenses are included with link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one[ONTAP One]. 
 * You must be a cluster or SVM administrator.
-* The data SVM must not include any encrypted volumes or employ a key manager. If the data SVM includes encrypted volumes, you must migrate them before configuring the KMS.  
+* For ONTAP 9.20.1 and later, a data SVM can include encrypted volumes if their NVE keys are managed by the admin-scope key manager. ONTAP automatically migrates those keys during the enable operation. For earlier releases, migrate the keys before configuring the cloud key manager.
 
 == Enable external key management
 
@@ -104,8 +111,11 @@ Learn more about `security key-manager external gcp` in the link:https://docs.ne
 --
 ====
 
-If one or more encrypted volumes is already configured for a data SVM and the corresponding NVE keys are managed by the admin SVM onboard key manager, those keys should be migrated to the external key management service. To do this with the CLI, run the command:  
+Beginning with ONTAP 9.20.1, if one or more encrypted volumes are already configured for a data SVM and the corresponding NVE keys are managed by the admin-scope key manager, ONTAP automatically migrates those keys during the enable operation. You do not need to run a separate `security key-manager key migrate` command.
+
+For ONTAP releases earlier than 9.20.1, those keys should be migrated to the external key management service. To do this with the CLI, run the command:
 `security key-manager key migrate -from-Vserver _admin_SVM_ -to-Vserver _data_SVM_`
+
 New encrypted volumes cannot be created for the tenant's data SVM until all NVE keys of the data SVM are successfully migrated. 
 
 .Related information 
