@@ -25,11 +25,20 @@ A storage virtual machine (SVM) serves data to clients through one or more logic
 
 You can create both IPv4 and IPv6 LIFs on the same network port.
 
+
+.Creating LIFS with subnets
+
+* NetApp recommends creating subnet objects for all LIFs on data SVMs. This is especially important for MetroCluster configurations, where the subnet object enables ONTAP to determine failover targets on the destination cluster because each subnet object has an associated broadcast domain. If you are planning to use a subnet name to allocate the IP address and network mask value for a LIF, the subnet must already exist. For instructions, refer to link:../networking/create_a_subnet.html[Create a subnet]. 
+
+* A LIF handling intracluster traffic between nodes should not be on the same subnet as a LIF handling management traffic or a LIF handling data traffic.
+* When you create an intercluster network interface, you cannot specify an IP address that is in the range of an existing subnet.
+* Beginning with ONTAP 9.7, when you create a network interface with a subnet, ONTAP automatically selects an available IP address from the selected subnet and assigns it to the network interface. You can change the subnet if there is more than one subnet, but you cannot change the IP address.
+
 .LIF creation feature support by ONTAP version
 
 Support for features related to LIF creation varies by ONTAP version.
 
-[cols=2, options="header"]
+[cols=2, 30%, 70%, options="header"]
 |====
 |Beginning with ONTAP version | Feature
 
@@ -73,14 +82,6 @@ Learn more about link:../nvme/support-limitations.html[NVMe configuration, suppo
 
 * SMB LIFs
 ** Do not configure LIFs that carry SMB traffic to automatically revert to their home nodes if the SMB server hosts a solution for nondisruptive operations with Hyper-V or SQL Server over SMB.
-
-
-.Creating LIFS with subnets
-
-* If you are planning to use a subnet name to allocate the IP address and network mask value for a LIF, the subnet must already exist.
-* A LIF handling intracluster traffic between nodes should not be on the same subnet as a LIF handling management traffic or a LIF handling data traffic.
-* When you create an intercluster network interface, you cannot specify an IP address that is in the range of an existing subnet.
-* Beginning with ONTAP 9.7, when you create a network interface with a subnet, ONTAP automatically selects an available IP address from the selected subnet and assigns it to the network interface. You can change the subnet if there is more than one subnet, but you cannot change the IP address.
 
 .Steps
 
@@ -138,21 +139,24 @@ If you have a large number of LIFs in your cluster, you can verify the LIF capac
 +
 [source,cli]
 ----
-`set -privilege advanced`
+set -privilege advanced
 ----
 
 .. View the LIF capacity supported on each node:
 +
 [source,cli]
 ----
-`network interface capacity details show`
+network interface capacity details show
 ----
-
++
 Learn more about the `network interface capacity details show` command link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=network+interface+capacity+show[ONTAP command reference^].
 
 . Determine which broadcast domain ports you want to use for the LIF.
 +
-`network port broadcast-domain show -ipspace _ipspace1_`
+[source,cli]
+----
+network port broadcast-domain show -ipspace _ipspace1_
+----
 +
 ....
 IPspace     Broadcast                       Update
@@ -166,19 +170,22 @@ ipspace1
 ....
 +
 Learn more about `network port broadcast-domain show` in the link:https://docs.netapp.com/us-en/ontap-cli/network-port-broadcast-domain-show.html[ONTAP command reference^].
+
 . Verify that the subnet you want to use for the LIFs contains sufficient unused IP addresses.
 +
-`network subnet show -ipspace _ipspace1_`
+[source,cli]
+----
+network subnet show -ipspace _ipspace1_
+----
 +
 Learn more about `network subnet show` in the link:https://docs.netapp.com/us-en/ontap-cli/network-subnet-show.html[ONTAP command reference^].
 
 . Create one or more LIFs on the ports you want to use to access data.
 +
-CAUTION: NetApp recommends creating subnet objects for all LIFs on data SVMs. This is especially important for MetroCluster configurations, where the subnet object enables ONTAP to determine failover targets on the destination cluster because each subnet object has an associated broadcast domain. For instructions, refer to link:../networking/create_a_subnet.html[Create a subnet]. 
-+
-....
+[source,cli]
+----
 network interface create -vserver _SVM_name_ -lif _lif_name_ -service-policy _service_policy_name_ -home-node _node_name_ -home-port port_name {-address _IP_address_ - netmask _Netmask_value_ | -subnet-name _subnet_name_} -firewall- policy _policy_ -auto-revert {true|false}
-....
+----
 +
 * `-home-node` is the node to which the LIF returns when the `network interface revert` command is run on the LIF.
 +
@@ -194,7 +201,7 @@ Learn more about `network interface revert` in the link:https://docs.netapp.com/
 When a service policy is specified for a LIF, the policy is used to construct a default role, failover policy, and data protocol list for the LIF. In ONTAP 9.5, service policies are supported only for intercluster and BGP peer services. In ONTAP 9.6, you can create service policies for several data and management services.
 * `-data-protocol` enables you to create a LIF that supports the FCP or NVMe/FC protocols. This option is not required when creating an IP LIF.
 
-. *Optional*: Assign an IPv6 address in the -address option:
+. Optionally, assign an IPv6 address in the -address option:
 .. Use the `network ndp prefix show` command to view the list of RA prefixes learned on various interfaces.
 +
 The `network ndp prefix show` command is available at the advanced privilege level.
