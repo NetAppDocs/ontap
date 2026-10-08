@@ -16,6 +16,11 @@ Configure LDAP over TLS for ONTAP SMB servers to secure communication between th
 To use LDAP over SSL/TLS for securing Active Directory communication, you must first export a copy of the Active Directory Certificate Service's self-signed root CA certificate to a certificate file and convert it to an ASCII text file. This text file is used by ONTAP to install the certificate on the storage virtual machine (SVM).
 
 The Active Directory Certificate Service must already be installed and configured for the domain to which the CIFS server belongs. You can find information about installing and configuring Active Directory Certificate Services by consulting the http://technet.microsoft.com/en-us/library/[Microsoft TechNet Library: technet.microsoft.com]
+
+[NOTE]
+====
+Beginning with ONTAP 9.13.1, if `-use-start-tls-for-ad-ldap` or `-use-ldaps-for-ad-ldap` is enabled for the SMB server, ensure that the required CA certificates are installed for trusted domains as well as the home domain. ONTAP must be able to establish TLS or LDAPS connections to trusted-domain domain controllers to determine their site information.
+====
 .Step
 
 . Obtain a root CA certificate of the domain controller that is in the `.pem` text format.
@@ -79,6 +84,11 @@ To learn more, see:
 ----
 vserver cifs security modify -vserver <SVM_name> -use-start-tls-for-ad-ldap true
 ----
++
+[NOTE]
+====
+Beginning with ONTAP 9.13.1, when secure LDAP communication is enabled for Active Directory connections, ONTAP also uses those secure connections when contacting trusted-domain domain controllers. If the required certificates are not installed for trusted-domain domain controllers, ONTAP might be unable to determine trusted-domain site information.
+====
 
 . Verify that the LDAP over TLS security setting is set to `true`: 
 +
@@ -92,6 +102,7 @@ vserver cifs security show -vserver <SVM_name>
 If the SVM uses the same LDAP server for querying name-mapping or other UNIX information (such as users, groups, and netgroups), then you must also modify the `-use-start-tls` option by using the `vserver services name-service ldap client modify` command.
 ====
 
+// 2026 Sep 24, BURT 1545747
 // 2026 June 01, ONTAPDOC-3910
 // 2025 June 04, ONTAPDOC-2960
 // 2025 May 29, ONTAPDOC-2982
