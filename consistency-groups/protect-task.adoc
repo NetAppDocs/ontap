@@ -12,17 +12,33 @@ summary: "Use consistency groups to protect data using local snapshots, SnapMirr
 [.lead]
 Consistency groups offer easily managed local and remote protection for SAN, NAS, and NVMe applications that span multiple volumes.
 
-Creating a consistency group does not automatically enable protection. Protection policies can be set at the time of creation or after creating your consistency group. You can protect consistency groups using:
+Creating a consistency group does not automatically enable protection. Protection policies can be set at the time of creation or after creating your consistency group. 
 
-* Local snapshots
-* SnapMirror active sync (referred to as SnapMirror Business Continuity in versions of ONTAP before 9.15.1)
-* xref:index.html#mcc[MetroCluster (beginning 9.11.1)]
-* SnapMirror asynchronous (beginning 9.13.1)
-* Asynchronous SVM disaster recovery (beginning 9.14.1)
+The type of data protection available for consistency groups varies based upon your ONTAP version.
+
+[cols=2, options="header"]
+|====
+|Available beginning with ONTAP... | Data protection for consistency groups
+
+|9.20.1
+|SnapLock for SnapVault from non-SnapLock volumes
+
+|9.14.1
+|SVM disaster recovery
+
+|9.13.1
+|SnapMirror asynchronous
+
+|9.11.1
+|Consistency groups offer <<two-phase,two-phase consistency group snapshot creation>>. The two-phase snapshot operation executes a pre-check, ensuring the snapshot is captured successfully.  
+
+|9.10.1
+a|
+* Snapshot policies
+* SnapMirror active sync
+|====
 
 If you are utilizing nested consistency groups, you can set different protection policies for the parent and child consistency groups.
-
-Beginning with ONTAP 9.11.1, consistency groups offer <<two-phase,two-phase consistency group snapshot creation>>. The two-phase snapshot operation executes a pre-check, ensuring the snapshot is captured successfully.  
 
 Recovery can occur for an entire consistency group, a single consistency group in a hierarchical configuration, or for individual volumes within the consistency group. Recovery can be achieved by selecting the consistency group you want to recover from, selecting the snapshot type, and then identifying the snapshot to base the restoration on. For more information about this process, see link:../task_dp_restore_from_vault.html[Restore a volume from an earlier snapshot].
 
@@ -225,6 +241,100 @@ The minimum supported schedule (recovery point objective, or RPO) for consistenc
 . Select *Save*.
 . The consistency group needs to initialize and synchronize. Confirm synchronization has completed successfully by returning to the *Consistency group* menu. The *SnapMirror (Remote)* status displays `Protected` next to image:../media/icon_shield.png[Shield icon].
 
+=== Configure SnapLock for SnapVault replication from a non-SnapLock source
+
+Beginning with ONTAP 9.20.1, you can replicate a consistency group from a non-SnapLock source volume to a SnapLock for SnapVault destination volume. Snapshots protected by SnapLock for SnapVault on the destination cannot be deleted accidentally or maliciously.
+
+.Before you begin
+
+* You should link:../system-admin/manage-license-task.html[verify that a SnapLock license is installed]. If a SnapLock license is not installed on the node, you must link:..//system-admin/install-license-task.html[install it]. This license is included with link:..//system-admin/manage-licenses-concept.html[ONTAP One]. 
+* The link:..//snaplock/initialize-complianceclock-task.html[Compliance Clock must be initialized] on both cluster nodes.
+
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+
+When you set up your replication relationship in System Manager, enable SnapLock for SnapVault by selecting a vault replication policy, and then selecting to lock the destination snapshots.
+
+. In System Manager, select *Storage > Consistency groups*.
+. Select a consistency group, and then select *Protect*.
++
+System Manager auto-fills source-side information. 
+. Select the destination cluster and storage VM. 
+
+. Select a protection policy. 
++
+You must select a _vault_ replication policy that is configured with retention rules.
+. Select *Lock destination consistency groups*.
+. Ensure that *Initialize relationship* is selected.
+. Select *Save*.
+--
+
+.CLI
+--
+
+. Create a SnapLock destination volume for the source consistency group:
++
+[source,cli]
+----
+volume create -vserver <dst_svm> -volume <dst_vol> -aggregate <aggr> -size <size> -type DP -snaplock-type enterprise
+----
+
+. Create a SnapMirror vault policy:
++
+[source,cli]
+----
+snapmirror policy create -vserver <dst_svm> -policy <policy_name> -type vault
+----
+
+. Add retention rules to the policy:
++
+[source,cli]
+----
+snapmirror policy add-rule -vserver <dst_svm> -policy <policy_name> -snapmirror-label daily -keep <retention_length> -retention-period <retention_period>
+----
++
+In the following example, the retention period is set to 1 year:
++
+`snapmirror policy add-rule -vserver svm1 -policy vault -snapmirror-label monthly -keep 12 -retention-period "1 years"`
++
+In the following example, the retention period is set to 30 days:
++
+`snapmirror policy add-rule -vserver svm1 -policy vault -snapmirror-label daily -keep 30 -retention-period "30 days"`
+
+. Create the SnapLock for SnapVault relationship:
++
+[source,cli]
+----
+snapmirror create -source-path <src_svm>:/cg/<src_cg> -destination-path <dst_svm>:/cg/<dst_cg> -policy <policy_name>
+----
+
+. Initialize the relationship:
++
+[source,cli]
+----
+snapmirror initialize -destination-path <dst_svm>:<dst_vol>
+----
+
+. Verify the relationship is established:
++
+[source,cli]
+----
+snapmirror show -destination-path <dst_svm>:<dst_vol> -fields policy,status,state
+----
+
+. Verify the snapshots are locked on the destination:
++
+[source,cli]
+----
+volume snapshot show -vserver <dst_svm> -volume <dst_vol> -fields snapshot,snaplock-expiry-time,is-snaplock-expiry-locked
+----
+--
+====
+
 === Configure SVM disaster recovery
 
 Beginning with ONTAP 9.14.1, xref:../data-protection/snapmirror-svm-replication-concept.html#[SVM disaster recovery] supports consistency groups, enabling you to mirror consistency group information from the source to the destination cluster. 
@@ -255,7 +365,7 @@ System Manager visualizes LUN maps under the *Protection > Relationships* menu. 
 * xref:../data-protection/snapmirror-disaster-recovery-concept.html[SnapMirror asynchronous disaster recovery basics]
 
 
-
+// 2026 Nov 5, ONTAPDOC-4048
 // 2025-Aug-19, ONTAPDOC-2803
 // 2025 Jan 22, ONTAPDOC-1070
 // 2024-Aug-30, ONTAPDOC-2346
