@@ -17,7 +17,7 @@ The following guidelines are well-tested internally at NetApp. It is *_strongly_
 
 * Significant enhancements for FlexCache write-back were introduced in ONTAP 9.17.1P1. It is *_strongly_* advised you run the current recommended release after 9.17.1P1 at both the origin and cache clusters. If you are unable to run 9.17.1 codeline, the latest P release of 9.16.1 is the next suggested release. ONTAP 9.15.1 does not have all the necessary fixes and improvements for FlexCache write-back, and is not recommended for production workloads.
 
-* In its current iteration, FlexCache write-back caches should be configured with a single constituent for the entire FlexCache volume. Multi-constituent FlexCaches can result in unwanted evictions of data from the cache.
+* Multi-constituent FlexCache write-back caches are supported with ONTAP 9.19.1 GA, 9.18.1P2, 9.17.1P3, 9.16.1P10 and later P releases in each respective release family. For earlier ONTAP releases, you must use a single constituent for the entire FlexCache volume. Multi-constituent FlexCaches on earlier releases can result in unwanted evictions of data from the cache.
 
 * Testing has been executed for files smaller than 100GB and WAN round-trip times between the cache and origin not exceeding 200ms. Any workloads outside of these limits might result in unexpected performance characteristics.
 
@@ -40,10 +40,33 @@ Any other attributes that are changed or set are forwarded to origin which might
 
 * SMB Opportunistic Locks (Oplocks) for writes are not supported on write-back-enabled FlexCache volumes.
 
-* Write-back caches automatically switch to write-around mode when the origin volume's free space drops to 20% or below. This helps prevent running out of space at the origin, which would result in leaving dirty data orphaned at a write-back-enabled cache. However, if the origin volume is overprovisioned, meaning its logical provisioned size is larger than the free space in the aggregate, the reported free space percentage may trigger this threshold earlier than you expect. The 20% threshold is evaluated against the both origin volume's reported free space and the aggregate's available physical capacity.
+* Write-back caches automatically switch to write-around mode when the origin volume's free space drops to 20% or below. This helps prevent running out of space at the origin, which would result in leaving dirty data orphaned at a write-back-enabled cache. If the origin volume is overprovisioned, its logical provisioned size is larger than the free space in the aggregate. The 20% threshold is evaluated against both the origin volume's available space and the aggregate's available physical capacity. `percent-used` and `capacity` can still show 0% when available space is already below that threshold.
++
+The following example is an overprovisioned origin volume. Almost no data is written, but the aggregate cannot back the full logical size:
++
+[source,cli]
+----
+ORIGIN::> vol show -volume origin_volume -fields percent-used,available,size
+vserver             volume           size    available percent-used
+------------------- ---------------- ------- --------- ------------
+origin_svm          origin_volume    19.70TB 1.33TB    0%
+----
++
+Notice that `percent-used` is 0%, but the available space is 1.33TB of 19.70TB, which is 1.33 / 19.70, or about 7% available. That is already below the 20% threshold, so write-back caches for this origin switch to write-around mode.
++
+[source,cli]
+----
+ORIGIN::> df -h origin_volume
+Filesystem               total       used      avail   capacity  Mounted on       Vserver
+/vol/origin_volume/      18TB        515MB     1363GB         0%    ---           origin_svm
+
+2 entries were displayed.
+----
++
+Notice that `capacity` is also 0%, and only 515MB is used. Available space is 1363GB of 18TB, or about 7% of the file system. The percentage columns show how little data is stored. They do not show how much of the volume size the aggregate can actually provide.
 
 
-* Low bandwidth and/or lossy intercluster networks can have a significant negative effect on FlexCache write-back performance. While there isn't a specific bandwidth requirement, as it is highly dependent on your workload, it is *_strongly_* recommended you ensure the health of the intercluster link between the cache(s) and origin.
+* Low bandwidth and/or lossy intercluster networks can have a significant negative effect on FlexCache write-back performance. While there isn't a specific bandwidth requirement, as it is highly dependent on your workload, it is *_strongly_* recommended you ensure the health of the intercluster link between the cache(s) and origin. If your network is prone to packet loss, and you are running ONTAP 9.19.1 or later, consider using link:../networking/improve-tcp-wan-performance.html[TCP RACK] to improve performance.
 
 // 2024-12-20,PR-2195
 // 2024-12-20,PR-2195
