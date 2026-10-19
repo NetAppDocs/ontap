@@ -1,0 +1,38 @@
+---
+permalink: revert/remove-persistent-reservation-registrations.html
+sidebar: sidebar
+keywords: revert, persistent reservation, registrations, SCSI-3, LUN, 9.20.1
+summary: "If any LUN has historically exceeded 182 SCSI-3 persistent reservation registrations, ONTAP blocks reversion to versions earlier than ONTAP 9.20.1. Before you revert, check each LUN and remove any registrations."
+---
+= Remove persistent reservation registrations before reverting from ONTAP 9.20.1 
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+ONTAP versions earlier than 9.20.1 support a maximum of 182 SCSI-3 persistent reservation registrations per LUN. Beginning with ONTAP 9.20.1, this limit increases to 256. If any LUN has historically exceeded 182 registrations, ONTAP blocks reversion regardless of the current registration count. Before reverting from 9.20.1 to 9.19.1, identify and remove persistent reservation registrations on affected LUNs.
+
+IMPORTANT: Removing persistent reservation registrations can require host-side reconfiguration in clustered environments. Depending on the host operating system and clustering software, you might need to take cluster resources offline, remove affected LUNs from cluster management, and re-establish cluster access after the revert. Review your clustering solution documentation and validate the recovery workflow in a test environment before reverting.
+
+.Steps
+
+. Check whether any LUNs have historically exceeded 182 persistent reservation registrations:
++
+[source,cli]
+----
+lun show -field persistent-reservation-scale-tier
+----
++
+A value over 182 in the persistent-reservation-scale-tier field indicates the LUN has allocated additional persistent reservation metadata. This blocks reversion, regardless of the current registration count.
+
+. For each affected LUN, display the current active registration count:
++
+[source,cli]
+----
+lun persistent-reservation show -vserver <vserver_name> -path <lun_path>
+----
+
+. Remove persistent reservation registrations on all affected LUNs.
++
+Run the revert precheck. If this condition is detected, the precheck output includes the specific cleanup commands required.
+
+// ONTAPDOC-4110
