@@ -4,73 +4,21 @@ sidebar: sidebar
 keywords: ontap mediator, install requirements, mediator requirements
 summary: "ONTAP Mediator provides several functions for ONTAP features."
 ---
-= Learn about ONTAP Mediator
+= Learn about ONTAP Mediator for MetroCluster IP and SnapMirror active sync
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
+ONTAP Mediator supports SnapMirror active sync and MetroCluster IP by providing a persistent and fenced store for high-availability (HA) metadata, synchronous node health query functionality to aid in quorum determination, and serving as a ping proxy for controller liveliness. 
 
-This documentation refers to the on-premise version of ONTAP Mediator. For information about ONTAP Cloud Mediator, available beginning with ONTAP 9.17.1, see the link:../snapmirror-active-sync/index.html[SnapMirror active sync documentation]. 
+ONTAP Mediator runs on a Linux host in a third failure domain, separate from your ONTAP clusters, where it provides a persistent, fenced store for HA metadata. ONTAP uses this store, along with the Mediator's node health query and ping-proxy functions, to monitor SnapMirror active sync relationships and MetroCluster IP configurations.
 
-ONTAP Mediator provides several functions for ONTAP features:
+* ONTAP Mediator uses the node management LIF and cluster management LIF to communicate with each cluster over multiple, redundant paths. This lets ONTAP distinguish between a full site failure and a single InterSwitch Link (ISL) failure.
+* In SnapMirror active sync, if a cluster loses connection to both its peer and ONTAP Mediator, ONTAP treats the peer as unreachable and can automatically fail over to the surviving copy.
+* In MetroCluster IP configurations, ONTAP Mediator assists with a Mediator-assisted automatic unplanned switchover (MAUSO) by storing state information about the MetroCluster nodes and helping determine the appropriate course of action during a failure.
 
-* Provides a persistent and fenced store for HA metadata.
-* Serves as a ping proxy for controller liveliness.
-* Provides synchronous node health query functionality to aid in quorum determination.
+To install or upgrade the on-premise version of ONTAP Mediator, refer to the link:https://docs.netapp.com/us-en/ontap-mediator/index.html[ONTAP Mediator documentation^]
 
-ONTAP Mediator provides two additional systemctl services:
+For information about ONTAP Cloud Mediator, available beginning with ONTAP 9.17.1, refer to the link:../snapmirror-active-sync/index.html[SnapMirror active sync documentation]. 
 
-* *`ontap_mediator.service`*
-+ 
-Maintains the REST API server for managing the ONTAP relationships.
-
-* *`mediator-scst.service`*
-+ 
-Controls the startup and shutdown of the iSCSI module (SCST).
-
-== Tools provided for the system administrator
-
-Tools provided for the system administrator:
-
-* *`/usr/local/bin/mediator_change_password`*
-+
-Sets a new API password when the current API username and password are provided.
-
-* *`/usr/local/bin/mediator_change_user`*
-+
-Sets a new API username when the current API username and password are provided.
-
-* *`/usr/local/bin/mediator_generate_support_bundle`*
-+
-Generates a local tgz file containing all useful support information needed for communication with NetApp customer support.  This includes application configuration, logs, and some system information.  The bundles are generated on the local disk and can be transferred manually, as needed.  Storage location: /opt/netapp/data/support_bundles/
-
-* *`/usr/local/bin/uninstall_ontap_mediator`*
-+
-Removes the ONTAP Mediator package and the SCST kernel module. This includes all configuration, logs, and mailbox data.
-
-* *`/usr/local/bin/mediator_unlock_user`*
-+
-Releases a lock-out on the API user account if the authentication retry limit was reached. This feature is used to prevent brute force password derivation. It prompts the user for the correct username and password.
-
-* *`/usr/local/bin/mediator_add_user`*
-+
-(Support only) Used to add the API user upon installation.
-
-
-== SCST and kernel updates
-
-ONTAP Mediator uses SCST to provide iSCSI for communication in MetroCluster IP configurations. The SCST package is a kernel module that is compiled during installation. 
-You might need to reinstall SCST after updates to the kernel. Alternatively, uninstall ONTAP Mediator, then re-install and reconfigure the ONTAP relationship. Refer to link:https://scst.sourceforge.net/[SCST: A Generic SCSI Target Subsystem for Linux^] to learn more about SCST. 
-
-NOTE: You should coordinate any updates to the server OS kernel with a maintenance window in ONTAP.
-
-== Support for HTTPS and iSCSI
-
-Beginning with ONTAP 9.19.1 and ONTAP Mediator 1.12, you can configure an ONTAP Mediator that uses HTTPS or iSCSI to monitor a MetroCluster IP configuration. You can choose to install ONTAP Mediator with support for both iSCSI and HTTPS or HTTPS only. If ONTAP Mediator is installed with support for HTTPS only, the SCST package is not installed. Refer to link:index.html#https-iscsi-installation[HTTPS and iSCSI installation options for ONTAP Mediator] for more information.
-
-
-// 2026 Sep 4, GH 2118
-// 2025-July-10, ONTAPDOC-2763
-// ONTAPDOC-955, 2023 May 05
-// ONTAPDOC-2920, 2025 April 03
-// ONTAPDOC-2926, 2025 May 20
+// 2026 Oct 19, ONTAPDOC-4248
