@@ -1,0 +1,113 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/entropy-eval-period-arpai.html
+keywords: ARP AI, arpai, SAN, entropy evaluation, block device, ransomware detection, ONTAP 9.17.1, evaluation period, hypervisor, VMware, Hyper-V, KVM, OpenStack, machine learning ransomware
+summary: "Beginning with ONTAP 9.17.1, ARP/AI requires an evaluation period to determine if block-device entropy levels are suitable for ransomware protection."
+---
+
+= Learn about the ONTAP ARP/AI entropy evaluation period for block-device workloads
+
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.17.1, ARP/AI requires an evaluation period to determine if entropy levels for block-device workloads are suitable for ransomware protection. These workloads include SAN LUNs and hypervisor virtual disks (for example, VMware virtual disks in NFS datastores and, beginning with ONTAP 9.17.1P5, Hyper-V, KVM, and OpenStack virtual disks) stored in ONTAP volumes. After ARP/AI is enabled on an eligible volume, it actively monitors and protects the volume during the evaluation period while simultaneously determining an optimal encryption threshold.
+
+NOTE: This page applies to ARP/AI (ONTAP 9.17.1 and later). ARP does not support SAN volumes in earlier versions of ONTAP.
+
+== Supported workloads and evaluation applicability
+
+The block-device evaluation period applies in the following scenarios:
+
+* *SAN volumes*: LUN-based workloads presented as block devices to hosts or hypervisors.
+* *NAS volumes that contain hypervisor virtual disks automatically detected by ONTAP*: Supported hypervisors include VMware, Hyper-V, KVM, and OpenStack virtual disks stored in NFS or SMB datastores.
+
+Within these volumes:
+
+* The evaluation period _is_ applicable to attacks detected based on entropy changes inside the guest filesystem of the virtual disk (for example, ransomware operating on files within the guest OS mapped to a LUN or virtual disk).
+* The evaluation period _is not_ applicable to attacks detected based on entropy and file-extension changes made directly to the virtual disk files from the hypervisor host (for example, ransomware operating directly on .vmdk files from an ESXi NFS datastore mount point). These direct-to-disk attacks use a different detection path.
+
+== Understand entropy evaluation
+
+The evaluation period lasts a minimum of two weeks and a maximum of four weeks. If more than 10 GB of data is written during the first two weeks, the evaluation completes at the end of that two-week window. If the 10 GB threshold is not reached within two weeks, the evaluation continues until 10 GB of data has been written, up to the four-week maximum.
+
+During the evaluation period, the system collects continuous encryption statistics in 10-minute intervals from supported block-device and hypervisor workloads. ARP/AI periodic snapshots are also continuously created every four hours. If the encryption percentage within an interval exceeds the optimal encryption threshold identified for this volume, an alert is triggered, an `Anti_ransomware_attack_backup` snapshot is created, and snapshot retention time is increased on any periodic ARP/AI snapshots.
+
+.Confirm that the evaluation period is active
+
+You can confirm that the evaluation is active by running the following command and checking for a status of `evaluation_period`. If a volume is not eligible for evaluation, the evaluation status is not displayed.
+
+[source,cli]
+----
+security anti-ransomware volume show -vserver <svm_name> -volume <volume_name>
+----
+
+Example response:
+
+[subs=+quotes]
+----
+Vserver Name                                : vs1
+Volume Name                                 : v1
+State                                       : enabled
+Attack Probability                          : none
+Attack Timeline                             : -
+Number of Attacks                           : -
+Attack Detected By                          : -
+*Block device detection status               : Evaluation_period*
+----
+
+.Monitor evaluation period data collection
+
+You can monitor encryption detection in real time. This command returns a histogram showing the amount of data in each encryption percentage range. The histogram is updated every 10 minutes.
+
+[source,cli]
+----
+security anti-ransomware volume entropy-stat show-encryption-percentage-histogram -vserver <svm_name> -volume <vol_name> -duration real_time
+----
+
+== Suitable workloads and adaptive thresholds
+
+The evaluation ends with one of the following results:
+
+* *The workload is suitable for ARP/AI*. ARP/AI automatically sets the adaptive threshold to higher than 10% of the maximum encryption percentage seen during the evaluation period. ARP/AI also continues statistics collection and creates periodic ARP/AI snapshots.
+* *The workload is unsuitable for ARP/AI*. ARP/AI automatically sets the adaptive threshold to the maximum encryption percentage seen during the evaluation period. ARP/AI also continues statistics collection and creates periodic ARP/AI snapshots, but the system ultimately recommends disabling ARP/AI on the volume.
+
+.Determine evaluation results
+
+After the evaluation period ends, ARP/AI automatically sets the adaptive threshold based on the evaluation results. You can determine the evaluation results by running the following command. Volume suitability is indicated in the `Block device detection status` field:
+
+[source,cli]
+----
+security anti-ransomware volume show -vserver <svm_name> -volume <volume_name>
+----
+
+Example response:
+
+[subs=+quotes]
+----
+Vserver Name                               : vs1
+Volume Name                                : v1
+State                                      : enabled
+Attack Probability                         : none
+Attack Timeline                            : -
+Number of Attacks                          : -
+Attack Detected By                         : -
+*Block device detection status              : Active_suitable_workload*
+
+Block device evaluation start time :  5/16/2025 01:49:01
+----
+
+You can also show the value threshold adopted as a result of the evaluation:
+
+[source,cli]
+----
+security anti-ransomware volume attack-detection-parameters show -vserver <svm_name> -volume <volume_name>
+----
+
+.Related information
+
+* link:modify-snapshot-options-arpai.html[Modify snapshot options for ARP/AI]
+* link:manage-parameters-arpai.html[Manage ARP/AI attack detection parameters]
+* link:respond-arpai.html[Respond to abnormal activity detected by ARP/AI]
+
+// 2026-06-30, restructured from respond-san-entropy-eval-period.adoc

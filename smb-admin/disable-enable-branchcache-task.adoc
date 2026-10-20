@@ -1,15 +1,31 @@
 ---
 permalink: smb-admin/disable-enable-branchcache-task.html
 sidebar: sidebar
-keywords: disable, branchcache, storage, virtual, machine, svm, changing, change, operating, mode, disable, operate, per-share, automatic, disable or enable branchcache
-summary: "You can disable BranchCache on the storage virtual machine (SVM) by changing the BranchCache operating mode to disabled. You can enable BranchCache at any time by changing the operating mode to either offer BranchCache services per-share or automatically for all shares."
+keywords: disable, enable, branchcache, storage, virtual, machine, svm, changing, change, operating, mode, operate, per-share, automatic, branch, office, client, cache
+summary: "You can disable BranchCache on the storage virtual machine by changing the BranchCache operating mode to disabled. You can enable BranchCache at any time by changing the operating mode to either offer BranchCache services per-share or automatically for all shares."
 ---
-= Disable or enable BranchCache on ONTAP SMB shares
+= Disable or enable BranchCache on an ONTAP SVM
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You can disable BranchCache on the storage virtual machine (SVM) by changing the BranchCache operating mode to `disabled`. You can enable BranchCache at any time by changing the operating mode to either offer BranchCache services per-share or automatically for all shares.
+If you previously configured BranchCache but do not want the branch office clients to use cached content, you can disable caching on the CIFS server. You must be aware of what happens when you disable BranchCache. You can disable BranchCache on the storage virtual machine by changing the BranchCache operating mode to disabled. You can enable BranchCache at any time by changing the operating mode to either offer BranchCache services per-share or automatically for all shares.
+
+When you disable BranchCache, ONTAP no longer computes hashes or sends the metadata to the requesting client. However, there is no interruption to file access. Thereafter, when BranchCache-enabled clients request metadata information for content they want to access, ONTAP responds with a Microsoft-defined error, which causes the client to send a second request, requesting the actual content. In response to the request for content, the CIFS server sends the actual content that is stored on the storage virtual machine (SVM).
+
+After BranchCache is disabled on the CIFS server, SMB shares do not advertise BranchCache capabilities. To access data on new SMB connections, clients make normal read SMB requests.
+
+You can reenable BranchCache on the CIFS server at any time.
+
+* Because the hash store is not deleted when you disable BranchCache, ONTAP can use the stored hashes when replying to hash requests after you reenable BranchCache, provided that the requested hash is still valid.
+* Any clients that have made SMB connections to BranchCache-enabled shares during the time when BranchCache was disabled do not get BranchCache support if BranchCache is subsequently reenabled.
++
+This is because ONTAP advertises BranchCache support for a share at the time the SMB session is set up. Clients that established sessions to BranchCache-enabled shares while BranchCache was disabled need to disconnect and reconnect to use cached content for this share.
+
+[NOTE]
+====
+If you do not want to save the hash store after you disable BranchCache on a CIFS server, you can manually delete it. If you reenable BranchCache, you must ensure that the hash store directory exists. After BranchCache is reenabled, BranchCache-enabled shares advertise BranchCache capabilities. ONTAP creates new hashes as new requests are made by BranchCache-enabled clients.
+====
 
 .Steps
 
@@ -51,5 +67,5 @@ Encryption Key Used to Secure the Hashes: -
         CIFS BranchCache Operating Modes: disable
 ----
 
-
+// 2026 May 26, ONTAPDOC-3910
 // 2025 June 10, ONTAPDOC-2981

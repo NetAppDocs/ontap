@@ -2,14 +2,14 @@
 permalink: pnfs/pnfs-use-cases-concept.html
 sidebar: sidebar
 keywords: tr-4063, pnfs, use cases, nconnect, session trunking, referrals, advanced capacity balancing, technical report
-summary: "pNFS can be used with various ONTAP features including nconnect, session trunking, and advanced capacity balancing to improve performance and flexibility."
+summary: "You can use pNFS with various ONTAP features including nconnect, session trunking, and advanced capacity balancing to improve performance and flexibility."
 ---
 = pNFS use cases in ONTAP
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-pNFS can be used with various ONTAP features to improve performance and provide additional flexibility for NFS workloads.
+You can use pNFS with various ONTAP features to improve performance and provide additional flexibility for NFS workloads.
 
 == pNFS with nconnect
 
@@ -26,11 +26,17 @@ link:../nfs-admin/ontap-support-nfsv41-concept.html[Learn more about ONTAP suppo
 
 NFSv4.1 session trunking (https://datatracker.ietf.org/doc/html/rfc5661#section-2.10.5[RFC 5661, section 2.10.5^]) is the use of multiple TCP connections between a client and server in order to increase the speed of data transfer. Support for NFSv4.1 session trunking was added to ONTAP 9.14.1 and must be used with clients that also support session trunking.
 
-In ONTAP, session trunking can be used across multiple nodes in a cluster to provide extra throughput and redundancy across connections. 
+In ONTAP, NFSv4.1 session trunking is used across multiple physical interfaces on a single node in a cluster to provide extra throughput and redundancy across independent connections. 
 
-Session trunking can be established in multiple ways:
+image::pNFS_fig_006.png[NFSv4.1 session trunking across multiple interfaces on single node]
 
-* *Discover automatically via mount options:* Session trunking in most modern NFS clients can be established via mount options (check your OS vendor's documentation) that signal to the NFS server to send information back to the client about session trunks. This information appears via an NFS packet as an `fs_location4` call.
+When used with pNFS, these trunks can provide more overall aggregated performance across the entire cluster.
+
+image::pNFS_fig_021.png[NFSv4.1 with pNFS performance across cluster]
+
+Session trunking is established in multiple ways:
+
+* *Discover automatically via mount options:* Session trunking in most modern NFS clients is established using mount options (check your OS vendor's documentation) that signal to the NFS server to send information back to the client about session trunks. This information appears through an NFS packet as an `fs_location4` call.
 +
 The mount option in use depends on the client's OS version. For instance, Ubuntu Linux flavors generally use `max_connect=n` to signal a session trunk is to be used. In RHEL Linux distros, the `trunkdiscovery` mount option is used.
 +
@@ -66,7 +72,7 @@ pNFS can provide a local path to each participating node in a cluster, and when 
 
 image::pNFS_fig_017.png[NFSv4.1 session trunking with pNFS in ONTAP]
 
-When `trunkdiscovery` is used, an added GETATTR call (FS_Locations) is leveraged for the listed session trunk interfaces on the NFS server node where the mount interface is located. Once those are returned, subsequent mounts are made to the returned addresses. This can be seen in a packet capture during mount.
+When `trunkdiscovery` is used, an added GETATTR call (FS_Locations) is leveraged for the listed session trunk interfaces on the NFS server node where the mount interface is located. Once those are returned, subsequent mounts are made to the returned addresses. This is seen in a packet capture during mount.
 
 .NFS session trunk discovery during mount: packet capture
 image::pNFS_fig_018.png[NFS session trunk discovery during mount: packet capture]
@@ -79,7 +85,7 @@ NFSv4.1 referrals provide a mode of initial mount path redirection that directs 
 
 pNFS does not attempt to localize a mount path. Instead, it establishes a metadata server using a mount path and then localizes the data path dynamically as needed.
 
-NFSv4.1 referrals can be used with pNFS, but the functionality is unnecessary. Enabling referrals with pNFS will not show noticeable results.
+You can use NFSv4.1 referrals with pNFS, but the functionality is unnecessary. Enabling referrals with pNFS will not show noticeable results.
 
 link:../nfs-admin/enable-disable-nfsv4-referrals-task.html[Enable or disable NFSv4 referrals]
 
@@ -96,4 +102,5 @@ image::pNFS_fig_019.png[Advanced capacity balancing with pNFS]
 
 * link:../flexgroup/supported-unsupported-config-concept.html[FlexGroup volume configuration]
 
+// 2025-Mar-17, ONTAPDOC-3763
 // 2025-10-21, ONTAPDOC-2826
