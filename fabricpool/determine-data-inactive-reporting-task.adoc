@@ -2,33 +2,53 @@
 permalink: fabricpool/determine-data-inactive-reporting-task.html
 sidebar: sidebar
 keywords: determining, how, much, data, volume, inactive, using, data reporting, fabricpool
-summary: "Seeing how much data in a volume is inactive enables you to make good use of storage tiers. Information in inactive data reporting helps you decide which aggregate to use for FabricPool, whether to move a volume in to or out of FabricPool, or whether to modify the tiering policy of a volume."
+summary: "Inactive data reporting (IDR) is an excellent tool for determining the amount of inactive (cold) data that can be tiered from a local tier."
 ---
 = Analyze inactive ONTAP data with inactive data reporting
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Seeing how much data in a volume is inactive enables you to make good use of storage tiers. Information in inactive data reporting helps you decide which aggregate to use for FabricPool, whether to move a volume in to or out of FabricPool, or whether to modify the tiering policy of a volume.
+Inactive data reporting (IDR) is an excellent tool for determining the amount of inactive (cold) data that can be tiered from a local tier.
+
+By default, IDR uses a 31-day cooling period to determine what data is considered inactive. The amount of cold data that is tiered is dependent on the tiering policies set on volumes. In releases earlier than ONTAP 9.8, IDR used a fixed 31-day cooling period.
 
 .Before you begin
 
-You must be running ONTAP 9.4 or later to use the inactive data reporting functionality.
+**ONTAP 9.4**
+
+* IDR is enabled by default on all FabricPool aggregates.
+* IDR can be enabled on non-FabricPool SSD aggregates.
+ 
+**ONTAP 9.6**
+
+* IDR is enabled by default on all non-FabricPool SSD aggregates.
+* IDR can be enabled on non-FabricPool HDD aggregates.
+
+**ONTAP 9.8**
+
+* IDR cooling period can be adjusted using the volume -tiering-minimum-cooling-days setting. 
 
 .About this task
 
-* Inactive data reporting is not supported on some aggregates.
-+
-You cannot enable inactive data reporting when FabricPool cannot be enabled, including the following instances:
+* IDR reports on inactive data that can be tiered, not inactive data that has been tiered. If FabricPool has been enabled and inactive data has been tiered out it will it will no longer be reported by IDR.
+
+
+[NOTE]
+====
+Although IDR is enabled by default on all SSD aggregates (ONTAP 9.6 and later), if a client workload needs 90% of system resources, IDR is automatically turns off, resetting cooling days to zero. If this happens, IDR does not automatically turn back on.
+
+To avoid automated process shutting off IDR in order to free up resources for other workloads, manually enable -is-inactive-data-reporting-enabled to true. 
+====
+
+* Inactive data reporting when FabricPool cannot be enabled, including the following instances:
 
  ** Root aggregates
+ ** Aggregates that contain volumes using a space guarantee other
+than none. (Thick-provisioned volumes are not supported.) 
  ** MetroCluster aggregates running ONTAP versions earlier than 9.7
  ** Flash Pool (hybrid aggregates, or SnapLock aggregates)
 
-* Inactive data reporting is enabled by default on aggregates where any volumes have adaptive compression enabled.
-* Inactive data reporting is enabled by default on all SSD aggregates in ONTAP 9.6.
-* Inactive data reporting is enabled by default on FabricPool aggregate in ONTAP 9.4 and ONTAP 9.5.
-* You can enable inactive data reporting on non-FabricPool aggregates using the ONTAP CLI, including HDD aggregates, beginning with ONTAP 9.6.
 
 == Procedure
 
@@ -93,6 +113,7 @@ Until the period is reached, the output shows "`-`" for the amount of inactive d
 * link:https://docs.netapp.com/us-en/ontap-cli/storage-aggregate-modify.html[storage aggregate modify^]
 
 
+// 2026-4-30, major rewrite, now includes cooling period and recommendation to manually enable to prevent auto disable
 // 2025 July 31, ONTAPDOC-2960
 // 2024-12-18 ONTAPDOC-2606
 // 2022-6-28, BURT 1442879

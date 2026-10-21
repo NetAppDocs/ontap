@@ -1,0 +1,123 @@
+---
+sidebar: sidebar
+permalink: anti-ransomware/support-arp.html
+keywords: ARP, autonomous ransomware protection, ONTAP 9.10.1, supported configurations, NAS, FlexVol, FlexGroup, SnapMirror, MAV, multi-admin verification, 4000 file extensions, NFS, SMB, learning mode, legacy ARP, ONTAP 9.10.1 through 9.15.1
+summary: "ARP (ONTAP 9.10.1 through 9.15.1) supports NAS workloads on FlexVol and FlexGroup volumes. Review supported configurations and limits before deploying ARP."
+---
+
+= ONTAP ARP supported configurations
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Autonomous Ransomware Protection (ARP) is available for NAS workloads beginning with ONTAP 9.10.1 through ONTAP 9.15.1. Before deploying ARP, you should be aware of the recommended uses and supported configurations as well as performance implications.
+
+NOTE: ARP/AI is the current ONTAP ransomware protection model for ONTAP 9.16.1 and later. If you are running ONTAP 9.16.1 or later, see link:support-arpai.html[Supported configurations for ARP/AI].
+
+== Suitable workloads
+
+ARP is suited for these types of workloads:
+
+* Databases on NFS storage
+* Windows or Linux home directories
++
+Users can create files with extensions that aren't detected in the learning period, so there is a greater possibility of false positives in this workload.
+* Images and video
++
+For example, health care records and Electronic Design Automation (EDA) data
+
+== Unsuitable workloads
+
+ARP is not suited for these types of workloads:
+
+* Workloads with a high frequency of file create or delete operations (hundreds of thousands of files in a few seconds; for example, test/development workloads).
++
+ARP's threat detection depends on its ability to recognize an unusual surge in file create, rename, or delete operations. If the application itself is the source of the file activity, it cannot be effectively distinguished from ransomware activity.
+* Workloads on volumes with more than 4,000 unique file extensions.
++
+ARP (ONTAP 9.10.1 to 9.15.1) can analyze up to 4,000 file extensions per volume. If the number of unique file extensions on a volume exceeds this limit, ARP cannot efficiently detect ransomware activity and the workload is considered unsuitable.
+* Workloads where the application or the host encrypts data.
++
+ARP depends on distinguishing incoming data as encrypted or unencrypted. If the application itself is encrypting the data, then the effectiveness of the feature is reduced. However, ARP can still work based on file activity (delete, overwrite, or create, or a create or rename with a new file extension) and file type.
+* SAN workloads.
++
+ARP (9.10.1 to 9.15.1) does not support SAN volumes. SAN support was introduced with ARP/AI in ONTAP 9.17.1. link:learn-about-arpai.html[See ARP/AI documentation for more information about SAN.]
+
+== Supported configurations
+
+ARP (9.10.1 to 9.15.1) supports NAS workloads across NFS and SMB protocols on FlexVol volumes and, beginning with ONTAP 9.13.1, on FlexGroup volumes.
+
+[options="header"]
+|===
+| Configuration | ONTAP 9.15.1 | ONTAP 9.14.1 | ONTAP 9.13.1 | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1
+| FlexVol volumes (NAS) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓
+| FlexGroup volumes (NAS) | ✓ | ✓ | ✓ | | |
+| Volumes with SnapMirror asynchronous | ✓ | ✓ | ✓ | ✓ | | 
+| SVMs with SnapMirror asynchronous (SVM disaster recovery) | ✓ | ✓ | ✓ | ✓ | |
+| SVM data mobility (`vserver migrate`) | ✓ | ✓ | ✓ | ✓ | |
+| Multi-admin verification (MAV) | ✓ | ✓ | ✓ | | |
+| MetroCluster configurations | ✓ | ✓ | ✓ | ✓ | ✓ | ✓
+|===
+
+[[snapmirror]]
+== SnapMirror and ARP interoperability
+
+Beginning with ONTAP 9.12.1, ARP is supported on SnapMirror asynchronous destination volumes. SnapMirror synchronous and SnapMirror active sync are supported only with ARP/AI beginning in ONTAP 9.19.1.
+
+If a SnapMirror source volume is ARP-enabled, the SnapMirror destination volume automatically acquires the ARP configuration state (such as `dry-run` or `enabled`), ARP training data, and ARP-created snapshot of the source volume. The destination does not need to be separately enabled for ARP.
+
+While a destination volume consists of read-only (RO) snapshots, no ARP processing is done on its data. However, when a SnapMirror destination volume is converted to read-write (RW), ARP is automatically enabled on the RW-converted destination volume.
+
+NOTE: In ONTAP 9.10.1 and 9.11.1, SnapMirror does not transfer the ARP configuration state, training data, and snapshots from source to destination volumes. When the SnapMirror destination volume is converted to read-write, ARP on the destination volume must be explicitly enabled in learning mode after conversion.
+
+== Unsupported configurations
+
+ARP does not support the following volume configurations:
+
+* FlexCache volumes (ARP is supported on origin FlexVol volumes but not on cache volumes)
+* Offline volumes
+* SnapLock volumes
+* SnapMirror synchronous
+* SnapMirror active sync
+* SnapMirror asynchronous destination volumes in ONTAP 9.10.1 and 9.11.1 (supported beginning with ONTAP 9.12.1)
+* Restricted volumes
+* Root volumes of storage VMs
+* Volumes of stopped storage VMs
+* FlexVol to FlexGroup conversion (ARP must be disabled before conversion)
+
+== Performance and volume limits
+
+ARP can have a minimal impact on system performance as measured in throughput and peak IOPS. The impact of the ARP feature depends on the specific volume workload. For common workloads, the following configuration limits are recommended:
+
+[cols="2,1,2", options="header"]
+|===
+| Workload characteristics | Recommended volume limit per node | Performance degradation when per-node volume limit is exceeded ^1^
+
+| Read-intensive or the data can be compressed
+| 150
+| 4% of maximum IOPS
+
+| Write-intensive and the data cannot be compressed
+| 60
+| 10% of maximum IOPS
+|===
+
+^1^ System performance is not degraded beyond these percentages regardless of the number of volumes added in excess of the recommended limits.
+
+Because ARP analytics run in a prioritized sequence, analytics run on each volume less frequently as the number of protected volumes increases.
+
+NOTE: Enabling ARP by default on large numbers of new volumes might increase system resource usage. Consider space demands for competing processes like snapshots when enabling ARP on volumes.
+
+== [[multi-admin-verification]]Multi-admin verification with ARP-protected volumes
+
+Beginning with ONTAP 9.13.1, you can enable multi-admin verification (MAV) for additional security with ARP. MAV ensures that at least two or more authenticated administrators are required to turn off ARP, pause ARP, or mark a suspected attack as a false positive on a protected volume. Learn how to link:../multi-admin-verify/enable-disable-task.html[enable MAV for ARP-protected volumes].
+
+You need to define administrators for a MAV group and create MAV rules for the `security anti-ransomware volume disable`, `security anti-ransomware volume pause`, and `security anti-ransomware volume attack clear-suspect` commands you want to protect.
+
+Learn more about `security anti-ransomware volume disable`, `security anti-ransomware volume pause`, and `security anti-ransomware volume attack clear-suspect` in the link:https://docs.netapp.com/us-en/ontap-cli/search.html?q=security+anti-ransomware+volume[ONTAP command reference^].
+
+.Related information
+* link:enable-arp.html[Enable ARP on a volume]
+* link:enable-default-arp.html[Enable ARP by default in new volumes]
+
+// 2026-06-30, restructured from use-cases-restrictions-concept.adoc
