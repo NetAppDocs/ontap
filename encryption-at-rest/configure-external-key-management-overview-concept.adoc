@@ -1,7 +1,7 @@
 ---
 permalink: encryption-at-rest/configure-external-key-management-overview-concept.html
 sidebar: sidebar
-keywords: external key management, kmip, configure
+keywords: external key management, kmip, configure, intracluster key sharing, key restore
 summary: "You can use one or more external key management servers to secure the keys that the cluster uses to access encrypted data. An external key management server is a third-party system in your storage environment that serves keys to nodes using the Key Management Interoperability Protocol (KMIP)."
 ---
 = Learn about configuring external key management with ONTAP NetApp Volume Encryption
@@ -13,6 +13,22 @@ You can use one or more external key management servers to secure the keys that 
 
 Beginning with ONTAP 9.10.1, you can use xref:manage-keys-azure-google-task.html[Azure Key Vault or Google Cloud Key Manager Service] to protect your NVE keys for data SVMs. Beginning with ONTAP 9.11.1, you can configure multiple external key managers in a cluster. See xref:configure-cluster-key-server-task.html[Configure clustered key servers]. Beginning with ONTAP 9.12.0, you can use link:https://docs.aws.amazon.com/kms/latest/developerguide/overview.html[AWS' KMS^] to protect your NVE keys for data SVMs. Beginning with ONTAP 9.17.1, you can use OpenStack's xref:manage-keys-barbican-task.html[Barbican KMS] to protect your NVE keys for data SVMs.
 
+[[intracluster-key-sharing]]
+Beginning with ONTAP 9.20.1, a node that uses an external KMIP key manager shares encryption keys with its HA partner. The keys are encrypted and authenticated with AES-GCM-256. During takeover and giveback, an automated nondisruptive upgrade, and FlexGroup volume creation, the node restores keys from the HA partner when the partner has them. ONTAP contacts the key server only when the partner cannot supply a key. Key restore can finish while the key server is unavailable if the partner has the keys. This behavior is enabled automatically on a new ONTAP 9.20.1 cluster and when you upgrade a cluster to ONTAP 9.20.1.
+
+Intracluster key sharing applies only to an external KMIP key manager. It is not used with the Onboard Key Manager, Azure Key Vault, Google Cloud Key Manager Service, AWS KMS, or Barbican. It is not used when MetroCluster is configured or while an SVM is switching from one key manager to another. The HA partner must be online.
+
+No action is required after the upgrade. To turn the behavior off, set the privilege level to diagnostic, modify the setting, and then return to the admin privilege level:
+
+`set -privilege diagnostic`
+
+`security key-manager config modify -intracluster-secret-sharing false`
+
+`set -privilege admin`
+
+To turn it on again, run `security key-manager config modify -intracluster-secret-sharing true` at the diagnostic privilege level.
+
+//CONTAP-803800
 // 4-30-25 ONTAPDOC-2715
 // 2025 Mar 10, ONTAPDOC-2617
 // 2025 Jan 22, ONTAPDOC-1070
