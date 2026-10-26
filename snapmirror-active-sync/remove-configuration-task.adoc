@@ -17,10 +17,42 @@ If you no longer require zero RTO SnapMirror synchronous protection, you can del
 
 == Remove an asymmetric SAN configuration 
 
+=== Unmap LUNs on the destination cluster
+
+.About this task
+
 * Before you delete the SnapMirror active sync SAN relationship, all LUNs in the destination cluster must be unmapped.
 * After the LUNs are unmapped and the host is rescanned, the SCSI target notifies the hosts that the LUN inventory has changed. The existing LUNs on the zero RTO secondary volumes change to reflect a new identity after the zero RTO relationship is deleted. Hosts discover the secondary volume LUNs as new LUNs that have no relationship to the source volume LUNs.
 * The secondary volumes remain DP volumes after the relationship is deleted. You can issue the `snapmirror break` command to convert them to read/write.
 * Deleting the relationship is not allowed in the failed-over state when the relationship is not reversed.
+
+.Steps
+
+Before deleting a SnapMirror active sync SAN relationship, you must unmap all LUNs that are part of the relationship on the destination cluster. Complete the following steps before deleting an asymmetric SAN configuration.
+
+
+. If a destination LUN is mapped through a replicated igroup, you must check for and remove the igroup replication from the source cluster before you can delete the LUN mapping on the destination cluster:
++
+`SiteB::> igroup show -igroup <igroup_name>  -vserver <vserver_name> -fields replication-peer`
+
+. If the igroup is replicated, remove the replication-peer association from the source cluster:
++
+`SiteA::> igroup modify -vserver <svm_name> -igroup <igroup_name> -replication-peer "-"`
+
+. Verify that the igroup is no longer replicated:
++
+`SiteB::> igroup show -igroup <igroup_name> -vserver <vserver_name> -fields replication-peer`
+. Delete the destination-side LUN mapping:
++
+`SiteB::> lun mapping delete -vserver <svm_name> -igroup <igroup_name> -path <lun_path>`
+
+. When there are no additional LUNs mapped to the igroup, delete the igroup:
++
+`SiteB::> igroup delete -vserver <svm_name> -igroup <igroup_name>`
+    
+=== Delete the SnapMirror active sync SAN relationship
+
+After the LUNs have been unmapped, delete the SnapMirror active sync relationship.
 
 .Steps
 
@@ -196,6 +228,7 @@ SRC::> snapmirror release -destination-path vs_b:
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-delete.html[snapmirror delete^]
 * link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-release.html[snapmirror release^]
 
+// 2026-Oct-5, GitHub issue #2138
 // 2026-May-25, ONTAPDOC-3544
 // 2025-Aug-19, ONTAPDOC-2803
 // 2025-July-17, ONTAPDOC-2726

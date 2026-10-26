@@ -20,15 +20,19 @@ SMB encryption on the SVM is controlled through two settings:
 * An SMB server security option that enables the functionality on the SVM
 * An SMB share property that configures the SMB encryption setting on a share-by-share basis
 
-You can decide whether to require encryption for access to all data on the SVM or to require SMB encryption to access data only in selected shares. SVM-level settings supersede share-level settings.
+You can decide whether to require encryption for access to all data on the SVM or to require SMB encryption to access data only in selected shares. The `encrypt-data` share property requires SMB encryption for access to a share. Beginning in ONTAP 9.11.1, the `allow-unencrypted-access` share property allows SMB2 clients to access a share without encryption while SMB3 clients continue to use encryption when `encrypt-data` is enabled.
+
+SVM-level settings supersede share-level settings.
 
 The effective SMB encryption configuration depends on the combination of the two settings and is described in the following table:
 
 [options="header"]
 |===
-| SMB server SMB encryption enabled| Share encrypt data setting enabled| Server-side encryption behavior
+| SMB server SMB encryption enabled| Share encrypt data setting enabled| Share allow-unencrypted-access setting enabled| Server-side encryption behavior
 a|
 True
+a|
+False
 a|
 False
 a|
@@ -38,23 +42,42 @@ True
 a|
 True
 a|
+False
+a|
 Server-level encryption is enabled for all of the shares in the SVM irrespective of share-level encryption. With this configuration, encryption happens for the entire SMB session.
 a|
 False
 a|
 True
 a|
-Share-level encryption is enabled for the specific shares. With this configuration, encryption happens from the tree connect.
+False
+a|
+Share-level encryption is enabled for the specific shares. SMB3 clients use encryption, but SMB2 clients can access the share without encryption because the `allow-unencrypted-access` property is enabled.
+a|
+False
 a|
 False
 a|
 False
 a|
 No encryption is enabled.
+a|
+False
+a|
+False
+a|
+True
+a|
+No encryption is enabled. The `allow-unencrypted-access` property has no effect unless `encrypt-data` is enabled.
 |===
 SMB clients that do not support encryption cannot connect to an SMB server or share that requires encryption.
 
 Changes to the encryption settings take effect for new connections. Existing connections are unaffected.
 
+NOTE: The `allow-unencrypted-access` property is supported beginning in ONTAP 9.11.1.
+
+NOTE: SVM-level SMB encryption overrides share-level settings.
+
+// 2026-09-28, updated SMB encryption table for allow-unencrypted-access
 // 2025 May 09, ONTAPDOC-2981
 // 2024-02-20, jira ONTAPDOC-1360

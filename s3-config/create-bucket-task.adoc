@@ -31,9 +31,9 @@ include::../_include/98_qos_enabled_by_default.adoc[]
 ** Let ONTAP select the underlying aggregates and FlexGroup components (default)
  *** ONTAP creates and configures a FlexGroup volume for the first bucket by automatically selecting the aggregates. It will automatically select the highest service level available for your platform, or you can specify the storage service level. Any additional buckets you add later in the storage VM will have the same underlying FlexGroup volume.
  *** Alternatively, you can specify whether the bucket will be used for tiering, in which case ONTAP tries to select low-cost media with optimal performance for the tiered data.
-** You select the underlying aggregates and FlexGroup components (requires advanced privilege command options): You have the option to manually select the aggregates on which the bucket and containing FlexGroup volume must be created, and then specifying the number of constituents on each aggregate. When adding additional buckets:
+** You select the underlying aggregates and FlexGroup components (requires advanced privilege command options): You have the option to manually select the aggregates on which the bucket and containing FlexGroup volume must be created, and then specify the number of constituents on each aggregate. When adding additional buckets:
   *** If you specify aggregates and constituents for a new bucket, a new FlexGroup will be created for the new bucket.
-  *** If you do not specify aggregates and constituents for a new bucket, the new bucket will be added to an existing FlexGroup.
+  *** If you do not specify aggregates and constituents for a new bucket, the new bucket will be added to an existing FlexGroup, but only if the `retention-mode` setting matches the `retention-mode` setting of existing buckets and FlexGroup type (`compliance`, `non-snaplock`, `enterprise`).
 See xref:../flexgroup/index.html[FlexGroup volumes management] for more information.
 +
 When you specify aggregates and constituents when creating a bucket, no QoS policy groups, default or custom, are applied. You can do so later with the `vserver object-store-server bucket modify` command.
@@ -48,6 +48,8 @@ Learn more about `vserver object-store-server bucket modify` in the link:https:/
 . Create a bucket:
 +
 `vserver object-store-server bucket create -vserver <svm_name> -bucket <bucket_name> -size [integer{KB|MB|GB|TB|PB}] [-comment text] [additional_options]`
++
+Beginning with ONTAP 9.20.1, if you do not specify the `-size` option when creating a bucket, ONTAP uses the default bucket size configured on the S3 server. If no default is configured, ONTAP uses the platform minimum bucket size. This behavior also applies to buckets created without an explicit size through the S3 API or ONTAP REST API.
 +
 The storage VM name can be either a data storage VM or `Cluster` (the system storage VM name) if you are configuring local tiering.
 +
@@ -141,6 +143,7 @@ On S3 client applications (whether ONTAP S3 or an external third-party applicati
 *	The user's access key and secret key.
 *	The S3 server FQDN name and bucket name.
 
+// 2026-Sept-21, GitHub issue #2135
 // 2025-Dec-8, ONTAPDOC-3406
 // 2025-Nov-24, ONTAPDOC-3488
 // 2025-Mar-27, ONTAPDOC-2904
