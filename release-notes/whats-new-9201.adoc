@@ -54,8 +54,9 @@ xref:../data-protection/modify-svm-dr-dest-vol-capacity.htm[Enhanced SVM disaste
 a|
 ONTAP enhances SVM disaster recovery by allowing selected volume modify attributes on SVM-DR destination volumes using standard admin privilege volume modify workflows, reducing the need for Support-assisted procedures.
 
-ONTAP also extends opt-in SVM-DR Quick Resync support to FlexGroup constituents, helping large FlexGroup-bearing SVMs to return to a protected state faster after DR rehearsal, resync, or flip-resync workflows
-xref:../data-protection/resync-svm-destination-task.html[Resynchronize the data on an ONTAP SnapMirror destination SVM]
+ONTAP also extends opt-in SVM-DR Quick Resync support to FlexGroup constituents, helping large FlexGroup-bearing SVMs to return to a protected state faster after DR rehearsal, resync, or flip-resync workflows.
+
+For more information, see xref:../data-protection/resync-svm-destination-task.html[Resynchronize the data on an ONTAP SnapMirror destination SVM].
 
 //ONTAPDOC-4305
 a|
@@ -80,6 +81,7 @@ ONTAP supports Fibre Channel Security Protocol 3 (FC-SP-3) authentication and en
 Encryption is offloaded, so there is no performance impact on your storage system.
 
 //ONTAPDOC-3966
+
 |===
 
 == FPolicy enhancements
@@ -123,6 +125,19 @@ a|
 ONTAP supports automatic space reclamation for NFS datastores through the NetApp NFS Plug-in for VMware VAAI. This helps reclaim space from thin-provisioned VMDK block ranges when VMware ESXi 9.0 or later hosts issue UNMAP operations.
 
 //ONTAPDOC-4230
+
+a|
+xref:../volumes/cautions-increasing-maximum-directory-size-concept.html[Maximum directory size for ONTAP FlexVol volumes]
+a|
+ONTAP improves performance for very large directories containing up to approximately 25 million files by qualifying directory sizes up to 4GB. Customers running workloads that generate extremely high file counts in a single directory, such as AI training, can benefit by avoiding the performance penalties previously seen with large directories. It also improves resiliency by ensuring directories stay fully indexed after a data protection failover, so replicated copies perform well even when a SnapMirror relationship is broken. This feature is available with AFF and FAS storage systems including MetroCluster deployments; it can be enabled on each volume as needed.
+
+//ONTAPDOC-4025
+a|
+xref:../task_nas_provide_client_access_with_name_services.html[Automatic SID-to-UNIX ID conversion support]
+a|
+ONTAP introduces automatic SID-to-UNIX ID conversion support for LDAP-connected SVMs to generate and reverse POSIX UIDs/GIDs from Windows SIDs. This eliminates the need to manually maintain uidNumber/gidNumber attributes in Active Directory, reducing management overhead and helping ensure consistent file access across NFS and SMB. This industry-aligned feature is especially valuable for customers migrating large networks from SSSD-based NAS platforms and who want to preserve identity mapping consistency. The feature is disabled by default and configured per SVM.
+
+//ONTAPDOC-4145
 |===
 
 == SAN 
@@ -145,7 +160,7 @@ ONTAP improves SAN copy offload performance for eligible NVMe and SCSI copy work
 a|
 xref:../svm-migrate/migrate-svm-task.html[Support for non-disruptive storage VM migration from ASA r2 systems to ASA or AFF systems]
 a|
-You can non-disruptively migrate a storage virtual machine (VM) from a 2-node ASA r2 cluster to a 2-node ASA or a 2-node AFF cluster. Existing host mappings and storage unit configurations for LUNs and namespaces are maintained during migration, reducing operational effort and risk.
+You can non-disruptively migrate a storage virtual machine (SVM) from a 2-node ASA r2 cluster to a 2-node ASA or a 2-node AFF cluster. Existing host mappings and storage unit configurations for LUNs and namespaces are maintained during migration, reducing operational effort and risk.
 
 //ONTAPDOC-4048
 |===
@@ -182,7 +197,7 @@ S3 NAS buckets are supported on FlexCache volumes with FlexVol origins. Single-o
 a|
 xref:../s3-multiprotocol/create-nas-bucket-task.html[S3 server-side copy support for NAS buckets on FlexCache volumes]
 a|
-S3 NAS buckets on FlexCache volumes support server-side object copy operations using the S3 CopyObject and UploadPartCopy APIs. You can copy objects within the same FlexCache NAS bucket or from an S3 NAS bucket backed by a FlexGroup volume to a FlexCache NAS bucket
+S3 NAS buckets on FlexCache volumes support server-side object copy operations using the S3 CopyObject and UploadPartCopy APIs. You can copy objects within the same FlexCache NAS bucket or from an S3 NAS bucket backed by a FlexGroup volume to a FlexCache NAS bucket.
 
 //ONTAPDOC-4198
 a|
@@ -222,6 +237,14 @@ a|
 MAV approval groups can include identity provider (IdP), Active Directory (AD), and LDAP (nsswitch) groups as approvers, in addition to individual administrators. Supported group types include Entra ID, ADFS, AD domain groups, and LDAP groups. Adding or removing users in the IdP, AD, or LDAP directory does not require any changes to the MAV configuration. Changes to a user's group membership take effect after re-authentication at the user's next login. You can use the security multi-admin-verify registered-operations show command to display all MAV-protectable operations available on the current cluster.
 
 //ONTAPDOC-3973
+a|
+xref:../networking/configure_snmpv3_users_in_a_cluster.html[SNMPv3 SHA-512 authentication support]
+a|
+ONTAP supports SHA-512 authentication for SNMPv3 users. This enhancement lets you use stronger SNMPv3 authentication for external SNMP clients and for switch monitoring, including switches that require SHA-512 authentication. For more information, see Configure SNMPv3 users in an ONTAP cluster and Configure SNMPv3 for Ethernet switch health monitoring.
+
+For more information, see https://docs.netapp.com/us-en/ontap-systems-switches/switch-cshm/config-snmpv3.html[Configure SNMPv3 for Ethernet switch health monitoring].
+
+//ONTAPDOC-4338
 |===
 
 == Storage efficiency enhancements  
@@ -230,11 +253,24 @@ MAV approval groups can include identity provider (IdP), Active Directory (AD), 
 |===
 | Update | Description 
 a|
-xref:../volumes/manage-svm-capacity.html[MetroCluster IP support for ONTAP SVM capacity limits]
+xref:../concepts/capacity-measurements.html[Simplified reporting of storage efficiency data reduction rates]
 a|
-You can configure storage limits for SVMs that are part of a MetroCluster IP configuration.
+The storage efficiency data reduction rate (DRR) provides a more precise assessment of ONTAP storage efficiency space savings by including only reducible data. In ONTAP 9.19.1 and earlier, the DRR includes both reducible and non-reducible data.
 
-//ONTAPDOC-4003
+//ONTAPDOC-4052
+a|
+xref:../concepts/builtin-storage-efficiency-concept.html[Improved performance after migrating volumes from non-QAT systems to QAT systems]
+a|
+ONTAP reduces additional read latency and CPU usage that can occur after volumes are migrated from systems that do not support QuickAssist Technology (QAT) to systems that do. 
+
+//ONTAPDOC-4052
+a|
+Automatic Dedupe Scheduler (ADS) Optimization
+a|
+ONTAP improves ADS (Automatic Dedupe Scheduler) performance, allowing more concurrent dedupe sessions per node as well as smarter and more targeted throttling to better balance client I/O. Dedupe activity on DP volumes (from SnapMirror transfers) and Global Dedupe sessions is managed  alongside regular volume dedupe which reduces contention and metadata growth. You can benefit from storage efficiency savings, especially under mixed workloads, with no configuration changes required. This feature is enabled by default and is available on AFF storage systems.
+
+//ONTAPDOC-4094
+
 |===
 
 == Storage resource management enhancements  
@@ -273,23 +309,31 @@ ONTAP 9.20.1 supports SVM migration for SVMs that host S3 NAS buckets on FlexVol
 
 //ONTAPDOC-4075
 a|
-xref:../concepts/capacity-measurements.html[Simplified reporting of storage efficiency data reduction rates]
-a|
-The storage efficiency data reduction rate (DRR) provides a more precise assessment of ONTAP storage efficiency space savings by including only reducible data. In ONTAP 9.19.1 and earlier, the DRR includes both reducible and non-reducible data.
-
-//ONTAPDOC-4052
-a|
-xref:../concepts/builtin-storage-efficiency-concept.html[Improved performance after migrating volumes from non-QAT systems to QAT systems]
-a|
-ONTAP reduces additional read latency and CPU usage that can occur after volumes are migrated from systems that do not support QuickAssist Technology (QAT) to systems that do. 
-
-//ONTAPDOC-4052
-a|
 xref:../task_nas_file_system_analytics_view.html[File System Analytics access-time preservation]
 a|
 File System Analytics scans and System Manager File System Explorer browsing preserve directory access-time (atime) metadata. This helps maintain accurate atime values for archival, tiering, compliance, and data lifecycle workflows.
 
 //ONTAPDOC-3984
+
+a|
+xref:../volumes/manage-svm-capacity.html[MetroCluster IP support for ONTAP SVM capacity limits]
+a|
+You can configure storage limits for SVMs that are part of a MetroCluster IP configuration.
+
+//ONTAPDOC-4003
+a|
+FlexCache Volume Metrics
+a|
+FlexCache volume metrics report the amount of data and metadata exchanged between a FlexCache volume and its origin volume. Two new properties have been added to the existing ONTAP REST volume statistics and metrics endpoints that provide visibility into FlexCache-to-origin and origin-to-FlexCache data transfer. The counters are collected automatically with no configuration required; they are helpful for capacity planning, performance analysis, network troubleshooting, and chargeback analytics. This feature requires ONTAP 9.20 or later on both the FlexCache and origin nodes.
+
+//ONTAPDOC-4101
+
+a|
+Intra-cluster rebalancing
+a|
+ONTAP introduces two new Balanced Placement capabilities to help keep clusters performing optimally, with minimal administrative effort, as your workloads and cluster capacity evolve. Provisioning-time placement control allows customers to indicate whether performance or space requirements should be prioritized when a new volume is placed through the REST API. Space Performance Rebalance (SPR) is a background process that continuously looks for developing performance hot spots or aggregate space pressure across the cluster. Depending on the configured mode, SPR either recommends corrective volume moves through EMS notifications or automatically performs the moves using standard and non-disruptive ONTAP volume move operations.
+
+//ONTAPDOC-4035
 |===
 
 == System Manager 
