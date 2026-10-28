@@ -4,7 +4,7 @@ permalink: concepts/capacity-measurements.html
 keywords: capacity, measurement, physical, logical, storage, used storage, local tier capacity, aggregate capacity, block, capacity concern, add capacity, volume, used capacity, available capacity, total capacity, inactive capacity, static insights, dynamic insights, snapshot copy, snapshot copies, inactive data, overprovision, overflows, snapshot copy policy, snapshot copy reserves, reserves, policy, top volumes
 summary: "Your ONTAP storage capacity can be measured as either physical space or logical space.  How these measurements are reported varies depending upon your ONTAP version and if  you are using System Manager or the Command Line Interface (CLI). Understanding various terms related to capacity, the differences between physical and logical capacity and how capacity types are reported is important when you are monitoring your storage usage."
 ---
-= Learn about ONTAP capacity reporting and measurements
+= Learn how ONTAP reports used storage
 :toclevels: 1
 :hardbreaks:
 :nofooter:
@@ -13,15 +13,51 @@ summary: "Your ONTAP storage capacity can be measured as either physical space o
 :imagesdir: ../media/
 
 [.lead]
-Your ONTAP storage capacity can be measured as either physical space and logical space.  How these measurements are reported varies depending upon your ONTAP version and if  you are using System Manager or the Command Line Interface (CLI). Understanding various terms related to capacity, the differences between physical and logical capacity and how capacity types are reported is important when you are monitoring your storage usage.
+The amount of used storage is reported in ONTAP System Manager as either _logical used_ or _used_ space and in the ONTAP command line interface (CLI) as either `physical used` space or `effective-total-footprint`. Whether these values include space used by snapshots depends on your ONTAP version and, if you are using the CLI, the ONTAP command you choose. Understanding how used capacity is reported helps you monitor storage usage accurately.
 
-* *Physical capacity*:  Physical space refers to the physical blocks of storage used in the volume or local tier. The value for physical used capacity is typically smaller than the value for logical used capacity due to the reduction of data from storage efficiency features (such as deduplication and compression).
+== Capacity reporting in System Manager
 
-* *Logical capacity*: Logical space refers to the usable space (the logical blocks) in a volume or local tier. Logical space refers to how theoretical space can be used, without accounting for results of deduplication or compression.  The value for logical space used is derived from the amount of physical space used plus the savings from storage efficiency features (such as deduplication and compression) that have been configured.  This measurement often appears larger than the physical used capacity because it includes snapshots, clones, and other components, and it does not reflect the data compression and other reductions in the physical space. Thus, the total logical capacity could be higher than the provisioned space.
+Depending on your ONTAP version, System Manager uses the term _logical used_ or _used_ to report capacity.  
+
+NOTE: In System Manager, capacity representations do not account for root storage tier (aggregate) capacities. 
+
+[cols="15,15,30,40"]
+|===
+
+h| ONTAP Version h| Term used to report capacity  h| Includes space used for snapshots? h| Definition
+
+a| 9.13.1 and later
+a| _logical used_
+a| No. 
+Space used for snapshots is reported separately.
+
+| The usable space (the logical blocks) in a volume or local tier (aggregate) derived from the amount of used physical space plus the space savings realized from the application of storage efficiency features.  
+
+a| 9.12.1-9.9.1
+a| _Logical used_
+a| Yes
+| Same as above
+
+
+a| 9.8-9.7
+a| _Used_
+a| Yes
+| Same as above
+
+
+a| 9.6-9.5
+a| _Used_
+a| No
+a| The physical blocks of storage used in the volume or local tier (aggregate).
+
+|===
 
 == Capacity reporting in the CLI
 
-Physical used space is reported differently in the ONTAP CLI depending on your version of ONTAP.  In ONTAP 9.13.1 and earlier, the `physical used` parameter displayed in the `volume show` command output includes all storage efficiency savings applied to the volume. Beginning with ONTAP 9.14.1, the `physical used` parameter does not include aggregate-level storage efficiency savings such as temperature-sensitive storage (TSSE), inline compression, compaction, and cross-volume deduplication, so does not accurately reflect the volume's physical used space. In ONTAP 9.14.1 and later you should use the `vol show-footprint` command with the `effective_total_footprint` parameter to view the accurate physical used space of a volume.
+The ONTAP CLI uses the `physical used` and `effective-total-footprint` parameters to report capacity.
+
+Beginning with ONTAP 9.14.1, the `physical used` parameter does not include aggregate-level storage efficiency savings such as temperature-sensitive storage efficiency (TSSE), inline compression, compaction, and cross-volume deduplication. As a result, it does not fully reflect the volume's physical used space. In ONTAP 9.14.1 and later, use the `vol show-footprint` command with the `effective_total_footprint` parameter for a complete view of physical used space of a volume.
+
 
 [cols="4", options="header"]
 |===
@@ -44,52 +80,23 @@ Physical used space is reported differently in the ONTAP CLI depending on your v
 * Learn more about the link:https://kb.netapp.com/on-prem/ontap/OHW/OHW-KBs/What_is_the_Change_in_Physical_Used_Space_Reporting_for_9.14.1_and_later[change in physical used space reporting for 9.14.1 and later^].
 * Learn more about link:../volumes/commands-display-space-usage-reference.html[commands for displaying space usage information].
 
-== Capacity reporting in System Manager
+== Data reduction rate
+The data reduction rate indicates how much the amount of storage consumed by your data is reduced after storage efficiency features, such as compression, compaction, and deduplication, have been applied.
 
-Measurements of used capacity are displayed differently in System Manager depending on the version of ONTAP. Beginning with ONTAP 9.7, System Manager provides measurements of both physical and logical capacity. 
-
-NOTE: In System Manager, capacity representations do not account for root storage tier (aggregate) capacities. 
-
-[cols="30,30,40"]
-|===
-
-h| Version of System Manager h| Term used for capacity  h| Type of capacity referred to
-
-a| 9.9.1 and later
-a| Logical Used
-a| Logical space used
-if storage efficiency settings have been enabled)
-
-a| 9.7 and 9.8
-a| Used
-a| Logical space used
-(if storage efficiency settings have been enabled)
-
-a| 9.5 and 9.6
-(Classic view)
-a| Used
-a| Physical space used
-
-|===
+* Beginning with ONTAP 9.20.1, the data reduction rate (DRR)is reported with and without _reducible data_. _Reducible data_ is data on which space savings are realized after storage efficiency features are applied. In ONTAP 9.19.1 and earlier, the DRR includes both reducible and _non-reducible data_. _Non-reducible data_ is data for which space savings are not realized after storage efficiency features are applied, or data to which storage efficiency features cannot be applied. The DRR without reducible data provides a more accurate reflection of space saved from ONTAP storage efficiency. Learn how to link:../task_admin_monitor_capacity_in_sm.html[view the DRR.]
+* Beginning with ONTAP 9.13.1, data reduction considers the results of most storage efficiency features, such as deduplication and compression; however, snapshots and thin provisioning are not counted as part of the data reduction ratio.
+** In ONTAP 9.12.1 and earlier, data reduction ratios are displayed as follows:
+*** The data reduction value displayed on the *Capacity* panel is the overall ratio of all logical used space compared to physical used space, and it includes the benefits derived from using snapshots and other storage efficiency features.
+*** When you display the details panel, you see both the *Overall* ratio that was displayed on the overview panel and ratio of logical used space used only by client data compared to physical used space used only by client data, referred to as *Without snapshots and clones*.
 
 == Capacity measurement terms
-The following terms are used when describing capacity:
+The following terms are used when describing capacity in System Manager:
 
 * *Allocated capacity*:  The amount of space that has been allocated for volumes in a storage VM.
 * *Available*: The amount of physical space available to store data or to provision volumes in a storage VM or on a local tier.
 * *Capacity across volumes*: The sum of the used storage and available storage of all the volumes on a storage VM.
 * *Client data*:  The amount of space used by client data (either physical or logical).
-** Beginning with ONTAP 9.13.1, the capacity used by client data is referred to as *Logical Used*, and the capacity used by snapshots is displayed separately.
-** In ONTAP 9.12.1 and earlier, the capacity used by client data added to the capacity used by snapshots is referred to as *Logical Used*.
 * *Committed*: The amount of committed capacity for a local tier.
-* *Data reduction*: The ratio of the size of data ingested to the size of data stored.
-** Beginning with ONTAP 9.13.1, data reduction considers the results of most storage efficiency features, such as deduplication and compression; however, snapshots and thin provisioning are not counted as part of the data reduction ratio.
-** In ONTAP 9.12.1 and earlier, data reduction ratios are displayed as follows:
-*** The data reduction value displayed on the *Capacity* panel is the overall ratio of all logical used space compared to physical used space, and it includes the benefits derived from using snapshots and other storage efficiency features.
-*** When you display the details panel, you see both the *Overall* ratio that was displayed on the overview panel and ratio of logical used space used only by client data compared to physical used space used only by client data, referred to as *Without snapshots and clones*.
-* *Logical used*: 
-** Beginning with ONTAP 9.13.1, the capacity used by client data is referred to as *Logical Used*, and the capacity used by snapshots is displayed separately.
-** In ONTAP 9.12.1 and earlier, the capacity used by client data added to capacity used by snapshots is referred to as *Logical Used*.
 * *Logical used %*: The percentage of the current logical used capacity compared to the provisioned size, excluding snapshot reserves.  This value can be greater than 100%, because it includes efficiency savings in the volume.
 * *Maximum capacity*: The maximum amount of space allocated for volumes on a storage VM.
 * *Physical used*: The amount of capacity used in the physical blocks of a volume or local tier.
@@ -172,6 +179,7 @@ link:../task_admin_monitor_capacity_in_sm.html[Monitor cluster, tier, and SVM ca
 
 link:../volumes/logical-space-reporting-enforcement-concept.html[Logical space reporting and enforcement for volumes]
 
+// 2026 Nov 5, ONTAPDOC-4052
 // 2026 Oct 19, IDR-660
 // 2025 Jan 15, ONTAPDOC-3176
 // 2025 June 13, ONTAPDOC-3078

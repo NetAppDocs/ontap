@@ -1,0 +1,76 @@
+---
+permalink: san-config/fc-config-best-practices.html
+sidebar: sidebar
+keywords: fc, fabric, configuration, best, practices, san
+summary: "For best performance, you should consider certain best practices when configuring your FC switch."
+---
+= Learn about best practices to configure FC fabrics with ONTAP systems
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Following FC fabric configuration best practices improves host and target performance, reliability, and stability during fabric changes.
+
+.Recommended FC fabric configuration best practices
+
+* *Single-Initiator / Single-Target (SI/ST) zoning*
++
+SI/ST zoning lowers latency spikes during fabric changes, eliminates crosstalk, limits Registered State Change Notifications (RSCNs), simplifies troubleshooting, and keeps path counts within host limits.
++
+** Host impact: SI/ST zoning ensures predictable MPIO behavior, faster discovery, and fewer All Path Down (APD)/Permanent Device Loss (PDL) events.
+** Target impact: SI/ST zoning ensures fewer login/logout events, and stable FC sessions.
+
+* *WWPN‑based zoning using target LIF WWPNs (not physical ports)*
++
+WWPN-based zoning enables LIF mobility, takeover/giveback, nondisruptive operations without re‑zoning, and prevents path resets during maintenance.
+
+** Host impact: WWPN-based zoning ensures no path loss during LIF moves or controller failover.
+** Target impact: WWPN-based zoning ensures ONTAP can move target LIFs transparently.
+
+* *NPIV enabled on all FC switches*
++
+All of the switches that are connected to the fabric must support NPIV and must have NPIV enabled. ONTAP uses N_Port ID virtualization (NPIV) to present FC targets. Without it, target LIFs cannot log in correctly. 
+
+** Host impact: NPIV prevents intermittent path drops and missing devices.
+** Target impact: NPIV ensures target LIF visibility and stable FC logins.
+
+* *Dual independent fabrics that are fully isolated*
++
+A dual independent fabric consists of two separate physical switches, power supplies, and cabling.  Fabric A and Fabric B never connect to each other.  Each maintains its own FC name server, zone sets and domain IDs. Because the fabrics are fully isolated, there is no single point of failure. Nondisruptive maintenance can be performed on one fabric while the other continues to operate.
+
+** Host impact: Dual independent fabrics support continuous I/O during fabric firmware upgrades or failures.
+** Target impact: Dual independent fabrics maintain redundant target access during switch issues.
+
+* *Fixed FC port speeds (avoid auto‑negotiation)*
++
+Auto-negotiation can delay fabric rebuilds, cause speed mismatches, and lead to reconvergence delays and link flaps.
+
+** Host impact: Fixed FC port speeds result in shorter outage windows during link resets.
+** Target impact: Fixed FC port speeds bring ports up faster after node or switch events.
+
+* *Strict adherence to NetApp Interoperability Matrix Tool (IMT) validated configurations (HBA, driver, firmware, switch)*
++
+Strictly adhering to configurations validated in the https://mysupport.netapp.com/matrix[NetApp IMT^] maintains expected latency and throughput.
+
+** Host impact: Using IMT-validated configurations avoids unexplained I/O errors and timeouts.
+** Target impact: Using IMT-validated configurations prevents protocol‑level incompatibilities.
+
+* *Proactive monitoring of FC error counters (CRC, sync loss, RECV_ERROR)*
++
+Fabric errors often appear as host-side latency or I/O errors before ONTAP storage counters detect them.  Proactive monitoring of FC error counts prevents sustained latency inflation.
+
+** Host impact: Proactive monitoring enables early detection and prevents host I/O retries and application stalls.
+** Target impact: Proactive monitoring avoids misattribution of fabric issues as storage problems.
+
+* *Avoid Inter-Switch Link (ISL) oversubscription for SAN traffic*
++
+Congested ISLs cause credit starvation and slow‑drain behavior.
+
+** Host impact: Avoiding ISL oversubscription reduces host I/O wait times and queuing.
+** Target impact: Avoiding ISL oversubscription prevents backpressure toward ONTAP FC ports.
+
+
+.Related information
+https://www.netapp.com/pdf.html?item=/media/10680-tr4080.pdf[NetApp Technical Report 4080: Best Practices for Modern SAN^].
+
+// 2026 Sept 28, ONTAPDOC-3949
