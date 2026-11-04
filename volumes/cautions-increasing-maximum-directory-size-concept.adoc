@@ -1,20 +1,94 @@
 ---
 permalink: volumes/cautions-increasing-maximum-directory-size-concept.html
 sidebar: sidebar
-keywords: flexvol, maximum, limits, maxdir-size, maxdirsize, caution, caveats, directory, size, directory size, max, allowed, default, volume
-summary: "The default maximum directory size for FlexVol volumes is model-dependent, and optimized for the size of system memory. Before increasing the maximum directory size, involve technical support."
+keywords: flexvol, flexgroup, maximum, limits, maxdir-size, maxdirsize, directory, size, directory size, max, 25 million files, large directory, directory index, is-dir-index-transfer-enabled
+summary: "You can configure the maximum size of the directories on a FlexVol volume. The largest size you should set depends on the ONTAP release and your specific configuration. The ONTAP directory size enforcement feature has been enhanced with ONTAP 9.20.1 to support larger directory sizes."
 ---
 = Maximum directory size for ONTAP FlexVol volumes
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-You can increase the default maximum directory size for a specific FlexVol volume by using the `-maxdir-size` option of the `volume modify` command, but doing so could impact system performance. See the link:https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/What_is_maxdirsize[NetApp Knowledge Base: What is maxdirsize?^].
+You can configure the maximum size of the directories on a FlexVol volume. The largest size you should set depends on the ONTAP release and your specific configuration. The ONTAP directory size enforcement feature has been enhanced with ONTAP 9.20.1 to support larger directory sizes.
 
-To learn more about the model-dependent maximum directory sizes for FlexVol volumes, visit the link:https://hwu.netapp.com/[NetApp Hardware Universe^].
+[NOTE]
+Configuring the maximum directory size applies to individual FlexVol volumes as well as all the volumes in a FlexGroup.
 
-Learn more about `volume modify` in the link:https://docs.netapp.com/us-en/ontap-cli/volume-modify.html[ONTAP command reference^].
+== Considerations for directory size limit processing
 
-// 2025 Mar 19, ONTAPDOC-2758
-// 14 june 2022, jira-kda-1580
-// ONTAPDOC-2119/GH-1818
+The size of a directory varies based on the number of files, folders, and other entries it contains as well as the length of the names. As this total size increases, it can affect performance and the ability of ONTAP to manage directories efficiently. You can limit the maximum size of a directory using the `maxdir-size` command parameter. The maximum directory size is set once for a specific volume and applied to every folder on the volume.
+
+=== Operational characteristics
+
+There are several characteristics of the ONTAP directory processing related to establishing and enforcing a maximum size.
+
+Default maximum::
+The default maximum directory size for ONTAP releases prior to 9.20.1 is 320 MB. The exact value is model-dependent and optimized for the amount of system memory on the platform. See the https://hwu.netapp.com/[NetApp Hardware Universe^] for model-specific details and defaults.
+
+Increase the maximum directory size::
+The default maximum is adequate for most workloads supporting typical business applications; most environments do not need to change this value. If needed, you can increase the maximum directory size allowed using the `-maxdir-size` parameter on the CLI commands `volume create` and `volume modify`.
+
+Recommended ceiling::
+NetApp generally recommends against expanding a directory beyond 1GB even though some directories have been observed to safely exceed this size. There are performance risks with an excessive size prior to ONTAP 9.20.1.
+
+=== Performance considerations
+
+The size of a directory directly impacts lookup performance, particularly for very large and active directories. As a directory grows, ONTAP automatically builds an internal index to speed up name lookups so most requests don't require scanning the entire directory.
+
+However, under sustained high-speed file creation and deletion, the index management process can fall behind the rate of incoming changes. In some cases, this can result in a large partially indexed directory. In this case, the lookup and directory listing requests can experience significant performance degradation which persists until the indexing process catches up.
+
+== Enhanced directory size supporting 25 million files
+
+Beginning with ONTAP 9.20.1, you can safely increase the maximum directory size value beyond the limitation in previous ONTAP releases. The upper limit with 9.20.1 and later is 4 GB; this provides support for approximately 25 million files, folders, and other entries. This enhancement is designed to support workloads, such as AI, that require a very large number of files in a single directory.
+
+=== Two-step configuration process
+
+Configuring a volume to safely support larger directories is a two-step process. You can perform the configuration when a volume is created or by modifying an existing volume. The steps are:
+
+* Enable the feature. You need to set the parameter `-is-dir-index-transfer-enabled` to `true` (from the default `false`) for a specific volume using the `volume create` or `volume modify` command.
+* Increase the maximum directory size. You can set the maximum for the volume with the `-maxdir-size` parameter during volume creation or subsequent modification. This is the same parameter used with ONTAP systems prior to 9.20.1.
+
+These two settings are independent and so the order you perform the configuration is flexible. However, NetApp recommends enabling the enhanced size option first (`-is-dir-index-transfer-enabled`) before volume directories are allowed to grow toward the configured maximum size. Directories that grow larger before the feature is enabled won't fully benefit from the improvements until the option is enabled and the associated background conversion process completes.
+
+=== Benefits
+
+The expanded maximum directory size provides several improvements:
+
+* Enhanced directory indexing keeps pace with fast, high-volume file creation and deletion requests which reduces the risk of large unindexed directories.
+* Directory index information is replicated to SnapMirror destination volumes; a destination volume remains indexed and performs well even if a SnapMirror relationship is broken.
+* Directory access during background consistency checks is faster which reduces the impact of large directories on system health checks.
+* Lookup performance is more consistent across a broader range of operations, providing a reliable fallback even when a directory's index isn't available.
+
+=== Enhanced internal processing
+
+When you enable the enhanced directory maximum size option, ONTAP starts a background scanner that converts the volume's existing directory index information to a new flexible format. This process runs asynchronously and takes some time to complete, especially for a volume with many existing directories. Large existing directories might not fully realize the performance and replication benefits until the scanning process completes.
+
+After you enable the option on a volume, you should not attempt to disable it. Disabling it triggers a background scanner that converts directory index information back to its original format; the scanner must complete before the option is fully reverted.
+
+=== Restrictions and cautions
+
+Before enabling the feature using the `-is-dir-index-transfer-enabled` parameter, be aware of the following restrictions:
+
+* It is not compatible with S3 duality. There is a known limit on the number of objects within a directory that S3 duality can support. The two features are mutually exclusive and should not be used together.
+
+* It is not supported on a volume that is in, or that you intend to place in, a SnapMirror synchronous or SnapMirror active sync NAS relationship.
+
+* It is not supported on a volume that is a candidate for SVM migration.
+
+* SnapMirror asynchronous and SnapMirror cloud destinations must be running ONTAP 9.17.1 or later; replication to earlier releases is not supported.
+
+* Logical Directory Replication (LDR) is not supported for a volume with this feature enabled.
+
+* It cannot be enabled directly on a SnapMirror destination (DP) volume; its state always follows the source volume.
+
+* A FlexCache volume never caches directory index information from its origin. This capability's enablement state is synchronized from the origin volume to its caches, but the underlying index conversion applies only to the origin.
+
+Make sure to review your data protection topology before enabling this feature on a volume. These restrictions can affect existing or future plans, including SnapMirror relationships and SVM migration.
+
+== Related information
+
+* link:../volumes/enable-large-dir-max-support-task.html[Enable ONTAP support for large directory maximum size]
+* https://kb.netapp.com/Advice_and_Troubleshooting/Data_Storage_Software/ONTAP_OS/What_is_maxdirsize[NetApp Knowledge Base: What is maxdirsize?^]
+* https://kb.netapp.com/on-prem/ontap/Ontap_OS/OS-KBs/How_to_modify_the_maxdir-size_in_ONTAP_9[NetApp Knowledge Base: How to modify the maxdir-size in ONTAP 9^]
+//* https://docs.netapp.com/us-en/ontap-cli/volume-modify.html[ONTAP command reference: volume modify^]
+* https://hwu.netapp.com/[NetApp Hardware Universe^]
