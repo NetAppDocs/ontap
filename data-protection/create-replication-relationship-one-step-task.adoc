@@ -9,7 +9,7 @@ summary: "Beginning with ONTAP 9.3, you can use the snapmirror protect command t
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.3, you can use the `snapmirror protect` command to configure a data protection relationship in a single step. You specify a list of volumes to be replicated, an SVM on the destination cluster, a job schedule, and a SnapMirror policy. `snapmirror protect` does the rest. 
+You can use the `snapmirror protect` command to configure a data protection relationship in a single step. You specify a list of volumes to be replicated, an SVM on the destination cluster, a job schedule, and a SnapMirror policy. `snapmirror protect` does the rest. 
 
 .Before you begin
 
@@ -19,6 +19,9 @@ https://docs.netapp.com/us-en/ontap-system-manager-classic/peering/index.html[Cl
 
 * The language on the destination volume must be the same as the language on the source volume.
 
+* Beginning with ONTAP 9.20.1, you can configure backend SnapMirror asynchronous replication over existing FC fabrics. To do so, your ONTAP system backend must be configured for FC replication and both the FC fabric and the intercluster IP network must be operational. Replication data can transport over the FC fabric, but the intercluster IP network is required for cluster communications and replication management functions. Direct-attached FC configurations are not supported for backend FC replication.  link:configure-backend-fc-replication.html[Learn to configure your ONTAP system backend for FC replication]
+** If you are configuring a SnapMirror asynchronous relationship to use FC as the transport protocol, in a MetroCluster configuration, the storage initiator used for the MetroCluster must be separate from the initiator used for replication over FC. Sharing initiator storage between the two is not supported.
+
 .About this task
 
 The `snapmirror protect` command chooses an aggregate associated with the specified SVM. If no aggregate is associated with the SVM, it chooses from all the aggregates in the cluster. The choice of aggregate is based on the amount of free space and the number of volumes on the aggregate.
@@ -26,22 +29,21 @@ The `snapmirror protect` command chooses an aggregate associated with the specif
 The `snapmirror protect` command then performs the following steps:
 
 * Creates a destination volume with an appropriate type and amount of reserved space for each volume in the list of volumes to be replicated.
++
+The name of the destination volume is of the form `_source_volume_name_dst_`. In case of a conflict with an existing name, the command appends a number to the volume name. You can specify a prefix and/or suffix in the command options. The suffix replaces the system-supplied `dst` suffix.
++
+A destination volume can contain up to 1019 snapshots.
 * Configures a replication relationship appropriate for the policy you specify.
 * Initializes the relationship.
-
-The name of the destination volume is of the form `_source_volume_name_dst_`. In case of a conflict with an existing name, the command appends a number to the volume name. You can specify a prefix and/or suffix in the command options. The suffix replaces the system-supplied `dst` suffix.
-
-In ONTAP 9.4 and later, a destination volume can contain up to 1019 snapshots.
-In ONTAP 9.3 and earlier, a destination volume can contain up to 251 snapshots.
-
++
 [NOTE]
 ====
 Initialization can be time-consuming. `snapmirror protect` does not wait for initialization to complete before the job finishes. For this reason, you should use the `snapmirror show` command rather than the `job show` command to determine when initialization is complete.
 ====
 
-Beginning with ONTAP 9.5, SnapMirror synchronous relationships can be created by using the `snapmirror protect` command.
-
-Learn more about `snapmirror protect` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-protect.html[ONTAP command reference^].
+* Beginning with ONTAP 9.20.1, use a supported asynchronous data protection policy and the `-transport fc` option when creating your Snapmirror relationship to replicate over your FC fabric. Backend replication uses the IP protocol by default. link:default-protection-policies-concept.html[Learn which default asynchronous data protection policies are supported for backend FC replication].
++
+NOTE: To change the selected transport protocol after creating a SnapMirror replication relationship, you must delete and recreate the relationship.
 
 .Step
 
@@ -59,10 +61,10 @@ snapmirror protect -path-list <SVM:volume> -destination-vserver <destination_SVM
 You must run this command from the destination SVM or the destination cluster. The `-auto-initialize` option defaults to "`true`".
 ====
 +
-The following example creates and initializes a SnapMirror DR relationship using the default `MirrorAllSnapshots` policy:
+The following example creates and initializes a SnapMirror DR relationship using the default `MirrorAllSnapshots` policy and the FC transport protocol:
 +
 ----
-cluster_dst::> snapmirror protect -path-list svm1:volA, svm1:volB -destination-vserver svm_backup -policy MirrorAllSnapshots -schedule replication_daily
+cluster_dst::> snapmirror protect -path-list svm1:volA, svm1:volB -destination-vserver svm_backup -policy MirrorAllSnapshots -schedule replication_daily -transport fc
 ----
 +
 [NOTE]
@@ -102,7 +104,7 @@ Learn more about `snapmirror show` in the link:https://docs.netapp.com/us-en/ont
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/job-show.html[job show^]
 
-
+// 2026 Nov 5, ONTAPDOC-3949
 // 2025 July 31, ONTAPDOC-2960
 // 2025 July 30, ONTAPDOC-1127
 // 2025-Apr-15, ONTAPDOC-2803
