@@ -113,6 +113,56 @@ For more information, see link:./concepts/capacity-measurements-in-sm-concept.ht
 
 * You can also view the storage that specific volumes use in the local tier by selecting the *Volumes* tab.
 
+== View the data reduction rate
+
+The data reduction rate indicates how much the amount of storage consumed by your data is reduced after storage efficiency features, such as compression, compaction, and deduplication, have been applied.
+
+Beginning with ONTAP 9.20.1, the data reduction rate (DRR)is reported with and without   reducible data. Reducible data is data on which space savings are realized after storage efficiency features are applied. In ONTAP 9.19.1 and earlier, the DRR includes both reducible and non-reducible data. Non-reducible data is data for which space savings are not realized after storage efficiency features are applied, or data to which storage efficiency features cannot be applied. The DDR without reducible data provides a more accurate reflection of space saved from ONTAP storage efficiency.
+
+.Steps
+
+You can use the ONTAP CLI or System Manager to view your DRR.
+
+[role="tabbed-block"]
+====
+
+.System Manager
+--
+Beginning with ONTAP 9.13.1, the data reduction rate displayed in System Manager considers the results of most storage efficiency features; however, snapshots and thin provisioning are not counted as part of the data reduction ratio. In ONTAP 9.12.1 and earlier you have the option to view this rate without the inclusion of snapshots and clones.
+
+.To view the DRR at the aggregate level:
+
+. In System Manager, select *Storage > Tiers*.
+. Select the local tier (aggregate) for which you want to view the DRR. 
++
+DRR is listed under *Local Tier Capacity*.
+
+.To view the DRR at the cluster level:
+
+. In System Manager, select *Dashboard*.
++
+The DRR is displayed under Capacity.
+--
+
+.CLI
+--
+How you view your data reduction rate in the CLI varies depending upon your ONTAP version.
+
+NOTE: You should not use the `df -S` command to view your data reduction rate. If the `df -S` command is used in an automation process, replace it with the volume show command as shown.
+
+[cols="1,3,3,3" options="header"]
+|===
+| ONTAP version | To view cluster-level DRR | To view aggregate-level DRR | To view volume-level DRR
+| 9.20.1 and later | `cluster-show` | `storage aggregate show-cumulated-efficiency` 
+a|
+* `volume efficiency`
+* `volume show -volume <vol_name> -vserver <SVM> -fields used, sis-space-saved, dedupe-space-saved, compression-space-saved`
+
+| 9.19.1 and earlier | `cluster-show` | `cluster space show` | `volume show -volume <vol_name> -vserver <SVM> -fields used, sis-space-saved, dedupe-space-saved, compression-space-saved`
+|===
+--
+====
+
 == View the capacity of the volumes in a storage VM
 // This heading is linked to directly from System Manager.  Do not alter heading without notifying Eng.
 
@@ -161,6 +211,7 @@ You can view the maximum capacity measurements in two ways:
 * link:manage-max-cap-limit-svm-in-sm-task.html#edit-max-cap-limit-svm[Edit the maximum capacity limit of a storage VM]
 * link:./concepts/capacity-measurements-in-sm-concept.html[Capacity measurements in System Manager]
 
+// 2026 Nov 5, ONTAPDOC-4052
 // 2025 Mar 05, ONTAPDOC-1127
 // 2024 Feb 3, ONTAPDOC-2005 and gh-1346
 // 2021 Mar 31, JIRA IE-230

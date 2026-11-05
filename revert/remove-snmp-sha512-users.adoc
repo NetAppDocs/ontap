@@ -1,0 +1,57 @@
+---
+permalink: revert/remove-snmp-sha512-users.html
+sidebar: sidebar
+keywords: revert, reverting, reversion, snmp, snmpv3, sha512, sha-512, authentication, users, switches, 9.20.1
+summary: "If you have SNMPv3 users that use SHA-512 authentication, ONTAP blocks reversion to versions earlier than ONTAP 9.20.1. Before you revert, delete these users and recreate them with a supported authentication protocol."
+---
+= Remove SNMPv3 users that use SHA-512 authentication before reverting from ONTAP 9.20.1
+:icons: font
+:imagesdir: ../media/
+
+[.lead]
+Beginning with ONTAP 9.20.1, you can create SNMPv3 users that use SHA-512 authentication. ONTAP versions earlier than 9.20.1 do not support SHA-512 authentication, so ONTAP blocks the revert if any SNMPv3 users with SHA-512 authentication exist. Before you revert, delete these users and recreate them with a supported authentication protocol.
+
+.Steps
+
+. Display the SNMPv3 users that use SHA-512 authentication:
++
+[source,cli]
+----
+security snmpusers -authmethod usm -authprotocol sha512
+----
+
+. Delete each SHA-512 user:
++
+[source,cli]
+----
+security login delete -vserver <vserver_name> -user-or-group-name <user_name> -application snmp -authentication-method usm
+----
+
+. If you still need the users, recreate them with a supported authentication protocol, such as `sha` or `sha2-256`:
++
+[source,cli]
+----
+security login create -vserver <vserver_name> -user-or-group-name <user_name> -application snmp -authentication-method usm
+----
++
+If the user monitors a switch, include the `-remote-switch-ipaddress` parameter with the IP address of the switch:
++
+[source,cli]
+----
+security login create -user-or-group-name <user_name> -application snmp -authentication-method usm -remote-switch-ipaddress <switch_ip_address>
+----
++
+Learn more about link:../networking/configure_snmpv3_users_in_a_cluster.html[configuring SNMPv3 users].
+
+. If any Ethernet switches used the deleted SHA-512 users for monitoring, update each switch to use the recreated user:
++
+[source,cli]
+----
+system switch ethernet modify -device <switch_name> -snmp-version SNMPv3 -community-or-username <snmp_user_name>
+----
++
+Learn more about `system switch ethernet modify` in the link:https://docs.netapp.com/us-en/ontap-cli/system-switch-ethernet-modify.html[ONTAP command reference^].
++
+For more information about SNMPv3 for the Ethernet switch health monitor (CSHM), including how to configure the Ethernet switches, see link:https://docs.netapp.com/us-en/ontap-systems-switches/switch-cshm/config-snmpv3.html[Configure SNMPv3 for Ethernet switch health monitoring^].
+
+// 2026 Oct 22, ONTAPEX-222336
