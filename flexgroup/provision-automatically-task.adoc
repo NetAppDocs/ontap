@@ -24,11 +24,21 @@ When creating a FlexGroup volume that will tier inactive data, each node must ha
 
 ONTAP selects two local tiers with the largest amount of usable space on each node to create the FlexGroup volume. If two local tiers are not available, ONTAP selects one local tier per node to create the FlexGroup volume.
 
+Beginning with ONTAP 9.20.1, you can use storage profiles to select the best performance level for your needs. Storage profiles enable you to switch between standard and performance FlexGroup provisioning. The -storage-profile parameter defines the storage profile that ONTAP uses.
+
+* performance: Throughput-optimized provisioning for high performance workloads.
+* standard: Capacity-oriented provisioning for general purpose workloads.
+
 Beginning with ONTAP 9.15.1, when you automatically provision a FlexGroup volume, ONTAP uses balanced placement (BP) to choose the local tiers and FlexGroup member (constituent) volumes layout. One aspect of BP is how it limits over-provisioning local tiers when creating 'none' guaranteed (thin-provisioned) FlexGroup volumes. The size of the overall FlexGroup volume is limited by the amount of free space on the local tier, although the limit is higher than it is for 'volume' guaranteed (thick-provisioned) FlexGroup volumes. When you create a FlexGroup volume using REST APIs or `auto-provision-as` with the ONTAP CLI, provisioning might fail because of insufficient space due to this limit. You can avoid this by creating smaller FlexGroup volumes, or by link:create-task.html[creating a FlexGroup volume and selecting the local tiers manually] using the `aggr-list` parameter.
 
 .Steps
 
-. Provision the FlexGroup volume:
+. Complete one of the following options.
+.. Provision a FlexGroup volume with a storage profile using ONTAP 9.20.1 or later:
++
+`volume create -vserver <svm name> -volume <fg_vol_name> -size <fg_size> [-storage-profile {standard|performance}]`
+
+.. Provision a FlexGroup volume using ONTAP 9.19.1 or earlier:
 +
 `volume create -vserver svm_name -volume fg_vol_name –auto-provision-as flexgroup -size fg_size [–encrypt true] [-qos-policy-group qos_policy_group_name] [-support-tiering true] [-granular-data advanced]`
 +
@@ -58,6 +68,12 @@ Warning: The FlexGroup "fg" will be created with the following number of constit
 The constituents will be created on the following aggregates: aggr1,aggr2
 Do you want to continue? {y|n}: y
 [Job 34] Job succeeded: Successful
+----
++
+Beginning with ONTAP 9.20.1, you can use storage profiles to provision FlexGroup volumes. The following example uses a performance storage profile to create a 100-TB FlexGroup volume:
++
+----
+cluster1::> volume create -vserver vs0 -volume fg -size 100TB -storage-profile performance
 ----
 +
 The following example shows how to create a QoS policy group for throughput ceiling and how to apply it to a FlexGroup volume:
@@ -111,6 +127,7 @@ file1  file2
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/qos-policy-group-create.html[qos policy-group create^]
 
+// 2026-Oct-30, ONTAPDOC-4241
 // 2025 May 26, ONTAPDOC-2960
 // 2025 May 07, linked to advanced capacity balancing (ACB/GDD), added GDD to the example, cleaned up FabricPool language, aggr updated to local tier 
 // 2-APR-2025 ONTAPDOC-2919

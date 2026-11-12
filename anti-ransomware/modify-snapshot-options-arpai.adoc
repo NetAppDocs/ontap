@@ -5,14 +5,99 @@ keywords: ARP AI, arpai, snapshot settings, retention, arw snap, autonomous rans
 summary: "Adjust the creation and retention settings for ARP/AI snapshots automatically generated in response to potential ransomware threats."
 ---
 
-= Adjust settings for automatically generated ONTAP ARP/AI snapshots
+= Configure ONTAP ARP/AI snapshot response policies and settings
 :icons: font
 :imagesdir: ../media/
 
 [.lead]
-Beginning with ONTAP 9.16.1, you can use the CLI to control the retention settings for Autonomous Ransomware Protection with AI (ARP/AI) snapshots that are automatically generated in response to suspected ransomware attacks.
+Beginning with ONTAP 9.16.1, you can use the CLI to control the creation and retention settings for Autonomous Ransomware Protection with AI (ARP/AI) snapshots. Beginning with ONTAP 9.20.1, you can also configure the snapshot response policy for periodic and attack snapshots to control whether ARP/AI creates snapshots when it detects abnormal activity.
 
 NOTE: If you are running ONTAP 9.15.1 or earlier, see link:modify-snapshot-options-arp.html[Adjust settings for automatically generated ARP snapshots].
+
+== Configure a snapshot response policy
+
+Beginning with ONTAP 9.20.1, you can configure the ARP/AI snapshot response policy for periodic and attack snapshots to control whether ARP/AI creates snapshots when it detects abnormal activity. You can set the policy at the SVM level (where all volumes on the SVM inherit the setting) or override it at the volume level.
+
+The following snapshot response policies are available:
+
+[cols="1,3", options="header"]
+|===
+| Policy | Behavior
+
+| `alert-with-proactive-and-periodic-snapshot`
+| (Default) ARP/AI generates alerts and event logs, creates snapshots at regular intervals, and creates additional snapshots when an attack is detected.
+
+| `alert-with-proactive-snapshot`
+| ARP/AI generates alerts and event logs and creates snapshots only when an attack is detected. No periodic snapshots are created.
+
+| `alert-only`
+| ARP/AI generates alerts and event logs only. No ARP/AI snapshots are created.
+|===
+
+CAUTION: If you set the policy to `alert-only`, ARP/AI creates no snapshots. If a ransomware attack is confirmed, there are no ARP/AI snapshots available for data recovery, even during an active attack. Before using `alert-only`, ensure you have adequate external data protection such as scheduled ONTAP snapshots, SnapCenter backups, or another backup solution.
+
+NOTE: When you change the snapshot response policy, existing ARP/AI snapshots are not deleted immediately. They are deleted when their scheduled expiry time is reached. Do not expect immediate storage capacity reclamation after a policy change.
+
+[role="tabbed-block"]
+====
+.System Manager
+--
+*Configure the snapshot response policy at the SVM level:*
+
+. Select *Cluster* > *Storage VMs* and select the storage VM.
+. Navigate to the *Settings* tab. Under *Security*, locate the *Anti-ransomware* tile and select image:icon_pencil.gif[Edit icon].
+. Under *Protection level*, select the protection type to apply to all ARP/AI-enabled volumes on the SVM.
+. Select *Save*.
+
+*Configure the snapshot response policy at the volume level:*
+
+. Select *Storage* > *Volumes* and select the volume.
+. In the *Security* tab, locate the *Anti-ransomware* section and select image:icon_pencil.gif[Edit icon].
+. Under *Protection level*, select the snapshot response policy to override the SVM-level setting for this volume.
+. Select *Save*.
+--
+
+.CLI
+--
+. Show the current ARP/AI snapshot response policy:
++
+At the SVM level:
++
+[source,cli]
+----
+security anti-ransomware vserver snapshot-settings show -vserver <svm_name>
+----
++
+At the volume level:
++
+[source,cli]
+----
+security anti-ransomware volume snapshot-settings show -vserver <svm_name> -volume <volume_name>
+----
+
+. Configure the ARP/AI snapshot response policy:
++
+At the SVM level:
++
+[source,cli]
+----
+security anti-ransomware vserver snapshot-settings modify -vserver <svm_name> -anti-ransomware-snapshot-policy <policy>
+----
++
+NOTE: This setting applies to volumes when ARP/AI is enabled on them. It does not retroactively affect existing ARP/AI-enabled volumes.
++
+At the volume level (overrides the SVM-level setting):
++
+[source,cli]
+----
+security anti-ransomware volume snapshot-settings modify -vserver <svm_name> -volume <volume_name> -anti-ransomware-snapshot-policy <policy>
+----
+--
+====
+
+== Adjust snapshot creation and retention settings
+
+NOTE: Beginning with ONTAP 9.20.1, the following settings apply only when the snapshot response policy is `alert-with-proactive-snapshot` or `alert-with-proactive-and-periodic-snapshot`.
 
 .Before you begin
 
@@ -48,6 +133,8 @@ You can modify the following settings (ONTAP 9.16.1 and later):
 | Setting | Description | Supported versions with ARP/AI
 | `arw.snap.max.count`
 a| Specifies the maximum number of ARP/AI snapshots that can exist in a volume at any given time. Older copies are deleted to ensure that the total number of ARP/AI snapshots stays within this limit.
+
+NOTE: Beginning with ONTAP 9.20.1, this setting applies only when the snapshot response policy is set to `alert-with-proactive-and-periodic-snapshot`. When the policy is set to `alert-with-proactive-snapshot` or `alert-only`, ONTAP ignores this setting.
 a| ONTAP 9.16.1 and later
 | `arw.snap.create.interval.hours`
 a| Specifies the interval _in hours_ between ARP/AI snapshots. A new ARP/AI snapshot is created when a data entropy-based attack is suspected and the most recently created snapshot is older than the specified interval.
@@ -124,5 +211,6 @@ a| ONTAP 9.17.1 and later
 
 * link:learn-about-arpai.html#arp-ai-snapshots[Threat assessment and ARP/AI snapshots]
 * link:entropy-eval-period-arpai.html[ARP/AI entropy evaluation period for SAN volumes]
+* link:recover-arpai.html[Recover data after a ransomware attack with ARP/AI]
 
-// 2026-06-30, restructured from modify-automatic-snapshot-options-task.adoc
+// 2026-07-28, ONTAPDOC-4059 9.20.1 ARP/AI snapshot response policies// 2026-06-30, restructured from modify-automatic-snapshot-options-task.adoc

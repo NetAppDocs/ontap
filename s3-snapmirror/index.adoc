@@ -45,13 +45,14 @@ a| ONTAP S3
 
 You can protect existing buckets on ONTAP S3 servers or you can create new buckets with data protection enabled immediately.
 
+[[snapmirror-s3-requirements]]
 == SnapMirror S3 requirements
 
 * ONTAP version
 +
-ONTAP 9.10.1 or later must be running on source and destination clusters.
-[NOTE]
-SnapMirror S3 is not supported on MetroCluster configurations.
+ONTAP 9.10.1 or later must be running on the source and destination clusters.
++
+In a MetroCluster configuration, ONTAP 9.20.1 or later must be running on the source and destination clusters.
 
 * Licensing
 +
@@ -61,6 +62,7 @@ The following licenses are available in the link:../system-admin/manage-licenses
 ** SnapMirror S3 to target other NetApp object store targets (ONTAP S3, StorageGRID, and Cloud Volumes ONTAP)
 ** SnapMirror S3 to target third-party object stores, including AWS S3 (available in the link:../data-protection/install-snapmirror-cloud-license-task.html[ONTAP One Compatibility bundle])
 ** If your cluster is running ONTAP 9.10.1, a link:../fabricpool/install-license-aws-azure-ibm-task.html[FabricPool license] is required.
+** In a MetroCluster configuration, the SnapMirror S3 license must be installed on both clusters. 
 
 * 	ONTAP S3
 ** ONTAP S3 servers must be running source and destination SVMs.
@@ -84,6 +86,12 @@ You should be aware that when two S3 buckets are in a SnapMirror relationship, i
 * Root user keys
 Storage VM root user access keys are required for SnapMirror S3 relationships; ONTAP does not assign them by default. The first time you create a SnapMirror S3 relationship, you must verify that the keys exist on both source and destination storage VMs and regenerate them if they do not. If you need to regenerate them, you must ensure that all clients and all SnapMirror object-store configurations using the access and secret key pair are updated with the new keys.
 
+* MetroCluster
+Beginning in ONTAP 9.20.1, SnapMirror S3 is supported in MetroCluster configurations. The MetroCluster configuration must meet the following requirements: 
+** The MetroCluster configuration is in a healthy state.
+** Both clusters are running ONTAP 9.20.1 or later.
+** The SnapMirror S3 license is installed on both clusters.
+
 For information about S3 server configuration, see the following topics:
 
 * link:../task_object_provision_enable_s3_server.html[Enable an S3 server on a storage VM]
@@ -94,13 +102,12 @@ For information about cluster and storage VM peering, see the following topic:
 * link:../task_dp_prepare_mirror.html[Prepare for mirroring and vaulting (System Manager, steps 1-6)]
 * link:../peering/index.html[Cluster and SVM peering (CLI)]
 
+
 == Supported SnapMirror relationships
 
 SnapMirror S3 supports fan-out and cascade relationships. For an overview, see link:../data-protection/supported-deployment-config-concept.html[Fan-out and cascade data protection deployments]. 
 
 SnapMirror S3 does not support fan-in deployments (data protection relationships between multiple source buckets and a single destination bucket). SnapMirror S3 can support multiple bucket mirrors from multiple clusters to a single secondary cluster, but each source bucket must have its own destination bucket on the secondary cluster. 
-
-SnapMirror S3 is not supported in MetroCluster environments.
 
 == Control access to S3 buckets 
 
@@ -127,6 +134,7 @@ When Object Locked objects are mirrored to a destination bucket, they maintain t
 * Bucket A does not have a default retention period and Bucket B has a default retention period of 60 days. When unlocked objects are replicated from Bucket A to Bucket B, they will adopt the 60-day retention period. If an object is manually locked in Bucket A, it will maintain its original retention period when replicated to Bucket B.
 * Bucket A has a default retention period of 30 days and Bucket B does not have a default retention period. Objects replicated from Bucket A to Bucket B will maintain their 30-day retention period.
 
+// 2026 Oct 19, IDR-666
 // 2025 Jul 2, ONTAPDOC-3109
 // 2025-Apr-24, issue# 1716
 // 2025-Mar-12, Not supported with MCC

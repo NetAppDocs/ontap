@@ -4,7 +4,7 @@ sidebar: sidebar
 keywords: ontap, revert, reversion, reverting, downgrade, downgrading, preparation, pre-revert, checks, verification, cluster health, storage health, system time, jobs
 summary: 'Before revert ONTAP, you should verify your cluster health, storage health, and system time. You should also verify that no jobs are running on the cluster.'
 ---
-= System verifications to perform before you revert an ONTAP cluster
+= Verify system readiness before reverting an ONTAP cluster
 :icons: font
 :imagesdir: ../media/
 
@@ -293,6 +293,40 @@ Job ID Name                 Vserver    Node           State
        Description: SnapMirror Service Job
 2 entries were displayed
 ----
+
+== Verify key manager state before reverting
+
+Before reverting from ONTAP 9.20.1 to an earlier ONTAP release, verify that key manager configurations are in a valid state for the target release.
+
+.Steps
+
+. View the key manager state:
++
+[source,cli]
+----
+security key-manager keystore show
+----
+
+. If any configuration is `inactive`, delete it before proceeding with the revert:
++
+[source,cli]
+----
+security key-manager keystore delete -vserver <svm_name>
+----
+
+. Check whether any key manager job is still running:
++
+[source,cli]
+----
+job show -name *keymanager*
+----
+
+. If any key manager job is still initializing, wait for it to complete before starting the revert.
+
+[NOTE]
+====
+Active keystore configurations are handled as part of the standard revert process. The main revert concern is inactive keystore entries or in-progress key-manager jobs introduced by the ONTAP 9.20.1 key-manager workflow.
+====
 
 .Related information
 * link:https://docs.netapp.com/us-en/ontap-cli/storage-disk-show.html[storage disk show^]

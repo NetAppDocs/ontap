@@ -2,7 +2,7 @@
 sidebar: sidebar
 permalink: task_nas_provide_client_access_with_name_services.html
 keywords: netapp, ontap, name services, client access, LDAP, NIS, authenticate NAS client, look up
-summary: Authenticate NAS clients using LDAP or NIS
+summary: "You can configure a storage VM to use the LDAP or NIS name service. This enables ONTAP to look up information--including host, user, group, or netgroup--used to authenticate NAS clients."
 ---
 
 = Provide client access with name services using ONTAP System Manager
@@ -14,19 +14,81 @@ summary: Authenticate NAS clients using LDAP or NIS
 :imagesdir: ./media/
 
 [.lead]
-Enable ONTAP to look up host, user, group, or netgroup information using LDAP or NIS to authenticate NAS clients.
+You can configure a storage VM to use the LDAP or NIS name service. This enables ONTAP to look up information--including host, user, group, or netgroup--used to authenticate NAS clients.
 
-This procedure creates or modifies LDAP or NIS configurations on an existing storage VM enabled for link:task_nas_enable_linux_nfs.html[NFS] or link:task_nas_enable_windows_smb.html[SMB].
+== Prepare to configure an SVM name service
 
-For LDAP configurations, you should have the LDAP configuration details required in your environment and you should be using a default ONTAP LDAP schema.
-//Removed image, only two steps
+Before configuring a name service, you need to decide whether to use LDAP or NIS. In addition, you should gather the details of your identity infrastructure, including server addresses or hostnames, the domain or search base, and any authentication or encryption requirements such as TLS certificates. Preparing and reviewing this information ahead of time helps ensure a smooth configuration and avoids disruptions to client access.
+
+[TIP]
+Because NIS lacks some of the security and scalability features of LDAP, NetApp recommends using LDAP whenever possible, particularly for NFSv4 and later deployments.
+
+You should also decide which name-service databases--such as passwd, group, or netgroup--each service will support and the order ONTAP should search them relative to local files. If you plan to serve both NFS and SMB clients from the same storage VM, confirm that your LDAP or NIS environment is configured consistently to avoid credential mapping conflicts between the protocols.
+
+=== Lightweight Directory Access Protocol
+
+Lightweight Directory Access Protocol (LDAP) is an open, vendor-neutral protocol for accessing and maintaining distributed directory information, such as user accounts, groups, and other identity data, over a network. LDAP directories are commonly used to centralize user and group management across many systems, and Microsoft Active Directory is a widely deployed implementation that also functions as an LDAP server. ONTAP can use LDAP as a name-service source to look up UNIX identity information for NFS clients--UIDs, GIDs, and group memberships--and to support user mapping and other identity lookups for SMB clients. Using LDAP for name services provides greater security and scalability than local files alone, particularly in environments using NFSv4 or later.
+
+Prior to ONTAP 9.20.1, consistent UID/GID access across NFS and SMB required manually configuring and maintaining explicit `uidNumber/gidNumber` attributes for every user and group in Active Directory--a time-consuming, error-prone process that's difficult to keep synchronized across large or multi-domain environments. ONTAP 9.20.1 introduces _native SSSD support with automatic SID-to-UNIX ID conversion_ for NAS clients, a feature that uses a deterministic and SSSD-compatible algorithm to derive POSIX UIDs/GIDs from Windows SIDs and reverse the process to recover the original SID. It can be enabled on an SVM's LDAP client when Active Directory is the identity source, which allows ONTAP to dynamically compute consistent and reversible UNIX identities without storing any POSIX attributes in Active Directory.
+
+=== Network Information Service
+
+Network Information Service (NIS) is a client-server directory protocol for sharing configuration information--such as user accounts, groups, hostnames, and netgroups--across UNIX and Linux systems on a network. NIS centralizes administration by maintaining a set of maps that clients query instead of relying on local files on every system. ONTAP can use NIS as an alternative to LDAP for NFS client authentication.
+
+== Configure an LDAP service
+
+You can optionally configure an LDAP service for a storage VM to provide client access. This is part of the procedure to link:./task_nas_enable_linux_nfs.html[Enable NAS storage for Linux servers using NFS with ONTAP System Manager].
+
+[CAUTION]
+You should enable the *Use automatic SID to UNIX ID conversion* option, available with ONTAP 9.20.1 and later releases, with caution because it changes how ONTAP maps Windows SIDs to UNIX IDs. Only use the option for new LDAP configurations where POSIX attributes haven't already been assigned to users. Enabling it for an existing LDAP configuration will change file ownership and might break access control.
+
+.Before you begin
+
+You should have the LDAP configuration details required in your environment and be using a default ONTAP LDAP schema. You'll need to identify an Active Directory server as the identity source when activating the native SSSD with automatic SID-to-UNIX ID conversion feature.
 
 .Steps
 
-. Configure the required service: click *Storage > Storage VMs*.
+. In System Manager, select *Cluster* and then *Storage VMs* in the left navigation pane.
+. Select the SVM from the list you want to configure.
+. Under the *Settings* tab, scroll down to *Services* and next to *LDAP* select either:
+.. image:icon_gear.gif[Actions icon] to create a new configuration
+.. image:icon_kabob.gif[Edit icon] and then *Edit* to modify an existing configuration
+. Select *Active Directory* or *LDAP servers*.
+. Provide the configuration information appropriate for the server and your environment.
++
+For a new LDAP configuration on ONTAP 9.20.1 or later, and with Active Directory as the name server, you can optionally select *Use automatic SID to UNIX ID conversion* to enable automatic mapping of Windows SIDs to UNIX IDs.
+. Select *Save* to apply the configuration.
 
-. Select the storage VM, click *Settings*, and then click image:icon_gear.gif[Actions icon] for LDAP or NIS.
+== Configure an NIS service
 
-. Include any changes in the name services switch: click image:icon_pencil.gif[Edit icon] under Name Services Switch.
+You can optionally configure an NIS service for a storage VM to provide client access. This is part of the procedure to link:./task_nas_enable_windows_smb.html[Enable NAS storage for Windows servers using SMB with ONTAP System Manager].
+
+.Before you begin
+
+You should have the NIS configuration details required in your environment.
+
+.Steps
+
+. In System Manager, select *Cluster* and then *Storage VMs* in the left navigation pane.
+. Select the SVM from the list you want to configure.
+. Under the *Settings* tab, scroll down to *Services* and next to *NIS* select either:
+.. image:icon_gear.gif[Actions icon] to create a new configuration
+.. image:icon_kabob.gif[Edit icon] and then *Edit* to modify an existing configuration
+. Provide the NIS domain and add related values appropriate for the server and your environment.
+. Select *Save* to apply the configuration.
+
+== Related information
+
+* link:./nfs-admin/ontap-name-services-concept.html[Learn how ONTAP uses name services]
+
+* link:./nfs-config/configure-name-services-concept.html[Learn about ONTAP NFS name services]
+
+* link:./authentication/enable-nis-ldap-users-access-cluster-task.html[Configure LDAP or NIS server access in ONTAP]
+
+* link:./smb-admin/configure-nis-ldap-name-services-svm-task.html[Configure NIS or LDAP name services on ONTAP SMB SVMs]
+
+* link:./nfs-config/configure-name-service-switch-table-task.html[Configure the ONTAP NFS name service switch table]
+
+* https://www.netapp.com/pdf.html?item=/media/19423-tr-4835.pdf[Technical Report: How to configure LDAP in ONTAP^]
 
 // 2025 June 16, ONTAPDOC-3078

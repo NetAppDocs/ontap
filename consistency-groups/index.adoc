@@ -55,16 +55,31 @@ In ONTAP 9.13.1, you can only retrieve historical metrics using the ONTAP REST A
 
 == Protect consistency groups
 
-Consistency groups offer application-consistent protection, ensuring consistency of your data across multiple volumes or LIFs. When creating a snapshot of a consistency group, a "fence" is established on the consistency group. The fence initiates a queue for I/O until after the snapshot operation completes, ensuring point-in-time consistency of data across all entities in the consistency group. The fence can cause a transient spike in latency during snapshot creation operations, such as a scheduled snapshot policy or creating a snapshot with System Manager. Learn more about the context of the ONTAP REST API and ONTAP CLI in the link:https://kb.netapp.com/on-prem/ontap/DM/REST-API[ONTAP REST API documentation^] and link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^].
+Consistency groups offer application-consistent protection, ensuring consistency of your data across multiple volumes or LIFs. When creating a snapshot of a consistency group, a "fence" is established on the consistency group. The fence initiates a queue for I/O until after the snapshot operation completes, ensuring point-in-time consistency of data across all entities in the consistency group. The fence can cause a transient spike in latency during snapshot creation operations, such as a scheduled snapshot policy or creating a snapshot with System Manager. 
 
+The type of data protection available for consistency groups varies based upon your ONTAP version.
 
-Consistency groups offer protection through:
+[cols="2", options=header]
+|===
 
+| Available beginning with ONTAP...
+| Data protection for consistency groups
+
+| 9.20.1
+| link:protect-task.html#configure-snaplock-for-snapvault-replication-from-a-non-snaplock-source[SnapLock for SnapVault from non-SnapLock volumes]
+
+| 9.14.1
+| link:../data-protection/snapmirror-svm-replication-concept.html[SVM disaster recovery]
+
+| 9.13.1
+| xref:../data-protection/snapmirror-disaster-recovery-concept.html[SnapMirror asynchronous] 
+
+| 9.10.1
+a|
 * Snapshot policies
 * xref:../snapmirror-active-sync/index.html[SnapMirror active sync]
-* <<mcc>> (beginning with ONTAP 9.11.1)
-* xref:../data-protection/snapmirror-disaster-recovery-concept.html[SnapMirror asynchronous] (beginning with ONTAP 9.13.1)
-* link:../data-protection/snapmirror-svm-replication-concept.html[SVM disaster recovery] (beginning with ONTAP 9.14.1)
+
+|===
 
 Creating a consistency group does not automatically enable protection. Local and remote protection policies can be set when creating or after creating a consistency group. 
 
@@ -99,35 +114,56 @@ include::../_include/mirrored-aggregate-performance.adoc[]
 
 == Upgrade considerations
 
-When upgrading to ONTAP 9.10.1 or later, consistency groups created with SnapMirror active sync (previously known as SnapMirror Business Continuity) in ONTAP 9.8 and 9.9.1 are automatically upgraded and become manageable under *Storage > Consistency Groups* in System Manager or the ONTAP REST API For more information about upgrading from ONTAP 9.8 or 9.9.1, see link:../snapmirror-active-sync/upgrade-revert-task.html[SnapMirror active sync upgrade and revert considerations].
-
-Consistency group snapshots created in the ONTAP REST API can be managed through System Manager's Consistency Group interface and through consistency group ONTAP REST API endpoints. Beginning with ONTAP 9.14.1, consistency group snapshots can also be managed with the ONTAP CLI. 
+When upgrading to ONTAP 9.10.1 or later, consistency groups created with SnapMirror active sync (previously known as SnapMirror Business Continuity) in ONTAP 9.8 and 9.9.1 are automatically upgraded and become manageable under *Storage > Consistency Groups* in System Manager or the ONTAP REST API. For more information about upgrading from ONTAP 9.8 or 9.9.1, see link:../snapmirror-active-sync/upgrade-revert-task.html[SnapMirror active sync upgrade and revert considerations].
 
 [NOTE]
 Snapshots created with the ONTAPI commands `cg-start` and `cg-commit` are not recognized as consistency group snapshots and thus cannot be managed through System Manager's consistency group interface or the consistency group endpoints in the ONTAP REST API. Beginning with ONTAP 9.14.1, these snapshots can be mirrored to the destination volume if you are using a SnapMirror asynchronous policy. For more information, see xref:protect-task.html#configure-snapmirror-asynchronous[Configure SnapMirror asynchronous].
 
 == Supported features by release
 
-[options="header", cols="3,1,1,1,1,1,1,1"]
+[options="header", cols="2"]
 |===
-| | ONTAP 9.16.1 | ONTAP 9.15.1 | ONTAP 9.14.1 | ONTAP 9.13.1  | ONTAP 9.12.1 | ONTAP 9.11.1 | ONTAP 9.10.1 
-| Hierarchical consistency groups | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓
-| Local protection with snapshots | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓
-| SnapMirror active sync | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓
-| MetroCluster support | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 
-| Two-phase commits (REST API only) | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | 
-| Application and component tags | ✓ | ✓ | ✓ | ✓ | ✓ | | 
-| Clone consistency groups | ✓ | ✓ | ✓ | ✓ | ✓ | | 
-| Add and remove volumes | ✓ | ✓ | ✓ | ✓ | ✓ | | 
-| Create CGs with new NAS volumes | ✓ | ✓ | ✓ | ✓ | REST API only | | 
-| Create CGs with new NVMe Namespaces | ✓ | ✓ | ✓ | ✓ | REST API only | | 
-| Move volumes between child consistency groups | ✓ | ✓ | ✓ |  ✓ | | | 
-| Modify consistency group geometry | ✓ | ✓ | ✓ | ✓ | | | 
-| Monitoring | ✓ | ✓ | ✓ | ✓ | | | 
-| Multi-admin verification | ✓ | | | | | | 
-| SnapMirror asynchronous (single consistency groups only) | ✓ | ✓ | ✓ | ✓ | | | 
-| SVM disaster recovery (single consistency groups only)  | ✓ | ✓ | ✓ | | | | 
-| CLI support | ✓ | ✓ | ✓ | | | | 
+
+| Beginning with ONTAP...
+| Supported features
+
+|9.20.1
+|SnapLock for SnapVault protection on secondary systems
+
+|9.16.1
+a|Multi-admin verification
+
+| 9.14.1
+a|
+* SVM disaster recovery (single consistency group only)
+* CLI support
+
+|9.13.1
+a| 
+* Move volumes between child consistency groups
+* Modify consistency group geometry
+* Monitoring
+* SnapMirror asynchronous (single consistency groups only)
+
+|9.12.1
+a|
+* Add and remove volumes 
+* Application and component tags
+* Clone consistency groups
+* Create CGs with new NAS volumes (REST API only)
+* Create CGs with NVMe namespaces (REST API only)
+
+|9.11.1
+a|
+* MetroCluster configurations
+* Two-phase commits (REST API only)
+
+|9.10.1
+a|
+* Hierarchical consistency groups
+* Local protection with snapshots
+* SnapMirror active sync
+
 |===
 
 == Learn more about consistency groups
@@ -142,6 +178,7 @@ video::j0jfXDcdyzE[youtube, width=848, height=480]
 * link:../multi-admin-verify/index.html[Multi-admin verification]
 * link:https://docs.netapp.com/us-en/ontap-cli/[ONTAP command reference^]
 
+// 2026 Nov 5, ONTAPDOC-4048
 // 2025-Aug-19, ONTAPDOC-2803
 // 2025 Mar 12, ONTAPDOC-2758
 // 2024 Sept 16, ontapdoc-2248
