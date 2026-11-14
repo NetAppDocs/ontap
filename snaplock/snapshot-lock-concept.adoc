@@ -2,7 +2,7 @@
 permalink: snaplock/snapshot-lock-concept.html
 sidebar: sidebar
 keywords: snaplock, snapshot, lock, tamperproof
-summary: "Beginning with ONTAP 9.12.1, you can lock a snapshot on a non-SnapLock volume to provide protection from ransomware attacks. Locking snapshots ensures they can't be deleted accidentally or maliciously."
+summary: "You can lock a snapshot on a non-SnapLock volume to provide protection from ransomware attacks. Locking snapshots ensures they can't be deleted accidentally or maliciously."
 ---
 = Lock an ONTAP snapshot for protection against ransomware attacks
 :icons: font
@@ -13,15 +13,15 @@ Beginning with ONTAP 9.12.1, you can lock a snapshot on a non-SnapLock volume to
 
 You use the SnapLock compliance clock feature to lock snapshots for a specified period so that they cannot be deleted until the expiration time is reached. Locking snapshots makes them tamperproof, protecting them from ransomware threats. You can use locked snapshots to recover data if a volume is compromised by a ransomware attack.
 
-Beginning with ONTAP 9.14.1, snapshot locking supports long-term retention snapshots on SnapLock vault destinations and on non-SnapLock SnapMirror destination volumes. Snapshot locking is enabled by setting the retention period using SnapMirror policy rules associated with an xref:Modify an existing policy to apply long-term retention[existing policy label]. The rule overrides the default retention period set on the volume. If there is no retention period associated with the SnapMirror label, the default retention period of the volume is used.
+Beginning with ONTAP 9.14.1, snapshot locking supports long-term retention snapshots on non-SnapLock vault and mirror-vault SnapMirror destination volumes. You enable snapshot locking by setting the retention period with SnapMirror policy rules associated with an xref:Modify an existing policy to apply long-term retention[existing policy label]. The rule overrides the default retention period set on the volume. If there is no retention period associated with the SnapMirror label, the default retention period of the volume is used.
 
 .Tamperproof snapshot requirements and considerations
 
 * If you are using the ONTAP CLI, all nodes in the cluster must be running ONTAP 9.12.1 or later. If you are using System Manager, all nodes must be running ONTAP 9.13.1 or later.
 * link:../system-admin/install-license-task.html[The SnapLock license must be installed on the cluster]. This license is included in link:../system-admin/manage-licenses-concept.html#licenses-included-with-ontap-one[ONTAP One].
 * link:../snaplock/initialize-complianceclock-task.html[The compliance clock on the cluster must be initialized].
-* When snapshot locking is enabled on a volume, you can upgrade the clusters to a version of ONTAP later than ONTAP 9.12.1; however, you cannot revert to an earlier version of ONTAP until all locked snapshots have reached their expiration date and are deleted and snapshot locking is disabled.
-* When a snapshot is locked, the volume expiry time is set to the expiry time of the snapshot. If more than one snapshot is locked, the volume expiry time  reflects the largest expiry time among all snapshots.
+* When snapshot locking is enabled on a volume, you can upgrade the clusters to a version of ONTAP later than ONTAP 9.12.1. However, you cannot revert to an earlier version of ONTAP until all locked snapshots have reached their expiration date and are deleted and snapshot locking is disabled.
+* When a snapshot is locked, the volume expiry time is set to the expiry time of the snapshot. If more than one snapshot is locked, the volume expiry time reflects the largest expiry time among all snapshots.
 * The retention period for locked snapshots takes precedence over the snapshot keep count, which means the keep count limit is not honored if the snapshot retention period for locked snapshots has not expired.
 * In a SnapMirror relationship, you can set a retention period on a mirror-vault policy rule, and the retention period is applied for snapshots replicated to the destination if the destination volume has snapshot locking enabled. The retention period takes precedence over keep count; for example, snapshots that have not passed their expiry will be retained even if the keep count is exceeded. 
 * You can rename a snapshot on a non-SnapLock volume. Snapshot rename operations on the primary volume of a SnapMirror relationship are reflected on the secondary volume only if the policy is MirrorAllSnapshots. For other policy types, the renamed snapshot is not propagated during updates. 
@@ -72,7 +72,7 @@ You can create volume clones and file clones from a locked snapshot.
 
 .Unsupported features
 
-The following features currently are not supported with tamperproof snapshots:
+Tamperproof snapshots don't support these features:
 
 * Consistency groups
 * link:../fabricpool/index.html[FabricPool]
@@ -163,7 +163,7 @@ Beginning with ONTAP 9.12.1, you can create snapshot policies to apply a snapsho
 . In the *Add Snapshot Policy* window, enter the policy name.
 . Select image:icon_add.gif[Add icon].
 . Provide the snapshot schedule details, including the schedule name, maximum snapshots to keep, and SnapLock retention period.
-. In the *SnapLock Retention Period* column, enter the number of hours, days, months or years to retain the snapshots. For example, a snapshot policy with a retention period of 5 days locks a snapshot for 5 days from the time it is created, and it cannot be deleted during that time. The following retention period ranges are supported:
+. In the *SnapLock Retention Period* column, enter the number of hours, days, months or years to retain the snapshots. For example, a snapshot policy with a retention period of five days locks a snapshot for five days from the time it is created, and it cannot be deleted during that time. The following retention period ranges are supported:
 +
 * Years:  0 - 100
 * Months: 0 - 1200
@@ -273,20 +273,21 @@ cluster1> volume snapshot modify-snaplock-expiry-time -volume vol1 -snapshot sna
 
 In a SnapMirror relationship, you can set a retention period on a mirror-vault policy rule, and the retention period is applied for snapshots replicated to the destination if the destination volume has snapshot locking enabled. The retention period takes precedence over keep count; for example, snapshots that have not passed their expiry will be retained even if the keep count is exceeded.
 
-Beginning with ONTAP 9.14.1, you can modify an existing SnapMirror policy by adding a rule to set long-term retention of snapshots. The rule is used to override the default volume retention period on SnapLock vault destinations and on non-SnapLock SnapMirror destination volumes. 
+Beginning with ONTAP 9.14.1, you can modify an existing SnapMirror policy by adding a rule to set long-term retention of snapshots. The rule overrides the default volume retention period on non-SnapLock vault and mirror-vault SnapMirror destination volumes. 
 
 . Add a rule to an existing SnapMirror policy:
 +
 `snapmirror policy add-rule -vserver <SVM name> -policy <policy name> -snapmirror-label <label name> -keep <number of snapshots> -retention-period [<integer> days|months|years]`
 +
-The following example creates a rule that applies a retention period of 6 months to the existing policy called "lockvault":
+The following example creates a rule that applies a retention period of 6 months to the existing policy called "snapvault":
 +
 ----
-snapmirror policy add-rule -vserver vs1 -policy lockvault -snapmirror-label test1 -keep 10 -retention-period "6 months"
+snapmirror policy add-rule -vserver vs1 -policy snapvault -snapmirror-label test1 -keep 10 -retention-period "6 months"
 ----
 +
 Learn more about `snapmirror policy add-rule` in the link:https://docs.netapp.com/us-en/ontap-cli/snapmirror-policy-add-rule.html[ONTAP command reference^].
 
+// 2026-Nov-12, GitHub issue #2166
 // 2026-Oct-21, ONTAPDOC-4352
 // 2026-Apr-29, ONTAPDOC-3870 & CONTAP-697860
 // 2025-Oct-22, ONTAPDOC-3308
